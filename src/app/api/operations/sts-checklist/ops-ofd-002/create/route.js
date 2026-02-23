@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklist2 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-002";
+import STSChecklistTwo from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-002";
 import { getNextRevisionForCreate } from "../../revision";
+import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
+import "@/jobs/definitions/ops-ofd-002.job.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,9 +38,17 @@ export async function POST(req) {
 
     // Handle signature file upload if provided
     const signatureFile = formData.get("signature");
-    let signatureUrl = body.signatureBlock?.signature;
+    let signatureUrl = body.signature?.signature;
+
+    console.log("Signature handling:", {
+      signatureFileExists: !!signatureFile,
+      signatureFileType: typeof signatureFile,
+      signatureFileName: signatureFile?.name,
+      bodySignature: body.signature?.signature?.substring(0, 50) + "..."
+    });
 
     if (signatureFile && typeof signatureFile !== "string" && signatureFile.name) {
+      console.log("Processing signature file upload:", signatureFile.name);
       const bytes = await signatureFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
@@ -58,47 +68,155 @@ export async function POST(req) {
 
       await fs.writeFile(filePath, buffer);
       signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+      console.log("Signature saved to:", signatureUrl);
+    } else if (body.signatureBlock?.signature && body.signatureBlock.signature.startsWith("data:image")) {
+      // Handle base64 signature from signatureBlock
+      console.log("Processing base64 signature from signatureBlock");
+      const base64Data = body.signatureBlock.signature.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+
+      const uploadDir = path.join(
+        process.cwd(),
+        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
+      );
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const fileName = `${Date.now()}-signature.png`;
+      const filePath = path.join(uploadDir, fileName);
+
+      await fs.writeFile(filePath, buffer);
+      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+      console.log("Base64 signature from signatureBlock saved to:", signatureUrl);
+    } else if (body.signatureBlock?.signature && !body.signatureBlock.signature.startsWith("http") && !body.signatureBlock.signature.startsWith("/")) {
+      // Handle raw base64 from signatureBlock (without data:image prefix)
+      console.log("Processing raw base64 from signatureBlock");
+      try {
+        const buffer = Buffer.from(body.signatureBlock.signature, "base64");
+        
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+
+        const uploadDir = path.join(
+          process.cwd(),
+          `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
+        );
+        await fs.mkdir(uploadDir, { recursive: true });
+
+        const fileName = `${Date.now()}-signature.png`;
+        const filePath = path.join(uploadDir, fileName);
+
+        await fs.writeFile(filePath, buffer);
+        signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+        console.log("Raw base64 signature from signatureBlock saved to:", signatureUrl);
+      } catch (err) {
+        console.error("Failed to process raw base64 signature:", err);
+        // Keep existing signature if processing fails
+      }
+    } else if (body.signature?.signature && body.signature.signature.startsWith("data:image")) {
+      // Handle base64 signature from body.signature (legacy support)
+      console.log("Processing base64 signature from body.signature");
+      const base64Data = body.signature.signature.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+
+      const uploadDir = path.join(
+        process.cwd(),
+        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
+      );
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const fileName = `${Date.now()}-signature.png`;
+      const filePath = path.join(uploadDir, fileName);
+
+      await fs.writeFile(filePath, buffer);
+      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+      console.log("Base64 signature from body.signature saved to:", signatureUrl);
     }
 
-    const revisionNo = await getNextRevisionForCreate(STSChecklist2);
+    if (!body.operationRef) {
+      return NextResponse.json(
+        { error: "operationRef is required" },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const revisionNo = await getNextRevisionForCreate(STSChecklistTwo);
+
+    // Handle different field names from frontend
+    // Frontend might send: genericChecks, checklistItems, or checks
+    const rawChecklistItems = body.checklistItems || body.genericChecks || body.checks || [];
+    
+    // Transform frontend data format to match MongoDB schema
+    // Frontend sends: { id, description, status: boolean, notApplicable: boolean, userRemark }
+    // MongoDB expects: { clNumber, description, status: { yes, notApplicable }, remarks }
+    const checklistItems = rawChecklistItems.map(item => ({
+      clNumber: item.id || item.clNumber,
+      description: item.description,
+      status: {
+        yes: item.status === true,
+        notApplicable: item.notApplicable === true
+      },
+      remarks: item.userRemark || item.remarks || ""
+    }));
+    
+    console.log("Creating OPS-OFD-002 with data:", {
+      operationRef: body.operationRef,
+      checklistItemsCount: checklistItems.length,
+      firstItem: checklistItems[0],
+      signature: body.signature
+    });
 
     // Prepare the document data
     const documentData = {
+      operationRef: body.operationRef,
       documentInfo: {
-        formNo: body.formNo || "OPS-OFD-002",
+        ...(body.documentInfo || {}),
+        formNo: body.documentInfo?.formNo || "OPS-OFD-002",
         revisionNo,
-        revisionDate: body.revisionDate ? new Date(body.revisionDate) : undefined,
-        approvedBy: body.approvedBy || "JS",
+        issueDate: body.documentInfo?.issueDate ? new Date(body.documentInfo.issueDate) : new Date(),
+        approvedBy: body.documentInfo?.approvedBy || "JS",
       },
       transferInfo: {
-        constantHeadingShip: body.constantHeadingShip || "",
-        manoeuvringShip: body.maneuveringShip || "",
-        designatedPOACName: body.nameOfDesignatedPOAC || "",
-        stsSuperintendentName: body.nameOfSTSSuperintendent || "",
-        transferDate: body.dateOfTransfer ? new Date(body.dateOfTransfer) : undefined,
-        transferLocation: body.locationOfTransfer || "",
+        constantHeadingShip: body.constantHeadingShip || body.transferInfo?.constantHeadingShip || "",
+        manoeuvringShip: body.maneuveringShip || body.transferInfo?.manoeuvringShip || "",
+        designatedPOACName: body.nameOfDesignatedPOAC || body.transferInfo?.designatedPOACName || "",
+        stsSuperintendentName: body.nameOfSTSSuperintendent || body.transferInfo?.stsSuperintendentName || "",
+        transferDate: body.dateOfTransfer || body.transferInfo?.transferDate,
+        transferLocation: body.locationOfTransfer || body.transferInfo?.transferLocation || ""
       },
-      checklistItems: (body.genericChecks || []).map((check) => ({
-        clNumber: check.id || check.clNumber,
-        description: check.description || "",
-        status: check.status ? "YES" : check.notApplicable ? "NOT_APPLICABLE" : "NO",
-        remarks: check.userRemark || check.remarks || "",
-      })),
-      signatureBlock: {
+      checklistItems: checklistItems,
+      signature: {
         name: body.signature?.name || "",
         rank: body.signature?.rank || "",
-        signature: signatureUrl || "",
+        signature: signatureUrl || body.signature?.signature || "",
         date: body.signature?.date ? new Date(body.signature.date) : undefined,
       },
       status: body.status || "DRAFT",
       createdBy: body.createdBy || undefined,
     };
 
-    const newChecklist = await STSChecklist2.create(documentData);
+    const newChecklist = await STSChecklistTwo.create(documentData);
+
+    // Trigger DOCX generation
+    await createAndScheduleJob(null, "generate-ops-ofd-002", {
+      checklistId: newChecklist._id.toString(),
+      operationRef: newChecklist.operationRef,
+    });
 
     return NextResponse.json(
       {
-        message: "OPS-OFD-002 checklist created successfully",
+        message: "OPS-OFD-002 checklist created successfully & doc generation started",
         data: newChecklist,
       },
       {

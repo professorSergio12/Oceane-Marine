@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklist2 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-002";
+import STSChecklistTwo from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-002";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,7 +40,7 @@ export async function GET(req) {
       query.status = status;
     }
 
-    let checklists = await STSChecklist2.find(query)
+    let checklists = await STSChecklistTwo.find(query)
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 })
       .lean();
@@ -66,7 +66,7 @@ export async function GET(req) {
     });
 
     // Get available years
-    const allChecklists = await STSChecklist2.find({
+    const allChecklists = await STSChecklistTwo.find({
       "transferInfo.transferDate": { $exists: true, $ne: null },
     })
       .select("transferInfo.transferDate")

@@ -4,6 +4,7 @@ import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 // Import models to ensure they're registered before populate
 import "@/lib/mongodb/models/Location";
 import "@/lib/mongodb/models/MooringMaster";
+import "@/lib/mongodb/models/CargoType";
 
 export async function GET(req, { params }) {
   await connectDB();

@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 import FormCounterStsCheckList from "./FormCounterStsCheckList.js";
+
 // ================= DOCUMENT INFO =================
 const DocumentInfoSchema = new mongoose.Schema({
     formNo: String,
     revisionNo: String,
-    revisionDate: Date,
+    issueDate: Date,
     approvedBy: String,
 }, { _id: false });
 
@@ -20,19 +21,19 @@ const TransferInfoSchema = new mongoose.Schema({
 }, { _id: false });
 
 
-// ================= CHECK ITEM =================
-const CheckItemSchema = new mongoose.Schema({
+// ================= STATUS =================
+const StatusSchema = new mongoose.Schema({
+    yes: Boolean,
+    notApplicable: Boolean
+}, { _id: false });
+
+
+// ================= CHECKLIST ITEM =================
+const ChecklistItemSchema = new mongoose.Schema({
     clNumber: Number,
-
     description: String,
-
-    status: {
-        type: String,
-        enum: ["YES", "NO", "NOT_APPLICABLE"]
-    },
-
+    status: StatusSchema,
     remarks: String
-
 }, { _id: false });
 
 
@@ -40,13 +41,16 @@ const CheckItemSchema = new mongoose.Schema({
 const SignatureSchema = new mongoose.Schema({
     name: String,
     rank: String,
-    signature: String, // base64 or cloud url
+    signature: String,
     date: Date
 }, { _id: false });
 
 
-// ================= MAIN SCHEMA =================
-const STSChecklist2Schema = new mongoose.Schema({
+// ======================================================
+// ================= MAIN SCHEMA =========================
+// ======================================================
+
+const STSChecklistTwoSchema = new mongoose.Schema({
 
     // ===== HEADER =====
     operationRef: {
@@ -60,23 +64,17 @@ const STSChecklist2Schema = new mongoose.Schema({
         unique: true,
         index: true
     },
-
+    
     documentInfo: DocumentInfoSchema,
 
-
-    // ===== TRANSFER DETAILS =====
+    // ===== TRANSFER INFO =====
     transferInfo: TransferInfoSchema,
 
+    // ===== CHECKLIST ITEMS (1-15) =====
+    checklistItems: [ChecklistItemSchema],
 
-    // ===== CHECKLIST ITEMS (CL 1 → 15) =====
-    checklistItems: [
-        CheckItemSchema
-    ],
-
-
-    // ===== SIGNATURE BLOCK =====
-    signatureBlock: SignatureSchema,
-
+    // ===== SIGNATURE =====
+    signature: SignatureSchema,
 
     // ===== WORKFLOW =====
     status: {
@@ -90,19 +88,14 @@ const STSChecklist2Schema = new mongoose.Schema({
         ref: "User"
     }
 
-}, {
-    timestamps: true
-});
+}, { timestamps: true });
 
-STSChecklist2Schema.pre("save", async function () {
+STSChecklistTwoSchema.pre("save", async function () {
 
+    // Only generate for new document
     if (!this.isNew || this.sequenceNumber) return;
 
-    const year = new Date(
-        this.documentInfo?.revisionDate ||
-        this.transferInfo?.transferDate ||
-        Date.now()
-    ).getFullYear();
+    const year = new Date().getFullYear();
 
     const counter = await FormCounterStsCheckList.findOneAndUpdate(
         {
@@ -118,6 +111,5 @@ STSChecklist2Schema.pre("save", async function () {
     this.sequenceNumber = `${year}-${padded}`;
 });
 
-
-export default mongoose.models.STSChecklist2 ||
-    mongoose.model("STSChecklist2", STSChecklist2Schema);
+export default mongoose.models.STSChecklistTwo ||
+    mongoose.model("STSChecklistTwo", STSChecklistTwoSchema);

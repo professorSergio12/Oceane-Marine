@@ -1,5 +1,6 @@
 import { getAgenda } from "./agenda.js";
 import { defineOpsOfd001Job } from "../definitions/ops-ofd-001.job.js";
+import { defineOpsOfd002Job } from "../definitions/ops-ofd-002.job.js";
 import { defineOpsOfd003Job } from "../definitions/ops-ofd-003.job.js";
 import { defineOpsOfd005Job } from "../definitions/ops-ofd-005.job.js";
 import { defineOpsOfd005bJob } from "../definitions/ops-ofd-005b.job.js";
@@ -18,6 +19,7 @@ export async function registerJobs() {
   const agenda = await getAgenda();
 
   defineOpsOfd001Job(agenda);
+  defineOpsOfd002Job(agenda);
   defineOpsOfd003Job(agenda);
   defineOpsOfd005Job(agenda);
   defineOpsOfd005bJob(agenda);

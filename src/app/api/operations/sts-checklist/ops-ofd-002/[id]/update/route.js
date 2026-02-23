@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklist2 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-002";
+import STSChecklistTwo from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-002";
 import { incrementRevisionForUpdate } from "../../../revision";
+import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
+import "@/jobs/definitions/ops-ofd-002.job.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,8 +37,7 @@ export async function POST(req, { params }) {
 
     const body = JSON.parse(dataStr);
 
-    // Get existing checklist
-    const existing = await STSChecklist2.findById(id).lean();
+    const existing = await STSChecklistTwo.findById(id).lean();
 
     if (!existing) {
       return NextResponse.json(
@@ -45,9 +46,8 @@ export async function POST(req, { params }) {
       );
     }
 
-    // Handle signature file upload if provided
     const signatureFile = formData.get("signature");
-    let signatureUrl = body.signatureBlock?.signature || existing.signatureBlock?.signature;
+    let signatureUrl = body.signature?.signature || existing.signature?.signature;
 
     if (signatureFile && typeof signatureFile !== "string" && signatureFile.name) {
       const bytes = await signatureFile.arrayBuffer();
@@ -73,53 +73,63 @@ export async function POST(req, { params }) {
 
     const revisionNo = incrementRevisionForUpdate(existing.documentInfo?.revisionNo);
 
-    // Prepare update data
+    // Handle different field names from frontend
+    const rawChecklistItems = body.checklistItems || body.genericChecks || body.checks;
+    
+    // Transform frontend data format to match MongoDB schema if new data provided
+    const checklistItems = rawChecklistItems 
+      ? rawChecklistItems.map(item => ({
+          clNumber: item.id || item.clNumber,
+          description: item.description,
+          status: {
+            yes: item.status === true,
+            notApplicable: item.notApplicable === true
+          },
+          remarks: item.userRemark || item.remarks || ""
+        }))
+      : existing.checklistItems || [];
+
     const updateData = {
       documentInfo: {
-        formNo: body.formNo || existing.documentInfo?.formNo || "OPS-OFD-002",
+        ...(body.documentInfo || existing.documentInfo || {}),
         revisionNo,
-        revisionDate: body.revisionDate
-          ? new Date(body.revisionDate)
-          : existing.documentInfo?.revisionDate,
-        approvedBy: body.approvedBy || existing.documentInfo?.approvedBy || "JS",
       },
       transferInfo: {
-        constantHeadingShip: body.constantHeadingShip || existing.transferInfo?.constantHeadingShip || "",
-        manoeuvringShip: body.maneuveringShip || existing.transferInfo?.manoeuvringShip || "",
-        designatedPOACName: body.nameOfDesignatedPOAC || existing.transferInfo?.designatedPOACName || "",
-        stsSuperintendentName: body.nameOfSTSSuperintendent || existing.transferInfo?.stsSuperintendentName || "",
-        transferDate: body.dateOfTransfer
-          ? new Date(body.dateOfTransfer)
-          : existing.transferInfo?.transferDate,
-        transferLocation: body.locationOfTransfer || existing.transferInfo?.transferLocation || "",
+        constantHeadingShip: body.constantHeadingShip || body.transferInfo?.constantHeadingShip || existing.transferInfo?.constantHeadingShip || "",
+        manoeuvringShip: body.maneuveringShip || body.transferInfo?.manoeuvringShip || existing.transferInfo?.manoeuvringShip || "",
+        designatedPOACName: body.nameOfDesignatedPOAC || body.transferInfo?.designatedPOACName || existing.transferInfo?.designatedPOACName || "",
+        stsSuperintendentName: body.nameOfSTSSuperintendent || body.transferInfo?.stsSuperintendentName || existing.transferInfo?.stsSuperintendentName || "",
+        transferDate: body.dateOfTransfer || body.transferInfo?.transferDate || existing.transferInfo?.transferDate,
+        transferLocation: body.locationOfTransfer || body.transferInfo?.transferLocation || existing.transferInfo?.transferLocation || ""
       },
-      checklistItems: (body.genericChecks || existing.checklistItems || []).map((check) => ({
-        clNumber: check.id || check.clNumber,
-        description: check.description || "",
-        status: check.status ? "YES" : check.notApplicable ? "NOT_APPLICABLE" : "NO",
-        remarks: check.userRemark || check.remarks || "",
-      })),
-      signatureBlock: {
-        name: body.signature?.name || existing.signatureBlock?.name || "",
-        rank: body.signature?.rank || existing.signatureBlock?.rank || "",
-        signature: signatureUrl || "",
+      checklistItems: checklistItems,
+      signature: {
+        name: body.signature?.name || existing.signature?.name || "",
+        rank: body.signature?.rank || existing.signature?.rank || "",
+        signature: signatureUrl || body.signature?.signature || existing.signature?.signature || "",
         date: body.signature?.date
           ? new Date(body.signature.date)
-          : existing.signatureBlock?.date,
+          : existing.signature?.date,
       },
       status: body.status || existing.status || "DRAFT",
       createdBy: body.createdBy || existing.createdBy || undefined,
     };
 
-    const updatedChecklist = await STSChecklist2.findByIdAndUpdate(
+    const updatedChecklist = await STSChecklistTwo.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
     );
 
+    // Trigger DOCX generation
+    await createAndScheduleJob(null, "generate-ops-ofd-002", {
+      checklistId: updatedChecklist._id.toString(),
+      operationRef: updatedChecklist.operationRef,
+    });
+
     return NextResponse.json(
       {
-        message: "OPS-OFD-002 checklist updated successfully",
+        message: "OPS-OFD-002 checklist updated successfully & doc regeneration started",
         data: updatedChecklist,
       },
       {
