@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import STSChecklist4AF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-004";
 import { incrementRevisionForUpdate } from "../../../revision";
+import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
+import "@/jobs/definitions/ops-ofd-004.job.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,9 +106,15 @@ export async function POST(req, { params }) {
       { new: true, runValidators: true }
     );
 
+    // Schedule DOCX regeneration job
+    await createAndScheduleJob(null, "generate-ops-ofd-004", {
+      checklistId: updatedChecklist._id.toString(),
+      operationRef: updatedChecklist.operationRef,
+    });
+
     return NextResponse.json(
       {
-        message: "OPS-OFD-004 checklist updated successfully",
+        message: "OPS-OFD-004 checklist updated successfully & doc regeneration started",
         data: updatedChecklist,
       },
       {
