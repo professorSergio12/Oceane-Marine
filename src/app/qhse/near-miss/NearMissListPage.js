@@ -1,0 +1,654 @@
+"use client";
+
+import { useQhseSidebar } from "../QhseSidebarContext";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../utils/archive";
+import { ViewIconButton, ArchiveIconButton, DeleteIconButton } from "../components/ActionIcons";
+
+function formatDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Generate dynamic years
+function getYears() {
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let i = currentYear - 2; i < currentYear; i++) years.push(i);
+  for (let i = currentYear; i <= currentYear + 5; i++) years.push(i);
+  return years;
+}
+
+export default function NearMissListPage() {
+  const { contentClassName } = useQhseSidebar();
+  const currentYear = new Date().getFullYear();
+  const initialYears = getYears();
+  
+  const [nearMisses, setNearMisses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [archivingId, setArchivingId] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [remarksByReviewer, setRemarksByReviewer] = useState("");
+  const [availableYears, setAvailableYears] = useState(initialYears);
+  const [loadingYears, setLoadingYears] = useState(true);
+  const [year, setYear] = useState("");
+
+  // Fetch available years
+  useEffect(() => {
+    const loadYears = async () => {
+      setLoadingYears(true);
+      try {
+        const res = await fetch("/api/near-miss-form/list");
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.years)) {
+          const merged = Array.from(
+            new Set([...initialYears, ...data.years])
+          ).sort((a, b) => b - a);
+          setAvailableYears(merged);
+        }
+      } finally {
+        setLoadingYears(false);
+      }
+    };
+    loadYears();
+  }, []);
+
+  const fetchNearMisses = async (selectedReportId = null) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = year !== "" && year != null
+        ? `/api/near-miss-form/list?year=${year}`
+        : "/api/near-miss-form/list";
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load near-miss reports");
+      }
+      setNearMisses(data.nearMisses || []);
+      // If selected report ID is provided, update it with fresh data
+      if (selectedReportId) {
+        const updated = data.nearMisses.find((r) => r._id === selectedReportId);
+        if (updated) {
+          setSelectedReport(updated);
+          setRemarksByReviewer(updated.remarksByReviewer || "");
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNearMisses();
+  }, [year]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(nearMisses.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentReports = nearMisses.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleViewDetails = (report) => {
+    setSelectedReport(report);
+    setRemarksByReviewer(report?.remarksByReviewer || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleArchive = async (report) => {
+    if (!confirm("Archive this report? It will be stored in QHSE Archive (Near Miss).")) return;
+    setArchivingId(report._id);
+    setError(null);
+    try {
+      const payload = buildArchivePayload(ARCHIVE_MODULES.NEAR_MISS, report, report.description || report.formCode, report.formCode);
+      const result = await archiveDocument(payload);
+      if (!result.success) throw new Error(result.error);
+      setNearMisses((prev) => prev.filter((r) => r._id !== report._id));
+      if (selectedReport?._id === report._id) setSelectedReport(null);
+    } catch (err) {
+      setError(err.message || "Failed to archive");
+    } finally {
+      setArchivingId(null);
+    }
+  };
+
+  const handleDelete = async (report) => {
+    if (!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
+    setDeleting(report._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/near-miss-form/${report._id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete");
+      setNearMisses((prev) => prev.filter((r) => r._id !== report._id));
+      if (selectedReport?._id === report._id) setSelectedReport(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete report");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleStatusClick = async (reportId, currentStatus) => {
+    // If already reviewed, don't do anything
+    if (currentStatus === "Reviewed") return;
+    
+    setUpdatingStatus(reportId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/near-miss-form/${reportId}/update`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ remarksByReviewer: remarksByReviewer || "" }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update status");
+      }
+      
+      // Refresh the list to get updated data and preserve selected report
+      await fetchNearMisses(reportId);
+      
+      // Don't clear remarks if this is the selected report - keep them visible
+    } catch (err) {
+      console.error("Status update error:", err);
+      setError(err.message || "Failed to update status. Please try again.");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const getTypeBadgeClass = (type) => {
+    const typeMap = {
+      "Near Miss": "bg-blue-500/15 text-blue-300 border border-blue-400/40",
+      Injury: "bg-red-500/15 text-red-300 border border-red-400/40",
+      Fatality: "bg-red-600/20 text-red-200 border border-red-500/50",
+      Collision: "bg-orange-500/15 text-orange-300 border border-orange-400/40",
+      Pollution: "bg-yellow-500/15 text-yellow-300 border border-yellow-400/40",
+      "Contact Damage":
+        "bg-purple-500/15 text-purple-300 border border-purple-400/40",
+      "Best Practice":
+        "bg-emerald-500/15 text-emerald-300 border border-emerald-400/40",
+    };
+    return (
+      typeMap[type] ||
+      "bg-emerald-500/15 text-emerald-300 border border-emerald-400/40"
+    );
+  };
+
+  return (
+    <div className={`${contentClassName} pr-4`}>
+      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+        <header className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+                QHSE / Near-Miss Reporting
+              </p>
+              <h1 className="text-2xl font-bold">
+                Near-Miss & Incident Reports
+              </h1>
+              <p className="text-xs text-slate-200 mt-1">
+                View all near-miss, incident, and injury reports. Click "View
+                Details" to see full information.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
+              Year
+            </span>
+            <select
+              className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+              value={year === null || year === undefined ? "" : year}
+              onChange={(e) => {
+                const v = e.target.value;
+                setYear(v === "" ? "" : Number(v));
+              }}
+              disabled={loadingYears}
+            >
+              <option value="">All years</option>
+              {loadingYears ? (
+                <option disabled>Loading…</option>
+              ) : (
+                availableYears.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))
+              )}
+            </select>
+          </div>
+        </header>
+
+        <main className="space-y-6">
+          {/* Report Details - Only visible when a report is selected */}
+          {selectedReport && (
+          <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-white/10">
+              <div>
+                <h2 className="text-lg font-bold text-white">Report Details</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {selectedReport?.formCode || "Select a report to view details"}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {selectedReport &&
+                  (selectedReport.status || "Under Review") === "Under Review" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleStatusClick(
+                          selectedReport._id,
+                          selectedReport.status || "Under Review"
+                        )
+                      }
+                      disabled={updatingStatus === selectedReport._id}
+                      className="px-6 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold uppercase tracking-wider transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-orange-500/30"
+                    >
+                      {updatingStatus === selectedReport._id
+                        ? "Marking as Reviewed..."
+                        : "Mark as Reviewed"}
+                    </button>
+                  )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedReport(null)}
+                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition"
+                  aria-label="Close details"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5">
+              {/* First Row: ID, Date, Name of Observer, Position */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    ID
+                  </label>
+                  <div className="text-sm font-semibold text-white font-mono">
+                    {selectedReport?.formCode || "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Date
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.timeOfIncident
+                      ? formatDate(selectedReport.timeOfIncident)
+                      : "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Name of Observer
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.NameOfObserver || "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Position
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.PositionOfObserver || "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Second Row: Job Ref, Vessel Name, Type of Reporting, Email */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Job Ref #
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.JobRefNo || "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Vessel Name
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.VesselName || "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Type of Reporting
+                  </label>
+                  {selectedReport?.TypeOfReporting ? (
+                    <span
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${getTypeBadgeClass(
+                        selectedReport.TypeOfReporting
+                      )}`}
+                    >
+                      {selectedReport.TypeOfReporting}
+                    </span>
+                  ) : (
+                    <div className="text-sm text-slate-500">—</div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Email
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.email || "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rest of the fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Area of Near Miss
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.AreaOfNearMiss || "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Created At
+                  </label>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedReport?.createdAt
+                      ? formatDateTime(selectedReport.createdAt)
+                      : "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-white/10 pt-4 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Description
+                  </label>
+                  <div className="text-sm text-slate-200 leading-relaxed bg-white/5 rounded-lg p-3 min-h-[60px]">
+                    {selectedReport?.Description || "—"}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                      Immediate Cause
+                    </label>
+                    <div className="text-sm text-slate-200 leading-relaxed bg-white/5 rounded-lg p-3 min-h-[60px]">
+                      {selectedReport?.ImmediateCause || "—"}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                      Root Cause
+                    </label>
+                    <div className="text-sm text-slate-200 leading-relaxed bg-white/5 rounded-lg p-3 min-h-[60px]">
+                      {selectedReport?.RootCause || "—"}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Corrective Action
+                  </label>
+                  <div className="text-sm text-slate-200 leading-relaxed bg-white/5 rounded-lg p-3 min-h-[60px]">
+                    {selectedReport?.CorrectiveAction || "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Remarks by Reviewer
+                  </label>
+                  {selectedReport?.status === "Reviewed" ? (
+                    <div className="text-sm text-slate-200 leading-relaxed bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 min-h-[60px]">
+                      {selectedReport?.remarksByReviewer || "—"}
+                    </div>
+                  ) : (
+                    <textarea
+                      value={remarksByReviewer}
+                      onChange={(e) => setRemarksByReviewer(e.target.value)}
+                      placeholder="Enter remarks..."
+                      className="w-full text-sm text-slate-200 bg-white/5 border border-white/10 rounded-lg p-3 min-h-[60px] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-y"
+                      rows={3}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* Table Section - Hidden when details are shown */}
+          {!selectedReport && (
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl space-y-4">
+            {error && (
+              <p className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-sm text-slate-100">Loading reports…</div>
+              </div>
+            ) : nearMisses.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-sm text-slate-100">
+                  {year !== "" && year != null ? `No near-miss reports found for ${year}.` : "No near-miss reports found."}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-slate-200 border-b border-white/10">
+                        <th className="py-3 pr-4 font-semibold">Form Code</th>
+                        <th className="py-3 pr-4 font-semibold">Job Ref #</th>
+                        <th className="py-3 pr-4 font-semibold">Vessel Name</th>
+                        <th className="py-3 pr-4 font-semibold">Date</th>
+                        <th className="py-3 pr-4 font-semibold">Observer</th>
+                        <th className="py-3 pr-4 font-semibold">Type</th>
+                        <th className="py-3 pr-4 font-semibold">Area</th>
+                        <th className="py-3 pr-4 font-semibold">Status</th>
+                        <th className="py-3 pr-4 font-semibold text-right">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentReports.map((report) => (
+                        <tr
+                          key={report._id}
+                          className={`border-b border-white/5 hover:bg-white/5 transition ${
+                            selectedReport?._id === report._id
+                              ? "bg-orange-500/10"
+                              : ""
+                          }`}
+                        >
+                          <td className="py-3 pr-4">
+                            <span className="font-mono text-sky-300">
+                              {report.formCode || "—"}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4">
+                            {report.JobRefNo || "—"}
+                          </td>
+                          <td className="py-3 pr-4">
+                            {report.VesselName || "—"}
+                          </td>
+                          <td className="py-3 pr-4">
+                            {formatDate(report.timeOfIncident)}
+                          </td>
+                          <td className="py-3 pr-4">
+                            <div>
+                              <div className="font-medium">
+                                {report.NameOfObserver || "—"}
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                {report.PositionOfObserver || "—"}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${getTypeBadgeClass(
+                                report.TypeOfReporting
+                              )}`}
+                            >
+                              {report.TypeOfReporting || "—"}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span className="text-slate-300">
+                              {report.AreaOfNearMiss || "—"}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span
+                              className={`inline-flex items-center rounded-lg px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                                (report.status || "Under Review") ===
+                                "Under Review"
+                                  ? "bg-red-500/20 text-red-300 border border-red-400/50"
+                                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
+                              }`}
+                            >
+                              {report.status || "Under Review"}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <ArchiveIconButton
+                                onClick={() => handleArchive(report)}
+                                disabled={archivingId === report._id || deleting === report._id}
+                                loading={archivingId === report._id}
+                              />
+                              <DeleteIconButton
+                                onClick={() => handleDelete(report)}
+                                disabled={archivingId === report._id || deleting === report._id}
+                                loading={deleting === report._id}
+                              />
+                              <ViewIconButton
+                                onClick={() => handleViewDetails(report)}
+                                title="View Details"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div className="text-xs text-slate-300">
+                      Showing {startIndex + 1} to{" "}
+                      {Math.min(endIndex, nearMisses.length)} of{" "}
+                      {nearMisses.length} reports
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-medium text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      >
+                        Previous
+                      </button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter((page) => {
+                            return (
+                              page === 1 ||
+                              page === totalPages ||
+                              (page >= currentPage - 1 && page <= currentPage + 1)
+                            );
+                          })
+                          .map((page, index, array) => {
+                            const showEllipsisBefore =
+                              index > 0 && array[index - 1] !== page - 1;
+                            return (
+                              <div key={page} className="flex items-center gap-1">
+                                {showEllipsisBefore && (
+                                  <span className="text-slate-400 px-1">…</span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handlePageChange(page)}
+                                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
+                                    currentPage === page
+                                      ? "bg-orange-500 text-white border-orange-500"
+                                      : "border-white/10 bg-white/5 text-white/90 hover:bg-white/10"
+                                  }`}
+                                >
+                                  {page}
+                                </button>
+                              </div>
+                            );
+                          })}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-medium text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+

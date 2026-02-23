@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  --background: #08334f;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+  --background: #08334f;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Unified dark select styling (apply with className="theme-select") */
+.theme-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #0b2740;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0.75rem;
+  padding: 0.35rem 2.5rem 0.35rem 0.75rem;
+  line-height: 1.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e2e8f0' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.8rem center !important;
+  background-size: 1rem !important;
+}
+.theme-select:focus {
+  outline: 2px solid rgba(249, 115, 22, 0.5);
+  outline-offset: 0;
+}
+.theme-select option {
+  background-color: #0b2740;
+  color: #e2e8f0;
+}
+.theme-select option:checked ,
+.theme-select option:hover {
+  background-color: #1b3d5c;
+  color: #ffffff;
+}
+
+/* Default dark styling for all selects (matches .theme-select) */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #0b2740 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.35rem 2.5rem 0.35rem 0.75rem !important;
+  line-height: 1.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e2e8f0' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.8rem center !important;
+  background-size: 1rem !important;
+}
+
+select:focus {
+  outline: 2px solid rgba(249, 115, 22, 0.5);
+  outline-offset: 0;
+}
+
+select option {
+  background-color: #0b2740;
+  color: #e2e8f0;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #1b3d5c;
+  color: #ffffff;
+}
+
+/* Date picker icon to white */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.4);
+  opacity: 0.9;
+}

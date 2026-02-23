@@ -1,0 +1,334 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useQhseSidebar } from "../../QhseSidebarContext";
+const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
+
+function getYears() {
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let i = currentYear - 2; i < currentYear; i++) years.push(i);
+  for (let i = currentYear; i <= currentYear + 5; i++) years.push(i);
+  return years.sort((a, b) => b - a);
+}
+
+export default function DrillsListPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [rows, setRows] = useState([]);
+  const [year, setYear] = useState("all"); // "all" or number
+  const [availableYears, setAvailableYears] = useState(getYears());
+  const [deletingId, setDeletingId] = useState(null);
+  const [deletingReportId, setDeletingReportId] = useState(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const url =
+        year === "all" || year == null
+          ? "/api/qhse/drill/list"
+          : `/api/qhse/drill/list?year=${year}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to load drill data");
+      }
+      const list = data.data || [];
+      setRows(list);
+      if (year === "all" && list.length > 0) {
+        const yearsFromData = [...new Set(list.map((r) => r.year))].filter(
+          (y) => typeof y === "number" && !Number.isNaN(y)
+        ).sort((a, b) => b - a);
+        if (yearsFromData.length > 0) {
+          setAvailableYears((prev) =>
+            [...new Set([...prev, ...yearsFromData])].sort((a, b) => b - a)
+          );
+        }
+      }
+    } catch (err) {
+      setError(err.message || "Failed to load drill data");
+    } finally {
+      setLoading(false);
+    }
+  }, [year]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleDeletePlan = async (planId, year) => {
+    if (!planId) return;
+    if (!window.confirm(`Delete drill plan for ${year}? This cannot be undone.`)) return;
+    setDeletingId(planId);
+    setError("");
+    try {
+      const res = await fetch(`/api/qhse/drill/plan/${planId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete plan");
+      setRows((prev) => prev.filter((r) => r.planId !== planId));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteReport = async (reportId, year, quarter) => {
+    const id = reportId != null ? String(reportId) : null;
+    if (!id) return;
+    if (!window.confirm(`Delete drill report for ${year} ${quarter}? This cannot be undone.`)) return;
+    setDeletingReportId(id);
+    setError("");
+    try {
+      const res = await fetch(`/api/qhse/drill/report/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete report");
+      setRows((prev) =>
+        prev.map((row) => {
+          if (row.year !== year) return row;
+          return {
+            ...row,
+            quarters: (row.quarters || []).map((entry) => {
+              if (entry.quarter !== quarter) return entry;
+              if (String(entry.report?.id || entry.report?._id) !== id) return entry;
+              return { ...entry, report: null };
+            }),
+          };
+        })
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingReportId(null);
+    }
+  };
+
+  const { contentClassName } = useQhseSidebar();
+  return (
+    <div className={`${contentClassName} pr-4`}>
+      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+        <header className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+              QHSE / Drills
+            </p>
+            <h1 className="text-2xl font-bold">Drill Plans & Reports</h1>
+            <p className="text-xs text-slate-200 mt-1">
+              Year-wise drill plans with quarter-wise reports
+            </p>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
+                  Year
+                </span>
+                <select
+                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase bg-slate-800 border border-white/20 text-white"
+                  value={year === "all" ? "all" : year}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setYear(v === "all" ? "all" : Number(v));
+                  }}
+                >
+                  <option value="all">All years</option>
+                  {availableYears.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <Link
+              href="/qhse/drills/create/plan"
+              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+            >
+              Drill Matrix
+            </Link>
+            <Link
+              href="/qhse/drills/create/report"
+              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+            >
+              Drill Report
+            </Link>
+            <Link
+              href="/qhse/drills/list"
+              className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+            >
+              View List
+            </Link>
+              </div>
+          </div>
+        </header>
+
+        {error && (
+          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {loading ? (
+            <div className="text-sm text-slate-300">Loading...</div>
+          ) : (() => {
+            const quarterOrder = { Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
+            const filteredRows = rows
+              .map((yearRow) => {
+                const quartersWithData = (yearRow.quarters || [])
+                  .filter((entry) => {
+                    const plan = entry.planItem;
+                    const report = entry.report;
+                    const hasPlanData =
+                      plan &&
+                      (plan.plannedDate ||
+                        (plan.topic && plan.topic.trim()) ||
+                        (plan.instructor && plan.instructor.trim()));
+                    const hasReport = report && (report.drillNo || report.drillDate || report.status);
+                    return hasPlanData || hasReport;
+                  })
+                  .sort((a, b) => (quarterOrder[a.quarter] || 0) - (quarterOrder[b.quarter] || 0));
+                return { ...yearRow, quartersWithData };
+              })
+              .filter((yearRow) => yearRow.quartersWithData.length > 0);
+            if (filteredRows.length === 0) {
+              return (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
+                  <p className="text-slate-300 mb-1">No drill plans or reports yet.</p>
+                  <p className="text-sm text-slate-400">
+                    Use &quot;Drill Matrix&quot; or &quot;Drill Report&quot; above to add entries; they will appear here.
+                  </p>
+                </div>
+              );
+            }
+            return filteredRows.map((yearRow) => (
+                <div
+                  key={yearRow.year}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold">
+                        {yearRow.year}
+                        {yearRow.formCode ? ` • ${yearRow.formCode}` : ""}
+                        {yearRow.serialNumber ? ` • ${yearRow.serialNumber}` : ""}
+                      </h2>
+                      <p className="text-xs text-slate-300">
+                        Plan & reports grouped by quarter
+                      </p>
+                    </div>
+                    {yearRow.planId && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePlan(yearRow.planId, yearRow.year)}
+                        disabled={deletingId === yearRow.planId}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-50 transition"
+                      >
+                        {deletingId === yearRow.planId ? "Deleting…" : "Delete plan"}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {yearRow.quartersWithData.map((entry) => {
+                      const q = entry.quarter;
+                      const plan = entry.planItem;
+                      const report = entry.report;
+                      return (
+                        <div
+                          key={q}
+                          className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-semibold text-white">
+                              {q}
+                            </div>
+                            {plan?.status && (
+                              <span className="text-[11px] uppercase tracking-[0.2em] px-2 py-1 rounded-full border border-amber-400/40 bg-amber-500/10 text-amber-200">
+                                {plan.status}
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-xs text-slate-300">
+                            <div>
+                              <span className="text-slate-400">Planned:</span>{" "}
+                              {plan?.plannedDate
+                                ? new Date(plan.plannedDate).toLocaleDateString()
+                                : "—"}
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Topic:</span>{" "}
+                              {plan?.topic || "—"}
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Instructor:</span>{" "}
+                              {plan?.instructor || "—"}
+                            </div>
+                          </div>
+
+                          <div className="border-t border-white/10 pt-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-slate-400">
+                                Report
+                              </span>
+                              {(report?.id || report?._id) && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteReport(
+                                      report.id || report._id,
+                                      yearRow.year,
+                                      q
+                                    )
+                                  }
+                                  disabled={
+                                    deletingReportId === String(report.id || report._id)
+                                  }
+                                  className="text-[11px] px-2 py-1 rounded border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-50 transition"
+                                >
+                                  {deletingReportId === String(report.id || report._id)
+                                    ? "Deleting…"
+                                    : "Delete report"}
+                                </button>
+                              )}
+                            </div>
+                            {report ? (
+                              <div className="space-y-1 text-xs text-slate-200">
+                                <div>
+                                  <span className="text-slate-400">
+                                    Drill No:
+                                  </span>{" "}
+                                  {report.drillNo}
+                                </div>
+                                <div>
+                                  <span className="text-slate-400">Date:</span>{" "}
+                                  {report.drillDate
+                                    ? new Date(
+                                        report.drillDate
+                                      ).toLocaleDateString()
+                                    : "—"}
+                                </div>
+                                <div>
+                                  <span className="text-slate-400">Status:</span>{" "}
+                                  {report.status || "—"}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-slate-400">
+                                No report yet.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+          })()}
+        </div>
+      </div>
+    </div>
+  );
+}

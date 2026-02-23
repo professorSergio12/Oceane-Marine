@@ -1,0 +1,99 @@
+// Form configurations for STS Checklist APIs
+export const FORM_CONFIGS = {
+  "ops-ofd-001": {
+    modelName: "STSChecklistOne",
+    modelPath: "OPS-OFD-001",
+    formNo: "OPS-OFD-001",
+    dateField: "vesselDetails.plannedTransferDateTime",
+  },
+  "ops-ofd-001a": {
+    modelName: "ShipStandardQuestionnaire",
+    modelPath: "OPS-OFD-001-A",
+    formNo: "OPS-OFD-001A",
+    dateField: "basicInfo.date",
+  },
+  "ops-ofd-003": {
+    modelName: "STSChecklist3A3B",
+    modelPath: "OPS-OFD-003",
+    formNo: "OPS-OFD-003",
+    dateField: "documentInfo.issueDate",
+  },
+  "ops-ofd-005": {
+    modelName: "STSChecklist5",
+    modelPath: "OPS-OFD-005",
+    formNo: "OPS-OFD-005",
+    dateField: "transferInfo.transferDate",
+  },
+  "ops-ofd-005b": {
+    modelName: "STSChecklist6AB",
+    modelPath: "OPS-OFD-005B",
+    formNo: "OPS-OFD-005B",
+    dateField: "transferInfo.transferDate",
+  },
+  "ops-ofd-005c": {
+    modelName: "STSChecklist5C",
+    modelPath: "OPS-OFD-005C",
+    formNo: "OPS-OFD-005C",
+    dateField: "documentInfo.issueDate",
+  },
+  "ops-ofd-005f": {
+    modelName: "STSChecklistFiveF",
+    modelPath: "OPS-OFD-005F",
+    formNo: "OPS-OFD-005F",
+    dateField: "revisionDate",
+  },
+  "declaration-of-sea": {
+    modelName: "STSDeclaration",
+    modelPath: "DeclarationOfSea",
+    formNo: "OPS-OFD-005E",
+    dateField: "revisionDate",
+  },
+  "ops-ofd-005e": {
+    modelName: "STSDeclaration",
+    modelPath: "DeclarationOfSea",
+    formNo: "OPS-OFD-005E",
+    dateField: "revisionDate",
+  },
+  "ops-ofd-008": {
+    modelName: "STSChecklist8",
+    modelPath: "OPS-OFD-008",
+    formNo: "OPS-OFD-008",
+    dateField: "signedDate",
+  },
+  "ops-ofd-009": {
+    modelName: "MooringMastersJobReport",
+    modelPath: "OPS-OFD-009",
+    formNo: "OPS-OFD-009",
+    dateField: "documentInfo.issueDate",
+  },
+  "ops-ofd-011": {
+    modelName: "STSStandingOrder",
+    modelPath: "OPS-OFD-011",
+    formNo: "OPS-OFD-011",
+    dateField: "documentInfo.issueDate",
+  },
+  "ops-ofd-014": {
+    modelName: "STSEquipmentChecklist",
+    modelPath: "OPS-OFD-014",
+    formNo: "OPS-OFD-014",
+    dateField: "jobInfo.date",
+  },
+  "ops-ofd-015": {
+    modelName: "STSHourlyQuantityLog",
+    modelPath: "OPS-OFD-015",
+    formNo: "OPS-OFD-015",
+    dateField: "transferInfo.transferStartDate",
+  },
+  "ops-ofd-018": {
+    modelName: "STSTimesheet",
+    modelPath: "OPS-OFD-018",
+    formNo: "OPS-OFD-018",
+    dateField: "basicInfo.date",
+  },
+  "ops-ofd-029": {
+    modelName: "MooringMasterExpenseSheet",
+    modelPath: "OPS-OFD-029",
+    formNo: "OPS-OFD-029",
+    dateField: "personalDetails.invoiceDate",
+  },
+};
