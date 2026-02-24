@@ -82,19 +82,17 @@ export default function RiskAssessmentFormPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Risk Assessment
             </p>
-            <h1 className="text-2xl font-bold">New Risk Assessment</h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <h1 className="text-2xl font-bold text-white">New Risk Assessment</h1>
+            <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-006</span>
-              {" • "}
-              Upload a new Risk Assessment
             </p>
           </div>
           <div className="flex items-center gap-3">
             <a
-              href="/templates/qhse/QAF-OFD-006-Risk-Assessment.xlsx"
+              href="/templates/controlled-register/QAF-OFD-006.xlsx"
               download
               className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
               title="Download form template (QAF-OFD-006)"

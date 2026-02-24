@@ -177,12 +177,14 @@ export default function DefectListPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4">
           <div className="flex-1">
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Defects List
             </p>
-            <h1 className="text-2xl font-bold">Equipment Defects List</h1>
-            <p className="text-xs text-slate-200 mt-1">
-              View all recorded equipment defects, their status, and completion dates. Change status or delete records from here.
+            <h1 className="text-2xl font-bold text-white">Equipment Defects List</h1>
+            <p className="text-sm text-slate-200 mt-1">
+              Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-025</span>
+              {" – "}
+              Equipment Defect list
             </p>
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
@@ -210,7 +212,7 @@ export default function DefectListPage() {
               </select>
             </div>
             <a
-              href="/templates/qhse/QAF-OFD-025-Equipment-Defect-List.xlsx"
+              href="/templates/controlled-register/QAF-OFD-025.xlsx"
               download
               className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
               title="Download form template (QAF-OFD-025)"
@@ -279,7 +281,7 @@ export default function DefectListPage() {
                         className="border-b border-white/5 hover:bg-white/5"
                       >
                         <td className="py-2 pr-4 font-mono text-sky-300">
-                          {defect.formCode || "—"}
+                          {defect.formCode || "QAF-OFD-025"}
                         </td>
                         <td className="py-2 pr-4 font-mono text-slate-200">
                           {defect.serialNumber || "—"}

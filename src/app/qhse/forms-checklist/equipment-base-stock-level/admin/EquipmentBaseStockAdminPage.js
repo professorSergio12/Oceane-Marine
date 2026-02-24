@@ -214,16 +214,14 @@ export default function EquipmentBaseStockAdminPage() {
         {/* Header */}
         <header className="flex items-center justify-between gap-4">
           <div className="flex-1">
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Forms & Checklist / STS Equipment Base Stock Level
             </p>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-white">
               Equipment Base Stock – Admin Review
             </h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-013</span>
-              {" • "}
-              Review submitted equipment base stock level forms and approve or reject.
             </p>
           </div>
           <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden flex-shrink-0">

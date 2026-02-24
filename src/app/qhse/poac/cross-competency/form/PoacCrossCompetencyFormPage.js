@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { useSearchParams } from "next/navigation";
 import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
@@ -567,16 +568,18 @@ export default function PoacCrossCompetencyFormPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / POAC Cross Competency
             </p>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-white">
               {editId
                 ? "Edit POAC Cross Competency Form"
                 : "POAC Cross Competency "}
             </h1>
           </div>
-          <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <TemplateDownloadLink formCode="QAF-OFD-009" />
+            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link
               href="/qhse/poac/cross-competency/form"
               className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"

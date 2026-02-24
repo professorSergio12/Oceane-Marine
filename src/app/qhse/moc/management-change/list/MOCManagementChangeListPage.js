@@ -338,14 +338,12 @@ export default function MOCManagementChangeListPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4">
           <div className="flex-1">
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / MOC / Management of Change
             </p>
-            <h1 className="text-2xl font-bold">Management of Change</h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <h1 className="text-2xl font-bold text-white">Management of Change</h1>
+            <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-058</span>
-              {" • "}
-              View and manage your MOC forms by status.
             </p>
           </div>
 
@@ -377,6 +375,35 @@ export default function MOCManagementChangeListPage() {
                   )}
                 </select>
               </div>
+            )}
+
+            {/* Template (058) - Management of Change Form */}
+            {!selectedMoc && (
+              <a
+                href="/templates/controlled-register/QAF-OFD-058.docx"
+                download
+                className="inline-flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
+                title="Download form template (QAF-OFD-058)"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                </svg>
+                Template (058)
+              </a>
+            )}
+            {/* Template (058A) - MOC Risk Assessment */}
+            {!selectedMoc && (
+              <a
+                href="/templates/controlled-register/QAF-OFD-058A.docx"
+                download
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+                title="Download form template (QAF-OFD-058A)"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                </svg>
+                Template (058A)
+              </a>
             )}
 
             {/* Top-right Form/List toggle */}
@@ -605,6 +632,33 @@ export default function MOCManagementChangeListPage() {
                         <p className="text-sm text-white">
                           {selectedMoc.riskLevel}
                         </p>
+                      </div>
+                    )}
+                    {selectedMoc.riskAssessmentRequired &&
+                      Array.isArray(selectedMoc.riskAssessmentFiles) &&
+                      selectedMoc.riskAssessmentFiles.length > 0 && (
+                      <div className="space-y-1 md:col-span-2">
+                        <p className="text-xs uppercase tracking-wider text-slate-400 block">
+                          Risk assessment documents
+                        </p>
+                        <ul className="space-y-1">
+                          {selectedMoc.riskAssessmentFiles.map((f, i) => (
+                            <li key={i}>
+                              <a
+                                href={
+                                  f.url
+                                    ? `/api/qhse/file/${String(f.url).replace(/^\//, "")}`
+                                    : "#"
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-sky-300 hover:text-sky-200"
+                              >
+                                {f.name || f.filename}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                     {selectedMoc.equipmentFacilityDocumentationAffected && (

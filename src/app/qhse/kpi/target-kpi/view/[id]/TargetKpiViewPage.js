@@ -3,6 +3,7 @@
 import { useQhseSidebar } from "../../../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { useParams } from "next/navigation";
 
 export default function TargetKpiViewPage() {
@@ -67,7 +68,7 @@ export default function TargetKpiViewPage() {
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / KPI / Target KPI
             </p>
-            <h1 className="text-2xl font-bold">Target KPI – {data.formCode}</h1>
+            <h1 className="text-2xl font-bold text-white">Target KPI – {data.formCode}</h1>
             <div className="flex flex-wrap items-center gap-6 mt-2 text-sm">
               <div>
                 <span className="text-slate-400 text-xs uppercase tracking-wider block">Form Code</span>
@@ -84,6 +85,7 @@ export default function TargetKpiViewPage() {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
+            <TemplateDownloadLink formCode="HSE-001A" />
             <div className="flex w-[13rem] rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/kpi/target-kpi/form"

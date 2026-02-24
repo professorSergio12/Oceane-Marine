@@ -3,6 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton } from "../../../components/ActionIcons";
 
@@ -239,18 +240,18 @@ export default function TransferAuditListPage() {
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+              <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                 QHSE / Forms & Checklist / Transfer Audit
               </p>
-              <h1 className="text-2xl font-bold">Transfer Audit Forms</h1>
-              <p className="text-xs text-slate-200 mt-1">
+              <h1 className="text-2xl font-bold text-white">Transfer Audit Forms</h1>
+              <p className="text-sm text-slate-200 mt-1">
                 Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-003</span>
-                {" • "}
-                Review and approve pending transfer audit forms
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4 flex-wrap">
+            <TemplateDownloadLink formCode="QAF-OFD-003" />
+            <div className="flex items-center gap-2">
             <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
               Year
             </span>
@@ -272,6 +273,7 @@ export default function TransferAuditListPage() {
                 ))
               )}
             </select>
+          </div>
           </div>
         </header>
 
