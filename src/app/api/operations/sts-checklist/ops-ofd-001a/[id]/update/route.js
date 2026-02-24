@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import ShipStandardQuestionnaire from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-001-A";
 import { incrementRevisionForUpdate } from "../../../revision";
+import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
+import "@/jobs/definitions/ops-ofd-001a.job.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,8 +50,33 @@ export async function POST(req, { params }) {
     // Handle signature file upload if provided
     const signatureFile = formData.get("signature");
     let signatureUrl = body.signature?.signature || existing.signature?.signature;
+    let oldSignatureUrl = existing.signature?.signature;
+
+    // Helper function to delete old signature file
+    const deleteOldSignature = async (oldUrl) => {
+      if (!oldUrl || oldUrl.startsWith('http://') || oldUrl.startsWith('https://') || oldUrl.startsWith('data:')) {
+        return;
+      }
+      try {
+        const oldFilePath = path.join(process.cwd(), 'public', oldUrl);
+        await fs.unlink(oldFilePath);
+        console.log("Old signature deleted:", oldUrl);
+      } catch (err) {
+        console.log("Could not delete old signature (file may not exist):", err.message);
+      }
+    };
+
+    console.log("OPS-OFD-001A Signature handling (UPDATE):", {
+      signatureFileExists: !!signatureFile,
+      signatureFileType: typeof signatureFile,
+      signatureFileName: signatureFile?.name,
+      bodySignature: body.signature?.signature?.substring(0, 50) + "..."
+    });
 
     if (signatureFile && typeof signatureFile !== "string" && signatureFile.name) {
+      console.log("Processing signature file upload in UPDATE:", signatureFile.name);
+      await deleteOldSignature(oldSignatureUrl);
+      
       const bytes = await signatureFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
@@ -69,22 +96,84 @@ export async function POST(req, { params }) {
 
       await fs.writeFile(filePath, buffer);
       signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-001A/${fileName}`;
+      console.log("Signature saved to:", signatureUrl);
+    } else if (body.signature?.signature && body.signature.signature.startsWith("data:image")) {
+      console.log("Processing base64 signature from body.signature in UPDATE");
+      await deleteOldSignature(oldSignatureUrl);
+      
+      const base64Data = body.signature.signature.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+
+      const uploadDir = path.join(
+        process.cwd(),
+        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-001A`
+      );
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const fileName = `${Date.now()}-signature.png`;
+      const filePath = path.join(uploadDir, fileName);
+
+      await fs.writeFile(filePath, buffer);
+      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-001A/${fileName}`;
+      console.log("Base64 signature saved to:", signatureUrl);
+    } else if (body.signature?.signature && !body.signature.signature.startsWith("http") && !body.signature.signature.startsWith("/")) {
+      console.log("Processing raw base64 from body.signature in UPDATE");
+      try {
+        await deleteOldSignature(oldSignatureUrl);
+        
+        const buffer = Buffer.from(body.signature.signature, "base64");
+        
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+
+        const uploadDir = path.join(
+          process.cwd(),
+          `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-001A`
+        );
+        await fs.mkdir(uploadDir, { recursive: true });
+
+        const fileName = `${Date.now()}-signature.png`;
+        const filePath = path.join(uploadDir, fileName);
+
+        await fs.writeFile(filePath, buffer);
+        signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-001A/${fileName}`;
+        console.log("Raw base64 signature saved to:", signatureUrl);
+      } catch (err) {
+        console.error("Failed to process raw base64 signature:", err);
+      }
     }
 
-    // Prepare update data
+    console.log("[OPS-OFD-001A UPDATE by ID] Received body keys:", Object.keys(body));
+    console.log("[OPS-OFD-001A UPDATE by ID] body.basicInfo:", body.basicInfo);
+    console.log("[OPS-OFD-001A UPDATE by ID] body.documentInfo:", body.documentInfo);
+
+    // ✅ Read from body.basicInfo and body.documentInfo (matching frontend payload structure)
     const updateData = {
       documentInfo: {
-        formNo: body.formNo || existing.documentInfo?.formNo || "OPS-OFD-001A",
+        formNo: body.documentInfo?.formNo || body.formNo || existing.documentInfo?.formNo || "OPS-OFD-001A",
         revisionNo: incrementRevisionForUpdate(existing.documentInfo?.revisionNo),
-        revisionDate: body.revisionDate
-          ? new Date(body.revisionDate)
-          : existing.documentInfo?.revisionDate,
-        approvedBy: body.approvedBy || existing.documentInfo?.approvedBy || "JS",
+        revisionDate: body.documentInfo?.revisionDate
+          ? new Date(body.documentInfo.revisionDate)
+          : body.revisionDate
+            ? new Date(body.revisionDate)
+            : existing.documentInfo?.revisionDate,
+        approvedBy: body.documentInfo?.approvedBy || body.approvedBy || existing.documentInfo?.approvedBy || "JS",
       },
       basicInfo: {
-        proposedLocation: body.proposedLocation || existing.basicInfo?.proposedLocation || "",
-        shipName: body.shipName || existing.basicInfo?.shipName || "",
-        date: body.date ? new Date(body.date) : existing.basicInfo?.date,
+        proposedLocation: body.basicInfo?.proposedLocation || body.proposedLocation || existing.basicInfo?.proposedLocation || "",
+        shipName: body.basicInfo?.shipName || body.shipName || existing.basicInfo?.shipName || "",
+        date: body.basicInfo?.date
+          ? new Date(body.basicInfo.date)
+          : body.date
+            ? new Date(body.date)
+            : existing.basicInfo?.date,
       },
       responses: body.responses || existing.responses || {},
       signature: {
@@ -99,15 +188,24 @@ export async function POST(req, { params }) {
       createdBy: body.createdBy || existing.createdBy || undefined,
     };
 
+    console.log("[OPS-OFD-001A UPDATE by ID] Saving basicInfo:", updateData.basicInfo);
+    console.log("[OPS-OFD-001A UPDATE by ID] Saving documentInfo:", updateData.documentInfo);
+
     const updatedQuestionnaire = await ShipStandardQuestionnaire.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
     );
 
+    // Schedule DOCX regeneration job
+    await createAndScheduleJob(null, "generate-ops-ofd-001a", {
+      checklistId: updatedQuestionnaire._id.toString(),
+      operationRef: updatedQuestionnaire.operationRef,
+    });
+
     return NextResponse.json(
       {
-        message: "OPS-OFD-001A questionnaire updated successfully",
+        message: "OPS-OFD-001A questionnaire updated successfully & doc regeneration started",
         data: updatedQuestionnaire,
       },
       {
