@@ -174,14 +174,12 @@ export default function RiskAssessmentListPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / MOC / Risk Assessment
             </p>
-            <h1 className="text-2xl font-bold">My Uploads</h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <h1 className="text-2xl font-bold text-white">My Uploads</h1>
+            <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-058A</span>
-              {" • "}
-              View and manage your uploaded risk assessment files
             </p>
           </div>
 
@@ -200,18 +198,7 @@ export default function RiskAssessmentListPage() {
               </select>
             </div>
             <a
-              href="/templates/qhse/QAF-OFD-058-ManagementofChangeForm.docx"
-              download
-              className="inline-flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
-              title="Download form template (QAF-OFD-058)"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-              </svg>
-              Template (058)
-            </a>
-            <a
-              href="/templates/qhse/QAF-OFD-058A-MOC-Risk-Assessment.docx"
+              href="/templates/controlled-register/QAF-OFD-058A.docx"
               download
               className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
               title="Download form template (QAF-OFD-058A)"

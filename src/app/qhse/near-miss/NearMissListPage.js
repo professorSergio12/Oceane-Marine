@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../utils/archive";
 import { ViewIconButton, ArchiveIconButton, DeleteIconButton } from "../components/ActionIcons";
+import { TemplateDownloadLink } from "../components/TemplateDownloadLink";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -218,19 +219,19 @@ export default function NearMissListPage() {
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+              <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                 QHSE / Near-Miss Reporting
               </p>
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold text-white">
                 Near-Miss & Incident Reports
               </h1>
-              <p className="text-xs text-slate-200 mt-1">
-                View all near-miss, incident, and injury reports. Click "View
-                Details" to see full information.
+              <p className="text-sm text-slate-200 mt-1">
+                Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-015</span>
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <TemplateDownloadLink formCode="QAF-OFD-015" />
             <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
               Year
             </span>

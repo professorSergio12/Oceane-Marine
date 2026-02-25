@@ -208,7 +208,7 @@ export default function DrillsReportClient() {
                 <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                   QHSE / Drills
                 </p>
-                <h1 className="text-2xl font-bold">Drill Report</h1>
+                <h1 className="text-2xl font-bold text-white">Drill Report</h1>
               </div>
             </div>
             <div className="flex items-center gap-4 flex-wrap">

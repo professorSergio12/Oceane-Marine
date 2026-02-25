@@ -126,7 +126,7 @@ export default function BestPracticeListPage() {
             <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
               QHSE / Best Practices
             </p>
-            <h1 className="text-2xl font-bold">Best Practices List</h1>
+            <h1 className="text-2xl font-bold text-white">Best Practices List</h1>
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
             <div className="flex items-center gap-2">

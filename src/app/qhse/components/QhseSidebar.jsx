@@ -87,11 +87,6 @@ const sidebarTabs = [
         label: "Management Of Change",
         href: "/qhse/moc/management-change/form",
       },
-      {
-        key: "risk-assessment",
-        label: "Risk Assessment",
-        href: "/qhse/moc/risk-assessment/form",
-      },
     ],
   },
   {
@@ -144,6 +139,7 @@ export default function QhseSidebar() {
     new Set()
   );
   const sidebarRef = useRef(null);
+  const navScrollRef = useRef(null);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -245,6 +241,17 @@ export default function QhseSidebar() {
     }
   }, [pathname]);
 
+  // Keep the active sidebar item in view when route or activeTab changes
+  useEffect(() => {
+    if (!activeTab || !navScrollRef.current) return;
+    const el = navScrollRef.current.querySelector(
+      `[data-sidebar-tab="${activeTab}"]`
+    );
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [activeTab, pathname]);
+
   const handleModuleClick = (tab) => {
     setActiveTab(tab.key);
     // If we're on the main QHSE page, use query params to show form inline
@@ -328,13 +335,21 @@ export default function QhseSidebar() {
           </div>
 
           {/* Navigation Items */}
-          <div className="flex-1 overflow-y-auto p-4 [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(255,255,255,0.2)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent transition-all duration-200">
+          <div
+            ref={navScrollRef}
+            className="flex-1 overflow-y-auto overflow-x-hidden p-4 [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(255,255,255,0.2)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent transition-all duration-200"
+          >
             <div className="space-y-1.5">
               {sidebarTabs.map((tab) => (
-                <div key={tab.key} className="space-y-1">
+                <div
+                  key={tab.key}
+                  className="space-y-1"
+                  data-sidebar-tab={tab.key}
+                >
                   {tab.href ? (
                     <Link
                       href={tab.href}
+                      data-sidebar-tab={tab.key}
                       className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 ${
                         activeTab === tab.key
                           ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/40 scale-[1.02]"
@@ -353,6 +368,8 @@ export default function QhseSidebar() {
                     </Link>
                   ) : (
                     <button
+                      type="button"
+                      data-sidebar-tab={tab.key}
                       onClick={() => handleModuleClick(tab)}
                       className={`group flex items-center gap-3 w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 ${
                         activeTab === tab.key

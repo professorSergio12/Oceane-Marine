@@ -145,10 +145,9 @@ export default function KpiCreatePage() {
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / KPI
             </p>
-            <h1 className="text-2xl font-bold">HSE Objectives & Targets</h1>
+            <h1 className="text-2xl font-bold text-white">HSE Objectives & Targets</h1>
             <p className="text-sm text-slate-200 mt-1">
-              Upload a file containing table data. Supported formats: PDF, Excel
-              (.xlsx, .xls), CSV, Word documents.
+              Form code: <span className="font-mono font-semibold text-sky-300">HSE-001B</span>
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">

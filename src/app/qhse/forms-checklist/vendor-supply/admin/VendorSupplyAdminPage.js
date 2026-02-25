@@ -216,14 +216,14 @@ export default function VendorSupplyAdminPage() {
         {/* Header */}
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Forms & Checklist / Vendor & Supplier
             </p>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-white">
               Vendor / Supplier Approval – Admin Review
             </h1>
-            <p className="text-xs text-slate-200 mt-1">
-              Review submitted vendor/supplier forms, approve or reject with comments.
+            <p className="text-sm text-slate-200 mt-1">
+              Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-037</span>
             </p>
           </div>
           <div className="flex items-center gap-4 flex-wrap ml-auto">

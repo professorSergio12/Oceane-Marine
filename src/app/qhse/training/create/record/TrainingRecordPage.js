@@ -79,7 +79,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
             new Set([...initialYears, ...data.data])
           ).sort((a, b) => b - a);
           setAvailableYears(merged);
-          if (year !== "all" && !merged.includes(year)) setYear(merged[0]);
+          // Do not change the selected year here — keep user's selection (or initial currentYear) so it doesn't change while filling the form
         }
       } finally {
         setLoadingYears(false);
@@ -153,7 +153,10 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
       setLoadingRecords(true);
       setRecordsError(null);
       try {
-        const res = await fetch(`/api/qhse/training/record?year=${year === "all" ? "all" : year}`);
+        const res = await fetch(
+          `/api/qhse/training/record?year=${year === "all" ? "all" : year}`,
+          { cache: "no-store" }
+        );
         const data = await res.json();
         if (!res.ok || !data.success) {
           throw new Error(data.error || "Failed to load training records");
@@ -300,8 +303,11 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
         }
       }
       
-      // Refresh records list
-      const recordsRes = await fetch(`/api/qhse/training/record?year=${year === "all" ? "all" : year}`);
+      // Refresh records list (cache-bust so new record is included)
+      const recordsRes = await fetch(
+        `/api/qhse/training/record?year=${year === "all" ? "all" : year}&_t=${Date.now()}`,
+        { cache: "no-store" }
+      );
       const recordsData = await recordsRes.json();
       if (recordsRes.ok && recordsData.success) {
         setRecords(recordsData.data || []);
@@ -326,8 +332,8 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                 <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                   QHSE / Training
                 </p>
-                <h1 className="text-2xl font-bold">Training Record</h1>
-                <p className="text-xs text-slate-200 mt-1">
+                <h1 className="text-2xl font-bold text-white">Training Record</h1>
+                <p className="text-sm text-slate-200 mt-1">
                   Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-039</span>
                 </p>
               </div>
@@ -335,7 +341,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-3">
                 <a
-                  href="/templates/qhse/QAF-OFD-039  - Training Record.docx"
+                  href="/templates/controlled-register/QAF-OFD-039.docx"
                   download
                   className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
                   title="Download form template (QAF-OFD-039)"
@@ -352,27 +358,20 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                 </span>
                 <select
                   className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year === "all" ? "all" : year || ""}
+                  value={year === "all" ? "all" : String(year)}
                   onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "all" ? "all" : Number(v));
-                }}
-                  disabled={loadingYears || availableYears.length === 0}
+                    const v = e.target.value;
+                    setYear(v === "all" ? "all" : Number(v));
+                  }}
+                  disabled={availableYears.length === 0}
+                  aria-label="Filter by year"
                 >
-                  {loadingYears ? (
-                    <option>Loading...</option>
-                  ) : availableYears.length === 0 ? (
-                    <option>No data</option>
-                  ) : (
-                    <>
-                      <option value="all">All years</option>
-                      {availableYears.map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </>
-                  )}
+                  <option value="all">All years</option>
+                  {(loadingYears ? initialYears : availableYears).map((y) => (
+                    <option key={y} value={String(y)}>
+                      {y}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
@@ -788,7 +787,50 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
               </div>
             )}
 
-            {!loadingRecords && !recordsError && (
+            {!loadingRecords && !recordsError && year === "all" && records.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400">Records across all years (select a year to see month-pair view).</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {records.map((record) => (
+                    <div
+                      key={record._id}
+                      className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-white">
+                          {record.topic || "—"}
+                        </span>
+                        {record.status && (
+                          <span className="text-[11px] uppercase tracking-[0.2em] px-2 py-1 rounded-full border border-amber-400/40 bg-amber-500/10 text-amber-200">
+                            {record.status}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-xs text-slate-300">
+                        <div>
+                          <span className="text-slate-400">Planned:</span>{" "}
+                          {record.plannedDate
+                            ? new Date(record.plannedDate).toLocaleDateString()
+                            : "—"}
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Actual:</span>{" "}
+                          {record.actualTrainingDate
+                            ? new Date(record.actualTrainingDate).toLocaleDateString()
+                            : "—"}
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Instructor:</span>{" "}
+                          {record.instructor || "—"}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!loadingRecords && !recordsError && (year !== "all" || records.length === 0) && (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {MONTH_PAIRS.map((pair, idx) => {
                   // Match plan item to month pair based on the month of plannedDate

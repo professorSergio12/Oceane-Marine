@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ViewIconButton, ApproveIconButton, RejectIconButton, ArchiveIconButton, DeleteIconButton } from "../../../components/ActionIcons";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -232,16 +233,15 @@ export default function QuestionnaireListAdminPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-start gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Due Diligence / Supplier Due Diligence Questionnaire
             </p>
-            <h1 className="text-2xl font-bold">Admin Review</h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <h1 className="text-2xl font-bold text-white">Admin Review</h1>
+            <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-043</span>
-              {" • "}
-              Review and manage supplier due diligence forms.
             </p>
           </div>
+          <TemplateDownloadLink formCode="QAF-OFD-043" />
         </header>
 
         {/* Filter Tabs */}

@@ -4,6 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -206,12 +207,13 @@ export default function PoacCrossCompetencyViewPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / POAC Cross Competency
             </p>
-            <h1 className="text-2xl font-bold">View POAC Cross Competency Form</h1>
+            <h1 className="text-2xl font-bold text-white">View POAC Cross Competency Form</h1>
           </div>
           <div className="flex gap-2">
+            <TemplateDownloadLink formCode="QAF-OFD-009" />
             {form.status === "Draft" && (
               <Link
                 href={`/qhse/poac/cross-competency/form?edit=${form._id}`}

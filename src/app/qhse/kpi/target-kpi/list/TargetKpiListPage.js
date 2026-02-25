@@ -3,6 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton } from "../../../components/ActionIcons";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 
@@ -94,12 +95,13 @@ export default function TargetKpiListPage() {
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / KPI / Target KPI
             </p>
-            <h1 className="text-2xl font-bold">Target KPI List</h1>
+            <h1 className="text-2xl font-bold text-white">Target KPI List</h1>
             <p className="text-sm text-slate-200 mt-1">
-              Saved Target KPIs. Filter by year.
+              Form code: <span className="font-mono font-semibold text-sky-300">HSE-001A</span>
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
+            <TemplateDownloadLink formCode="HSE-001A" />
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-200">

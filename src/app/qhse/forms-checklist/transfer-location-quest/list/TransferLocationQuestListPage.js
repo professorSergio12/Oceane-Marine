@@ -5,6 +5,7 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { useRouter } from "next/navigation";
 
 function formatDate(value) {
@@ -200,14 +201,12 @@ export default function TransferLocationQuestListPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Forms & Checklist / Transfer Location Questionnaire
             </p>
-            <h1 className="text-2xl font-bold">Transfer Location Questionnaires</h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <h1 className="text-2xl font-bold text-white">Transfer Location Questionnaires</h1>
+              <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-049</span>
-              {" • "}
-              View and manage all transfer location questionnaires
             </p>
           </div>
           <div className="flex items-center gap-4 flex-wrap flex-1 min-w-0">
@@ -254,17 +253,7 @@ export default function TransferLocationQuestListPage() {
                 </select>
               </div>
             </div>
-            <a
-              href="/templates/qhse/QAF-OFD-049-STS-Transfer-Location-Questionnaire.docx"
-              download
-              className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition flex-shrink-0"
-              title="Download form template (QAF-OFD-049)"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-              </svg>
-              Template
-            </a>
+            <TemplateDownloadLink formCode="QAF-OFD-049" />
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden flex-shrink-0 ml-auto">
               <Link
                 href="/qhse/forms-checklist/transfer-location-quest/form"

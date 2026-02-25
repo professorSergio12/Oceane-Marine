@@ -20,6 +20,19 @@ const MOCManagementCounter =
   mongoose.models.MOCManagementCounter ||
   mongoose.model("MOCManagementCounter", MOCManagementCounterSchema);
 
+// Sub-schema for risk assessment files attached to an MOC
+const mocRiskAssessmentFileSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    filename: { type: String, required: true },
+    size: { type: Number, required: true },
+    url: { type: String, required: true },
+    mimeType: { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
+
 /* =========================
    MOC MANAGEMENT CHANGE SCHEMA
 ========================= */
@@ -138,6 +151,12 @@ const MOCSchemaManagementChange = new mongoose.Schema(
       type: String,
       enum: ["Pending", "Approved", "Rejected", "Closed"],
       default: "Pending",
+    },
+
+    /** Risk assessment documents (when riskAssessmentRequired is true) */
+    riskAssessmentFiles: {
+      type: [mocRiskAssessmentFileSchema],
+      default: [],
     },
   },
   { timestamps: true }
