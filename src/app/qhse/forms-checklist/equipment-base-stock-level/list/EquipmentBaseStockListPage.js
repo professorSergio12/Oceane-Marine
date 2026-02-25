@@ -146,21 +146,19 @@ export default function EquipmentBaseStockListPage() {
         {/* Header */}
         <header className="flex items-center justify-between gap-4">
           <div className="flex-1">
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Forms & Checklist / STS Equipment Base Stock Level
             </p>
-            <h1 className="text-2xl font-bold">My Equipment Base Stock Forms</h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <h1 className="text-2xl font-bold text-white">My Equipment Base Stock Forms</h1>
+              <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-013</span>
-              {" • "}
-              Track draft, approved and rejected stock level forms.
             </p>
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
             {/* Year Filter */}
             <div className="flex items-center gap-3">
               <a
-                href="/templates/qhse/QAF-OFD-013-STSEquipmentbasestocklevel.docx"
+                href="/templates/controlled-register/QAF-OFD-013.docx"
                 download
                 className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
                 title="Download form template (QAF-OFD-013)"

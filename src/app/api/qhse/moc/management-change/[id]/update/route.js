@@ -81,6 +81,9 @@ export async function PUT(req, { params }) {
         documentChangeRequired: body.documentChangeRequired,
       }),
       ...(body.dcrNumber && { dcrNumber: body.dcrNumber.trim() }),
+      ...(Array.isArray(body.riskAssessmentFiles) && {
+        riskAssessmentFiles: body.riskAssessmentFiles,
+      }),
     };
 
     // Explicitly remove system fields if they were sent

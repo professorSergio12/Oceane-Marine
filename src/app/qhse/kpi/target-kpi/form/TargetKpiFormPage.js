@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import Link from "next/link";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 const DEFAULT_KPI_TITLES = [
   "Mooring Master Feedback",
@@ -153,12 +154,13 @@ export default function TargetKpiFormPage() {
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / KPI / Target KPI
             </p>
-            <h1 className="text-2xl font-bold">Target KPI</h1>
+            <h1 className="text-2xl font-bold text-white">Target KPI</h1>
             <p className="text-sm text-slate-200 mt-1">
-              Set targets for the selected year and track quarterly achievements.
+              Form code: <span className="font-mono font-semibold text-sky-300">HSE-001A</span>
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
+            <TemplateDownloadLink formCode="HSE-001A" />
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
@@ -207,21 +209,6 @@ export default function TargetKpiFormPage() {
             </div>
           </div>
         </header>
-
-        <div className="rounded-xl border border-slate-500/40 bg-slate-800/30 px-4 py-3 flex flex-wrap items-start gap-6">
-          <div className="min-h-[2.5rem] flex flex-col">
-            <span className="text-slate-300 text-xs uppercase tracking-wider block mb-0.5">Form Code</span>
-            <span className="text-white font-mono text-sm font-semibold">{formCode ?? "—"}</span>
-          </div>
-          <div className="min-h-[2.5rem] flex flex-col">
-            <span className="text-slate-300 text-xs uppercase tracking-wider block mb-0.5">Serial</span>
-            {serialNumber ? (
-              <span className="text-white font-mono text-sm font-semibold">{serialNumber}</span>
-            ) : (
-              <span className="text-slate-500 text-xs mt-0.5">Auto-generated on save (e.g. 2026-001)</span>
-            )}
-          </div>
-        </div>
 
         {error && (
           <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">

@@ -4,6 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 export default function BaseAuditFormPage() {
   const { contentClassName } = useQhseSidebar();
@@ -206,35 +207,18 @@ export default function BaseAuditFormPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Forms & Checklist / Base Audit
             </p>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-white">
               {editId ? "Update Base Audit Report" : "STS Base Audit Report"}
             </h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-004</span>
-              {" • "}
-              Comprehensive base audit and inspection checklist.
-            </p>
-            <p className="text-xs text-slate-200 mt-1">
-              {editId
-                ? "Upload updated file to create a new version. Current version will be preserved."
-                : "Upload base audit report file. Version will be auto-generated."}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="/templates/qhse/QAF-OFD-004-STS-Base-Audit-Report.docx"
-              download
-              className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-              title="Download form template (QAF-OFD-004)"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-              </svg>
-              Template
-            </a>
+            <TemplateDownloadLink formCode="QAF-OFD-004" />
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/base-audit/form"

@@ -231,7 +231,7 @@ export default function DrillsReportPage() {
                   QHSE / Drills
                 </p>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold">Drill Record</h1>
+                  <h1 className="text-2xl font-bold text-white">Drill Record</h1>
                   <div className="inline-block px-3 py-1 rounded-lg bg-orange-500/20 border border-orange-400/50">
                     <span className="text-sm font-semibold text-orange-300">{year}</span>
                   </div>

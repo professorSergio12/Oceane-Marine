@@ -4,6 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton } from "../../../components/ActionIcons";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -187,16 +188,17 @@ export default function PoacCrossCompetencyListPage() {
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
         <header className="flex items-start gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / POAC Cross Competency
             </p>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-white">
               POAC Cross Competency Forms
             </h1>
-            <p className="text-xs text-slate-200 mt-1">
-              View all POAC Cross Competency evaluation forms (submitted via external form).
+            <p className="text-sm text-slate-200 mt-1">
+              Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-009</span>
             </p>
           </div>
+          <TemplateDownloadLink formCode="QAF-OFD-009" />
         </header>
 
         <main>

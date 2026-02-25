@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import QhseSidebar from "../../../components/QhseSidebar";
+import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 const CONDITION_OPTIONS = ["Not Assessed", "Good", "Average", "Poor"];
 
@@ -334,10 +335,10 @@ export default function EquipmentBaseStockFormPage() {
         {/* Header */}
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Forms & Checklist / STS Equipment Base Stock Level
             </p>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-white">
               STS Equipment Base Stock Level –{" "}
               {mode === "edit" ? "Edit Draft" : "New Form"}
             </h1>
@@ -345,25 +346,42 @@ export default function EquipmentBaseStockFormPage() {
               Form code: <span className="font-mono font-semibold text-sky-300 text-base">QAF-OFD-013</span>
             </p>
           </div>
-          <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden flex-shrink-0">
-            <Link
-              href="/qhse/forms-checklist/equipment-base-stock-level/form"
-              className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
-            >
-              Base Stock Form
-            </Link>
-            <Link
-              href="/qhse/forms-checklist/equipment-base-stock-level/list"
-              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-            >
-              Base Stock List
-            </Link>
-            <Link
-              href="/qhse/forms-checklist/equipment-base-stock-level/admin"
-              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-            >
-              Base Stock Admin
-            </Link>
+          <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+            <TemplateDownloadLink formCode="QAF-OFD-013" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                id="form-year"
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="theme-select rounded-full px-3 py-1.5 text-xs tracking-widest uppercase bg-slate-800 border border-white/20 text-white focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500/40 outline-none cursor-pointer"
+                aria-label="Filter by year"
+              >
+                {getYears().map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <Link
+                href="/qhse/forms-checklist/equipment-base-stock-level/form"
+                className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+              >
+                Base Stock Form
+              </Link>
+              <Link
+                href="/qhse/forms-checklist/equipment-base-stock-level/list"
+                className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              >
+                Base Stock List
+              </Link>
+              <Link
+                href="/qhse/forms-checklist/equipment-base-stock-level/admin"
+                className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              >
+                Base Stock Admin
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -379,23 +397,6 @@ export default function EquipmentBaseStockFormPage() {
             {success}
           </div>
         )}
-
-        {/* Year filter – same placement as list page */}
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-            <select
-              id="form-year"
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="theme-select rounded-full px-3 py-1.5 text-xs tracking-widest uppercase"
-            >
-              {getYears().map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-        </div>
 
         {/* Revision date and status – only when editing (rev no/date updated on edit) */}
         {mode === "edit" && (

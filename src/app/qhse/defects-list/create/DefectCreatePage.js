@@ -3,6 +3,7 @@
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { TemplateDownloadLink } from "../../components/TemplateDownloadLink";
 import { useSearchParams } from "next/navigation";
 
 export default function DefectCreatePage() {
@@ -151,30 +152,26 @@ export default function DefectCreatePage() {
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+              <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                 QHSE / Defects List
               </p>
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold text-white">
                 {editId ? "Edit Equipment Defect" : "Create Equipment Defect"}
               </h1>
-              <p className="text-xs text-slate-200 mt-1">
-                {editId
-                  ? "Update the equipment defect details below."
-                  : "Register a new equipment defect. Status will be "}
-                {!editId && (
-                  <>
-                    <span className="font-semibold text-amber-300">OPEN</span> by default.
-                  </>
-                )}
+              <p className="text-sm text-slate-200 mt-1">
+                Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-025</span>
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <TemplateDownloadLink formCode="QAF-OFD-025" />
           <Link
             href="/qhse/defects-list/create/list"
             className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition"
           >
             View Defects List
           </Link>
+          </div>
         </header>
 
         <main>

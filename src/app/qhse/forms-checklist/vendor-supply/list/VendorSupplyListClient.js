@@ -145,22 +145,20 @@ export default function VendorSupplyListClient() {
         {/* Header */}
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Forms & Checklist / Vendor & Supplier
             </p>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-white">
               Vendor / Supplier Approval – Forms
             </h1>
-            <p className="text-xs text-slate-200 mt-1">
+              <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-037</span>
-              {" • "}
-              Manage vendor approval forms by status and submit drafts for review.
             </p>
           </div>
           <div className="flex items-center gap-4 flex-wrap ml-auto">
             <div className="flex items-center gap-3">
               <a
-                href="/templates/qhse/QAF-OFD-037-VendorORSupplierApprovalForm.xlsx"
+                href="/templates/controlled-register/QAF-OFD-037.xlsx"
                 download
                 className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
                 title="Download form template (QAF-OFD-037)"
@@ -433,7 +431,7 @@ export default function VendorSupplyListClient() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-sky-200">Overall Percentage Score</p>
-                        <p className="text-xs text-slate-200 mt-1">
+                        <p className="text-sm text-slate-200 mt-1">
                           {selectedForm.approvedVendorEligible
                             ? "Vendor is eligible for approval (≥80%)"
                             : "Vendor needs improvement (<80%)"}
