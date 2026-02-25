@@ -96,4 +96,16 @@ export const FORM_CONFIGS = {
     formNo: "OPS-OFD-029",
     dateField: "personalDetails.invoiceDate",
   },
+  "ops-ofd-020": {
+    modelName: "MasterFeedbackForm",
+    modelPath: "OPS-OFD-020",
+    formNo: "OPS-OFD-020",
+    dateField: "jobDetails.dateOfOperation",
+  },
+  "ops-ofd-023": {
+    modelName: "RecordOfWorkHours",
+    modelPath: "OPS-OFD-023",
+    formNo: "OPS-OFD-023",
+    dateField: "headerDetails.date",
+  },
 };

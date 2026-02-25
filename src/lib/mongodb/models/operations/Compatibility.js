@@ -16,6 +16,10 @@ const shipSchema = new mongoose.Schema(
 
 const CompatibilitySchema = new mongoose.Schema(
   {
+    operationRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StsOperation",
+    },
     operationNumber: { type: String, required: true },
     year: { type: Number, required: true },
     location: {

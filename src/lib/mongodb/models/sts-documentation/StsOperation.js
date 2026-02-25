@@ -182,6 +182,10 @@ const stsOperationSchema = new mongoose.Schema(
 
     /* ================= VESSEL INFO ================= */
 
+    loa: {
+      type: String
+    },
+
     vesselTypeCHS: {
       type: String,
       enum: [

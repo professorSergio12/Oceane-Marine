@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import STSDeclaration from "@/lib/mongodb/models/operation-sts-checklist/DeclarationOfSea";
-import { incrementRevisionForUpdate } from "../../../revision.js";
-import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js";
+import { incrementRevisionForUpdate } from "../../revision.js";
+import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import "../../../../../../jobs/definitions/declaration-of-sea.job.js";
+import "@/jobs/definitions/declaration-of-sea.job.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

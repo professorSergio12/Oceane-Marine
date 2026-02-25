@@ -26,6 +26,7 @@ export async function PUT(req, { params }) {
     const { id } = await params;
     const body = await req.json();
     const {
+      operationRef,
       operationNumber,
       year,
       locationId,
@@ -41,6 +42,7 @@ export async function PUT(req, { params }) {
     }
 
     const update = {
+      operationRef: operationRef !== undefined ? (operationRef || null) : existing.operationRef,
       operationNumber: operationNumber != null ? String(operationNumber).trim() : existing.operationNumber,
       year: year != null ? Number(year) : existing.year,
       location: {

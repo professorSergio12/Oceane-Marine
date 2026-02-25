@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import STSChecklist3A3B from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-003";
-import { incrementRevisionForUpdate } from "../../../revision.js";
-import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js";
+import { incrementRevisionForUpdate } from "../../revision.js";
+import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
-import "../../../../../../jobs/definitions/ops-ofd-003.job.js";
+import "@/jobs/definitions/ops-ofd-003.job.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

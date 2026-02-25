@@ -8,6 +8,7 @@ export async function POST(req) {
   try {
     const body = await req.json();
     const {
+      operationRef,
       operationNumber,
       year,
       locationId,
@@ -34,6 +35,7 @@ export async function POST(req) {
     }
 
     const doc = await Compatibility.create({
+      operationRef: operationRef || null,
       operationNumber: String(operationNumber).trim(),
       year: Number(year),
       location: {

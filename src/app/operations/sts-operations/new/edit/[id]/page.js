@@ -121,6 +121,32 @@ export default function EditOperationPage() {
   // Calculate barrels from metric tons (approximate conversion: 1 MT ≈ 7.33 barrels)
   const [quantityMT, setQuantityMT] = useState("");
   const [quantityBarrels, setQuantityBarrels] = useState("");
+  const [preStsDocs, setPreStsDocs] = useState({ jpo: "", riskAssessment: "" });
+
+  /* Auto-fetch Pre-STS docs (JPO, Risk Assessment) when location changes */
+  const handleLocationChange = async (locationId) => {
+    if (!locationId || locationId === "Select") {
+      setPreStsDocs({ jpo: "", riskAssessment: "" });
+      return;
+    }
+    const loc = locations.find((l) => String(l._id) === String(locationId));
+    const locName = loc?.name || "";
+    try {
+      const params = new URLSearchParams();
+      params.set("locationId", locationId);
+      if (locName) params.set("locationName", locName);
+      const res = await fetch(`/api/operations/sts/pre-sts-docs?${params.toString()}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setPreStsDocs({
+          jpo: json.data.jpo || "",
+          riskAssessment: json.data.riskAssessment || "",
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch pre-STS docs:", err);
+    }
+  };
 
   useEffect(() => {
     if (quantityMT && !isNaN(parseFloat(quantityMT)) && parseFloat(quantityMT) > 0) {
@@ -713,6 +739,7 @@ export default function EditOperationPage() {
                   ...locations.map((l) => ({ label: l.name, value: l._id })),
                 ]}
                 name="location"
+                onChange={handleLocationChange}
               />
               <SelectField
                 label="Type of cargo"
@@ -733,37 +760,10 @@ export default function EditOperationPage() {
                   { label: "At Anchor", value: "At Anchor" },
                 ]}
               />
-              <SelectField
-                label="What type of vessel (CHS)"
-                options={[
-                  { label: "Select", value: "" },
-                  { label: "VLCC", value: "VLCC" },
-                  { label: "ULCC", value: "ULCC" },
-                  { label: "Suexmax", value: "Suexmax" },
-                  { label: "Aframax", value: "Aframax" },
-                  { label: "panamax", value: "panamax" },
-                  { label: "post-panamax", value: "post-panamax" },
-                  { label: "Handysize", value: "Handysize" },
-                  { label: "Capezie", value: "Capezie" },
-                  { label: "Supramax", value: "Supramax" },
-                ]}
-                name="vesselTypeCHS"
-              />
-              <SelectField
-                label="What type of vessel (MS)"
-                options={[
-                  { label: "Select", value: "" },
-                  { label: "VLCC", value: "VLCC" },
-                  { label: "ULCC", value: "ULCC" },
-                  { label: "Suexmax", value: "Suexmax" },
-                  { label: "Aframax", value: "Aframax" },
-                  { label: "panamax", value: "panamax" },
-                  { label: "post-panamax", value: "post-panamax" },
-                  { label: "Handysize", value: "Handysize" },
-                  { label: "Capezie", value: "Capezie" },
-                  { label: "Supramax", value: "Supramax" },
-                ]}
-                name="vesselTypeMS"
+              <TextField
+                label="LOA"
+                name="loa"
+                placeholder="Enter LOA"
               />
               <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -838,6 +838,22 @@ export default function EditOperationPage() {
                     name="chs"
                     placeholder="Enter CHS name"
                   />
+                  <SelectField
+                    label="What type of vessel (CHS)"
+                    options={[
+                      { label: "Select", value: "" },
+                      { label: "VLCC", value: "VLCC" },
+                      { label: "ULCC", value: "ULCC" },
+                      { label: "Suexmax", value: "Suexmax" },
+                      { label: "Aframax", value: "Aframax" },
+                      { label: "panamax", value: "panamax" },
+                      { label: "post-panamax", value: "post-panamax" },
+                      { label: "Handysize", value: "Handysize" },
+                      { label: "Capezie", value: "Capezie" },
+                      { label: "Supramax", value: "Supramax" },
+                    ]}
+                    name="vesselTypeCHS"
+                  />
                   <UploadPill
                     label="SSQ"
                     name="chsSSQ"
@@ -881,6 +897,22 @@ export default function EditOperationPage() {
                     label="MS"
                     name="ms"
                     placeholder="Enter MS name"
+                  />
+                  <SelectField
+                    label="What type of vessel (MS)"
+                    options={[
+                      { label: "Select", value: "" },
+                      { label: "VLCC", value: "VLCC" },
+                      { label: "ULCC", value: "ULCC" },
+                      { label: "Suexmax", value: "Suexmax" },
+                      { label: "Aframax", value: "Aframax" },
+                      { label: "panamax", value: "panamax" },
+                      { label: "post-panamax", value: "post-panamax" },
+                      { label: "Handysize", value: "Handysize" },
+                      { label: "Capezie", value: "Capezie" },
+                      { label: "Supramax", value: "Supramax" },
+                    ]}
+                    name="vesselTypeMS"
                   />
                   <UploadPill
                     label="SSQ"
@@ -929,11 +961,15 @@ export default function EditOperationPage() {
                 label="Joint Plan Operation"
                 name="jpo"
                 resetKey={formResetKey}
+                defaultValue={operationData?.jpo}
+                externalValue={preStsDocs.jpo}
               />
               <ActionUpload
                 label="Risk Assessment"
                 name="riskAssessment"
                 resetKey={formResetKey}
+                defaultValue={operationData?.riskAssessment}
+                externalValue={preStsDocs.riskAssessment}
               />
               <ActionUpload
                 label="Mooring Plan"
@@ -1221,6 +1257,7 @@ function SelectField({
   multiple = false,
   placeholder,
   size,
+  onChange,
 }) {
   const [isPlaceholderSelected, setIsPlaceholderSelected] = useState(
     !multiple && !!placeholder
@@ -1257,6 +1294,7 @@ function SelectField({
             if (!multiple && placeholder) {
               setIsPlaceholderSelected(e.target.value === "");
             }
+            if (onChange) onChange(e.target.value);
           }}
           className={`w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm shadow-lg shadow-black/20 outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400/60 transition ${
             multiple ? "appearance-auto min-h-[160px]" : "appearance-none"
@@ -1401,8 +1439,9 @@ function UploadPill({ label, name, accent = "sky", resetKey, defaultValue }) {
   );
 }
 
-function ActionUpload({ label, name, resetKey, defaultValue }) {
+function ActionUpload({ label, name, resetKey, defaultValue, externalValue }) {
   const [fileUrl, setFileUrl] = useState(defaultValue || "");
+  const [isAutoFetched, setIsAutoFetched] = useState(false);
   const inputRef = useRef(null);
   
   useEffect(() => {
@@ -1410,11 +1449,25 @@ function ActionUpload({ label, name, resetKey, defaultValue }) {
       setFileUrl(defaultValue);
     } else if (resetKey > 0) {
       setFileUrl("");
+      setIsAutoFetched(false);
       if (inputRef.current) {
         inputRef.current.value = "";
       }
     }
   }, [resetKey, defaultValue]);
+
+  // Update from external auto-fetch (e.g. location-based JPO/Risk Assessment)
+  useEffect(() => {
+    if (externalValue !== undefined && externalValue !== null && externalValue !== "") {
+      setFileUrl(externalValue);
+      setIsAutoFetched(true);
+    } else if (externalValue === "") {
+      if (isAutoFetched) {
+        setFileUrl(defaultValue || "");
+        setIsAutoFetched(false);
+      }
+    }
+  }, [externalValue]);
 
   const handleDownload = (e) => {
     e.preventDefault();
@@ -1423,20 +1476,24 @@ function ActionUpload({ label, name, resetKey, defaultValue }) {
     }
   };
 
+  const handleClear = (e) => {
+    e.preventDefault();
+    setFileUrl("");
+    setIsAutoFetched(false);
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <label className="block text-sm font-medium text-white/90">{label}</label>
-      <div className="flex items-center gap-2">
-      <input
-        ref={inputRef}
-          type="text"
-        name={name}
-          value={fileUrl}
-          onChange={(e) => setFileUrl(e.target.value)}
-          placeholder="Enter file URL/path"
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
-      />
-        {fileUrl && (
+      {/* Hidden input to keep value in form */}
+      <input type="hidden" name={name} value={fileUrl} />
+
+      {isAutoFetched && fileUrl ? (
+        /* Auto-fetched: show clean download button only */
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3">
+            <span className="text-emerald-300 text-sm">✓ File linked from location</span>
+          </div>
           <button
             type="button"
             onClick={handleDownload}
@@ -1444,8 +1501,37 @@ function ActionUpload({ label, name, resetKey, defaultValue }) {
           >
             Download
           </button>
+          <button
+            type="button"
+            onClick={handleClear}
+            className="px-3 py-3 rounded-xl bg-red-500/20 text-red-300 text-sm font-semibold hover:bg-red-500/30 transition"
+            title="Remove"
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        /* Manual entry */
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={fileUrl}
+            onChange={(e) => setFileUrl(e.target.value)}
+            placeholder="Enter file URL/path"
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
+          />
+          {fileUrl && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition"
+            >
+              Download
+            </button>
+          )}
+        </div>
       )}
-      </div>
     </div>
   );
 }

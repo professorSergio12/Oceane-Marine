@@ -16,6 +16,8 @@ import { defineOpsOfd014Job } from "../definitions/ops-ofd-014.job.js";
 import { defineOpsOfd015Job } from "../definitions/ops-ofd-015.job.js";
 import { defineOpsOfd018Job } from "../definitions/ops-ofd-018.job.js";
 import { defineOpsOfd029Job } from "../definitions/ops-ofd-029.job.js";
+import { defineOpsOfd020Job } from "../definitions/ops-ofd-020.job.js";
+import { defineOpsOfd023Job } from "../definitions/ops-ofd-023.job.js";
 
 export async function registerJobs() {
   const agenda = await getAgenda();
@@ -37,5 +39,7 @@ export async function registerJobs() {
   defineOpsOfd015Job(agenda);
   defineOpsOfd018Job(agenda);
   defineOpsOfd029Job(agenda);
+  defineOpsOfd020Job(agenda);
+  defineOpsOfd023Job(agenda);
   console.log("✅ Jobs Registered");
 }

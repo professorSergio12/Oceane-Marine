@@ -48,10 +48,12 @@ function CompatibilityPageContent() {
   const sidebarRef = useRef(null);
 
   const [operationNumber, setOperationNumber] = useState("");
+  const [selectedOperationId, setSelectedOperationId] = useState("");
+  const [inProgressOps, setInProgressOps] = useState([]);
+  const [opsLoading, setOpsLoading] = useState(false);
   const [year, setYear] = useState(new Date().getFullYear());
   const [locationId, setLocationId] = useState("");
   const [locationName, setLocationName] = useState("");
-  const [locations, setLocations] = useState([]);
   const [STBL, setSTBL] = useState(emptyShip());
   const [SS, setSS] = useState(emptyShip());
   const [results, setResults] = useState(null);
@@ -61,14 +63,49 @@ function CompatibilityPageContent() {
   const [success, setSuccess] = useState("");
   const messageTopRef = useRef(null);
 
+  /* Fetch INPROGRESS STS operations for the dropdown */
   useEffect(() => {
-    fetch("/api/master/locations/list")
+    setOpsLoading(true);
+    fetch("/api/operations/sts/list?status=INPROGRESS")
       .then((res) => res.json())
       .then((data) => {
-        if (data.locations) setLocations(data.locations);
+        if (data.success && data.data) {
+          setInProgressOps(data.data);
+        }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setOpsLoading(false));
   }, []);
+
+  /* When user selects an operation from dropdown, auto-fill fields */
+  const handleOperationSelect = (opId) => {
+    setSelectedOperationId(opId);
+    if (!opId) {
+      setOperationNumber("");
+      return;
+    }
+    const op = inProgressOps.find((o) => String(o._id) === String(opId));
+    if (!op) return;
+    setOperationNumber(op.Operation_Ref_No || "");
+    // Auto-fill year from operationStartTime
+    if (op.operationStartTime) {
+      setYear(new Date(op.operationStartTime).getFullYear());
+    }
+    // Auto-fill location
+    if (op.location) {
+      const locId = typeof op.location === "object" ? op.location._id : op.location;
+      const locName = typeof op.location === "object" ? op.location.name : "";
+      setLocationId(String(locId || ""));
+      setLocationName(locName || "");
+    }
+    // Auto-fill CHS name (STBL) and MS name (SS)
+    if (op.chs) {
+      setSTBL((prev) => ({ ...prev, name: op.chs }));
+    }
+    if (op.ms) {
+      setSS((prev) => ({ ...prev, name: op.ms }));
+    }
+  };
 
   useEffect(() => {
     if (editId) {
@@ -79,6 +116,7 @@ function CompatibilityPageContent() {
           if (data.success && data.data) {
             const d = data.data;
             setOperationNumber(d.operationNumber || "");
+            setSelectedOperationId(d.operationRef || "");
             setYear(d.year ?? new Date().getFullYear());
             setLocationId(d.location?.locationId?.toString() || "");
             setLocationName(d.location?.name || "");
@@ -172,10 +210,11 @@ function CompatibilityPageContent() {
     }
     setSaving(true);
     const payload = {
+      operationRef: selectedOperationId || null,
       operationNumber: operationNumber.trim(),
       year: Number(year),
       locationId: locationId || null,
-      locationName: locationName || (locations.find((l) => String(l._id) === String(locationId))?.name ?? ""),
+      locationName: locationName || "",
       section: calcSection,
       STBL: {
         name: STBL.name,
@@ -378,42 +417,39 @@ function CompatibilityPageContent() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className={fieldWrapClass}>
                     <label className={labelClass}>Operation number *</label>
-                    <input
-                      type="text"
-                      value={operationNumber}
-                      onChange={(e) => setOperationNumber(e.target.value)}
-                      placeholder="e.g. 2025-065"
+                    <select
+                      value={selectedOperationId}
+                      onChange={(e) => handleOperationSelect(e.target.value)}
                       className={inputClass}
-                    />
+                      disabled={opsLoading}
+                    >
+                      <option value="">{opsLoading ? "Loading operations..." : "Select operation"}</option>
+                      {inProgressOps.map((op) => (
+                        <option key={op._id} value={op._id}>
+                          {op.Operation_Ref_No}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className={fieldWrapClass}>
                     <label className={labelClass}>Year *</label>
                     <input
                       type="number"
                       value={year || ""}
-                      onChange={(e) => setYear(Number(e.target.value) || "")}
-                      min={2000}
-                      max={2100}
-                      className={inputNumberClass}
+                      readOnly
+                      placeholder="Auto-filled from operation"
+                      className={`${inputNumberClass} cursor-not-allowed opacity-70`}
                     />
                   </div>
                   <div className={fieldWrapClass}>
                     <label className={labelClass}>Location</label>
-                    <select
-                      value={locationId}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        setLocationId(id);
-                        const loc = locations.find((l) => String(l._id) === String(id));
-                        setLocationName(loc?.name ?? "");
-                      }}
-                      className={inputClass}
-                    >
-                      <option value="">Select location</option>
-                      {locations.map((loc) => (
-                        <option key={loc._id} value={loc._id}>{loc.name}</option>
-                      ))}
-                    </select>
+                    <input
+                      type="text"
+                      value={locationName}
+                      readOnly
+                      placeholder="Auto-filled from operation"
+                      className={`${inputClass} cursor-not-allowed opacity-70`}
+                    />
                   </div>
                 </div>
               </div>
