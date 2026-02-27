@@ -117,7 +117,7 @@ const stsOperationSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      index: true  // Non-unique index for query performance (multiple versions can share same ref)
+      // index defined below via schema.index()
     },
 
     typeOfOperation: String,

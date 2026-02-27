@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import OperationsMap from "./OperationsMap";
 
 // Generate years: current year and 5 years back
 function getYears() {
@@ -214,6 +215,9 @@ export default function OperationsCharts() {
           <p className="text-4xl font-bold text-white">{stats.statusCount.CANCELED}</p>
         </div>
       </div>
+
+      {/* Operations Map */}
+      <OperationsMap year={selectedYear} month={selectedMonth} />
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -72,9 +72,14 @@ export default function LocationsPage() {
   // --- Manage locations (master data) ---
   const [items, setItems] = useState([]);
   const [value, setValue] = useState("");
+  const [latValue, setLatValue] = useState("");
+  const [lngValue, setLngValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editLat, setEditLat] = useState("");
+  const [editLng, setEditLng] = useState("");
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
   const [activeTab, setActiveTab] = useState("locations");
   const [expandedModules, setExpandedModules] = useState(new Set());
@@ -231,10 +236,14 @@ export default function LocationsPage() {
     if (!value.trim()) return;
     try {
       setLoading(true);
+      const payload = { name: value.trim() };
+      if (latValue.trim()) payload.latitude = parseFloat(latValue.trim());
+      if (lngValue.trim()) payload.longitude = parseFloat(lngValue.trim());
+
       const res = await fetch("/api/master/locations/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: value.trim() }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
@@ -246,12 +255,46 @@ export default function LocationsPage() {
       const data = await res.json();
       if (data.error) throw new Error(data.error || "Failed to create");
       setValue("");
+      setLatValue("");
+      setLngValue("");
       await load();
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUpdateCoords = async (id) => {
+    setError("");
+    try {
+      setActionLoading(true);
+      const res = await fetch(`/api/master/locations/${id}/update`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: editLat.trim() ? parseFloat(editLat.trim()) : null,
+          longitude: editLng.trim() ? parseFloat(editLng.trim()) : null,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error || "Failed to update");
+      setEditingId(null);
+      setEditLat("");
+      setEditLng("");
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const startEditing = (item) => {
+    setEditingId(item._id);
+    setEditLat(item.latitude != null ? String(item.latitude) : "");
+    setEditLng(item.longitude != null ? String(item.longitude) : "");
   };
 
   const handleDelete = async (id) => {
@@ -568,19 +611,44 @@ export default function LocationsPage() {
                     <p className="text-xs text-white/60 mt-0.5">Register new locations for operations</p>
                   </div>
                 </div>
-                <form onSubmit={handleSubmitLocation} className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      placeholder="Enter location name"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 outline-none"
-                    />
+                <form onSubmit={handleSubmitLocation} className="space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        placeholder="Enter location name"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 outline-none"
+                      />
+                    </div>
+                    <div className="w-36">
+                      <input
+                        type="text"
+                        value={latValue}
+                        onChange={(e) => setLatValue(e.target.value)}
+                        placeholder="Latitude"
+                        inputMode="decimal"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 outline-none"
+                      />
+                    </div>
+                    <div className="w-36">
+                      <input
+                        type="text"
+                        value={lngValue}
+                        onChange={(e) => setLngValue(e.target.value)}
+                        placeholder="Longitude"
+                        inputMode="decimal"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 outline-none"
+                      />
+                    </div>
+                    <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3.5 text-sm font-semibold text-white disabled:opacity-50 min-w-[140px]">
+                      {loading ? "Adding..." : "Add"}
+                    </button>
                   </div>
-                  <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3.5 text-sm font-semibold text-white disabled:opacity-50 min-w-[140px]">
-                    {loading ? "Adding..." : "Add"}
-                  </button>
+                  <p className="text-[10px] text-white/40 ml-1">
+                    Latitude & Longitude are optional — used for showing markers on the Operations Map. Leave blank if unknown.
+                  </p>
                 </form>
               </div>
 
@@ -596,26 +664,78 @@ export default function LocationsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-white/10 bg-white/5">
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">#</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Location</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">#</th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Location</th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Latitude</th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Longitude</th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-white/70 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {items.map((item, idx) => (
                         <tr key={item._id || item.name} className="hover:bg-white/5">
-                          <td className="px-6 py-4">{idx + 1}</td>
-                          <td className="px-6 py-4 font-semibold text-white">{item.name}</td>
-                          <td className="px-6 py-4">
-                            <button type="button" onClick={() => handleDelete(item._id)} disabled={actionLoading} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 border border-red-400/30 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50">
-                              Delete
-                            </button>
+                          <td className="px-4 py-4">{idx + 1}</td>
+                          <td className="px-4 py-4 font-semibold text-white">{item.name}</td>
+                          <td className="px-4 py-3">
+                            {editingId === item._id ? (
+                              <input
+                                type="text"
+                                value={editLat}
+                                onChange={(e) => setEditLat(e.target.value)}
+                                placeholder="Lat"
+                                inputMode="decimal"
+                                className="w-28 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-xs text-white placeholder:text-white/30 outline-none focus:ring-1 focus:ring-orange-500"
+                              />
+                            ) : (
+                              <span className={`text-xs ${item.latitude != null ? "text-white" : "text-white/30"}`}>
+                                {item.latitude != null ? item.latitude : "—"}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {editingId === item._id ? (
+                              <input
+                                type="text"
+                                value={editLng}
+                                onChange={(e) => setEditLng(e.target.value)}
+                                placeholder="Lng"
+                                inputMode="decimal"
+                                className="w-28 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-xs text-white placeholder:text-white/30 outline-none focus:ring-1 focus:ring-orange-500"
+                              />
+                            ) : (
+                              <span className={`text-xs ${item.longitude != null ? "text-white" : "text-white/30"}`}>
+                                {item.longitude != null ? item.longitude : "—"}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              {editingId === item._id ? (
+                                <>
+                                  <button type="button" onClick={() => handleUpdateCoords(item._id)} disabled={actionLoading} className="inline-flex items-center gap-1 rounded-lg bg-green-500/10 border border-green-400/30 px-3 py-1.5 text-xs font-semibold text-green-200 hover:bg-green-500/20 disabled:opacity-50">
+                                    Save
+                                  </button>
+                                  <button type="button" onClick={() => { setEditingId(null); setEditLat(""); setEditLng(""); }} className="inline-flex items-center gap-1 rounded-lg bg-white/5 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/10">
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button type="button" onClick={() => startEditing(item)} className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 border border-blue-400/30 px-3 py-1.5 text-xs font-semibold text-blue-200 hover:bg-blue-500/20">
+                                    📍 Edit Coords
+                                  </button>
+                                  <button type="button" onClick={() => handleDelete(item._id)} disabled={actionLoading} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 border border-red-400/30 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50">
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
                       {!items.length && (
                         <tr>
-                          <td className="px-6 py-12 text-center" colSpan={3}>
+                          <td className="px-4 py-12 text-center" colSpan={5}>
                             <p className="text-sm text-white/60">No locations found. Add your first location above.</p>
                           </td>
                         </tr>

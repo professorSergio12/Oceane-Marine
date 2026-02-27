@@ -6,7 +6,10 @@ export async function POST(req) {
   await connectDB();
 
   try {
-    const { name } = await req.json();
+    const { name, latitude, longitude } = await req.json();
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
     const existingLocation = await Location.findOne({ name });
     if (existingLocation) {
       return NextResponse.json(
@@ -14,10 +17,12 @@ export async function POST(req) {
         { status: 400 }
       );
     }
-    if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
-    }
-    const newLocation = new Location({ name });
+
+    const locationData = { name };
+    if (latitude != null && latitude !== "") locationData.latitude = Number(latitude);
+    if (longitude != null && longitude !== "") locationData.longitude = Number(longitude);
+
+    const newLocation = new Location(locationData);
     await newLocation.save();
     return NextResponse.json(
       { message: "Location created successfully", data: newLocation },
