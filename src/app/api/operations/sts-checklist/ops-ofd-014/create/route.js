@@ -136,16 +136,20 @@ export async function POST(req) {
     };
 
     /* ================= DUPLICATE SAFETY CHECK ================= */
+    // Check for existing document with same operationRef AND operationPhase
+    // This allows Before and After Operation to coexist for the same operationRef
+    const operationPhase = body.jobInfo?.operationPhase || "BEFORE_OPERATION";
     const existing = await STSEquipmentChecklist.findOne({
       operationRef: body.operationRef,
+      "jobInfo.operationPhase": operationPhase,
     }).sort({ createdAt: -1 });
 
     if (existing) {
       if (existing.sequenceNumber) {
-        console.log(`⚠️ OPS-OFD-014 already exists for ${body.operationRef}, returning existing`);
+        console.log(`⚠️ OPS-OFD-014 already exists for ${body.operationRef} (${operationPhase}), returning existing`);
         return NextResponse.json(
           {
-            message: "Equipment checklist already exists",
+            message: `Equipment checklist already exists for ${operationPhase === "BEFORE_OPERATION" ? "Before" : "After"} Operation`,
             data: existing,
             isDuplicate: true,
           },
@@ -153,7 +157,7 @@ export async function POST(req) {
         );
       }
       await STSEquipmentChecklist.findByIdAndDelete(existing._id);
-      console.log(`🗑️ Deleted incomplete OPS-OFD-014 without sequenceNumber for ${body.operationRef}`);
+      console.log(`🗑️ Deleted incomplete OPS-OFD-014 without sequenceNumber for ${body.operationRef} (${operationPhase})`);
     }
 
     /* ================= STEP 1: SAVE DOCUMENT ================= */

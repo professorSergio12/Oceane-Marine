@@ -5,6 +5,33 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 
+/** Map every OPS-OFD code to a human-readable form name */
+const FORM_NAME_MAP = {
+  "OPS-OFD-001":  "Checklist 1",
+  "OPS-OFD-001-A":"Ship Standard Questionnaire",
+  "OPS-OFD-002":  "Checklist 2",
+  "OPS-OFD-003":  "Checklist 3A & B",
+  "OPS-OFD-004":  "Checklist 4A-F",
+  "OPS-OFD-005":  "Checklist 5A-C",
+  "OPS-OFD-005B": "Checklist 6A & B",
+  "OPS-OFD-005C": "Checklist 7",
+  "OPS-OFD-005E": "Declaration at Sea",
+  "OPS-OFD-005F": "Checklist 5F",
+  "OPS-OFD-008":  "Checklist 8",
+  "OPS-OFD-009":  "Mooring Master Job Report",
+  "OPS-OFD-011":  "Standing Order",
+  "OPS-OFD-014":      "STS Equipment Checklist",
+  "OPS-OFD-014-B":    "Equip Checklist (Before Op.)",
+  "OPS-OFD-014-A":    "Equip Checklist (After Op.)",
+  "OPS-OFD-015":      "Hourly Checks",
+  "OPS-OFD-018":      "STS Timesheet",
+  "OPS-OFD-020":      "Master's Feedback",
+  "OPS-OFD-020-CHS":  "Master's Feedback (CHS)",
+  "OPS-OFD-020-MS":   "Master's Feedback (MS)",
+  "OPS-OFD-023":      "Rest Hours CKL",
+  "OPS-OFD-029":      "Mooring Master Expense Sheet",
+};
+
 const statusTone = {
   INPROGRESS: {
     dot: "bg-sky-600",
@@ -117,6 +144,8 @@ export default function ViewOperationPage() {
   const [operationData, setOperationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [linkedForms, setLinkedForms] = useState([]);
+  const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
 
   useEffect(() => {
     if (pathname === "/operations/sts-operations/new") {
@@ -129,6 +158,20 @@ export default function ViewOperationPage() {
     }
   }, [pathname]);
 
+  const fetchLinkedForms = async (opRef) => {
+    if (!opRef) return;
+    try {
+      setLinkedFormsLoading(true);
+      const res = await fetch(`/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(opRef)}`);
+      const json = await res.json();
+      if (json.success) setLinkedForms(json.data || []);
+    } catch (err) {
+      console.error("Failed to fetch linked forms:", err);
+    } finally {
+      setLinkedFormsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchOperation = async () => {
       if (!id) return;
@@ -140,6 +183,10 @@ export default function ViewOperationPage() {
 
         if (data.success && data.data) {
           setOperationData(data.data);
+          // Fetch linked forms once we have the operation ref
+          if (data.data.Operation_Ref_No) {
+            fetchLinkedForms(data.data.Operation_Ref_No);
+          }
         } else {
           setError("Operation not found");
         }
@@ -543,18 +590,219 @@ export default function ViewOperationPage() {
                 </div>
               )}
 
+              {/* ═══════════ Linked Checklist / Form Status ═══════════ */}
+              <div className="border-t border-white/10 pt-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Linked Forms Status</h3>
+
+                {linkedFormsLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-400" />
+                    Loading linked forms…
+                  </div>
+                ) : linkedForms.length > 0 ? (
+                  <>
+                    {/* Checklists */}
+                    {linkedForms.filter((f) => f.category === "checklist").length > 0 && (
+                      <div className="mb-5">
+                        <h4 className="text-sm font-semibold text-white/80 mb-3">Checklists</h4>
+                        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                          {linkedForms.filter((f) => f.category === "checklist").map((f) => (
+                            <div
+                              key={f.formCode}
+                              className={`rounded-xl border p-4 transition-all ${
+                                f.filled
+                                  ? "border-emerald-500/30 bg-emerald-900/10"
+                                  : "border-white/10 bg-white/5"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
+                                  <p className="text-sm font-semibold text-white truncate">{f.label}</p>
+                                </div>
+                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  f.filled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"
+                                }`}>
+                                  {f.filled ? `Filled (${f.count})` : "Pending"}
+                                </span>
+                              </div>
+                              {f.filled && f.docs?.[0] && (
+                                <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+                                  <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "—"}</span></p>
+                                  <p>Status: <span className={
+                                    f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED"
+                                      ? "text-emerald-300" : "text-amber-300"
+                                  }>{f.docs[0].status}</span></p>
+                                  <p>Date: {f.docs[0].createdAt
+                                    ? new Date(f.docs[0].createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                                    : "—"}</p>
+                                  {/* Show download link if PDF exists */}
+                                  {(() => {
+                                    const pdfDoc = (op.documents || []).find(d => d.documentType === f.formCode && d.filePath);
+                                    return pdfDoc ? (
+                                      <a
+                                        href={pdfDoc.filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 mt-1.5 text-orange-400 hover:text-orange-300 text-[11px] underline"
+                                      >
+                                        📄 View PDF
+                                      </a>
+                                    ) : null;
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Equipment */}
+                    {linkedForms.filter((f) => f.category === "equipment").length > 0 && (
+                      <div className="mb-5">
+                        <h4 className="text-sm font-semibold text-white/80 mb-3">STS Equipment</h4>
+                        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                          {linkedForms.filter((f) => f.category === "equipment").map((f) => (
+                            <div
+                              key={f.formCode}
+                              className={`rounded-xl border p-4 transition-all ${
+                                f.filled
+                                  ? "border-emerald-500/30 bg-emerald-900/10"
+                                  : "border-white/10 bg-white/5"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
+                                  <p className="text-sm font-semibold text-white truncate">{f.label}</p>
+                                </div>
+                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  f.filled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"
+                                }`}>
+                                  {f.filled ? `Filled (${f.count})` : "Pending"}
+                                </span>
+                              </div>
+                              {f.filled && f.docs?.[0] && (
+                                <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+                                  <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "—"}</span></p>
+                                  <p>Status: <span className={
+                                    f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED"
+                                      ? "text-emerald-300" : "text-amber-300"
+                                  }>{f.docs[0].status}</span></p>
+                                  {/* Show download link if PDF exists */}
+                                  {(() => {
+                                    const pdfDoc = (op.documents || []).find(d => d.documentType === f.formCode && d.filePath);
+                                    return pdfDoc ? (
+                                      <a
+                                        href={pdfDoc.filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 mt-1.5 text-orange-400 hover:text-orange-300 text-[11px] underline"
+                                      >
+                                        📄 View PDF
+                                      </a>
+                                    ) : null;
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Feedback & Logs */}
+                    {linkedForms.filter((f) => f.category === "feedback").length > 0 && (
+                      <div className="mb-5">
+                        <h4 className="text-sm font-semibold text-white/80 mb-3">Feedback & Logs</h4>
+                        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                          {linkedForms.filter((f) => f.category === "feedback").map((f) => (
+                            <div
+                              key={f.formCode}
+                              className={`rounded-xl border p-4 transition-all ${
+                                f.filled
+                                  ? "border-emerald-500/30 bg-emerald-900/10"
+                                  : "border-white/10 bg-white/5"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
+                                  <p className="text-sm font-semibold text-white truncate">{f.label}</p>
+                                </div>
+                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  f.filled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"
+                                }`}>
+                                  {f.filled ? `Filled (${f.count})` : "Pending"}
+                                </span>
+                              </div>
+                              {f.filled && f.docs?.[0] && (
+                                <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+                                  <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "—"}</span></p>
+                                  <p>Status: <span className={
+                                    f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED"
+                                      ? "text-emerald-300" : "text-amber-300"
+                                  }>{f.docs[0].status}</span></p>
+                                  {/* Show download link if PDF exists */}
+                                  {(() => {
+                                    const pdfDoc = (op.documents || []).find(d => d.documentType === f.formCode && d.filePath);
+                                    return pdfDoc ? (
+                                      <a
+                                        href={pdfDoc.filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 mt-1.5 text-orange-400 hover:text-orange-300 text-[11px] underline"
+                                      >
+                                        📄 View PDF
+                                      </a>
+                                    ) : null;
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-white/50 py-4">No linked form data available.</p>
+                )}
+              </div>
+
               {/* File Attachments Section */}
               <div className="border-t border-white/10 pt-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Attached Documents</h3>
 
                 {(() => {
-                  const systemDocs = op.documents || [];
+                  // Get list of form codes that are already shown in "Linked Forms Status"
+                  const linkedFormCodes = new Set(linkedForms.map(f => f.formCode));
+                  
+                  // Filter out system docs that are already shown in Linked Forms Status
+                  const systemDocs = (op.documents || []).filter(doc => {
+                    // Only show documents that are NOT linked forms (e.g., manual uploads, other docs)
+                    return !linkedFormCodes.has(doc.documentType);
+                  });
+                  
                   const legacyDocs = [
                     { label: "Joint Plan Operation", path: op.jpo },
+                    { label: "Mooring Plan", path: op.mooringPlan },
+                    { label: "Risk Assessment", path: op.riskAssessment },
                     { label: "Standing Order", path: op.standingOrder },
                     { label: "Checklist 1", path: op.checklist1 },
                     { label: "CHS SSQ", path: op.chsSSQ },
                     { label: "MS SSQ", path: op.msSSQ },
+                    { label: "CHS Q88", path: op.chsQ88 },
+                    { label: "MS Q88", path: op.msQ88 },
+                    { label: "CHS Mooring Arrangement", path: op.chsMooringArrangement },
+                    { label: "MS Mooring Arrangement", path: op.msMooringArrangement },
+                    { label: "CHS GA Plan", path: op.chsGAPlan },
+                    { label: "MS GA Plan", path: op.msGAPlan },
+                    { label: "CHS MSDS", path: op.chsMSDS },
+                    { label: "MS MSDS", path: op.msMSDS },
+                    { label: "CHS Indemnity", path: op.chsIndemnity },
+                    { label: "MS Indemnity", path: op.msIndemnity },
                   ].filter((doc) => doc.path);
 
                   const hasDocuments = systemDocs.length > 0 || legacyDocs.length > 0;
@@ -589,9 +837,11 @@ export default function ViewOperationPage() {
                               >
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex-1">
-                                    <p className="text-xs text-white/60 mb-1">Document Type</p>
-                                    <p className="text-sm font-medium text-white">
+                                    <p className="text-xs font-bold text-orange-300 mb-0.5">
                                       {doc.documentType || "—"}
+                                    </p>
+                                    <p className="text-sm font-medium text-white">
+                                      {FORM_NAME_MAP[doc.documentType] || doc.documentType || "—"}
                                     </p>
                                   </div>
                                   <span
@@ -629,7 +879,7 @@ export default function ViewOperationPage() {
                       {legacyDocs.length > 0 && (
                         <div>
                           <h4 className="text-sm font-semibold text-white/80 mb-3">
-                            Legacy Documents
+                            Uploaded Documents
                           </h4>
                           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {legacyDocs.map((doc) => (
@@ -642,9 +892,11 @@ export default function ViewOperationPage() {
                                   href={doc.path}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-sm text-orange-400 hover:text-orange-300 underline"
+                                  download
+                                  className="inline-flex items-center gap-1.5 text-sm text-orange-400 hover:text-orange-300 underline"
                                 >
-                                  View Document
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                  Download
                                 </a>
                               </div>
                             ))}

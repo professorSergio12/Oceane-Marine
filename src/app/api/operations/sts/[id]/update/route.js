@@ -1,6 +1,75 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import fs from "fs/promises";
+import path from "path";
+
+/* =====================
+   FILE UPLOAD FIELDS (CHS/MS vessel documents)
+====================== */
+const FILE_UPLOAD_FIELDS = [
+  "chsSSQ",
+  "chsQ88",
+  "chsGAPlan",
+  "chsMSDS",
+  "chsMooringArrangement",
+  "chsIndemnity",
+  "msSSQ",
+  "msQ88",
+  "msGAPlan",
+  "msMSDS",
+  "msMooringArrangement",
+  "msIndemnity",
+  "mooringPlan",
+];
+
+/* =====================
+   TEXT URL FIELDS (other document links)
+====================== */
+const FILE_URL_FIELDS = [
+  "jpo",
+  "riskAssessment",
+  "DeclarationAtSea",
+  "standingOrder",
+  "stsEquipChecklistPriorOps",
+  "stsEquipChecklistAfterOps",
+  "checklist1",
+  "checklist2",
+  "checklist3AB",
+  "checklist4AF",
+  "checklist5AC",
+  "checklist6AB",
+  "checklist7",
+  "stsTimesheet",
+  "hourlyChecks",
+  "incidentReporting",
+  "chsFeedback",
+  "msFeedback",
+  "restHoursCKL",
+];
+
+async function saveUploadedFile(file, subfolder) {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+
+  const uploadDir = path.join(
+    process.cwd(),
+    `public/uploads/sts-operations/${subfolder}/${y}/${m}/${d}`
+  );
+  await fs.mkdir(uploadDir, { recursive: true });
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const fileName = `${Date.now()}-${safeName}`;
+  const filePath = path.join(uploadDir, fileName);
+
+  await fs.writeFile(filePath, buffer);
+  return `/uploads/sts-operations/${subfolder}/${y}/${m}/${d}/${fileName}`;
+}
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -37,52 +106,29 @@ export async function PUT(req, { params }) {
       if (typeof value === "string") body[key] = value;
     });
 
-    // File fields are now strings (URLs/paths) - no upload needed
+    /* =====================
+       HANDLE FILE UPLOADS (CHS/MS vessel documents)
+    ====================== */
     const uploadedFiles = {};
-    
-    // List of file fields that should be stored as strings (URLs)
-    const FILE_URL_FIELDS = [
-      "jpo",
-      "stblSSQ",
-      "ssSSQ",
-      "stblIndemnity",
-      "ssIndemnity",
-      "standingOrder",
-      "stsEquipChecklistPriorOps",
-      "stsEquipChecklistAfterOps",
-      "checklist1",
-      "checklist2",
-      "checklist3AB",
-      "checklist4AF",
-      "checklist5AC",
-      "checklist6AB",
-      "checklist7",
-      "stblMasterFeedback",
-      "ssMasterFeedback",
-      "stsTimesheet",
-      "hourlyChecks",
-      "incidentReporting",
-      "chsSSQ",
-      "chsQ88",
-      "chsGAPlan",
-      "chsMSDS",
-      "chsMooringArrangement",
-      "chsIndemnity",
-      "msSSQ",
-      "msQ88",
-      "msGAPlan",
-      "msMSDS",
-      "msMooringArrangement",
-      "msIndemnity",
-      "riskAssessment",
-      "mooringPlan",
-      "DeclarationAtSea",
-      "chsFeedback",
-      "msFeedback",
-      "restHoursCKL",
-    ];
 
-    // Extract file URLs from body (they come as strings now)
+    for (const field of FILE_UPLOAD_FIELDS) {
+      const file = formData.get(field);
+      if (file && typeof file !== "string" && file.name && file.size > 0) {
+        // New file uploaded — determine subfolder
+        let subfolder = "chs";
+        if (field.startsWith("ms")) subfolder = "ms";
+        else if (field === "mooringPlan") subfolder = "mooring-plan";
+        uploadedFiles[field] = await saveUploadedFile(file, subfolder);
+      } else if (body[`${field}_existing`] && body[`${field}_existing`].trim() !== "") {
+        // Keep existing file path from hidden input
+        uploadedFiles[field] = body[`${field}_existing`].trim();
+      } else if (existing[field]) {
+        // Fallback: keep whatever was in the DB
+        uploadedFiles[field] = existing[field];
+      }
+    }
+
+    // Extract text-based file URLs
     for (const field of FILE_URL_FIELDS) {
       if (body[field] && typeof body[field] === "string" && body[field].trim() !== "") {
         uploadedFiles[field] = body[field].trim();

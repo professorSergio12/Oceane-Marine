@@ -3,7 +3,7 @@
 import { useQhseSidebar } from "../../../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
+import { TemplateDownloadLink } from "../../../../components/TemplateDownloadLink";
 import { useParams } from "next/navigation";
 
 export default function TargetKpiViewPage() {

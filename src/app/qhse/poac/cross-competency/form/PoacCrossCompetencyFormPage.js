@@ -580,18 +580,19 @@ export default function PoacCrossCompetencyFormPage() {
           <div className="flex items-center gap-3 flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-009" />
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-            <Link
-              href="/qhse/poac/cross-competency/form"
-              className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
-            >
-              POAC Form
-            </Link>
-            <Link
-              href="/qhse/poac/cross-competency/list"
-              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-            >
-              POAC List
-            </Link>
+              <Link
+                href="/qhse/poac/cross-competency/form"
+                className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+              >
+                POAC Form
+              </Link>
+              <Link
+                href="/qhse/poac/cross-competency/list"
+                className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              >
+                POAC List
+              </Link>
+            </div>
           </div>
         </header>
 

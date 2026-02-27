@@ -122,6 +122,7 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     let operationRef = searchParams.get("operationRef");
+    const operationPhase = searchParams.get("operationPhase"); // Optional: "BEFORE_OPERATION" or "AFTER_OPERATION"
 
     if (!operationRef) {
       return NextResponse.json(
@@ -132,11 +133,24 @@ export async function GET(req) {
 
     operationRef = operationRef.trim();
 
-    console.log(`🔍 Searching for OPS-OFD-014 equipment checklist with operationRef: "${operationRef}"`);
+    // Build query: include operationPhase if provided
+    const baseQuery = { operationRef };
+    if (operationPhase && (operationPhase === "BEFORE_OPERATION" || operationPhase === "AFTER_OPERATION")) {
+      baseQuery["jobInfo.operationPhase"] = operationPhase;
+    }
 
-    let checklist = await STSEquipmentChecklist.findOne({ operationRef })
+    console.log(`🔍 Searching for OPS-OFD-014 equipment checklist with operationRef: "${operationRef}"${operationPhase ? `, operationPhase: "${operationPhase}"` : ""}`);
+
+    let checklist = await STSEquipmentChecklist.findOne(baseQuery)
       .sort({ createdAt: -1 })
       .lean();
+
+    // Fallback: if not found with operationPhase filter, try without it (for backward compatibility)
+    if (!checklist && operationPhase) {
+      checklist = await STSEquipmentChecklist.findOne({ operationRef })
+        .sort({ createdAt: -1 })
+        .lean();
+    }
 
     if (!checklist) {
       checklist = await STSEquipmentChecklist.findOne({
@@ -181,6 +195,7 @@ export async function PUT(req) {
   try {
     const { searchParams } = new URL(req.url);
     let operationRef = searchParams.get("operationRef");
+    const operationPhase = searchParams.get("operationPhase"); // Optional: "BEFORE_OPERATION" or "AFTER_OPERATION"
 
     if (!operationRef) {
       return NextResponse.json(
@@ -191,11 +206,24 @@ export async function PUT(req) {
 
     operationRef = operationRef.trim();
 
-    console.log(`🔍 Searching for OPS-OFD-014 equipment checklist to update with operationRef: "${operationRef}"`);
+    // Build query: include operationPhase if provided
+    const baseQuery = { operationRef };
+    if (operationPhase && (operationPhase === "BEFORE_OPERATION" || operationPhase === "AFTER_OPERATION")) {
+      baseQuery["jobInfo.operationPhase"] = operationPhase;
+    }
 
-    let existing = await STSEquipmentChecklist.findOne({ operationRef })
+    console.log(`🔍 Searching for OPS-OFD-014 equipment checklist to update with operationRef: "${operationRef}"${operationPhase ? `, operationPhase: "${operationPhase}"` : ""}`);
+
+    let existing = await STSEquipmentChecklist.findOne(baseQuery)
       .sort({ createdAt: -1 })
       .lean();
+
+    // Fallback: if not found with operationPhase filter, try without it (for backward compatibility)
+    if (!existing && operationPhase) {
+      existing = await STSEquipmentChecklist.findOne({ operationRef })
+        .sort({ createdAt: -1 })
+        .lean();
+    }
 
     if (!existing) {
       existing = await STSEquipmentChecklist.findOne({

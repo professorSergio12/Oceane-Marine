@@ -3,6 +3,75 @@ import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import mongoose from "mongoose";
+import fs from "fs/promises";
+import path from "path";
+
+/* =====================
+   FILE UPLOAD FIELDS (CHS/MS vessel documents)
+====================== */
+const FILE_UPLOAD_FIELDS = [
+  "chsSSQ",
+  "chsQ88",
+  "chsGAPlan",
+  "chsMSDS",
+  "chsMooringArrangement",
+  "chsIndemnity",
+  "msSSQ",
+  "msQ88",
+  "msGAPlan",
+  "msMSDS",
+  "msMooringArrangement",
+  "msIndemnity",
+  "mooringPlan",
+];
+
+/* =====================
+   TEXT URL FIELDS (other document links)
+====================== */
+const FILE_URL_FIELDS = [
+  "jpo",
+  "riskAssessment",
+  "DeclarationAtSea",
+  "checklist1",
+  "checklist2",
+  "checklist3AB",
+  "checklist4AF",
+  "checklist5AC",
+  "checklist6AB",
+  "checklist7",
+  "stsTimesheet",
+  "standingOrder",
+  "stsEquipChecklistPriorOps",
+  "stsEquipChecklistAfterOps",
+  "chsFeedback",
+  "msFeedback",
+  "hourlyChecks",
+  "restHoursCKL",
+  "incidentReporting",
+];
+
+async function saveUploadedFile(file, subfolder) {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+
+  const uploadDir = path.join(
+    process.cwd(),
+    `public/uploads/sts-operations/${subfolder}/${y}/${m}/${d}`
+  );
+  await fs.mkdir(uploadDir, { recursive: true });
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const fileName = `${Date.now()}-${safeName}`;
+  const filePath = path.join(uploadDir, fileName);
+
+  await fs.writeFile(filePath, buffer);
+  return `/uploads/sts-operations/${subfolder}/${y}/${m}/${d}/${fileName}`;
+}
 
 export async function POST(req) {
   await connectDB();
@@ -11,7 +80,7 @@ export async function POST(req) {
     const formData = await req.formData();
 
     /* =====================
-       EXTRACT TEXT FIELDS (including file URLs as strings)
+       EXTRACT TEXT FIELDS
     ====================== */
     const body = {};
     formData.forEach((value, key) => {
@@ -20,47 +89,23 @@ export async function POST(req) {
       }
     });
 
-    // File fields are now strings (URLs/paths) - no upload needed
-    // These fields will be stored directly as strings in the database
+    /* =====================
+       HANDLE FILE UPLOADS (CHS/MS vessel documents)
+    ====================== */
     const uploadedFiles = {};
-    
-    // List of file fields that should be stored as strings (URLs)
-    const FILE_URL_FIELDS = [
-      "chsSSQ",
-      "chsQ88",
-      "chsGAPlan",
-      "chsMSDS",
-      "chsMooringArrangement",
-      "chsIndemnity",
-      "msSSQ",
-      "msQ88",
-      "msGAPlan",
-      "msMSDS",
-      "msMooringArrangement",
-      "msIndemnity",
-      "jpo",
-      "riskAssessment",
-      "mooringPlan",
-      "DeclarationAtSea",
-      "checklist1",
-      "checklist2",
-      "checklist3AB",
-      "checklist4AF",
-      "checklist5AC",
-      "checklist6AB",
-      "checklist7",
-      "stsTimesheet",
-      "standingOrder",
-      "stsEquipChecklistPriorOps",
-      "stsEquipChecklistAfterOps",
-      "chsFeedback",
-      "msFeedback",
-      "hourlyChecks",
-      "restHoursCKL",
-      "incidentReporting",
-    ];
 
-    // Extract file URLs from body (they come as strings now)
+    for (const field of FILE_UPLOAD_FIELDS) {
+      const file = formData.get(field);
+      if (file && typeof file !== "string" && file.name && file.size > 0) {
+        // Determine subfolder based on field name
+        let subfolder = "chs";
+        if (field.startsWith("ms")) subfolder = "ms";
+        else if (field === "mooringPlan") subfolder = "mooring-plan";
+        uploadedFiles[field] = await saveUploadedFile(file, subfolder);
+      }
+    }
+
+    // Extract text-based file URLs
     for (const field of FILE_URL_FIELDS) {
       if (body[field] && typeof body[field] === "string" && body[field].trim() !== "") {
         uploadedFiles[field] = body[field].trim();

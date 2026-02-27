@@ -177,7 +177,7 @@ export default function OperationsCharts() {
       </div>
 
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Overall STS Operations */}
         <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-orange-900/40 via-orange-800/30 to-red-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-orange-500/20 transition-all hover:scale-105">
           <h3 className="text-sm font-semibold text-orange-300 mb-2">Overall STS Operations</h3>
@@ -201,28 +201,17 @@ export default function OperationsCharts() {
           <h3 className="text-sm font-semibold text-blue-300 mb-2">In Progress</h3>
           <p className="text-4xl font-bold text-white">{stats.statusCount.INPROGRESS}</p>
         </div>
-      </div>
 
-      {/* Status Breakdown Card */}
-      <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-        <h2 className="text-lg font-bold text-white mb-4">Status of Operations</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 rounded-lg bg-white/5">
-            <p className="text-2xl font-bold text-green-400">{stats.statusCount.COMPLETED}</p>
-            <p className="text-xs text-slate-300 mt-1">Completed</p>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-white/5">
-            <p className="text-2xl font-bold text-blue-400">{stats.statusCount.INPROGRESS}</p>
-            <p className="text-xs text-slate-300 mt-1">In Progress</p>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-white/5">
-            <p className="text-2xl font-bold text-red-400">{stats.statusCount.CANCELED}</p>
-            <p className="text-xs text-slate-300 mt-1">Cancelled</p>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-white/5">
-            <p className="text-2xl font-bold text-yellow-400">{stats.statusCount.PENDING}</p>
-            <p className="text-xs text-slate-300 mt-1">Pending</p>
-          </div>
+        {/* Pending */}
+        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-yellow-900/40 via-yellow-800/30 to-amber-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-yellow-500/20 transition-all hover:scale-105">
+          <h3 className="text-sm font-semibold text-yellow-300 mb-2">Pending</h3>
+          <p className="text-4xl font-bold text-white">{stats.statusCount.PENDING}</p>
+        </div>
+
+        {/* Cancelled */}
+        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-red-500/20 transition-all hover:scale-105">
+          <h3 className="text-sm font-semibold text-red-300 mb-2">Cancelled</h3>
+          <p className="text-4xl font-bold text-white">{stats.statusCount.CANCELED}</p>
         </div>
       </div>
 

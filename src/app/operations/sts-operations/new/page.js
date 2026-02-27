@@ -122,11 +122,15 @@ export default function NewOperationPage() {
   const [operationRef, setOperationRef] = useState("");
   const [generatingRef, setGeneratingRef] = useState(false);
   const [preStsDocs, setPreStsDocs] = useState({ jpo: "", riskAssessment: "" });
+  const [riskAssessments, setRiskAssessments] = useState([]);
+  const [nearMissReports, setNearMissReports] = useState([]);
 
-  /* Auto-fetch Pre-STS docs (JPO, Risk Assessment) when location changes */
+  /* Auto-fetch Pre-STS docs (JPO, Risk Assessment, Near Miss) when location changes */
   const handleLocationChange = async (locationId) => {
     if (!locationId || locationId === "Select") {
       setPreStsDocs({ jpo: "", riskAssessment: "" });
+      setRiskAssessments([]);
+      setNearMissReports([]);
       return;
     }
     // Find the location name for Risk Assessment lookup
@@ -143,6 +147,8 @@ export default function NewOperationPage() {
           jpo: json.data.jpo || "",
           riskAssessment: json.data.riskAssessment || "",
         });
+        setRiskAssessments(json.data.riskAssessments || []);
+        setNearMissReports(json.data.nearMissReports || []);
       }
     } catch (err) {
       console.error("Failed to fetch pre-STS docs:", err);
@@ -157,6 +163,28 @@ export default function NewOperationPage() {
       setQuantityBarrels("");
     }
   }, [quantityMT]);
+
+  const [linkedForms, setLinkedForms] = useState([]);
+  const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
+
+  // Fetch linked form statuses whenever the operation ref changes
+  const fetchLinkedForms = async (opRef) => {
+    if (!opRef) { setLinkedForms([]); return; }
+    try {
+      setLinkedFormsLoading(true);
+      const res = await fetch(`/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(opRef)}`);
+      const json = await res.json();
+      if (json.success) setLinkedForms(json.data || []);
+    } catch (err) {
+      console.error("Failed to fetch linked forms:", err);
+    } finally {
+      setLinkedFormsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLinkedForms(operationRef);
+  }, [operationRef]);
 
   useEffect(() => {
     setQuantityMT("");
@@ -344,14 +372,7 @@ export default function NewOperationPage() {
   // Success page component
   if (showSuccessPage) {
     return (
-      <div className="min-h-screen bg-transparent text-white flex items-center justify-center" style={{
-        backgroundImage:
-          "url('https://res.cloudinary.com/dtqvb1uhi/image/upload/v1765800114/gettyimages-1317779371-612x612_nurxsk.jpg')",
-        backgroundSize: "contain",
-        backgroundPosition: "center",
-        backgroundRepeat: "repeat",
-        backgroundColor: "#0b2740",
-      }}>
+      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
         <div className="text-center space-y-6 px-6">
           {/* Big Green Tick */}
           <div className="flex justify-center">
@@ -411,7 +432,7 @@ export default function NewOperationPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex"
+      className="min-h-screen bg-transparent text-white flex"
     >
       {/* Left Sidebar */}
       <div
@@ -820,36 +841,42 @@ export default function NewOperationPage() {
                   />
                   <UploadPill
                     label="SSQ"
+                    description="Ship Standard Questionnaire"
                     name="chsSSQ"
                     accent="sky"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="Q88"
+                    description="Q88 Vessel Data"
                     name="chsQ88"
                     accent="sky"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="Mooring Arr."
+                    description="Mooring Arrangement"
                     name="chsMooringArrangement"
                     accent="sky"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="GA Plan"
+                    description="General Arrangement Plan"
                     name="chsGAPlan"
                     accent="sky"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="MSDS"
+                    description="Material Safety Data Sheet"
                     name="chsMSDS"
                     accent="sky"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="Indemnity"
+                    description="Indemnity Document"
                     name="chsIndemnity"
                     accent="sky"
                     resetKey={formResetKey}
@@ -880,36 +907,42 @@ export default function NewOperationPage() {
                   />
                   <UploadPill
                     label="SSQ"
+                    description="Ship Standard Questionnaire"
                     name="msSSQ"
                     accent="orange"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="Q88"
+                    description="Q88 Vessel Data"
                     name="msQ88"
                     accent="orange"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="Mooring Arr."
+                    description="Mooring Arrangement"
                     name="msMooringArrangement"
                     accent="orange"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="GA Plan"
+                    description="General Arrangement Plan"
                     name="msGAPlan"
                     accent="orange"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="MSDS"
+                    description="Material Safety Data Sheet"
                     name="msMSDS"
                     accent="orange"
                     resetKey={formResetKey}
                   />
                   <UploadPill
                     label="Indemnity"
+                    description="Indemnity Document"
                     name="msIndemnity"
                     accent="orange"
                     resetKey={formResetKey}
@@ -933,87 +966,185 @@ export default function NewOperationPage() {
                 resetKey={formResetKey}
                 externalValue={preStsDocs.riskAssessment}
               />
-              <ActionUpload
+              <UploadPill
                 label="Mooring Plan"
+                description="Upload mooring plan document"
                 name="mooringPlan"
+                accent="sky"
                 resetKey={formResetKey}
               />
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <FileRow
-                label="Standing Order"
-                name="standingOrder"
-                resetKey={formResetKey}
-              />
-             
-            </div>
+
+            {/* QHSE – Risk Assessments for this location */}
+            {riskAssessments.length > 0 && (
+              <>
+                <SectionTitle title={`Risk Assessments — QHSE (${riskAssessments.length})`} />
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-900/10 p-4 space-y-2">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead>
+                        <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-slate-400">
+                          <th className="py-2 pr-4">Form Code</th>
+                          <th className="py-2 pr-4">Serial #</th>
+                          <th className="py-2 pr-4">Location</th>
+                          <th className="py-2 pr-4">Date</th>
+                          <th className="py-2 pr-4">Version</th>
+                          <th className="py-2 pr-4">File</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {riskAssessments.map((ra) => (
+                          <tr key={ra._id} className="border-b border-white/5 hover:bg-white/5 transition">
+                            <td className="py-2 pr-4 font-mono text-emerald-300">{ra.formCode || "—"}</td>
+                            <td className="py-2 pr-4 text-white/80">{ra.serialNumber || "—"}</td>
+                            <td className="py-2 pr-4 text-white/80">{ra.locationName || "—"}</td>
+                            <td className="py-2 pr-4 text-white/70">
+                              {ra.assessmentDate
+                                ? new Date(ra.assessmentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                                : "—"}
+                            </td>
+                            <td className="py-2 pr-4 text-white/70">{ra.version || "—"}</td>
+                            <td className="py-2 pr-4">
+                              {ra.filePath ? (
+                                <a href={ra.filePath} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 transition">
+                                  View / Download
+                                </a>
+                              ) : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* QHSE – Near Miss Reports for this location */}
+            {nearMissReports.length > 0 && (
+              <>
+                <SectionTitle title={`Near Miss / Incident Reports — QHSE (${nearMissReports.length})`} />
+                <div className="rounded-2xl border border-red-500/30 bg-red-900/10 p-4 space-y-2">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead>
+                        <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-slate-400">
+                          <th className="py-2 pr-4">Form Code</th>
+                          <th className="py-2 pr-4">Job Ref #</th>
+                          <th className="py-2 pr-4">Vessel</th>
+                          <th className="py-2 pr-4">Date / Time</th>
+                          <th className="py-2 pr-4">Type</th>
+                          <th className="py-2 pr-4">Area</th>
+                          <th className="py-2 pr-4">Observer</th>
+                          <th className="py-2 pr-4">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {nearMissReports.map((nm) => (
+                          <tr key={nm._id} className="border-b border-white/5 hover:bg-white/5 transition">
+                            <td className="py-2 pr-4 font-mono text-red-300">{nm.formCode || "—"}</td>
+                            <td className="py-2 pr-4 text-sky-300 font-semibold">{nm.JobRefNo || "—"}</td>
+                            <td className="py-2 pr-4 text-white/80">{nm.VesselName || "—"}</td>
+                            <td className="py-2 pr-4 text-white/70">
+                              {nm.timeOfIncident
+                                ? new Date(nm.timeOfIncident).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                                : "—"}
+                            </td>
+                            <td className="py-2 pr-4">
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                nm.TypeOfReporting === "Near Miss" ? "bg-yellow-500/20 text-yellow-300" :
+                                nm.TypeOfReporting === "Best Practice" ? "bg-emerald-500/20 text-emerald-300" :
+                                "bg-red-500/20 text-red-300"
+                              }`}>
+                                {nm.TypeOfReporting || "—"}
+                              </span>
+                            </td>
+                            <td className="py-2 pr-4 text-white/70 text-xs">{nm.AreaOfNearMiss || "—"}</td>
+                            <td className="py-2 pr-4 text-white/70 text-xs">{nm.NameOfObserver || "—"}</td>
+                            <td className="py-2 pr-4">
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                nm.status === "Reviewed" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                              }`}>
+                                {nm.status || "—"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ═══════════════════════════════════════════
+                LINKED FORMS — auto-populated from DB
+            ═══════════════════════════════════════════ */}
+
+            {/* Checklists */}
+            <SectionTitle title="Checklists" />
+            {linkedFormsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-400" />
+                Loading linked forms…
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {linkedForms.filter((f) => f.category === "checklist").map((f) => (
+                  <LinkedFormCard key={f.formCode} form={f} />
+                ))}
+              </div>
+            )}
 
             {/* STS Equipment */}
             <SectionTitle title="STS Equipment" />
-            <div className="grid gap-4 md:grid-cols-2">
-              <FileRow
-                label="Equip Checklist (B)"
-                name="stsEquipChecklistPriorOps"
-                resetKey={formResetKey}
-              />
-              <FileRow
-                label="Equip Checklist (A)"
-                name="stsEquipChecklistAfterOps"
-                resetKey={formResetKey}
-              />
-            </div>
-
-            {/* Checklists 1–7 */}
-            <SectionTitle title="Checklists" />
-            <div className="grid gap-4 md:grid-cols-3">
-              <FileRow label="Checklist 1" name="checklist1" />
-              <FileRow label="Checklist 2" name="checklist2" />
-              <FileRow label="Checklist 3A & B" name="checklist3AB" />
-              <FileRow label="Checklist 4A-F" name="checklist4AF" />
-              <FileRow label="Checklist 5A-C" name="checklist5AC" />
-              <FileRow label="Checklist 6A & B" name="checklist6AB" />
-              <FileRow label="Checklist 7" name="checklist7" />
-              <FileRow
-                label="Declaration at Sea"
-                name="DeclarationAtSea"
-                resetKey={formResetKey}
-              />
-            </div>
+            {linkedFormsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-400" />
+                Loading…
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {linkedForms.filter((f) => f.category === "equipment").map((f) => (
+                  <LinkedFormCard key={f.formCode} form={f} />
+                ))}
+              </div>
+            )}
 
             {/* Feedback & Logs */}
             <SectionTitle title="Feedback & Logs" />
-            <div className="grid gap-4 md:grid-cols-3">
-              <FileRow
-                label="CHS feedback"
-                name="chsFeedback"
-                resetKey={formResetKey}
-              />
-              <FileRow
-                label="MS feedback"
-                name="msFeedback"
-                resetKey={formResetKey}
-              />
-              <FileRow
-                label="Hourly Checks"
-                name="hourlyChecks"
-                resetKey={formResetKey}
-              />
-              <FileRow
-                label="Rest hours CKL"
-                name="restHoursCKL"
-                resetKey={formResetKey}
-              />
-              <FileRow
-                label="Incident Reporting"
-                name="incidentReporting"
-                resetKey={formResetKey}
-              />
-              <FileRow
-                label="STS Timesheet"
-                name="stsTimesheet"
-                resetKey={formResetKey}
-              />
-            </div>
+            {linkedFormsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-400" />
+                Loading…
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {linkedForms.filter((f) => f.category === "feedback").map((f) => (
+                  <LinkedFormCard key={f.formCode} form={f} />
+                ))}
+                {/* Incident Reporting — no linked form, manual entry */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-orange-300">Incident Reporting</span>
+                  </div>
+                  <input
+                    type="text"
+                    name="incidentReporting"
+                    placeholder="Enter file URL/path"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* No-operation-ref notice */}
+            {!operationRef && !linkedFormsLoading && linkedForms.length === 0 && (
+              <p className="text-sm text-slate-500 italic">
+                Generate an Operation Ref to see linked form statuses.
+              </p>
+            )}
 
             {/* Equipment / Remarks */}
             <SectionTitle title="Equipment & Remarks" />
@@ -1650,50 +1781,87 @@ function FileField({ name, resetKey }) {
   );
 }
 
-function UploadPill({ label, name, accent = "sky", resetKey }) {
-  const [fileUrl, setFileUrl] = useState("");
+function UploadPill({ label, description, name, accent = "sky", resetKey }) {
+  const [fileName, setFileName] = useState("");
   const inputRef = useRef(null);
 
   useEffect(() => {
-    setFileUrl("");
+    setFileName("");
     if (inputRef.current) {
       inputRef.current.value = "";
     }
   }, [resetKey]);
 
-  const handleDownload = (e) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    setFileName(file ? file.name : "");
+  };
+
+  const handleClear = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (fileUrl) {
-      window.open(fileUrl, '_blank');
+    setFileName("");
+    if (inputRef.current) {
+      inputRef.current.value = "";
     }
   };
 
-  const color =
+  const borderColor =
     accent === "orange"
-      ? "border-orange-400/50 text-orange-50 bg-orange-500/10 hover:bg-orange-500/15"
-      : "border-sky-400/50 text-sky-50 bg-sky-500/10 hover:bg-sky-500/15";
+      ? "border-orange-400/40"
+      : "border-sky-400/40";
+  const accentBg =
+    accent === "orange"
+      ? "bg-orange-500/10"
+      : "bg-sky-500/10";
+  const accentText =
+    accent === "orange"
+      ? "text-orange-300"
+      : "text-sky-300";
+  const btnBg =
+    accent === "orange"
+      ? "bg-orange-500/20 hover:bg-orange-500/30 text-orange-200"
+      : "bg-sky-500/20 hover:bg-sky-500/30 text-sky-200";
   
   return (
-    <div className="flex flex-col gap-1">
-      <input
-        ref={inputRef}
-        type="text"
-        name={name}
-        value={fileUrl}
-        onChange={(e) => setFileUrl(e.target.value)}
-        placeholder="Enter file URL/path"
-        className={`w-full rounded-full border px-4 py-2 text-sm font-semibold bg-transparent text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none ${color}`}
-      />
-      {fileUrl && (
-      <button
-        type="button"
-          onClick={handleDownload}
-          className="text-xs text-emerald-300 hover:text-emerald-200 underline mt-1 text-left"
-              >
-          Click to download
-      </button>
-      )}
+    <div className="flex flex-col gap-1.5">
+      {/* Label row */}
+      <div className="flex items-center gap-2">
+        <span className={`text-sm font-semibold ${accentText}`}>{label}</span>
+        {description && (
+          <span className="text-xs text-white/40">— {description}</span>
+        )}
+      </div>
+
+      {/* Upload area */}
+      <div className={`flex items-center gap-2 rounded-xl border ${borderColor} ${accentBg} px-3 py-2`}>
+        <label
+          className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition ${btnBg}`}
+        >
+          Choose File
+          <input
+            ref={inputRef}
+            type="file"
+            name={name}
+            onChange={handleFileChange}
+            className="hidden"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+          />
+        </label>
+        <span className="flex-1 text-sm text-white/60 truncate">
+          {fileName || "No file chosen"}
+        </span>
+        {fileName && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-red-400 hover:text-red-300 text-sm font-bold px-1"
+            title="Remove file"
+          >
+            ✕
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -1900,6 +2068,50 @@ function MultiSelectDropdown({
       {selected.map((val) => (
         <input key={val} type="hidden" name={name} value={val} />
       ))}
+    </div>
+  );
+}
+
+function LinkedFormCard({ form }) {
+  const { formCode, label, filled, count, docs } = form;
+  const latestDoc = docs?.[0];
+
+  return (
+    <div
+      className={`rounded-xl border p-4 transition-all ${
+        filled
+          ? "border-emerald-500/30 bg-emerald-900/10 hover:bg-emerald-900/20"
+          : "border-white/10 bg-white/5 hover:bg-white/10"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-orange-300 truncate">{formCode}</p>
+          <p className="text-sm font-semibold text-white truncate">{label}</p>
+        </div>
+        <span
+          className={`flex-shrink-0 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            filled
+              ? "bg-emerald-500/20 text-emerald-300"
+              : "bg-slate-500/20 text-slate-400"
+          }`}
+        >
+          {filled ? `Filled (${count})` : "Pending"}
+        </span>
+      </div>
+
+      {filled && latestDoc && (
+        <div className="mt-2 space-y-1 text-[11px] text-white/60">
+          <p>Seq: <span className="text-sky-300 font-mono">{latestDoc.sequenceNumber || "—"}</span></p>
+          <p>Status: <span className={
+            latestDoc.status === "SUBMITTED" || latestDoc.status === "APPROVED"
+              ? "text-emerald-300" : "text-amber-300"
+          }>{latestDoc.status}</span></p>
+          <p>Date: {latestDoc.createdAt
+            ? new Date(latestDoc.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+            : "—"}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -116,8 +116,8 @@ const stsOperationSchema = new mongoose.Schema(
     Operation_Ref_No: {
       type: String,
       required: true,
-      unique: true,
-      trim: true
+      trim: true,
+      index: true  // Non-unique index for query performance (multiple versions can share same ref)
     },
 
     typeOfOperation: String,
@@ -243,6 +243,50 @@ const stsOperationSchema = new mongoose.Schema(
     },
 
 
+    /* ================= CHS VESSEL DOCUMENTS ================= */
+
+    chsSSQ: String,                // Ship Standard Questionnaire
+    chsQ88: String,                // Q88 vessel data
+    chsMooringArrangement: String, // Mooring Arrangement
+    chsGAPlan: String,             // General Arrangement Plan
+    chsMSDS: String,               // Material Safety Data Sheet
+    chsIndemnity: String,          // Indemnity document
+
+
+    /* ================= MS VESSEL DOCUMENTS ================= */
+
+    msSSQ: String,                 // Ship Standard Questionnaire
+    msQ88: String,                 // Q88 vessel data
+    msMooringArrangement: String,  // Mooring Arrangement
+    msGAPlan: String,              // General Arrangement Plan
+    msMSDS: String,                // Material Safety Data Sheet
+    msIndemnity: String,           // Indemnity document
+
+
+    /* ================= PRE-STS & OTHER DOCUMENTS ================= */
+
+    jpo: String,
+    riskAssessment: String,
+    mooringPlan: String,
+    DeclarationAtSea: String,
+    checklist1: String,
+    checklist2: String,
+    checklist3AB: String,
+    checklist4AF: String,
+    checklist5AC: String,
+    checklist6AB: String,
+    checklist7: String,
+    stsTimesheet: String,
+    standingOrder: String,
+    stsEquipChecklistPriorOps: String,
+    stsEquipChecklistAfterOps: String,
+    chsFeedback: String,
+    msFeedback: String,
+    hourlyChecks: String,
+    restHoursCKL: String,
+    incidentReporting: String,
+
+
     /* ================= ADDITIONAL INFO ================= */
 
     chs: String,
@@ -268,7 +312,7 @@ const stsOperationSchema = new mongoose.Schema(
    INDEXES (PERFORMANCE)
 ====================================================== */
 
-stsOperationSchema.index({ Operation_Ref_No: 1 }, { unique: true });
+stsOperationSchema.index({ Operation_Ref_No: 1 }); // Non-unique: multiple versions share same ref
 stsOperationSchema.index({ operationStartTime: -1 });
 stsOperationSchema.index({ operationStatus: 1 });
 stsOperationSchema.index({ "equipments.equipment": 1 });
