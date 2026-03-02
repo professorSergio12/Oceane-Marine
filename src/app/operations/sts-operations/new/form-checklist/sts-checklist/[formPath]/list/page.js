@@ -81,6 +81,8 @@ const FORM_TITLES = {
   'ops-ofd-014': 'OPS-OFD-014 - Equipment Checklist',
   'ops-ofd-015': 'OPS-OFD-015 - Hourly Quantity Log',
   'ops-ofd-018': 'OPS-OFD-018 - STS Timesheet',
+  'ops-ofd-020': 'OPS-OFD-020 - Master\'s Feedback Form',
+  'ops-ofd-023': 'OPS-OFD-023 - Record of Work Hours (Rest Hours CKL)',
   'ops-ofd-029': 'OPS-OFD-029 - Mooring Master Expense Sheet',
 };
 

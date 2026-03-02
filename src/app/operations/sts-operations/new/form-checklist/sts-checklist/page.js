@@ -81,6 +81,8 @@ const FORMS = [
   { formNo: 'OPS-OFD-014', title: 'STS Equipment Checklist', apiPath: 'ops-ofd-014', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-014' },
   { formNo: 'OPS-OFD-015', title: 'Hourly Checks on Discharged and Received Quantities', apiPath: 'ops-ofd-015', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-015' },
   { formNo: 'OPS-OFD-018', title: 'Timesheet', apiPath: 'ops-ofd-018', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-018' },
+  { formNo: 'OPS-OFD-020', title: 'Master\'s Feedback Form', apiPath: 'ops-ofd-020', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-020' },
+  { formNo: 'OPS-OFD-023', title: 'Record of Work Hours (Rest Hours CKL)', apiPath: 'ops-ofd-023', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-023' },
   { formNo: 'OPS-OFD-029', title: 'Mooring Master Expense Sheet', apiPath: 'ops-ofd-029', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-029' },
 ];
 

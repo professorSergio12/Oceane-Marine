@@ -103,6 +103,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .leaflet-container {
   background: #dce6f0 !important;   /* light blue-gray while tiles load */
 }
+.leaflet-control-attribution {
+  display: none !important;  /* Hide attribution/copyright text */
+}
 .leaflet-popup-content-wrapper {
   background: #ffffff !important;
   color: #1e293b !important;

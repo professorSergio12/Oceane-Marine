@@ -21,6 +21,9 @@ const DEFAULT_KPI_TITLES = [
   "Best Practices",
 ];
 
+/* Title of the row that can be auto-populated from OPS-OFD-020 */
+const FEEDBACK_ROW_TITLE = "Mooring Master Feedback";
+
 const emptyRow = (title = "") => ({
   title,
   targetForYear: 0,
@@ -55,6 +58,13 @@ export default function TargetKpiFormPage() {
   const [formCode, setFormCode] = useState("HSE-001A");
   const [serialNumber, setSerialNumber] = useState(null);
 
+  /* ─── Feedback rating auto-populate state ─── */
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackDetails, setFeedbackDetails] = useState(null);
+
+  /* ─── Fetch All Data state ─── */
+  const [fetchAllLoading, setFetchAllLoading] = useState(false);
+
   const years = getYears();
 
   // Fetch form code on mount (may override if API returns different value); after save we update with actual from response
@@ -70,6 +80,111 @@ export default function TargetKpiFormPage() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  /**
+   * Auto-fetch OPS-OFD-020 quarterly ratings for the selected year
+   * and populate the "Mooring Master Feedback" row.
+   */
+  const fetchFeedbackRating = useCallback(async () => {
+    setFeedbackLoading(true);
+    setFeedbackDetails(null);
+    try {
+      const res = await fetch(`/api/qhse/kpi/feedback-rating?year=${year}`);
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to fetch ratings");
+
+      const { quarter1, quarter2, quarter3, quarter4, yearAvg, details } = json.data;
+
+      // Find the "Mooring Master Feedback" row and update its quarter values
+      setRows((prev) => {
+        return prev.map((r) => {
+          if (r.title === FEEDBACK_ROW_TITLE) {
+            const q1 = quarter1 || 0;
+            const q2 = quarter2 || 0;
+            const q3 = quarter3 || 0;
+            const q4 = quarter4 || 0;
+            return {
+              ...r,
+              quarter1: q1,
+              quarter2: q2,
+              quarter3: q3,
+              quarter4: q4,
+              targetsAchieved: Math.round((q1 + q2 + q3 + q4) * 100) / 100,
+            };
+          }
+          return r;
+        });
+      });
+
+      setFeedbackDetails({ ...json.data, details });
+      setMessage(`✅ Mooring Master Feedback ratings auto-populated for ${year} (Combined CHS + MS avg: ${yearAvg}/5)`);
+    } catch (err) {
+      setError(err.message || "Failed to fetch feedback ratings");
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, [year]);
+
+  /**
+   * Fetch all KPI data for the selected year and auto-populate all rows
+   */
+  const fetchAllKpiData = useCallback(async () => {
+    setFetchAllLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/qhse/kpi/target/auto-fetch?year=${year}`);
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to fetch KPI data");
+
+      const kpiData = json.data;
+
+      // Update all rows with fetched data
+      setRows((prev) => {
+        return prev.map((row) => {
+          const title = row.title;
+          const data = kpiData[title];
+
+          if (data) {
+            // Convert Q1, Q2, Q3, Q4 to quarter1, quarter2, quarter3, quarter4
+            const q1 = data.Q1 || 0;
+            const q2 = data.Q2 || 0;
+            const q3 = data.Q3 || 0;
+            const q4 = data.Q4 || 0;
+            const total = q1 + q2 + q3 + q4;
+
+            return {
+              ...row,
+              quarter1: q1,
+              quarter2: q2,
+              quarter3: q3,
+              quarter4: q4,
+              targetsAchieved: Math.round(total * 100) / 100,
+            };
+          }
+          return row;
+        });
+      });
+
+      // Also fetch feedback details for the Mooring Master Feedback section
+      try {
+        const feedbackRes = await fetch(`/api/qhse/kpi/feedback-rating?year=${year}`);
+        const feedbackJson = await feedbackRes.json();
+        if (feedbackRes.ok && feedbackJson.success) {
+          setFeedbackDetails(feedbackJson.data);
+        }
+      } catch (err) {
+        // Ignore feedback details error, main data is already populated
+      }
+
+      setMessage(`✅ All KPI data auto-populated for ${year}. Review and save when ready.`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err.message || "Failed to fetch all KPI data");
+    } finally {
+      setFetchAllLoading(false);
+    }
+  }, [year]);
 
   const updateRow = useCallback((index, field, value) => {
     setRows((prev) => {
@@ -220,6 +335,40 @@ export default function TargetKpiFormPage() {
             {message}
           </div>
         )}
+
+        {/* ──── Fetch All Data Button ──── */}
+        <div className="rounded-2xl border border-orange-500/30 bg-orange-950/20 p-5 backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-orange-300 uppercase tracking-wider">
+                Auto-Fetch All KPI Data
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Fetch and auto-populate all KPI fields for <span className="font-semibold text-white">{year}</span> from existing data sources
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchAllKpiData}
+              disabled={fetchAllLoading}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 px-6 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {fetchAllLoading ? (
+                <>
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                  Fetching All Data…
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Fetch All Data
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-4">

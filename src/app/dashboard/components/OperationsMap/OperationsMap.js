@@ -106,7 +106,7 @@ export default function OperationsMap({ year, month }) {
           {/* Light tile layer – CartoDB Positron (light / white background) */}
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            attribution=""
           />
 
           {/* Auto-fit when data changes */}

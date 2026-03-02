@@ -13,6 +13,7 @@ export default function TargetKpiViewPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [feedbackDetails, setFeedbackDetails] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -24,6 +25,15 @@ export default function TargetKpiViewPage() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Failed to load");
         setData(json.data);
+
+        // Auto-fetch feedback rating for the same year
+        if (json.data?.year) {
+          try {
+            const fbRes = await fetch(`/api/qhse/kpi/feedback-rating?year=${json.data.year}`);
+            const fbJson = await fbRes.json();
+            if (fbJson.success) setFeedbackDetails(fbJson.data);
+          } catch { /* ignore */ }
+        }
       } catch (err) {
         setError(err.message || "Failed to load");
       } finally {
@@ -175,6 +185,49 @@ export default function TargetKpiViewPage() {
             </table>
           </div>
         </div>
+
+        {/* ──── OPS-OFD-020 Feedback Rating Breakdown ──── */}
+        {feedbackDetails && (
+          <div className="rounded-2xl border border-sky-500/20 bg-sky-950/20 p-5 backdrop-blur">
+            <h3 className="text-sm font-bold text-sky-300 uppercase tracking-wider mb-1">
+              OPS-OFD-020 — Mooring Master Feedback (Combined CHS + MS)
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">
+              Auto-calculated quarterly average from all feedback forms · Year <span className="font-semibold text-white">{feedbackDetails.year}</span> · Overall avg: <span className="font-bold text-sky-300">{feedbackDetails.yearAvg}/5</span>
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {["quarter1", "quarter2", "quarter3", "quarter4"].map((qKey) => {
+                const d = feedbackDetails.details?.[qKey];
+                return (
+                  <div key={qKey} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-[10px] font-bold text-sky-400 uppercase tracking-wider mb-1">
+                      {d?.label || qKey}
+                    </p>
+                    <p className="text-xl font-bold text-white tabular-nums">
+                      {d?.avg != null ? d.avg.toFixed(2) : "—"}
+                      <span className="text-xs text-slate-400 font-normal"> / 5</span>
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      {d?.scoredFormCount || 0} form{(d?.scoredFormCount || 0) !== 1 ? "s" : ""} scored
+                    </p>
+                    {d?.forms?.length > 0 && (
+                      <div className="mt-2 space-y-0.5 max-h-24 overflow-y-auto">
+                        {d.forms.map((f, i) => (
+                          <p key={i} className="text-[10px] text-slate-400 leading-tight">
+                            <span className="text-slate-300 font-medium">{f.operationRef}</span>
+                            {f.vesselName !== "—" && <span> · {f.vesselName}</span>}
+                            <span className="text-sky-400 ml-1">({f.avgScore})</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
