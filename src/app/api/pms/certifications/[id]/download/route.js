@@ -6,18 +6,36 @@ import Certificate from "@/lib/mongodb/models/pms/Certificate";
 
 export const runtime = "nodejs";
 
-export async function GET(_req, ctx) {
+export async function GET(req, ctx) {
     await connectDB();
 
     const { id } = (await ctx?.params) || {};
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
     try {
+        const { searchParams } = new URL(req.url);
+        const type = searchParams.get("type") || "manufacturing"; // "manufacturing" or "test"
+
         const record = await Certificate.findById(id);
         if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-        // fileUrl is stored as /uploads/certificates/filename, but files are in public/uploads/certificates/
-        let filePath = record.fileUrl;
+        // Get the appropriate certificate based on type
+        let certificateData = null;
+        if (type === "test" && record.testCertificate) {
+            certificateData = record.testCertificate;
+        } else if (type === "manufacturing" && record.manufacturingCertificate) {
+            certificateData = record.manufacturingCertificate;
+        } else {
+            // Fallback: try to get any available certificate
+            certificateData = record.testCertificate || record.manufacturingCertificate;
+        }
+
+        if (!certificateData || !certificateData.fileUrl) {
+            return NextResponse.json({ error: "Certificate file not found" }, { status: 404 });
+        }
+
+        // fileUrl is stored as /uploads/certificates/..., but files are in public/uploads/certificates/
+        let filePath = certificateData.fileUrl;
         if (filePath.startsWith("/uploads/")) {
             filePath = path.join("public", filePath);
         }
@@ -28,13 +46,13 @@ export async function GET(_req, ctx) {
 
         if (!fs.existsSync(absPath)) {
             console.error("File not found at:", absPath);
-            console.error("Original fileUrl:", record.fileUrl);
+            console.error("Original fileUrl:", certificateData.fileUrl);
             return NextResponse.json({ error: "File missing on server" }, { status: 404 });
         }
 
         const fileBuffer = fs.readFileSync(absPath);
         // Use originalFileName if available, otherwise use the filename from path
-        const fileName = record.originalFileName || path.basename(absPath);
+        const fileName = certificateData.originalFileName || path.basename(absPath);
         const fileExt = path.extname(fileName).toLowerCase();
         const contentTypeMap = {
             ".pdf": "application/pdf",

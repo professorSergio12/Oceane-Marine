@@ -7,8 +7,11 @@ import Link from "next/link";
 export default function CertificationsFormPage() {
   const router = useRouter();
   const [locationName, setLocationName] = useState("");
-  const [version, setVersion] = useState("");
-  const [file, setFile] = useState(null);
+  const [equipmentName, setEquipmentName] = useState("");
+  const [equipmentType, setEquipmentType] = useState("");
+  const [testedBy, setTestedBy] = useState("");
+  const [manufacturingFile, setManufacturingFile] = useState(null);
+  const [testFile, setTestFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -22,12 +25,24 @@ export default function CertificationsFormPage() {
       setError("Location name is required");
       return;
     }
-    if (!version.trim()) {
-      setError("Version is required");
+    if (!equipmentName.trim()) {
+      setError("Equipment name is required");
       return;
     }
-    if (!file) {
-      setError("Please choose a file");
+    if (!equipmentType.trim()) {
+      setError("Equipment type is required");
+      return;
+    }
+    if (!testedBy.trim()) {
+      setError("Tested by is required");
+      return;
+    }
+    if (!manufacturingFile) {
+      setError("Please upload Manufacturing Certificate");
+      return;
+    }
+    if (!testFile) {
+      setError("Please upload Test Certificate");
       return;
     }
 
@@ -35,8 +50,11 @@ export default function CertificationsFormPage() {
       setLoading(true);
       const formData = new FormData();
       formData.append("locationName", locationName.trim());
-      formData.append("version", version.trim());
-      formData.append("file", file);
+      formData.append("equipmentName", equipmentName.trim());
+      formData.append("equipmentType", equipmentType.trim());
+      formData.append("testedBy", testedBy.trim());
+      formData.append("manufacturingFile", manufacturingFile);
+      formData.append("testFile", testFile);
 
       const res = await fetch("/api/pms/certifications/create", {
         method: "POST",
@@ -47,8 +65,11 @@ export default function CertificationsFormPage() {
 
       setMessage("Saved successfully");
       setLocationName("");
-      setVersion("");
-      setFile(null);
+      setEquipmentName("");
+      setEquipmentType("");
+      setTestedBy("");
+      setManufacturingFile(null);
+      setTestFile(null);
       setTimeout(() => router.push("/pms/certifications/list"), 800);
     } catch (err) {
       setError(err.message);
@@ -100,68 +121,140 @@ export default function CertificationsFormPage() {
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm text-slate-200">Location Name</label>
+              <label className="text-sm text-slate-200">Location Name *</label>
               <input
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
                 className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
                 placeholder="Enter location name"
+                required
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-slate-200">Version</label>
+              <label className="text-sm text-slate-200">Equipment Name *</label>
               <input
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
+                value={equipmentName}
+                onChange={(e) => setEquipmentName(e.target.value)}
                 className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
-                placeholder="e.g., 1 or 1.1"
+                placeholder="Enter equipment name"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-slate-200">Equipment Type *</label>
+              <input
+                value={equipmentType}
+                onChange={(e) => setEquipmentType(e.target.value)}
+                className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
+                placeholder="Enter equipment type"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-slate-200">Tested By *</label>
+              <input
+                value={testedBy}
+                onChange={(e) => setTestedBy(e.target.value)}
+                className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
+                placeholder="Enter tester name"
+                required
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm text-slate-200">Upload File</label>
-            <div className="space-y-3">
-              <div className="relative">
-                <input
-                  id="cert-file"
-                  type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                />
-                <label
-                  htmlFor="cert-file"
-                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-slate-900/20 cursor-pointer hover:bg-slate-900/30 hover:border-sky-400/40 transition group"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg
-                      className="w-10 h-10 mb-3 text-slate-400 group-hover:text-sky-400 transition"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                      />
-                    </svg>
-                    <p className="mb-2 text-sm text-slate-300">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      PDF, Excel (.xlsx, .xls), CSV, Word, Images (MAX. 25MB)
-                    </p>
-                  </div>
-                </label>
-              </div>
-              {file && (
-                <div className="text-xs text-emerald-200 bg-emerald-900/30 border border-emerald-500/30 rounded-lg px-3 py-2">
-                  Selected: {file.name}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm text-slate-200">Manufacturing Certificate *</label>
+              <div className="space-y-3">
+                <div className="relative">
+                  <input
+                    id="manufacturing-file"
+                    type="file"
+                    onChange={(e) => setManufacturingFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                    required
+                  />
+                  <label
+                    htmlFor="manufacturing-file"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-slate-900/20 cursor-pointer hover:bg-slate-900/30 hover:border-sky-400/40 transition group"
+                  >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg
+                        className="w-10 h-10 mb-3 text-slate-400 group-hover:text-sky-400 transition"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="mb-2 text-sm text-slate-300">
+                        <span className="font-semibold">Click to upload</span> Manufacturing Certificate
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        PDF, Excel, Word, Images (MAX. 25MB)
+                      </p>
+                    </div>
+                  </label>
                 </div>
-              )}
+                {manufacturingFile && (
+                  <div className="text-xs text-emerald-200 bg-emerald-900/30 border border-emerald-500/30 rounded-lg px-3 py-2">
+                    Selected: {manufacturingFile.name}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-slate-200">Test Certificate *</label>
+              <div className="space-y-3">
+                <div className="relative">
+                  <input
+                    id="test-file"
+                    type="file"
+                    onChange={(e) => setTestFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                    required
+                  />
+                  <label
+                    htmlFor="test-file"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-slate-900/20 cursor-pointer hover:bg-slate-900/30 hover:border-sky-400/40 transition group"
+                  >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg
+                        className="w-10 h-10 mb-3 text-slate-400 group-hover:text-sky-400 transition"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="mb-2 text-sm text-slate-300">
+                        <span className="font-semibold">Click to upload</span> Test Certificate
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        PDF, Excel, Word, Images (MAX. 25MB)
+                      </p>
+                    </div>
+                  </label>
+                </div>
+                {testFile && (
+                  <div className="text-xs text-emerald-200 bg-emerald-900/30 border border-emerald-500/30 rounded-lg px-3 py-2">
+                    Selected: {testFile.name}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

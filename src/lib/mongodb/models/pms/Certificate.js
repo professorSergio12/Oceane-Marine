@@ -8,17 +8,38 @@ const certificateSchema = new mongoose.Schema(
       index: true,
     },
 
-    version: {
+    equipmentName: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    equipmentType: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    testedBy: {
       type: String,
       required: true,
     },
 
-    fileUrl: {
-      type: String,
-      required: true,
+    manufacturingCertificate: {
+      fileUrl: {
+        type: String,
+        required: true,
+      },
+      originalFileName: String,
     },
 
-    originalFileName: String,
+    testCertificate: {
+      fileUrl: {
+        type: String,
+        required: true,
+      },
+      originalFileName: String,
+    },
 
     status: {
       type: String,

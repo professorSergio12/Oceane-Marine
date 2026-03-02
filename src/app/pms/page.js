@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import Certifications from "./certifications/Certifications";
 import EquipmentTesting from "./equipment-testing/EquipmentTesting";
 import PrimaryEquipment from "./equipment-inventory/primary-equipment/PrimaryEquipment";
@@ -135,16 +136,25 @@ export default function PmsPage() {
 
       {/* Main Content */}
       <div
-        className="flex-1 ml-0 md:ml-[280px] transition-all duration-300"
+        className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-[280px]" : "mx-auto max-w-7xl"}`}
       >
-        <div className="mx-auto max-w-7xl px-6 py-8 space-y-6">
+        <div className={`mx-auto py-8 space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-4 pr-4" : "px-6"}`}>
           <header className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div>
+            <div className="flex items-center gap-4">
+              {/* Left: Dashboard Button */}
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+              >
+                ← Dashboard
+              </Link>
+              
+              {/* Center: Heading */}
+              <div className="flex flex-col">
                 <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                   PMS
                 </p>
-                <h1 className="text-2xl font-bold">Preventive Maintenance</h1>
+                <h1 className="text-2xl font-bold">Planned maintenance system</h1>
               </div>
             </div>
 
