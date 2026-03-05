@@ -1,13 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 
 /* =========================
    Reusable Input
 ========================= */
-const Input = ({ label, ...props }) => (
+const Input = ({ label, required, ...props }) => (
   <div className="space-y-1">
     <label className="text-xs font-medium text-slate-200">
-      {label}
+      {label} {required && <span className="text-orange-400">*</span>}
     </label>
     <input
       {...props}
@@ -15,6 +16,83 @@ const Input = ({ label, ...props }) => (
     />
   </div>
 );
+
+/* =========================
+   Searchable Dropdown
+========================= */
+const SearchableDropdown = ({ label, required, options = [], value, onChange, placeholder = "Select or search..." }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filtered = options.filter((opt) =>
+    opt.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-1 relative" ref={ref}>
+      <label className="text-xs font-medium text-slate-200">
+        {label} {required && <span className="text-orange-400">*</span>}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-orange-500"
+      >
+        <span className={value ? "text-white" : "text-slate-400"}>
+          {value || placeholder}
+        </span>
+        <svg className={`w-4 h-4 text-slate-400 transition ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-white/20 bg-slate-900 shadow-2xl max-h-56 overflow-hidden">
+          <div className="p-2 border-b border-white/10">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="w-full rounded border border-white/10 bg-slate-950/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none"
+              autoFocus
+            />
+          </div>
+          <div className="overflow-y-auto max-h-44">
+            {filtered.length === 0 ? (
+              <div className="px-4 py-3 text-xs text-slate-500">No options found</div>
+            ) : (
+              filtered.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-white/10 transition ${
+                    value === opt ? "bg-orange-500/20 text-orange-300" : "text-white"
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const LOCATIONS = [
   { value: "FUJAIRAH", label: "Fujairah" },
@@ -40,32 +118,36 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
   const [records, setRecords] = useState([]);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
-  const [files, setFiles] = useState([]);
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [filterYear, setFilterYear] = useState(
     new Date().getFullYear().toString()
   );
   const [editingRecord, setEditingRecord] = useState(null);
 
+  // Dropdown options from Primary Equipment & Accessories
+  const [equipmentNames, setEquipmentNames] = useState([]);
+  const [equipmentTypes, setEquipmentTypes] = useState([]);
+  const [specifications, setSpecifications] = useState([]);
+
+  // View modal state
+  const [viewRecord, setViewRecord] = useState(null);
+
   const [form, setForm] = useState({
+    status: "NOT_COMPLETED",
+    equipment: "",
+    equipmentType: "",
+    specification: "",
     primaryFenders: "",
     secondaryFenders: "",
     hoses: "",
-
     ownership: "OWNED",
-    status: "ACTIVE",
-
-    equipment: "",
     nos: "",
-
     startDate: "",
     estimatedEndDate: "",
-
     fromLocation: "",
     stopover: "",
     toLocation: "",
-
-    remarks: ""
+    remarks: "",
   });
 
   const handleChange = (e) => {
@@ -73,6 +155,52 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* =========================
+     FETCH DROPDOWN OPTIONS
+  ========================= */
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const [equipRes, accRes] = await Promise.all([
+          fetch("/api/pms/equipment-inventory/primary-equipment/list"),
+          fetch("/api/pms/equipment-inventory/accessories/list"),
+        ]);
+        const equipData = await equipRes.json();
+        const accData = await accRes.json();
+
+        const primaryEquipments = equipData.equipments || [];
+        const accessories = accData.data || [];
+
+        // Build unique sets of names, types, specifications
+        const namesSet = new Set();
+        const typesSet = new Set();
+        const specsSet = new Set();
+
+        primaryEquipments.forEach((eq) => {
+          if (eq.equipmentName) namesSet.add(eq.equipmentName);
+          if (eq.equipmentType) typesSet.add(eq.equipmentType);
+          if (eq.specification) specsSet.add(eq.specification);
+        });
+
+        accessories.forEach((acc) => {
+          if (acc.equipmentName) namesSet.add(acc.equipmentName);
+          if (acc.specification) specsSet.add(acc.specification);
+        });
+
+        setEquipmentNames([...namesSet].sort());
+        setEquipmentTypes([...typesSet].sort());
+        setSpecifications([...specsSet].sort());
+      } catch (err) {
+        console.error("Failed to load dropdown data:", err);
+      }
+    };
+
+    fetchDropdownData();
+  }, []);
+
+  /* =========================
+     FETCH LIST
+  ========================= */
   const fetchList = async () => {
     const res = await fetch(
       `/api/pms/warehouse-management/list?location=${selectedLocation}&year=${filterYear}`
@@ -81,28 +209,10 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     setRecords(data.data || []);
   };
 
-  // Reset form when location changes (only if in form view)
+  // Reset form when location changes
   useEffect(() => {
-    if (view === "form") {
-      setForm({
-        primaryFenders: "",
-        secondaryFenders: "",
-        hoses: "",
-        ownership: "OWNED",
-        status: "ACTIVE",
-        equipment: "",
-        nos: "",
-        startDate: "",
-        estimatedEndDate: "",
-        fromLocation: "",
-        stopover: "",
-        toLocation: "",
-        remarks: ""
-      });
-      setEditingRecord(null);
-      setSuccess(null);
-      setError(null);
-      setAttachmentFile(null);
+    if (view === "form" && !editingRecord) {
+      resetForm();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation]);
@@ -112,20 +222,42 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, filterYear, selectedLocation]);
 
+  const resetForm = () => {
+    setForm({
+      status: "NOT_COMPLETED",
+      equipment: "",
+      equipmentType: "",
+      specification: "",
+      primaryFenders: "",
+      secondaryFenders: "",
+      hoses: "",
+      ownership: "OWNED",
+      nos: "",
+      startDate: "",
+      estimatedEndDate: "",
+      fromLocation: "",
+      stopover: "",
+      toLocation: "",
+      remarks: "",
+    });
+    setEditingRecord(null);
+    setAttachmentFile(null);
+    setSuccess(null);
+    setError(null);
+  };
+
   /* =========================
-     SUBMIT
+     SUBMIT (CREATE / UPDATE)
   ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    /* ✅ FIX #2 — FRONTEND VALIDATION */
     if (!form.equipment.trim()) {
-      setError("Equipment is required");
+      setError("Equipment Name is required");
       return;
     }
-
     if (!form.nos || Number(form.nos) <= 0) {
       setError("Nos must be greater than 0");
       return;
@@ -134,12 +266,14 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     try {
       const formData = new FormData();
       formData.append("location", selectedLocation);
+      formData.append("status", form.status);
+      formData.append("equipment", form.equipment);
+      formData.append("equipmentType", form.equipmentType);
+      formData.append("specification", form.specification);
       formData.append("primaryFenders", form.primaryFenders || "0");
       formData.append("secondaryFenders", form.secondaryFenders || "0");
       formData.append("hoses", form.hoses || "0");
       formData.append("ownership", form.ownership);
-      formData.append("status", form.status);
-      formData.append("equipment", form.equipment);
       formData.append("nos", form.nos);
       if (form.startDate) formData.append("startDate", form.startDate);
       if (form.estimatedEndDate) formData.append("estimatedEndDate", form.estimatedEndDate);
@@ -147,43 +281,21 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
       if (form.stopover) formData.append("stopover", form.stopover);
       if (form.toLocation) formData.append("toLocation", form.toLocation);
       if (form.remarks) formData.append("remarks", form.remarks);
+      if (attachmentFile) formData.append("attachment", attachmentFile);
 
-      if (attachmentFile) {
-        formData.append("attachment", attachmentFile);
-      }
+      const isEditing = !!editingRecord;
+      const url = isEditing
+        ? `/api/pms/warehouse-management/${editingRecord}/update`
+        : "/api/pms/warehouse-management/create";
+      const method = isEditing ? "PUT" : "POST";
 
-      const res = await fetch("/api/pms/warehouse-management/create", {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch(url, { method, body: formData });
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || "Create failed");
-      }
+      if (!res.ok) throw new Error(data.message || `${isEditing ? "Update" : "Create"} failed`);
 
-      setSuccess("Warehouse record saved successfully.");
-
-      setForm({
-        primaryFenders: "",
-        secondaryFenders: "",
-        hoses: "",
-        ownership: "OWNED",
-        status: "ACTIVE",
-        equipment: "",
-        nos: "",
-        startDate: "",
-        estimatedEndDate: "",
-        fromLocation: "",
-        stopover: "",
-        toLocation: "",
-        remarks: ""
-      });
-
-      setFiles([]);
-      setAttachmentFile(null);
-      setEditingRecord(null);
+      setSuccess(`Record ${isEditing ? "updated" : "saved"} successfully.`);
+      resetForm();
 
       setTimeout(() => {
         setView("list");
@@ -194,13 +306,12 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     }
   };
 
-  const handleDownload = async (id, index) => {
+  const handleDownload = (id, index) => {
     const url = `/api/pms/warehouse-management/${id}/download?fileIndex=${index}`;
     window.open(url, "_blank");
   };
 
-  const handleRowClick = (record) => {
-    // Format dates for input fields (YYYY-MM-DD)
+  const handleEdit = (record) => {
     const formatDate = (date) => {
       if (!date) return "";
       const d = new Date(date);
@@ -209,19 +320,21 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
     setEditingRecord(record._id);
     setForm({
+      status: record.status || "NOT_COMPLETED",
+      equipment: record.equipment || "",
+      equipmentType: record.equipmentType || "",
+      specification: record.specification || "",
       primaryFenders: record.primaryFenders || "",
       secondaryFenders: record.secondaryFenders || "",
       hoses: record.hoses || "",
       ownership: record.ownership || "OWNED",
-      status: record.status || "ACTIVE",
-      equipment: record.equipment || "",
       nos: record.nos || "",
       startDate: formatDate(record.startDate),
       estimatedEndDate: formatDate(record.estimatedEndDate),
       fromLocation: record.fromLocation || "",
       stopover: record.stopover || "",
       toLocation: record.toLocation || "",
-      remarks: record.remarks || ""
+      remarks: record.remarks || "",
     });
     setAttachmentFile(null);
     setSuccess(null);
@@ -241,7 +354,6 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
             Warehouse Management
           </h2>
         </div>
-        {/* Location Dropdown */}
         <div className="flex items-center gap-3">
           <label className="text-xs font-medium text-slate-200">
             Select Location:
@@ -272,58 +384,125 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
         </div>
       )}
 
-      {/* FORM */}
+      {/* ========================= FORM ========================= */}
       {view === "form" && (
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-white/10 p-6 space-y-6 shadow-2xl"
           style={{ backgroundColor: "#153d59" }}
         >
-          <div className="grid md:grid-cols-3 gap-4">
-            <Input label="Primary Fenders" name="primaryFenders" value={form.primaryFenders} onChange={handleChange} />
-            <Input label="Secondary Fenders" name="secondaryFenders" value={form.secondaryFenders} onChange={handleChange} />
-            <Input label="Hoses" name="hoses" value={form.hoses} onChange={handleChange} />
+          {/* STATUS — Top of form */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold text-slate-200">Status:</span>
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                  form.status === "COMPLETED"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${form.status === "COMPLETED" ? "bg-emerald-400" : "bg-amber-400"}`} />
+                {form.status === "COMPLETED" ? "Completed" : "Not Completed"}
+              </span>
+            </div>
+            <select
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+              className="rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="NOT_COMPLETED">Not Completed</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
           </div>
 
+          {/* ROW 1: Location, Equipment Name, Equipment Type, Specification */}
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-200">
+                Location <span className="text-orange-400">*</span>
+              </label>
+              <select
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {LOCATIONS.map((loc) => (
+                  <option key={loc.value} value={loc.value}>
+                    {loc.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <SearchableDropdown
+              label="Equipment Name"
+              required
+              options={equipmentNames}
+              value={form.equipment}
+              onChange={(val) => setForm((prev) => ({ ...prev, equipment: val }))}
+              placeholder="Select equipment..."
+            />
+
+            <SearchableDropdown
+              label="Equipment Type"
+              options={equipmentTypes}
+              value={form.equipmentType}
+              onChange={(val) => setForm((prev) => ({ ...prev, equipmentType: val }))}
+              placeholder="Select type..."
+            />
+
+            <SearchableDropdown
+              label="Specification"
+              options={specifications}
+              value={form.specification}
+              onChange={(val) => setForm((prev) => ({ ...prev, specification: val }))}
+              placeholder="Select spec..."
+            />
+          </div>
+
+          {/* ROW 2: Primary Fenders, Secondary Fenders, Hoses */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <Input label="Primary Fenders" name="primaryFenders" type="number" value={form.primaryFenders} onChange={handleChange} />
+            <Input label="Secondary Fenders" name="secondaryFenders" type="number" value={form.secondaryFenders} onChange={handleChange} />
+            <Input label="Hoses" name="hoses" type="number" value={form.hoses} onChange={handleChange} />
+          </div>
+
+          {/* ROW 3: Ownership, Nos */}
           <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-slate-200">Ownership *</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-200">
+                Ownership <span className="text-orange-400">*</span>
+              </label>
               <select
                 name="ownership"
                 value={form.ownership}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white"
+                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 required
               >
                 <option value="OWNED">Owned</option>
                 <option value="THIRD_PARTY">Third Party</option>
               </select>
             </div>
-
-            <div>
-              <label className="text-xs font-medium text-slate-200">Status</label>
-              <select
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white"
-              >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select>
-            </div>
+            <Input label="Nos" required type="number" name="nos" value={form.nos} onChange={handleChange} />
           </div>
 
+          {/* ROW 4: From Location, Stopover, To Location (single row) */}
           <div className="grid md:grid-cols-3 gap-4">
-            <Input label="Equipment *" name="equipment" value={form.equipment} onChange={handleChange} />
-            <Input label="Nos *" type="number" name="nos" value={form.nos} onChange={handleChange} />
-            <Input label="Start Date" type="date" name="startDate" value={form.startDate} onChange={handleChange} />
-            <Input label="Estimated End Date" type="date" name="estimatedEndDate" value={form.estimatedEndDate} onChange={handleChange} />
             <Input label="From Location" name="fromLocation" value={form.fromLocation} onChange={handleChange} />
             <Input label="Stopover" name="stopover" value={form.stopover} onChange={handleChange} />
             <Input label="To Location" name="toLocation" value={form.toLocation} onChange={handleChange} />
           </div>
 
+          {/* ROW 5: Start Date, Estimated End Date (single row) */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input label="Start Date" type="date" name="startDate" value={form.startDate} onChange={handleChange} />
+            <Input label="Estimated End Date" type="date" name="estimatedEndDate" value={form.estimatedEndDate} onChange={handleChange} />
+          </div>
+
+          {/* Remarks */}
           <div>
             <label className="text-xs font-medium text-slate-200">Remarks</label>
             <textarea
@@ -331,11 +510,11 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               rows={3}
               value={form.remarks}
               onChange={handleChange}
-              className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-white"
+              className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
-          {/* File upload */}
+          {/* Attachment + Save */}
           <div className="grid md:grid-cols-2 gap-4 items-end">
             <div>
               <label className="text-xs font-medium text-slate-200 block mb-1">
@@ -356,16 +535,28 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               )}
             </div>
 
-            <div className="flex justify-end">
-              <button className="px-6 py-2 rounded-lg bg-emerald-500 text-white font-semibold">
-                Save
+            <div className="flex justify-end gap-3">
+              {editingRecord && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-5 py-2 rounded-lg border border-white/20 text-white text-sm font-semibold hover:bg-white/10 transition"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                className="px-6 py-2 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20"
+              >
+                {editingRecord ? "Update" : "Save"}
               </button>
             </div>
           </div>
         </form>
       )}
 
-      {/* LIST */}
+      {/* ========================= LIST ========================= */}
       {view === "list" && (
         <div className="space-y-4">
           {/* Filters */}
@@ -382,67 +573,94 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                   max={new Date().getFullYear() + 5}
                   value={filterYear}
                   onChange={(e) => setFilterYear(e.target.value)}
-                  className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white"
+                  className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Table */}
-          <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-6">
+          <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-6 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-slate-300 border-b border-white/10">
                 <tr>
-                  <th className="text-left px-4 py-2">Equipment</th>
-                  <th className="text-center px-4 py-2">Nos</th>
-                  <th className="text-left px-4 py-2">From</th>
-                  <th className="text-left px-4 py-2">To</th>
-                  <th className="text-center px-4 py-2">Status</th>
-                  <th className="text-center px-4 py-2">Files</th>
+                  <th className="text-left px-3 py-2">Equipment</th>
+                  <th className="text-left px-3 py-2">Type</th>
+                  <th className="text-left px-3 py-2">Specification</th>
+                  <th className="text-center px-3 py-2">Nos</th>
+                  <th className="text-left px-3 py-2">From</th>
+                  <th className="text-left px-3 py-2">Stopover</th>
+                  <th className="text-left px-3 py-2">To</th>
+                  <th className="text-center px-3 py-2">Status</th>
+                  <th className="text-center px-3 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {records.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center px-4 py-4 text-slate-400">
-                      No records found for {LOCATIONS.find(l => l.value === selectedLocation)?.label || selectedLocation}
+                    <td colSpan="9" className="text-center px-4 py-6 text-slate-400">
+                      No records found for{" "}
+                      {LOCATIONS.find((l) => l.value === selectedLocation)?.label || selectedLocation}
                     </td>
                   </tr>
                 ) : (
                   records.map((r) => (
-                    <tr 
-                      key={r._id} 
-                      className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
-                      onClick={() => handleRowClick(r)}
+                    <tr
+                      key={r._id}
+                      className="border-b border-white/5 hover:bg-white/5 transition"
                     >
-                      <td className="px-4 py-2 text-white">{r.equipment}</td>
-                      <td className="text-center px-4 py-2">{r.nos}</td>
-                      <td className="px-4 py-2">{r.fromLocation || "—"}</td>
-                      <td className="px-4 py-2">{r.toLocation || "—"}</td>
-                    <td className="text-center px-4 py-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          r.status === "ACTIVE" ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"
-                        }`}>
-                          {r.status}
+                      <td className="px-3 py-2 text-white font-medium">{r.equipment}</td>
+                      <td className="px-3 py-2 text-slate-300">{r.equipmentType || "—"}</td>
+                      <td className="px-3 py-2 text-slate-300">{r.specification || "—"}</td>
+                      <td className="text-center px-3 py-2 text-slate-300">{r.nos}</td>
+                      <td className="px-3 py-2 text-slate-300">{r.fromLocation || "—"}</td>
+                      <td className="px-3 py-2 text-slate-300">{r.stopover || "—"}</td>
+                      <td className="px-3 py-2 text-slate-300">{r.toLocation || "—"}</td>
+                      <td className="text-center px-3 py-2">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                            r.status === "COMPLETED"
+                              ? "bg-emerald-500/20 text-emerald-300"
+                              : "bg-amber-500/20 text-amber-300"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              r.status === "COMPLETED" ? "bg-emerald-400" : "bg-amber-400"
+                            }`}
+                          />
+                          {r.status === "COMPLETED" ? "Completed" : "Pending"}
                         </span>
-                    </td>
-                    <td className="text-center px-4 py-2" onClick={(e) => e.stopPropagation()}>
-                      {r.attachments && r.attachments.length > 0 ? (
-                        <div className="inline-flex flex-wrap gap-2 justify-center">
-                          {r.attachments.map((att, index) => (
+                      </td>
+                      <td className="text-center px-3 py-2">
+                        <div className="inline-flex items-center gap-2">
+                          {/* View */}
+                          <button
+                            type="button"
+                            onClick={() => setViewRecord(r)}
+                            className="px-3 py-1 rounded-lg border border-sky-400/40 text-sky-300 text-xs font-medium hover:bg-sky-500/20 transition"
+                          >
+                            View
+                          </button>
+                          {/* Edit */}
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(r)}
+                            className="px-3 py-1 rounded-lg border border-orange-400/40 text-orange-300 text-xs font-medium hover:bg-orange-500/20 transition"
+                          >
+                            Edit
+                          </button>
+                          {/* Download */}
+                          {r.attachments && r.attachments.length > 0 && (
                             <button
-                              key={index}
                               type="button"
-                              onClick={() => handleDownload(r._id, index)}
-                              className="px-3 py-1 rounded-lg border border-sky-400/50 text-[11px] text-sky-100 hover:bg-sky-500/20 transition"
+                              onClick={() => handleDownload(r._id, 0)}
+                              className="px-3 py-1 rounded-lg border border-emerald-400/40 text-emerald-300 text-xs font-medium hover:bg-emerald-500/20 transition"
                             >
-                              Download {index + 1}
+                              Download
                             </button>
-                          ))}
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-xs text-slate-500">—</span>
-                      )}
                       </td>
                     </tr>
                   ))
@@ -452,6 +670,171 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
           </div>
         </div>
       )}
+
+      {/* ========================= VIEW MODAL ========================= */}
+      {viewRecord &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setViewRecord(null);
+            }}
+          >
+            <div className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-2xl border border-white/20 shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="bg-slate-800 border-b border-white/10 px-6 py-5 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 shadow-lg shadow-sky-500/30">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Warehouse Record Details</h3>
+                    <p className="text-xs text-slate-300 mt-0.5">View complete record information</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setViewRecord(null)}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Status Banner */}
+                <div
+                  className={`p-3 rounded-xl border text-center text-sm font-bold ${
+                    viewRecord.status === "COMPLETED"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                  }`}
+                >
+                  {viewRecord.status === "COMPLETED" ? "✅ Completed" : "⏳ Not Completed"}
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: "Location", value: LOCATIONS.find((l) => l.value === viewRecord.location)?.label || viewRecord.location, icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" },
+                    { label: "Equipment Name", value: viewRecord.equipment, icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
+                    { label: "Equipment Type", value: viewRecord.equipmentType, icon: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" },
+                    { label: "Specification", value: viewRecord.specification, icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+                    { label: "Ownership", value: viewRecord.ownership === "THIRD_PARTY" ? "Third Party" : "Owned", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+                    { label: "Nos", value: viewRecord.nos, icon: "M7 20l4-16m2 16l4-16M6 9h14M4 15h14" },
+                  ].map((item) => (
+                    <div key={item.label} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                        </svg>
+                        <p className="text-xs uppercase tracking-wider text-slate-400 font-semibold">{item.label}</p>
+                      </div>
+                      <p className="text-base font-semibold text-white">{item.value || "—"}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Inventory */}
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: "Primary Fenders", value: viewRecord.primaryFenders },
+                    { label: "Secondary Fenders", value: viewRecord.secondaryFenders },
+                    { label: "Hoses", value: viewRecord.hoses },
+                  ].map((item) => (
+                    <div key={item.label} className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                      <p className="text-xs text-slate-400 font-semibold mb-1">{item.label}</p>
+                      <p className="text-lg font-bold text-white">{item.value || 0}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Movement */}
+                <div className="pt-4 border-t border-white/10">
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Movement Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { label: "From Location", value: viewRecord.fromLocation },
+                      { label: "Stopover", value: viewRecord.stopover },
+                      { label: "To Location", value: viewRecord.toLocation },
+                    ].map((item) => (
+                      <div key={item.label} className="p-3 rounded-xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-slate-400 font-semibold mb-1">{item.label}</p>
+                        <p className="text-sm font-semibold text-white">{item.value || "—"}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                      <p className="text-xs text-slate-400 font-semibold mb-1">Start Date</p>
+                      <p className="text-sm font-semibold text-white">
+                        {viewRecord.startDate
+                          ? new Date(viewRecord.startDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                      <p className="text-xs text-slate-400 font-semibold mb-1">Estimated End Date</p>
+                      <p className="text-sm font-semibold text-white">
+                        {viewRecord.estimatedEndDate
+                          ? new Date(viewRecord.estimatedEndDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                {viewRecord.remarks && (
+                  <div className="pt-4 border-t border-white/10">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-2">Remarks</h4>
+                    <p className="text-sm text-slate-300 leading-relaxed">{viewRecord.remarks}</p>
+                  </div>
+                )}
+
+                {/* Attachments */}
+                {viewRecord.attachments && viewRecord.attachments.length > 0 && (
+                  <div className="pt-4 border-t border-white/10">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Attachments</h4>
+                    <div className="space-y-2">
+                      {viewRecord.attachments.map((att, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <span className="text-sm text-white">{att.fileName || `File ${index + 1}`}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(viewRecord._id, index)}
+                            className="px-3 py-1 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition flex items-center gap-1.5"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function CertificationsFormPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+
   const [locationName, setLocationName] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
   const [equipmentType, setEquipmentType] = useState("");
@@ -13,8 +16,35 @@ export default function CertificationsFormPage() {
   const [manufacturingFile, setManufacturingFile] = useState(null);
   const [testFile, setTestFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Load certificate data if editing
+  useEffect(() => {
+    if (editId) {
+      const loadData = async () => {
+        try {
+          setLoadingData(true);
+          const res = await fetch(`/api/pms/certifications/list`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to load");
+          const cert = data.data?.find((c) => c._id === editId);
+          if (cert) {
+            setLocationName(cert.locationName || "");
+            setEquipmentName(cert.equipmentName || "");
+            setEquipmentType(cert.equipmentType || "");
+            setTestedBy(cert.testedBy || "");
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoadingData(false);
+        }
+      };
+      loadData();
+    }
+  }, [editId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,13 +67,16 @@ export default function CertificationsFormPage() {
       setError("Tested by is required");
       return;
     }
-    if (!manufacturingFile) {
-      setError("Please upload Manufacturing Certificate");
-      return;
-    }
-    if (!testFile) {
-      setError("Please upload Test Certificate");
-      return;
+    // Files are required only for new records, optional for updates
+    if (!editId) {
+      if (!manufacturingFile) {
+        setError("Please upload Manufacturing Certificate");
+        return;
+      }
+      if (!testFile) {
+        setError("Please upload Test Certificate");
+        return;
+      }
     }
 
     try {
@@ -53,17 +86,23 @@ export default function CertificationsFormPage() {
       formData.append("equipmentName", equipmentName.trim());
       formData.append("equipmentType", equipmentType.trim());
       formData.append("testedBy", testedBy.trim());
-      formData.append("manufacturingFile", manufacturingFile);
-      formData.append("testFile", testFile);
+      if (manufacturingFile) formData.append("manufacturingFile", manufacturingFile);
+      if (testFile) formData.append("testFile", testFile);
 
-      const res = await fetch("/api/pms/certifications/create", {
-        method: "POST",
+      const isEditing = !!editId;
+      const url = isEditing
+        ? `/api/pms/certifications/${editId}/update`
+        : "/api/pms/certifications/create";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.error || "Failed to save");
+      if (!res.ok) throw new Error(data.message || data.error || `Failed to ${isEditing ? "update" : "save"}`);
 
-      setMessage("Saved successfully");
+      setMessage(isEditing ? "Updated successfully" : "Saved successfully");
       setLocationName("");
       setEquipmentName("");
       setEquipmentType("");
@@ -81,13 +120,27 @@ export default function CertificationsFormPage() {
   return (
     <div className="flex-1 ml-72 pr-4">
       <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
+        <header className="flex items-center justify-between gap-4 flex-wrap relative">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
               PMS / Certifications
             </p>
-            <h1 className="text-2xl font-bold">New Certificate</h1>
+            <h1 className="text-2xl font-bold">{editId ? "Edit Certificate" : "New Certificate"}</h1>
           </div>
+          {/* Close button when editing - aligned with header */}
+          {editId && (
+            <button
+              type="button"
+              onClick={() => router.push("/pms/certifications/list")}
+              className="p-2.5 rounded-lg bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 text-red-300 hover:text-red-200 transition shadow-lg"
+              aria-label="Close edit mode"
+              title="Cancel editing"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
           <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link
               href="/pms/certifications/form"
@@ -112,6 +165,12 @@ export default function CertificationsFormPage() {
         {message && (
           <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
             {message}
+          </div>
+        )}
+
+        {loadingData && (
+          <div className="bg-slate-950/40 border border-slate-500/40 rounded-xl px-4 py-3 text-slate-200 text-sm font-medium">
+            Loading certificate data...
           </div>
         )}
 
@@ -164,7 +223,10 @@ export default function CertificationsFormPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm text-slate-200">Manufacturing Certificate *</label>
+              <label className="text-sm text-slate-200">
+                Manufacturing Certificate {!editId && "*"}
+                {editId && <span className="text-xs text-slate-400">(optional - leave empty to keep existing)</span>}
+              </label>
               <div className="space-y-3">
                 <div className="relative">
                   <input
@@ -173,7 +235,7 @@ export default function CertificationsFormPage() {
                     onChange={(e) => setManufacturingFile(e.target.files?.[0] || null)}
                     className="hidden"
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                    required
+                    required={!editId}
                   />
                   <label
                     htmlFor="manufacturing-file"
@@ -211,7 +273,10 @@ export default function CertificationsFormPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm text-slate-200">Test Certificate *</label>
+              <label className="text-sm text-slate-200">
+                Test Certificate {!editId && "*"}
+                {editId && <span className="text-xs text-slate-400">(optional - leave empty to keep existing)</span>}
+              </label>
               <div className="space-y-3">
                 <div className="relative">
                   <input
@@ -220,7 +285,7 @@ export default function CertificationsFormPage() {
                     onChange={(e) => setTestFile(e.target.files?.[0] || null)}
                     className="hidden"
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                    required
+                    required={!editId}
                   />
                   <label
                     htmlFor="test-file"
@@ -271,7 +336,7 @@ export default function CertificationsFormPage() {
               disabled={loading}
               className="px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save"}
+              {loading ? (editId ? "Updating..." : "Saving...") : (editId ? "Update" : "Save")}
             </button>
           </div>
         </form>

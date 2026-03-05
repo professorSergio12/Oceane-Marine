@@ -4,11 +4,15 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "optional", // Prevents blocking on font load failure
+  fallback: ["system-ui", "arial"], // Fallback fonts
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "optional", // Prevents blocking on font load failure
+  fallback: ["monospace"], // Fallback fonts
 });
 
 export const metadata = {

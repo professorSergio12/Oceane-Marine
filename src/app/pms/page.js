@@ -139,34 +139,104 @@ export default function PmsPage() {
         className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-[280px]" : "mx-auto max-w-7xl"}`}
       >
         <div className={`mx-auto py-8 space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-4 pr-4" : "px-6"}`}>
-          <header className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* Left: Dashboard Button */}
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
-              >
-                ← Dashboard
-              </Link>
-              
-              {/* Center: Heading */}
-              <div className="flex flex-col">
-                <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
-                  PMS
-                </p>
-                <h1 className="text-2xl font-bold">Planned maintenance system</h1>
-              </div>
+          <header className="flex items-center justify-between gap-4 relative">
+            {/* Left: Dashboard Button */}
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+            >
+              ← Dashboard
+            </Link>
+            
+            {/* Center: Heading */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center text-center">
+              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+                PMS
+              </p>
+              <h1 className="text-2xl font-bold">Planned maintenance system</h1>
             </div>
+            
+            {/* Right: Navigation Buttons */}
+            <div className="ml-auto">
 
-            {/* Form / List / History switch for Primary Equipment – kept outside the form */}
-            {activeTab === "equipment-inventory" &&
-              activeSubmodule === "primary-equipment" && (
+              {/* Form / List / History switch for Primary Equipment */}
+              {activeTab === "equipment-inventory" &&
+                activeSubmodule === "primary-equipment" && (
+                  <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-1 shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryEquipmentTab("form")}
+                      className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
+                        primaryEquipmentTab === "form"
+                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
+                          : "text-slate-200 hover:text-white"
+                      }`}
+                    >
+                      Form
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryEquipmentTab("list")}
+                      className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
+                        primaryEquipmentTab === "list"
+                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
+                          : "text-slate-200 hover:text-white"
+                      }`}
+                    >
+                      List
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryEquipmentTab("history")}
+                      className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
+                        primaryEquipmentTab === "history"
+                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
+                          : "text-slate-200 hover:text-white"
+                      }`}
+                    >
+                      History
+                    </button>
+                  </div>
+                )}
+
+              {/* Form / List switch for Accessories */}
+              {activeTab === "equipment-inventory" &&
+                activeSubmodule === "accessories" && (
+                  <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-1 shadow-md">
+                    <button
+                      onClick={() => {
+                        setAccessoriesView("form");
+                      }}
+                      className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
+                        accessoriesView === "form"
+                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
+                          : "text-slate-200 hover:text-white"
+                      }`}
+                    >
+                      Form
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAccessoriesView("list");
+                      }}
+                      className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
+                        accessoriesView === "list"
+                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
+                          : "text-slate-200 hover:text-white"
+                      }`}
+                    >
+                      List
+                    </button>
+                  </div>
+                )}
+
+              {/* Form / List switch for Warehouse Management */}
+              {activeTab === "warehouse-management" && (
                 <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-1 shadow-md">
                   <button
-                    type="button"
-                    onClick={() => setPrimaryEquipmentTab("form")}
+                    onClick={() => setWarehouseView("form")}
                     className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                      primaryEquipmentTab === "form"
+                      warehouseView === "form"
                         ? "bg-orange-500 text-white shadow shadow-orange-500/40"
                         : "text-slate-200 hover:text-white"
                     }`}
@@ -174,40 +244,25 @@ export default function PmsPage() {
                     Form
                   </button>
                   <button
-                    type="button"
-                    onClick={() => setPrimaryEquipmentTab("list")}
+                    onClick={() => setWarehouseView("list")}
                     className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                      primaryEquipmentTab === "list"
+                      warehouseView === "list"
                         ? "bg-orange-500 text-white shadow shadow-orange-500/40"
                         : "text-slate-200 hover:text-white"
                     }`}
                   >
                     List
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryEquipmentTab("history")}
-                    className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                      primaryEquipmentTab === "history"
-                        ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                        : "text-slate-200 hover:text-white"
-                    }`}
-                  >
-                    History
-                  </button>
                 </div>
               )}
 
-            {/* Form / List switch for Accessories – kept outside the form */}
-            {activeTab === "equipment-inventory" &&
-              activeSubmodule === "accessories" && (
+              {/* Form / List switch for Certifications */}
+              {activeTab === "certifications" && (
                 <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-1 shadow-md">
                   <button
-                    onClick={() => {
-                      setAccessoriesView("form");
-                    }}
+                    onClick={() => setCertificationsView("form")}
                     className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                      accessoriesView === "form"
+                      certificationsView === "form"
                         ? "bg-orange-500 text-white shadow shadow-orange-500/40"
                         : "text-slate-200 hover:text-white"
                     }`}
@@ -215,11 +270,9 @@ export default function PmsPage() {
                     Form
                   </button>
                   <button
-                    onClick={() => {
-                      setAccessoriesView("list");
-                    }}
+                    onClick={() => setCertificationsView("list")}
                     className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                      accessoriesView === "list"
+                      certificationsView === "list"
                         ? "bg-orange-500 text-white shadow shadow-orange-500/40"
                         : "text-slate-200 hover:text-white"
                     }`}
@@ -228,59 +281,8 @@ export default function PmsPage() {
                   </button>
                 </div>
               )}
-
-                   {/* Form / List switch for Warehouse Management */}
-           {activeTab === "warehouse-management" && (
-             <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-1 shadow-md">
-               <button
-                 onClick={() => setWarehouseView("form")}
-                 className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                   warehouseView === "form"
-                     ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                     : "text-slate-200 hover:text-white"
-                 }`}
-               >
-                 Form
-               </button>
-               <button
-                 onClick={() => setWarehouseView("list")}
-                 className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                   warehouseView === "list"
-                     ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                     : "text-slate-200 hover:text-white"
-                 }`}
-               >
-                 List
-               </button>
-             </div>
-           )}
-
-           {/* Form / List switch for Certifications */}
-           {activeTab === "certifications" && (
-             <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-1 shadow-md">
-               <button
-                 onClick={() => setCertificationsView("form")}
-                 className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                   certificationsView === "form"
-                     ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                     : "text-slate-200 hover:text-white"
-                 }`}
-               >
-                 Form
-               </button>
-               <button
-                 onClick={() => setCertificationsView("list")}
-                 className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
-                   certificationsView === "list"
-                     ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                     : "text-slate-200 hover:text-white"
-                 }`}
-               >
-                 List
-               </button>
-             </div>
-           )}
-           </header>
+            </div>
+          </header>
 
           {/* Tab Content */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">

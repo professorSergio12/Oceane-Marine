@@ -3,29 +3,67 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function CertificationsListPage() {
+  const router = useRouter();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const fetchList = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch("/api/pms/certifications/list");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load");
+      setItems(data.data || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/pms/certifications/list");
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to load");
-        setItems(data.data || []);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    fetchList();
   }, []);
+
+  const handleEdit = (item) => {
+    // Navigate to form page with edit data in query params or use state
+    router.push(`/pms/certifications/form?edit=${item._id}`);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this certificate? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      setError("");
+      setSuccess("");
+      const res = await fetch(`/api/pms/certifications/${id}/delete`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to delete");
+
+      setSuccess("Certificate deleted successfully");
+      setTimeout(() => {
+        setSuccess("");
+        fetchList();
+      }, 800);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="flex-1 ml-72 pr-4">
@@ -59,6 +97,12 @@ export default function CertificationsListPage() {
           </div>
         )}
 
+        {success && (
+          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
+            {success}
+          </div>
+        )}
+
         <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
           <div className="grid grid-cols-6 text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3">
             <div>Location</div>
@@ -89,12 +133,37 @@ export default function CertificationsListPage() {
                       ? new Date(item.createdAt).toLocaleDateString()
                       : "-"}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex items-center justify-end gap-2">
                     <button
                       onClick={() => setSelectedItem(item)}
-                      className="px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500/50 text-sky-300 hover:bg-sky-500/30 hover:text-sky-200 text-xs font-medium transition"
+                      disabled={deletingId === item._id}
+                      className="px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500/50 text-sky-300 hover:bg-sky-500/30 hover:text-sky-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       View
+                    </button>
+                    <button
+                      onClick={() => handleEdit(item)}
+                      disabled={deletingId === item._id}
+                      className="px-3 py-1.5 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-300 hover:bg-orange-500/30 hover:text-orange-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item._id)}
+                      disabled={deletingId === item._id || !!deletingId}
+                      className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 hover:bg-red-500/30 hover:text-red-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 min-w-[80px] justify-center"
+                    >
+                      {deletingId === item._id ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Deleting...
+                        </>
+                      ) : (
+                        "Delete"
+                      )}
                     </button>
                   </div>
                 </div>

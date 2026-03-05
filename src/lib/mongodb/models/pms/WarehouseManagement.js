@@ -3,6 +3,15 @@ import mongoose from "mongoose";
 const WarehouseManagementSchema = new mongoose.Schema(
   {
     /* =========================
+       STATUS (TOP OF FORM)
+    ========================== */
+    status: {
+      type: String,
+      enum: ["COMPLETED", "NOT_COMPLETED"],
+      default: "NOT_COMPLETED",
+    },
+
+    /* =========================
        LOCATION (FROM SIDEBAR)
     ========================== */
     location: {
@@ -20,10 +29,17 @@ const WarehouseManagementSchema = new mongoose.Schema(
         "SALALAH",
         "TANJUNG_BRUAS",
         "MOMBASA",
-        "YEOSU"
+        "YEOSU",
       ],
-      index: true
+      index: true,
     },
+
+    /* =========================
+       EQUIPMENT INFO (DROPDOWNS)
+    ========================== */
+    equipment: { type: String, trim: true, required: true },
+    equipmentType: { type: String, trim: true },
+    specification: { type: String, trim: true },
 
     /* =========================
        INVENTORY SUMMARY
@@ -35,19 +51,12 @@ const WarehouseManagementSchema = new mongoose.Schema(
     ownership: {
       type: String,
       enum: ["OWNED", "THIRD_PARTY"],
-      required: true
-    },
-
-    status: {
-      type: String,
-      enum: ["ACTIVE", "INACTIVE"],
-      default: "ACTIVE"
+      required: true,
     },
 
     /* =========================
        EQUIPMENT MOVEMENT
     ========================== */
-    equipment: { type: String, trim: true, required: true },
     nos: { type: Number, min: 0, required: true },
 
     startDate: Date,
@@ -64,8 +73,8 @@ const WarehouseManagementSchema = new mongoose.Schema(
       {
         fileName: String,
         filePath: String,
-        uploadedAt: { type: Date, default: Date.now }
-      }
+        uploadedAt: { type: Date, default: Date.now },
+      },
     ],
 
     /* =========================
@@ -76,7 +85,7 @@ const WarehouseManagementSchema = new mongoose.Schema(
     /* =========================
        SYSTEM
     ========================== */
-    isDeleted: { type: Boolean, default: false }
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

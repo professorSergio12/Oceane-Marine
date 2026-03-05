@@ -29,8 +29,10 @@ export async function POST(req) {
         secondaryFenders: Number(getField("secondaryFenders") || 0),
         hoses: Number(getField("hoses") || 0),
         ownership: getField("ownership"),
-        status: getField("status") || "ACTIVE",
+        status: getField("status") || "NOT_COMPLETED",
         equipment: getField("equipment"),
+        equipmentType: getField("equipmentType"),
+        specification: getField("specification"),
         nos: Number(getField("nos")),
         startDate: getField("startDate") || undefined,
         estimatedEndDate: getField("estimatedEndDate") || undefined,
@@ -44,8 +46,6 @@ export async function POST(req) {
       body = await req.json();
     }
 
-    console.log("WAREHOUSE CREATE PAYLOAD:", body);
-
     if (
       !body.location ||
       !body.equipment ||
@@ -54,7 +54,7 @@ export async function POST(req) {
       !body.ownership
     ) {
       return NextResponse.json(
-        { message: "Invalid payload", payload: body },
+        { message: "Invalid payload — location, equipment, nos, and ownership are required" },
         { status: 400 }
       );
     }
@@ -64,14 +64,7 @@ export async function POST(req) {
     // Optional attachment handling
     if (attachmentFile && typeof attachmentFile !== "string") {
       const ALLOWED_EXT = new Set([
-        ".pdf",
-        ".doc",
-        ".docx",
-        ".xls",
-        ".xlsx",
-        ".jpg",
-        ".jpeg",
-        ".png",
+        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png",
       ]);
       const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 

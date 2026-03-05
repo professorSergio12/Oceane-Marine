@@ -21,6 +21,8 @@ export default function Certifications({ view: controlledView, onViewChange }) {
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   // Fetch list
   const fetchList = async () => {
@@ -66,13 +68,16 @@ export default function Certifications({ view: controlledView, onViewChange }) {
       setError("Tested by is required");
       return;
     }
-    if (!manufacturingFile) {
-      setError("Please upload Manufacturing Certificate");
-      return;
-    }
-    if (!testFile) {
-      setError("Please upload Test Certificate");
-      return;
+    // Files are required only for new records, optional for updates
+    if (!editingId) {
+      if (!manufacturingFile) {
+        setError("Please upload Manufacturing Certificate");
+        return;
+      }
+      if (!testFile) {
+        setError("Please upload Test Certificate");
+        return;
+      }
     }
 
     try {
@@ -82,26 +87,34 @@ export default function Certifications({ view: controlledView, onViewChange }) {
       formData.append("equipmentName", equipmentName.trim());
       formData.append("equipmentType", equipmentType.trim());
       formData.append("testedBy", testedBy.trim());
-      formData.append("manufacturingFile", manufacturingFile);
-      formData.append("testFile", testFile);
+      if (manufacturingFile) formData.append("manufacturingFile", manufacturingFile);
+      if (testFile) formData.append("testFile", testFile);
 
-      const res = await fetch("/api/pms/certifications/create", {
-        method: "POST",
+      const isEditing = !!editingId;
+      const url = isEditing
+        ? `/api/pms/certifications/${editingId}/update`
+        : "/api/pms/certifications/create";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.error || "Failed to save");
+      if (!res.ok) throw new Error(data.message || data.error || `Failed to ${isEditing ? "update" : "save"}`);
 
-      setMessage("Saved successfully");
+      setMessage(isEditing ? "Updated successfully" : "Saved successfully");
       setLocationName("");
       setEquipmentName("");
       setEquipmentType("");
       setTestedBy("");
       setManufacturingFile(null);
       setTestFile(null);
+      setEditingId(null);
       setTimeout(() => {
         setView("list");
         setMessage("");
+        fetchList();
       }, 800);
     } catch (err) {
       setError(err.message);
@@ -110,16 +123,86 @@ export default function Certifications({ view: controlledView, onViewChange }) {
     }
   };
 
+  const handleEdit = (item) => {
+    setEditingId(item._id);
+    setLocationName(item.locationName || "");
+    setEquipmentName(item.equipmentName || "");
+    setEquipmentType(item.equipmentType || "");
+    setTestedBy(item.testedBy || "");
+    setManufacturingFile(null);
+    setTestFile(null);
+    setError("");
+    setMessage("");
+    setView("form");
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this certificate? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      setListError("");
+      const res = await fetch(`/api/pms/certifications/${id}/delete`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to delete");
+
+      setMessage("Certificate deleted successfully");
+      setTimeout(() => {
+        setMessage("");
+        fetchList();
+      }, 800);
+    } catch (err) {
+      setListError(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setLocationName("");
+    setEquipmentName("");
+    setEquipmentType("");
+    setTestedBy("");
+    setManufacturingFile(null);
+    setTestFile(null);
+    setError("");
+    setMessage("");
+    setView("list");
+  };
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="text-center">
-        <p className="text-xs tracking-widest text-sky-300">
-          PMS / Certifications
-        </p>
-        <h2 className="text-xl font-bold text-white">
-          Certifications
-        </h2>
+      <div className="relative">
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-sky-300">
+            PMS / Certifications
+          </p>
+          <h2 className="text-xl font-bold text-white">
+            Certifications
+          </h2>
+        </div>
+        {/* Close button when editing - aligned with header */}
+        {editingId && (
+          <button
+            type="button"
+            onClick={handleCancelEdit}
+            className="absolute top-0 right-0 p-2.5 rounded-lg bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 text-red-300 hover:text-red-200 transition shadow-lg"
+            aria-label="Close edit mode"
+            title="Cancel editing"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* MESSAGES */}
@@ -290,17 +373,18 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                 setManufacturingFile(null);
                 setTestFile(null);
                 setError("");
+                setEditingId(null);
               }}
               className="px-4 py-2 rounded-lg border border-white/20 bg-white/5 text-white hover:bg-white/10 transition"
             >
-              Clear
+              {editingId ? "Cancel" : "Clear"}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save"}
+              {loading ? (editingId ? "Updating..." : "Saving...") : (editingId ? "Update" : "Save")}
             </button>
           </div>
         </form>
@@ -345,12 +429,37 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                         ? new Date(item.createdAt).toLocaleDateString()
                         : "-"}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-center justify-end gap-2">
                       <button
                         onClick={() => setSelectedItem(item)}
-                        className="px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500/50 text-sky-300 hover:bg-sky-500/30 hover:text-sky-200 text-xs font-medium transition"
+                        disabled={deletingId === item._id}
+                        className="px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500/50 text-sky-300 hover:bg-sky-500/30 hover:text-sky-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         View
+                      </button>
+                      <button
+                        onClick={() => handleEdit(item)}
+                        disabled={deletingId === item._id}
+                        className="px-3 py-1.5 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-300 hover:bg-orange-500/30 hover:text-orange-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item._id)}
+                        disabled={deletingId === item._id || !!deletingId}
+                        className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 hover:bg-red-500/30 hover:text-red-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 min-w-[80px] justify-center"
+                      >
+                        {deletingId === item._id ? (
+                          <>
+                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Deleting...
+                          </>
+                        ) : (
+                          "Delete"
+                        )}
                       </button>
                     </div>
                   </div>
