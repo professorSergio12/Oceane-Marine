@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [employeeId, setEmployeeId] = useState("");
@@ -31,42 +32,57 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Background Image with Blur */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage:
-            "url('https://res.cloudinary.com/dtqvb1uhi/image/upload/v1765800132/ocean-group-background_bzbnm3_mblquf.webp')",
-           
-        }}
+      {/* Full-Screen Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
       >
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-      </div>
-      {/* Login Form Container */}
-      <div className="relative z-10 w-full max-w-md px-6 py-8">
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl p-8">
-          {/* Logo/Title Section */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">OCEANE GROUP</h1>
-          </div>
+        <source src="/video/Image_to_Ship_Video_Generation.mp4" type="video/mp4" />
+      </video>
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/30" />
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
+      {/* Merged Glass Card - Logo + Form */}
+      <div className="relative z-10 w-full max-w-4xl mx-4 flex rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-white/10 backdrop-blur-md">
+        
+        {/* Left Side - Logo */}
+        <div className="w-1/2 flex items-center justify-center p-10">
+          <Image
+            src="/image/logo.png"
+            alt="Oceane Marine Logo"
+            width={320}
+            height={130}
+            className="object-contain drop-shadow-2xl"
+            priority
+          />
+        </div>
+
+        {/* Vertical Divider */}
+        <div className="w-px bg-white/30 my-8" />
+
+        {/* Right Side - Login Form */}
+        <div className="w-1/2 flex flex-col justify-center p-10">
+          {/* Title */}
+          <h1 className="text-3xl font-bold text-white mb-6">Oceane Group</h1>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Error */}
             {error && (
               <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
 
-            {/* Employee ID Field */}
+            {/* Employee ID */}
             <div className="space-y-2">
-              <label
-                htmlFor="employeeId"
-                className="block text-sm font-semibold text-white/90"
-              >
+              <label htmlFor="employeeId" className="block text-sm font-semibold text-white/90">
                 Employee ID
               </label>
               <input
@@ -80,12 +96,9 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div className="space-y-2">
-              <label
-                htmlFor="password"
-                className="block text-sm font-semibold text-white/90"
-              >
+              <label htmlFor="password" className="block text-sm font-semibold text-white/90">
                 Password
               </label>
               <div className="relative">
@@ -104,7 +117,6 @@ export default function LoginPage() {
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-orange-500 focus:outline-none"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {/* Simple eye icon using SVG to avoid external deps */}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5"
@@ -124,7 +136,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Sign In Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -136,8 +148,8 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-6 text-center">
-            <p className="text-white/60 text-sm">
-              © 2025 Oceans Marine. All rights reserved.
+            <p className="text-white/50 text-sm">
+              ©2025 Oceane Marine. All rights reserved.
             </p>
           </div>
         </div>

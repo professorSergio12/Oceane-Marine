@@ -130,6 +130,9 @@ export default function EquipmentTesting() {
           tester: "",
         },
       }));
+
+      // Reload equipment data to show the newly planned test
+      await loadEquipments(year);
     } catch (err) {
       console.error("Create test plan error:", err);
       setError(err.message || "Failed to create test plan");
@@ -254,6 +257,10 @@ export default function EquipmentTesting() {
                   plannedOn: "",
                   tester: "",
                 };
+                
+                // Use planned test data if available, otherwise use input
+                const hasPlannedTest = !!eq.plannedTest;
+                
                 return (
                   <tr
                     key={eq._id}
@@ -272,35 +279,56 @@ export default function EquipmentTesting() {
                       {formatDate(eq.nextTestDate)}
                     </td>
                     <td className="px-4 py-4">
-                      <input
-                        type="date"
-                        value={input.plannedOn}
-                        onChange={(e) =>
-                          handleInputChange(eq._id, "plannedOn", e.target.value)
-                        }
-                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
+                      {hasPlannedTest ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-emerald-300 font-medium">
+                            {formatDate(eq.plannedTest.plannedOn)}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Planned
+                          </span>
+                        </div>
+                      ) : (
+                        <input
+                          type="date"
+                          value={input.plannedOn}
+                          onChange={(e) =>
+                            handleInputChange(eq._id, "plannedOn", e.target.value)
+                          }
+                          className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                      )}
                     </td>
                     <td className="px-4 py-4">
-                      <input
-                        type="text"
-                        placeholder="Tester name"
-                        value={input.tester}
-                        onChange={(e) =>
-                          handleInputChange(eq._id, "tester", e.target.value)
-                        }
-                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
+                      {hasPlannedTest ? (
+                        <span className="text-xs text-emerald-300 font-medium">
+                          {eq.plannedTest.tester}
+                        </span>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Tester name"
+                          value={input.tester}
+                          onChange={(e) =>
+                            handleInputChange(eq._id, "tester", e.target.value)
+                          }
+                          className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                      )}
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handlePlanTest(eq)}
-                        disabled={savingRow === eq._id}
-                        className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-1.5 text-[11px] font-semibold text-white shadow shadow-emerald-500/40 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition"
-                      >
-                        {savingRow === eq._id ? "Saving..." : "Plan test"}
-                      </button>
+                      {hasPlannedTest ? (
+                        <span className="text-xs text-slate-400 italic">Already planned</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handlePlanTest(eq)}
+                          disabled={savingRow === eq._id}
+                          className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-1.5 text-[11px] font-semibold text-white shadow shadow-emerald-500/40 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                        >
+                          {savingRow === eq._id ? "Saving..." : "Plan test"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
