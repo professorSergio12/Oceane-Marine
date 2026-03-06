@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -10,7 +10,17 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const videoRef = useRef(null);
   const router = useRouter();
+
+  useEffect(() => {
+    // Ensure video plays when component mounts
+    if (videoRef.current) {
+      videoRef.current.play().catch((err) => {
+        console.error("Video autoplay failed:", err);
+      });
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,16 +47,27 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Full-Screen Background Video */}
       <video
+        ref={videoRef}
         autoPlay
         loop
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover"
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        onError={(e) => {
+          console.error("Video failed to load:", e);
+        }}
+        onLoadedData={() => {
+          console.log("Video loaded successfully");
+        }}
       >
-        <source src="/video/Image_to_Ship_Video_Generation.mp4" type="video/mp4" />
+        <source src="/video/ship.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
       </video>
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/30" />
+      {/* Watermark cover - hides the "Veo" text */}
+      <div className="absolute bottom-0 right-0 z-1" style={{ width: '100px', height: '44px', background: 'linear-gradient(145deg, rgba(25,65,75,0.9) 0%, rgba(18,55,65,1) 40%, rgba(12,45,55,1) 100%)' }} />
 
       {/* Merged Glass Card - Logo + Form */}
       <div className="relative z-10 w-full max-w-4xl mx-4 flex rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-white/10 backdrop-blur-md">
