@@ -565,7 +565,7 @@ export default function NewOperationPage() {
 
       {/* Main Content - fixed left margin so content stays in place when sidebar collapses */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
-         <div className="mx-auto max-w-7xl px-6 py-8 space-y-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+         <div className={`mx-auto py-8 space-y-6 ${isSidebarOpen ? "max-w-7xl px-6" : "px-6"}`}>
            <header className="mb-2 flex items-center gap-4">
             {/* Left: Dashboard Button */}
             <Link
@@ -628,7 +628,7 @@ export default function NewOperationPage() {
           <form
             ref={formRef}
             onSubmit={handleSubmit}
-            className="rounded-3xl border border-white/10 p-6 space-y-6 max-w-6xl mx-auto"
+            className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6 max-w-6xl mx-auto"
           >
             <div className="flex flex-wrap items-center gap-3 border-b border-white/10 pb-4">
               <StatusDropdown
@@ -698,7 +698,7 @@ export default function NewOperationPage() {
                   label="Type of operation"
                   name="typeOfOperation"
                   placeholder="Select type of operation"
-                  options={["Ship to Ship", "POAC", "Fender Hire", "Hose hire", "STS Equipment Hire"]}
+                  options={["Ship to Ship", "POAC", "Fender Hire", "Hose hire"]}
                 />
               <TextField
                 label="Client"
@@ -791,7 +791,7 @@ export default function NewOperationPage() {
             </div>
 
             {/* CHS / MS block */}
-            <div className="rounded-3xl border border-white/10 p-6 space-y-6">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
               <div className="flex items-center justify-between gap-4 ">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-200 font-bold" title="Mother Ship">
@@ -1349,9 +1349,9 @@ function OperationsListComponent() {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/5">
-        <div className="flex-1 min-w-[200px] relative">
+      {/* Search Bar */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 relative">
           <input
             type="text"
             placeholder="Search by Ref No, Type, Location, Client, CHS, MS..."
@@ -1373,13 +1373,13 @@ function OperationsListComponent() {
             />
           </svg>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <label className="text-sm text-white/70 whitespace-nowrap">Status:</label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
+            className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
           >
             <option value="">All</option>
             <option value="INPROGRESS">In Progress</option>
@@ -1394,7 +1394,7 @@ function OperationsListComponent() {
           <select
             value={yearFilter}
             onChange={(e) => setYearFilter(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
+            className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
           >
             <option value="">All</option>
             {availableYears.map((year) => (
@@ -1429,9 +1429,6 @@ function OperationsListComponent() {
                     Date
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Operation Ref No
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
                     Type of Operation
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
@@ -1439,6 +1436,15 @@ function OperationsListComponent() {
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
                     Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                    VSL Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                    Barrels
                   </th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-white/90 uppercase tracking-wider w-32">
                     Actions
@@ -1451,11 +1457,6 @@ function OperationsListComponent() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-white/90">
                         {formatDateTime(op.operationStartTime)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-white/90 font-medium">
-                        {op.Operation_Ref_No || "—"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -1476,6 +1477,21 @@ function OperationsListComponent() {
                         }`}
                       >
                         {op.operationStatus || "—"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-white/90">
+                        {op.chs || op.ms || "—"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-white/90">
+                        {op.client || "—"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-white/90">
+                        {calculateBarrels(op.quantity)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

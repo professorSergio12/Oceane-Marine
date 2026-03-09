@@ -1,0 +1,107 @@
+"use client";
+
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import StatutoryCertificatesFormPage from "./form/StatutoryCertificatesFormPage";
+import StatutoryCertificatesListPage from "./list/StatutoryCertificatesListPage";
+import HrSidebarWrapper from "../components/HrSidebarWrapper";
+import { useHrSidebar } from "../HrSidebarContext";
+
+function StatutoryCertificatesContent() {
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState("form");
+  const { contentClassName, isSidebarOpen } = useHrSidebar();
+
+  // Check for tab and edit in URL
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const edit = searchParams.get("edit");
+    if (tab === "list") {
+      setActiveTab("list");
+    } else if (edit) {
+      setActiveTab("form");
+    }
+  }, [searchParams]);
+
+  return (
+    <div className="min-h-screen bg-transparent text-white flex">
+      <HrSidebarWrapper />
+      <div className={`flex-1 min-w-0 pr-4 overflow-auto transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
+        <div className="w-full mx-auto py-10 space-y-6 pl-4 pr-4">
+          <header className="mb-2 flex items-center gap-4">
+            {/* Left: Dashboard Button */}
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+            >
+              ← Dashboard
+            </Link>
+            
+            {/* Center: Heading */}
+            <div className="flex-1 flex flex-col items-center text-center">
+              <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
+                HR / Statutory Certificates
+              </p>
+              <h1 className="text-2xl font-bold text-white">Statutory Certificates</h1>
+            </div>
+            
+            {/* Right: Form/List Tabs */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+                <button
+                  onClick={() => setActiveTab("form")}
+                  className={`px-4 py-2 text-sm font-semibold transition ${
+                    activeTab === "form"
+                      ? "text-white bg-orange-500 hover:bg-orange-600"
+                      : "text-white/90 hover:bg-white/10"
+                  }`}
+                >
+                  Form
+                </button>
+                <button
+                  onClick={() => setActiveTab("list")}
+                  className={`px-4 py-2 text-sm font-semibold transition ${
+                    activeTab === "list"
+                      ? "text-white bg-orange-500 hover:bg-orange-600"
+                      : "text-white/90 hover:bg-white/10"
+                  }`}
+                >
+                  List
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          {activeTab === "form" && (
+            <StatutoryCertificatesFormPage 
+              onSuccess={() => {
+                setActiveTab("list");
+                // Refresh list if it's already loaded
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new Event("refreshCertificates"));
+                }
+              }} 
+            />
+          )}
+          {activeTab === "list" && <StatutoryCertificatesListPage onRefresh={() => setActiveTab("list")} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function StatutoryCertificatesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        </div>
+      }
+    >
+      <StatutoryCertificatesContent />
+    </Suspense>
+  );
+}

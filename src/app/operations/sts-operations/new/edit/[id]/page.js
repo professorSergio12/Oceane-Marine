@@ -722,7 +722,7 @@ export default function EditOperationPage() {
                   label="Type of operation"
                   name="typeOfOperation"
                   placeholder="Select type of operation"
-                  options={["Ship to Ship", "POAC", "Fender Hire", "Hose hire", "STS Equipment Hire"]}
+                  options={["Ship to Ship", "POAC", "Fender Hire", "Hose hire"]}
                 />
               <TextField
                 label="Client"
