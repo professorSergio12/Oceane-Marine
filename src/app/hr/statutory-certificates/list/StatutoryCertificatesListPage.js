@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { useHrLoading } from "../../HrLoadingContext";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -105,6 +106,7 @@ function DeleteIconButton({ onClick, disabled, loading }) {
 /* ── Main list component ── */
 export default function StatutoryCertificatesListPage({ onRefresh }) {
   const router = useRouter();
+  const { setPageLoading } = useHrLoading();
   const [certificates, setCertificates] = useState([]);
   const [filteredCertificates, setFilteredCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +138,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
   const fetchCertificates = async () => {
     try {
       setLoading(true);
+      setPageLoading(true);
       setError("");
       const res = await fetch("/api/hr/statutory-certificates/list");
       const data = await res.json();
@@ -146,6 +149,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -266,6 +270,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                       <th className="px-6 py-4 font-semibold">Type of Document</th>
                       <th className="px-6 py-4 font-semibold">Year</th>
                       <th className="px-6 py-4 font-semibold">Validity</th>
+                      <th className="px-6 py-4 font-semibold text-center">File</th>
                       <th className="px-6 py-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
@@ -278,15 +283,21 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                         <td className="px-6 py-4 text-slate-200">
                           {cert.validity ? new Date(cert.validity).toLocaleDateString("en-GB") : "—"}
                         </td>
+                        <td className="px-6 py-4 text-center">
+                          {cert.attachment?.fileUrl ? (
+                            <DownloadIconButton
+                              onClick={() => handleDownload(cert)}
+                              disabled={downloadingId === cert._id}
+                              loading={downloadingId === cert._id}
+                            />
+                          ) : (
+                            <span className="text-slate-500 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <ViewIconButton onClick={() => handleView(cert)} />
                             <EditIconButton onClick={() => handleEdit(cert)} />
-                            <DownloadIconButton
-                              onClick={() => handleDownload(cert)}
-                              disabled={!cert.attachment?.fileUrl || downloadingId === cert._id}
-                              loading={downloadingId === cert._id}
-                            />
                             <DeleteIconButton
                               onClick={() => handleDelete(cert._id)}
                               disabled={deletingId === cert._id}

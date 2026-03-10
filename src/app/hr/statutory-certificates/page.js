@@ -7,11 +7,13 @@ import StatutoryCertificatesFormPage from "./form/StatutoryCertificatesFormPage"
 import StatutoryCertificatesListPage from "./list/StatutoryCertificatesListPage";
 import HrSidebarWrapper from "../components/HrSidebarWrapper";
 import { useHrSidebar } from "../HrSidebarContext";
+import { useHrLoading } from "../HrLoadingContext";
 
 function StatutoryCertificatesContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("form");
   const { contentClassName, isSidebarOpen } = useHrSidebar();
+  const { setPageLoading } = useHrLoading();
 
   // Check for tab and edit in URL
   useEffect(() => {
@@ -20,9 +22,10 @@ function StatutoryCertificatesContent() {
     if (tab === "list") {
       setActiveTab("list");
     } else if (edit) {
+      setPageLoading(true);
       setActiveTab("form");
     }
-  }, [searchParams]);
+  }, [searchParams, setPageLoading]);
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">

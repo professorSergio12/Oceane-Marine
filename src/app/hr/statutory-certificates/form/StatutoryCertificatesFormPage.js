@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useHrLoading } from "../../HrLoadingContext";
 
 export default function StatutoryCertificatesFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
+  const { setPageLoading } = useHrLoading();
 
   const [location, setLocation] = useState("");
   const [typeOfDocs, setTypeOfDocs] = useState("");
@@ -26,6 +28,7 @@ export default function StatutoryCertificatesFormPage() {
       const loadData = async () => {
         try {
           setLoadingData(true);
+          setPageLoading(true);
           const res = await fetch(`/api/hr/statutory-certificates/list`);
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Failed to load");
@@ -43,6 +46,7 @@ export default function StatutoryCertificatesFormPage() {
           setError(err.message);
         } finally {
           setLoadingData(false);
+          setPageLoading(false);
         }
       };
       loadData();
@@ -61,6 +65,7 @@ export default function StatutoryCertificatesFormPage() {
     setError("");
     setMessage("");
     setLoading(true);
+    setPageLoading(true);
 
     try {
       if (!location || !location.trim()) {
@@ -127,6 +132,7 @@ export default function StatutoryCertificatesFormPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
