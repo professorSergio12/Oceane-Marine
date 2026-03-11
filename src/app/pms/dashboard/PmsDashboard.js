@@ -426,19 +426,28 @@ function MovementRow({ movement }) {
   const stop = movement.stopover ? formatLocation(movement.stopover) : null;
   const to = formatLocation(movement.toLocation);
 
+  // Build ordered waypoints
+  const waypoints = [{ label: from, type: "from" }];
+  if (stop) waypoints.push({ label: stop, type: "stop" });
+  waypoints.push({ label: to, type: "to" });
+
   return (
-    <div className="pt-2 pb-3">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05] transition">
       {/* Equipment info row */}
-      <div className="flex items-center gap-3 mb-5 ml-1">
-        <span className="text-xs text-white/60 font-medium">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-xs font-semibold text-white/80">
           {movement.equipment}
-          {movement.equipmentType ? ` · ${movement.equipmentType}` : ""}
         </span>
-        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold">
+        {movement.equipmentType && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 font-medium">
+            {movement.equipmentType}
+          </span>
+        )}
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/20">
           {movement.nos} unit{movement.nos > 1 ? "s" : ""}
         </span>
         {movement.startDate && (
-          <span className="text-[10px] text-white/35">
+          <span className="ml-auto text-[10px] text-white/35 font-medium">
             {new Date(movement.startDate).toLocaleDateString("en-GB", {
               day: "2-digit",
               month: "short",
@@ -448,80 +457,51 @@ function MovementRow({ movement }) {
         )}
       </div>
 
-      {/* Track — dots + dashed line + truck */}
-      <div className="relative px-2">
-        {/* ---- Track base line (spans between From and To dots) ---- */}
-        <div
-          className="absolute top-[7px] h-[3px] rounded-full"
-          style={{
-            left: "40px",
-            right: "40px",
-            background: "linear-gradient(90deg, rgba(100,116,139,0.6), rgba(100,116,139,0.4))",
-          }}
-        >
-          {/* dashed overlay */}
+      {/* Track visualization */}
+      <div className="relative mx-4">
+        {/* Background track line */}
+        <div className="absolute top-[9px] left-[10px] right-[10px] h-[2px] bg-slate-600/50">
           <div
-            className="absolute inset-0 rounded-full"
+            className="absolute inset-0"
             style={{
               backgroundImage:
-                "repeating-linear-gradient(90deg, transparent, transparent 6px, rgba(148,163,184,0.4) 6px, rgba(148,163,184,0.4) 12px)",
+                "repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(148,163,184,0.35) 5px, rgba(148,163,184,0.35) 10px)",
             }}
           />
         </div>
 
-        {/* Truck icon — sits on the line between From dot and next stop */}
-        <div
-          className="absolute z-10"
-          style={{
-            left: "65px",
-            top: "-8px",
-          }}
-        >
-          <span
-            className="text-base leading-none drop-shadow-lg"
-            style={{
-              transform: "scaleX(-1)",
-              display: "inline-block",
-              filter: "drop-shadow(0 0 4px rgba(239,68,68,0.4))",
-            }}
-          >
-            🚛
-          </span>
-        </div>
+        {/* Waypoints row */}
+        <div className="relative flex items-start justify-between">
+          {waypoints.map((wp, i) => {
+            const isFrom = wp.type === "from";
+            const isStop = wp.type === "stop";
+            const dotSize = isFrom ? "w-[18px] h-[18px]" : "w-[14px] h-[14px]";
+            const dotColor = isFrom
+              ? "bg-red-500 border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+              : isStop
+              ? "bg-amber-400 border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.4)]"
+              : "bg-emerald-500 border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]";
+            const topOffset = isFrom ? "" : "mt-[2px]";
 
-        {/* ---- Dot + label row ---- */}
-        <div className="relative flex items-start">
-          {/* From */}
-          <div className="flex flex-col items-center z-[1]" style={{ minWidth: 80 }}>
-            <div className="w-[16px] h-[16px] rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] border-2 border-red-400" />
-            <span className="text-[11px] text-white/70 font-medium mt-2 whitespace-nowrap flex items-center gap-1">
-              {from} <span className="text-white/30 text-[10px]">▼</span>
-            </span>
-          </div>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Stopover (if exists) */}
-          {stop && (
-            <>
-              <div className="flex flex-col items-center z-[1]" style={{ minWidth: 80 }}>
-                <div className="w-[14px] h-[14px] rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)] border-2 border-emerald-300 mt-[1px]" />
-                <span className="text-[11px] text-white/70 font-medium mt-2 whitespace-nowrap flex items-center gap-1">
-                  {stop} <span className="text-white/30 text-[10px]">▼</span>
+            return (
+              <div key={i} className="flex flex-col items-center z-[1]" style={{ minWidth: 70 }}>
+                <div className={`${dotSize} ${dotColor} ${topOffset} rounded-full border-2`} />
+                <span className="text-[11px] text-white/70 font-medium mt-2 text-center whitespace-nowrap">
+                  {wp.label}
                 </span>
               </div>
-              <div className="flex-1" />
-            </>
-          )}
+            );
+          })}
+        </div>
 
-          {/* To */}
-          <div className="flex flex-col items-center z-[1]" style={{ minWidth: 80 }}>
-            <div className="w-[14px] h-[14px] rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] border-2 border-emerald-400 mt-[1px]" />
-            <span className="text-[11px] text-white/70 font-medium mt-2 whitespace-nowrap flex items-center gap-1">
-              {to} <span className="text-white/30 text-[10px]">▼</span>
-            </span>
-          </div>
+        {/* Truck on the track */}
+        <div
+          className="absolute z-10 pointer-events-none"
+          style={{ left: "10%", top: "-2px" }}
+        >
+          <span className="text-sm" style={{ transform: "scaleX(-1)", display: "inline-block" }}>
+            🚛
+          </span>
         </div>
       </div>
     </div>

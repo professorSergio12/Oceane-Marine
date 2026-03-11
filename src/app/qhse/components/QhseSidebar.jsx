@@ -81,13 +81,7 @@ const sidebarTabs = [
   {
     key: "moc",
     label: "MOC",
-    submodules: [
-      {
-        key: "management-change",
-        label: "Management Of Change",
-        href: "/qhse/moc/management-change/form",
-      },
-    ],
+    href: "/qhse/moc/management-change/form",
   },
   {
     key: "due-diligence",
@@ -156,12 +150,6 @@ export default function QhseSidebar() {
       setActiveTab("near-miss");
     } else if (pathname.startsWith("/qhse/moc")) {
       setActiveTab("moc");
-      // Auto-expand the nested submodule if we're on one of its pages
-      if (pathname.startsWith("/qhse/moc/management-change")) {
-        setExpandedNestedSubmodules(
-          (prev) => new Set([...prev, "management-change"])
-        );
-      }
     } else if (pathname.startsWith("/qhse/due-diligence-subconstructor")) {
       setActiveTab("due-diligence");
       // Auto-expand the nested submodule if we're on one of its pages

@@ -19,6 +19,8 @@
     "dotenv": "^17.2.4",
     "file-saver": "^2.0.5",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.1",
