@@ -201,77 +201,50 @@ export default function PmsDashboard() {
       {/* ==================== WAREHOUSE MOVEMENT ==================== */}
       <WarehouseMovementTracker movements={data.warehouseMovements || []} />
 
-      {/* ==================== FENDERS & HOSES + LOCATION BREAKDOWN ==================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Fenders & Hoses */}
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6">
-          <h3 className="text-sm font-semibold text-white/80 mb-4">
-            Fenders & Hoses Summary
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            <MiniStat
-              label="Primary Fenders"
-              value={data.fenders?.primary ?? 0}
-              color="text-cyan-400"
-            />
-            <MiniStat
-              label="Secondary Fenders"
-              value={data.fenders?.secondary ?? 0}
-              color="text-purple-400"
-            />
-            <MiniStat
-              label="Hoses"
-              value={data.hoses?.total ?? 0}
-              color="text-orange-400"
-            />
+      {/* ==================== EQUIPMENT BY LOCATION ==================== */}
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6">
+        <h3 className="text-sm font-semibold text-white/80 mb-4">
+          Equipment by Location
+        </h3>
+        {Object.keys(data.equipmentByLocation || {}).length > 0 ? (
+          <div className="overflow-x-auto max-h-48 overflow-y-auto styled-scrollbar">
+            <table className="w-full text-xs text-left">
+              <thead className="sticky top-0 bg-slate-800">
+                <tr className="text-white/50 border-b border-white/10">
+                  <th className="py-2 pr-3">Location</th>
+                  <th className="py-2 px-3 text-center">Primary</th>
+                  <th className="py-2 px-3 text-center">Secondary</th>
+                  <th className="py-2 pl-3 text-center">Hoses</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(data.equipmentByLocation).map(
+                  ([loc, vals]) => (
+                    <tr
+                      key={loc}
+                      className="border-b border-white/5 hover:bg-white/5 transition"
+                    >
+                      <td className="py-2 pr-3 text-white/80 font-medium">
+                        {formatLocation(loc)}
+                      </td>
+                      <td className="py-2 px-3 text-center text-cyan-300">
+                        {vals.primaryFenders}
+                      </td>
+                      <td className="py-2 px-3 text-center text-purple-300">
+                        {vals.secondaryFenders}
+                      </td>
+                      <td className="py-2 pl-3 text-center text-orange-300">
+                        {vals.hoses}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        {/* Equipment By Location */}
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6">
-          <h3 className="text-sm font-semibold text-white/80 mb-4">
-            Equipment by Location
-          </h3>
-          {Object.keys(data.equipmentByLocation || {}).length > 0 ? (
-            <div className="overflow-x-auto max-h-48 overflow-y-auto styled-scrollbar">
-              <table className="w-full text-xs text-left">
-                <thead className="sticky top-0 bg-slate-800">
-                  <tr className="text-white/50 border-b border-white/10">
-                    <th className="py-2 pr-3">Location</th>
-                    <th className="py-2 px-3 text-center">Primary</th>
-                    <th className="py-2 px-3 text-center">Secondary</th>
-                    <th className="py-2 pl-3 text-center">Hoses</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(data.equipmentByLocation).map(
-                    ([loc, vals]) => (
-                      <tr
-                        key={loc}
-                        className="border-b border-white/5 hover:bg-white/5 transition"
-                      >
-                        <td className="py-2 pr-3 text-white/80 font-medium">
-                          {formatLocation(loc)}
-                        </td>
-                        <td className="py-2 px-3 text-center text-cyan-300">
-                          {vals.primaryFenders}
-                        </td>
-                        <td className="py-2 px-3 text-center text-purple-300">
-                          {vals.secondaryFenders}
-                        </td>
-                        <td className="py-2 pl-3 text-center text-orange-300">
-                          {vals.hoses}
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-white/40 text-sm">No location data available</p>
-          )}
-        </div>
+        ) : (
+          <p className="text-white/40 text-sm">No location data available</p>
+        )}
       </div>
     </div>
   );
@@ -297,16 +270,6 @@ function StatCard({ label, value, gradient, accent, icon }) {
   );
 }
 
-function MiniStat({ label, value, color }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-[10px] text-white/50 mt-1 uppercase tracking-wider">
-        {label}
-      </p>
-    </div>
-  );
-}
 
 /* ---------- Usage of Spare Table ---------- */
 function SpareUsageTable({ spares }) {
