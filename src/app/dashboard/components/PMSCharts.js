@@ -661,6 +661,20 @@ function MovementRow({ movement }) {
   if (stop) waypoints.push({ label: stop, type: "stop" });
   waypoints.push({ label: to, type: "to" });
 
+  // Calculate truck progress based on startDate & estimatedEndDate
+  const calcProgress = () => {
+    const start = movement.startDate ? new Date(movement.startDate).getTime() : null;
+    const end = movement.estimatedEndDate ? new Date(movement.estimatedEndDate).getTime() : null;
+    if (!start || !end || end <= start) return 50; // fallback to midway if no dates
+    const now = Date.now();
+    if (now <= start) return 0;
+    if (now >= end) return 100;
+    return ((now - start) / (end - start)) * 100;
+  };
+  const progress = Math.min(100, Math.max(0, calcProgress()));
+  // Map 0-100 progress to 2%-95% CSS left (keep truck within the track bounds)
+  const truckLeft = 2 + (progress / 100) * 93;
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05] transition">
       {/* Equipment info row */}
@@ -724,10 +738,10 @@ function MovementRow({ movement }) {
           })}
         </div>
 
-        {/* Truck on the track */}
+        {/* Truck on the track — position synced with real dates */}
         <div
-          className="absolute z-10 pointer-events-none"
-          style={{ left: "10%", top: "-2px" }}
+          className="absolute z-10 pointer-events-none transition-all duration-1000"
+          style={{ left: `${truckLeft}%`, top: "-2px" }}
         >
           <span className="text-sm" style={{ transform: "scaleX(-1)", display: "inline-block" }}>
             🚛
