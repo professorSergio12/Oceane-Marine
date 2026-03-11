@@ -7,6 +7,7 @@ import EquipmentTesting from "./equipment-testing/EquipmentTesting";
 import PrimaryEquipment from "./equipment-inventory/primary-equipment/PrimaryEquipment";
 import Accessories from "./equipment-inventory/accessories/Accessories";
 import WarehouseManagement from "./warehouse-management/WarehouseManagement";
+
 const sidebarTabs = [
   {
     key: "equipment-inventory",
@@ -300,11 +301,11 @@ export default function PmsPage() {
               />
             )}
             {activeTab === "warehouse-management" && (
-            <WarehouseManagement
-              view={warehouseView}
-              onViewChange={setWarehouseView}
-            />
-          )}
+              <WarehouseManagement
+                view={warehouseView}
+                onViewChange={setWarehouseView}
+              />
+            )}
             {activeTab === "certifications" && (
               <Certifications
                 view={certificationsView}
@@ -312,7 +313,6 @@ export default function PmsPage() {
               />
             )}
             {activeTab === "equipment-testing" && <EquipmentTesting />}
-            
           </div>
         </div>
       </div>

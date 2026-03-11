@@ -28,6 +28,38 @@ const MONTHS = [
   "Dec",
 ];
 
+// Format number with Lakh, Million, Billion, and Trillion conversion
+function formatNumber(num) {
+  if (num >= 1000000000000) {
+    // Convert to trillions
+    const trillions = num / 1000000000000;
+    return `${trillions.toFixed(1).replace(/\.0$/, "")}T`;
+  } else if (num >= 1000000000) {
+    // Convert to billions
+    const billions = num / 1000000000;
+    return `${billions.toFixed(1).replace(/\.0$/, "")}B`;
+  } else if (num >= 1000000) {
+    // Convert to millions
+    const millions = num / 1000000;
+    return `${millions.toFixed(1).replace(/\.0$/, "")}M`;
+  } else if (num >= 100000) {
+    // Convert to lakhs
+    const lakhs = num / 100000;
+    const lakhsInt = Math.floor(lakhs);
+    const remainder = lakhs - lakhsInt;
+    
+    if (remainder === 0) {
+      return `${lakhsInt} Lakh`;
+    } else {
+      // Show decimal if needed (e.g., 1.5 Lakh)
+      return `${lakhs.toFixed(1).replace(/\.0$/, "")} Lakh`;
+    }
+  } else {
+    // Show as is with comma formatting
+    return num.toLocaleString();
+  }
+}
+
 export default function OperationsCharts() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -188,7 +220,7 @@ export default function OperationsCharts() {
         {/* Total Barrels */}
         <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-teal-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-emerald-500/20 transition-all hover:scale-105">
           <h3 className="text-sm font-semibold text-emerald-300 mb-2">Total Barrels Transferred</h3>
-          <p className="text-4xl font-bold text-white">{stats.totalBarrels.toLocaleString()}</p>
+          <p className="text-4xl font-bold text-white">{formatNumber(stats.totalBarrels)}</p>
         </div>
 
         {/* Completed */}

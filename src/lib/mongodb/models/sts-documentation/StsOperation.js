@@ -182,7 +182,11 @@ const stsOperationSchema = new mongoose.Schema(
 
     /* ================= VESSEL INFO ================= */
 
-    loa: {
+    loaCHS: {
+      type: String
+    },
+
+    loaMS: {
       type: String
     },
 

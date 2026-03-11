@@ -769,11 +769,6 @@ export default function EditOperationPage() {
                   { label: "At Anchor", value: "At Anchor" },
                 ]}
               />
-              <TextField
-                label="LOA"
-                name="loa"
-                placeholder="Enter LOA"
-              />
               <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-white/90">
@@ -848,7 +843,7 @@ export default function EditOperationPage() {
                     placeholder="Enter CHS name"
                   />
                   <SelectField
-                    label="What type of vessel (CHS)"
+                    label="Type of Vessel (CHS)"
                     options={[
                       { label: "Select", value: "" },
                       { label: "VLCC", value: "VLCC" },
@@ -862,6 +857,11 @@ export default function EditOperationPage() {
                       { label: "Supramax", value: "Supramax" },
                     ]}
                     name="vesselTypeCHS"
+                  />
+                  <TextField
+                    label="LOA (CHS)"
+                    name="loaCHS"
+                    placeholder="Enter LOA for CHS"
                   />
                   <UploadPill
                     label="SSQ"
@@ -920,7 +920,7 @@ export default function EditOperationPage() {
                     placeholder="Enter MS name"
                   />
                   <SelectField
-                    label="What type of vessel (MS)"
+                    label="Type of Vessel (MS)"
                     options={[
                       { label: "Select", value: "" },
                       { label: "VLCC", value: "VLCC" },
@@ -934,6 +934,11 @@ export default function EditOperationPage() {
                       { label: "Supramax", value: "Supramax" },
                     ]}
                     name="vesselTypeMS"
+                  />
+                  <TextField
+                    label="LOA (MS)"
+                    name="loaMS"
+                    placeholder="Enter LOA for MS"
                   />
                   <UploadPill
                     label="SSQ"
@@ -1845,7 +1850,12 @@ function MultiSelectDropdown({
   };
 
   const summaryLabel = (() => {
-    if (selected.length) return `${selected.length} selected`;
+    if (selected.length) {
+      const selectedLabels = selected
+        .map((val) => options.find((opt) => opt.value === val)?.label)
+        .filter(Boolean);
+      return selectedLabels.join(", ") || `${selected.length} selected`;
+    }
     if (loading) return "Loading...";
     return "Select equipment";
   })();
