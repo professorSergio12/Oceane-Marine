@@ -77,7 +77,7 @@ export default function AccessoriesList({ onViewChange }) {
       {/* Header Section */}
       <div className="flex items-start justify-between border-b border-white/10 pb-4">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-1">Accessories Inventory</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Accessories Inventory</h2>
           <p className="text-sm text-white/60">List View</p>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
@@ -143,7 +143,7 @@ export default function AccessoriesList({ onViewChange }) {
       )}
 
       {/* List Content */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-white/60">Loading accessories...</p>

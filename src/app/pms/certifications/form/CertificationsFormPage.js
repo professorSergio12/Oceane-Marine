@@ -119,13 +119,13 @@ export default function CertificationsFormPage() {
 
   return (
     <div className="flex-1 ml-72 pr-4">
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap relative">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
               PMS / Certifications
             </p>
-            <h1 className="text-2xl font-bold">{editId ? "Edit Certificate" : "New Certificate"}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">{editId ? "Edit Certificate" : "New Certificate"}</h1>
           </div>
           {/* Close button when editing - aligned with header */}
           {editId && (
@@ -176,7 +176,7 @@ export default function CertificationsFormPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-6"
+          className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">

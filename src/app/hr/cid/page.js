@@ -31,36 +31,36 @@ function CidContent() {
     <div className="min-h-screen bg-transparent text-white flex">
       <HrSidebarWrapper />
       <div
-        className={`flex-1 min-w-0 pr-4 overflow-auto transition-all duration-300 ${
+        className={`flex-1 min-w-0 overflow-auto transition-all duration-300 ${
           isSidebarOpen
             ? "ml-0 md:ml-72"
             : "mx-auto max-w-7xl"
         }`}
       >
-        <div className="w-full mx-auto py-10 space-y-6 pl-4 pr-4">
-          <header className="mb-2 flex items-center gap-4">
+        <div className="w-full mx-auto py-4 sm:py-6 md:py-10 space-y-4 sm:space-y-6 px-3 sm:px-4">
+          <header className="mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             {/* Left: Dashboard Button */}
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
             >
               ← Dashboard
             </Link>
 
             {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
-              <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
+            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
                 HR / CID
               </p>
-              <h1 className="text-2xl font-bold text-white">CID</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">CID</h1>
             </div>
 
             {/* Right: Form/List Tabs */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
+              <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <button
                   onClick={() => setActiveTab("form")}
-                  className={`px-4 py-2 text-sm font-semibold transition ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                     activeTab === "form"
                       ? "text-white bg-orange-500 hover:bg-orange-600"
                       : "text-white/90 hover:bg-white/10"
@@ -70,7 +70,7 @@ function CidContent() {
                 </button>
                 <button
                   onClick={() => setActiveTab("list")}
-                  className={`px-4 py-2 text-sm font-semibold transition ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                     activeTab === "list"
                       ? "text-white bg-orange-500 hover:bg-orange-600"
                       : "text-white/90 hover:bg-white/10"

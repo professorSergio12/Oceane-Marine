@@ -55,13 +55,13 @@ export default function ControlledDocumentRegisterPage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <header className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE
             </p>
-            <h1 className="text-2xl font-bold text-white">Controlled Document Register</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Controlled Document Register</h1>
             <p className="text-sm text-slate-200 mt-1">
               Live index of all controlled forms and documents (QHSE, Operations, PMS). Click a row to go to the module.
             </p>

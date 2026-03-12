@@ -325,14 +325,14 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
   const content = (
     <div className={`${contentClassName} pr-4`}>
       <div className="flex-1">
-        <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+        <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
           <header className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <div>
                 <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                   QHSE / Training
                 </p>
-                <h1 className="text-2xl font-bold text-white">Training Record</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">Training Record</h1>
                 <p className="text-sm text-slate-200 mt-1">
                   Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-039</span>
                 </p>
@@ -489,7 +489,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
           {creatingFor && (
             <form
               onSubmit={handleSubmit}
-              className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl space-y-6"
+              className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
             >
               {/* Form Fields */}
               <div className="rounded-2xl border border-white/10 bg-[#0b2740]/80 p-6 space-y-6">

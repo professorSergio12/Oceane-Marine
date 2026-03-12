@@ -4,7 +4,6 @@ import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
 import EquipmentTest from "@/lib/mongodb/models/pms/EquipmentTest";
 import Accessories from "@/lib/mongodb/models/pms/Accessories";
-import Certificate from "@/lib/mongodb/models/pms/Certificate";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 
 export async function GET(req) {
@@ -106,9 +105,6 @@ export async function GET(req) {
       .select("equipmentName quantity status")
       .lean();
 
-    /* ========== CERTIFICATIONS COUNT ========== */
-    const totalCertificates = await Certificate.countDocuments({ status: "ACTIVE" });
-
     /* ========== EQUIPMENT CURRENTLY IN USE (from STS Operations) ========== */
     const inUseOps = await StsOperation.find({
       isLatest: true,
@@ -176,7 +172,6 @@ export async function GET(req) {
         totalEquipment,
         activeEquipment,
         inUseEquipment,
-        totalCertificates,
         upcomingTestDue,
         overdue: totalOverdue,
         plannedTests,

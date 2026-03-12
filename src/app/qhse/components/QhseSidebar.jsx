@@ -299,10 +299,9 @@ export default function QhseSidebar() {
       {/* Left Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[300px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "300px" }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}

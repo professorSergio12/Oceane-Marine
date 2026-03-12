@@ -247,26 +247,26 @@ export default function QHSECharts() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">QHSE Dashboard</h2>
-          <p className="text-sm text-slate-300">
+          <h2 className="text-base sm:text-xl font-semibold text-white">QHSE Dashboard</h2>
+          <p className="text-xs sm:text-sm text-slate-300">
             QHSE module statistics and overview.
           </p>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-semibold text-slate-200">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <label className="text-xs sm:text-sm font-semibold text-slate-200">
               Year:
             </label>
             <select
               value={selectedYear}
               onChange={(e) => handleYearChange(e.target.value)}
-              className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+              className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
             >
               {getYears().map((year) => (
                 <option key={year} value={year}>
@@ -276,14 +276,14 @@ export default function QHSECharts() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-semibold text-slate-200">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <label className="text-xs sm:text-sm font-semibold text-slate-200">
               Month:
             </label>
             <select
               value={selectedMonth || "all"}
               onChange={(e) => handleMonthChange(e.target.value)}
-              className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+              className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
             >
               <option value="all">All Months</option>
               {MONTHS.map((month, index) => (
@@ -309,19 +309,19 @@ export default function QHSECharts() {
       ) : (
         <>
           {/* Key Metrics Cards - clickable, route to modules */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {/* KPI Completed Card */}
             <div
               role="button"
               tabIndex={0}
               onClick={() => router.push(ROUTES.kpi)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.kpi)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-indigo-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-purple-500/20 transition-all hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-indigo-900/40 backdrop-blur-md shadow-2xl p-4 md:p-6 hover:shadow-purple-500/20 transition-all hover:scale-[1.02] md:hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/30 to-indigo-500/30 border border-purple-400/30">
+              <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-purple-500/30 to-indigo-500/30 border border-purple-400/30">
                   <svg
-                    className="w-6 h-6 text-purple-300"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-purple-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -335,13 +335,13 @@ export default function QHSECharts() {
                   </svg>
                 </div>
               </div>
-              <h3 className="text-xs uppercase tracking-wider text-purple-300 mb-2">
+              <h3 className="text-[10px] sm:text-xs uppercase tracking-wider text-purple-300 mb-1 sm:mb-2">
                 KPI Completed
               </h3>
-              <p className="text-3xl font-bold text-white mb-1">
+              <p className="text-2xl sm:text-3xl font-bold text-white mb-1">
                 {stats.kpi.completed}
               </p>
-              <p className="text-xs text-slate-300">
+              <p className="text-[10px] sm:text-xs text-slate-300">
                 {selectedMonth
                   ? `${MONTHS[selectedMonth - 1]} ${selectedYear}`
                   : `Year ${selectedYear}`}
@@ -354,12 +354,12 @@ export default function QHSECharts() {
               tabIndex={0}
               onClick={() => router.push(ROUTES.dueDiligence)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.dueDiligence)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-emerald-900/40 via-teal-800/30 to-cyan-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-emerald-500/20 transition-all hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-emerald-900/40 via-teal-800/30 to-cyan-900/40 backdrop-blur-md shadow-2xl p-4 md:p-6 hover:shadow-emerald-500/20 transition-all hover:scale-[1.02] md:hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 border border-emerald-400/30">
+              <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-emerald-500/30 to-teal-500/30 border border-emerald-400/30">
                   <svg
-                    className="w-6 h-6 text-emerald-300"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -373,13 +373,13 @@ export default function QHSECharts() {
                   </svg>
                 </div>
               </div>
-              <h3 className="text-xs uppercase tracking-wider text-emerald-300 mb-2">
+              <h3 className="text-[10px] sm:text-xs uppercase tracking-wider text-emerald-300 mb-1 sm:mb-2">
                 Due Diligence
               </h3>
-              <p className="text-3xl font-bold text-white mb-1">
+              <p className="text-2xl sm:text-3xl font-bold text-white mb-1">
                 {stats.dueDiligence.completed}
               </p>
-              <p className="text-xs text-slate-300">
+              <p className="text-[10px] sm:text-xs text-slate-300">
                 Pending: {stats.dueDiligence.pending}
               </p>
             </div>
@@ -390,12 +390,12 @@ export default function QHSECharts() {
               tabIndex={0}
               onClick={() => router.push(ROUTES.nearMiss)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.nearMiss)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-amber-900/40 via-yellow-800/30 to-orange-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-amber-500/20 transition-all hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-amber-900/40 via-yellow-800/30 to-orange-900/40 backdrop-blur-md shadow-2xl p-4 md:p-6 hover:shadow-amber-500/20 transition-all hover:scale-[1.02] md:hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/50"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 border border-amber-400/30">
+              <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 border border-amber-400/30">
                   <svg
-                    className="w-6 h-6 text-amber-300"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -409,13 +409,13 @@ export default function QHSECharts() {
                   </svg>
                 </div>
               </div>
-              <h3 className="text-xs uppercase tracking-wider text-amber-300 mb-2">
+              <h3 className="text-[10px] sm:text-xs uppercase tracking-wider text-amber-300 mb-1 sm:mb-2">
                 Near Miss Raised
               </h3>
-              <p className="text-3xl font-bold text-white mb-1">
+              <p className="text-2xl sm:text-3xl font-bold text-white mb-1">
                 {stats.nearMiss.total}
               </p>
-              <p className="text-xs text-slate-300">
+              <p className="text-[10px] sm:text-xs text-slate-300">
                 Pending Review: {stats.nearMiss.pendingReview}
               </p>
             </div>
@@ -424,19 +424,19 @@ export default function QHSECharts() {
 
           {/* Charts Section */}
           {/* First Row - Near Miss and Due Diligence - charts clickable */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6 mt-4 md:mt-6">
             {/* Bar Chart - Near Miss by Quarter */}
             <div
               role="button"
               tabIndex={0}
               onClick={() => router.push(ROUTES.nearMiss)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.nearMiss)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
             >
-              <h2 className="text-lg font-bold text-white mb-4">
+              <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">
                 Near Miss Reports (Quarter-wise)
               </h2>
-              <div className="h-80 flex items-end justify-around gap-2 px-4">
+              <div className="h-48 sm:h-64 md:h-80 flex items-end justify-around gap-1 sm:gap-2 px-2 sm:px-4">
                 {barChartData.labels.map((label, idx) => {
                   const value = barChartData.datasets[0].data[idx];
                   const maxValue = Math.max(...barChartData.datasets[0].data, 1);
@@ -484,13 +484,13 @@ export default function QHSECharts() {
               tabIndex={0}
               onClick={() => router.push(ROUTES.dueDiligence)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.dueDiligence)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
             >
-              <h2 className="text-lg font-bold text-white mb-4">
+              <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">
                 Due Diligence Status
               </h2>
-              <div className="h-80 flex flex-col items-center justify-center gap-4">
-                <div className="relative w-72 h-72">
+              <div className="h-64 sm:h-72 md:h-80 flex flex-col items-center justify-center gap-3 md:gap-4">
+                <div className="relative w-48 h-48 sm:w-60 sm:h-60 md:w-72 md:h-72">
                   <svg
                     viewBox="0 0 100 100"
                     className="transform -rotate-90 w-full h-full"
@@ -539,29 +539,29 @@ export default function QHSECharts() {
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <p className="text-4xl font-bold text-white">
+                      <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
                         {doughnutChartData.datasets[0].data.reduce(
                           (a, b) => a + b,
                           0
                         )}
                       </p>
-                      <p className="text-sm text-slate-300">Total</p>
+                      <p className="text-xs sm:text-sm text-slate-300">Total</p>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3 justify-center">
+                <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
                   {doughnutChartData.labels.map((label, idx) => {
                     const value = doughnutChartData.datasets[0].data[idx];
                     const colors = ["#fb923c", "#8b5cf6", "#3b82f6", "#ef4444"];
                     return (
-                      <div key={label} className="flex items-center gap-2">
+                      <div key={label} className="flex items-center gap-1.5 sm:gap-2">
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
                           style={{
                             backgroundColor: colors[idx] || "#6b7280",
                           }}
                         ></div>
-                        <span className="text-xs text-slate-300">
+                        <span className="text-[10px] sm:text-xs text-slate-300">
                           {label}: {value}
                         </span>
                       </div>
@@ -574,17 +574,17 @@ export default function QHSECharts() {
           </div>
 
           {/* Second Row - Mooring Masters Feedback & Best Practices */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6 mt-4 md:mt-6">
             {/* Bar Chart - Mooring Masters Feedback (Q-1 to Q-4) */}
             <div
               role="button"
               tabIndex={0}
               onClick={() => router.push(ROUTES.kpi)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.kpi)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
             >
-              <h2 className="text-lg font-bold text-white mb-4">Mooring Masters Feedback</h2>
-              <div className="h-80 flex items-end justify-around gap-2 px-4">
+              <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Mooring Masters Feedback</h2>
+              <div className="h-48 sm:h-64 md:h-80 flex items-end justify-around gap-1 sm:gap-2 px-2 sm:px-4">
                 {["Q-1", "Q-2", "Q-3", "Q-4"].map((label, idx) => {
                   const value = [mooringMastersQuarterly.Q1, mooringMastersQuarterly.Q2, mooringMastersQuarterly.Q3, mooringMastersQuarterly.Q4][idx];
                   const maxValue = Math.max(mooringMastersQuarterly.Q1, mooringMastersQuarterly.Q2, mooringMastersQuarterly.Q3, mooringMastersQuarterly.Q4, 1);
@@ -615,11 +615,11 @@ export default function QHSECharts() {
               tabIndex={0}
               onClick={() => router.push(ROUTES.bestPractice)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.bestPractice)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
             >
-              <h2 className="text-lg font-bold text-white mb-4">Best Practices</h2>
-              <div className="h-80 flex flex-col items-center justify-center gap-4">
-                <div className="relative w-72 h-72">
+              <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Best Practices</h2>
+              <div className="h-64 sm:h-72 md:h-80 flex flex-col items-center justify-center gap-3 md:gap-4">
+                <div className="relative w-48 h-48 sm:w-60 sm:h-60 md:w-72 md:h-72">
                   <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
                     {(() => {
                       const q = bestPracticesByQuarter;
@@ -651,19 +651,19 @@ export default function QHSECharts() {
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <p className="text-4xl font-bold text-white">{bestPracticesTotal}</p>
-                      <p className="text-sm text-slate-300">Total</p>
+                      <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{bestPracticesTotal}</p>
+                      <p className="text-xs sm:text-sm text-slate-300">Total</p>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3 justify-center">
+                <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
                   {["Q1", "Q2", "Q3", "Q4"].map((label, idx) => {
                     const value = [bestPracticesByQuarter.Q1, bestPracticesByQuarter.Q2, bestPracticesByQuarter.Q3, bestPracticesByQuarter.Q4][idx];
                     const pct = bestPracticesTotal > 0 ? ((value / bestPracticesTotal) * 100).toFixed(1) : "0";
                     return (
-                      <div key={label} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: BEST_PRACTICE_COLORS[idx] }} />
-                        <span className="text-xs text-slate-300">{label}: {value} ({pct}%)</span>
+                      <div key={label} className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0" style={{ backgroundColor: BEST_PRACTICE_COLORS[idx] }} />
+                        <span className="text-[10px] sm:text-xs text-slate-300">{label}: {value} ({pct}%)</span>
                       </div>
                     );
                   })}
@@ -673,23 +673,23 @@ export default function QHSECharts() {
           </div>
 
           {/* Third Row - Base Audits Full Width */}
-          <div className="mt-6">
+          <div className="mt-4 md:mt-6">
             {/* Line Chart - Base Audits */}
             <div
               role="button"
               tabIndex={0}
               onClick={() => router.push(ROUTES.baseAudits)}
               onKeyDown={(e) => e.key === "Enter" && router.push(ROUTES.baseAudits)}
-              className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+              className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 cursor-pointer hover:border-sky-500/40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/50"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">Base Audits</h2>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-xs text-slate-300">By Location</span>
+              <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
+                <h2 className="text-sm sm:text-base md:text-lg font-bold text-white">Base Audits</h2>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-[10px] sm:text-xs text-slate-300">By Location</span>
                 </div>
               </div>
-              <div className="h-96 relative pb-8 pt-2">
+              <div className="h-56 sm:h-72 md:h-96 relative pb-4 sm:pb-8 pt-2">
                 <svg viewBox="0 0 1000 350" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">

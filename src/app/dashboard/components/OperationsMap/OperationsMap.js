@@ -68,7 +68,7 @@ export default function OperationsMap({ year, month }) {
   return (
     <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6 relative overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
         <div>
           <h2 className="text-lg font-bold text-white">Operations Map</h2>
           <p className="text-xs text-slate-400">
@@ -77,11 +77,11 @@ export default function OperationsMap({ year, month }) {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-3 text-[10px] text-slate-300">
-          <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-400" /> In Progress</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400" /> Completed</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" /> Pending</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-red-400" /> Cancelled</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] text-slate-300">
+          <span className="flex items-center gap-1 whitespace-nowrap"><span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-400" /> In Progress</span>
+          <span className="flex items-center gap-1 whitespace-nowrap"><span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400" /> Completed</span>
+          <span className="flex items-center gap-1 whitespace-nowrap"><span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" /> Pending</span>
+          <span className="flex items-center gap-1 whitespace-nowrap"><span className="inline-block w-2.5 h-2.5 rounded-full bg-red-400" /> Cancelled</span>
         </div>
       </div>
 

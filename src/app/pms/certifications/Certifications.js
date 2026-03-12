@@ -221,7 +221,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
       {view === "form" && (
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-6"
+          className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">

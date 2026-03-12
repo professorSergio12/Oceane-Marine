@@ -72,6 +72,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const [formSuccess, setFormSuccess] = useState(null);
+  const [manufacturingCertificateFile, setManufacturingCertificateFile] = useState(null);
+  const [testCertificateFile, setTestCertificateFile] = useState(null);
 
   // ----- History state -----
   const [equipments, setEquipments] = useState([]);
@@ -199,30 +201,38 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     setFormSuccess(null);
 
     try {
-      const payload = {
-        ...form,
-        yearOfManufacturing:
-          form.yearOfManufacturing === ""
-            ? undefined
-            : Number(form.yearOfManufacturing),
-        retirementPeriodYears:
-          form.retirementPeriodYears === ""
-            ? undefined
-            : Number(form.retirementPeriodYears),
-        dateOfPurchase: form.dateOfPurchase || undefined,
-        firstUseDate: form.firstUseDate || undefined,
-        lastTestDate: form.lastTestDate || undefined,
-        nextTestDate: form.nextTestDate || undefined,
-      };
+      const formData = new FormData();
+      
+      // Add all form fields
+      formData.append("equipmentCode", form.equipmentCode);
+      formData.append("equipmentName", form.equipmentName);
+      formData.append("equipmentType", form.equipmentType || "");
+      formData.append("specification", form.specification || "");
+      formData.append("manufacturer", form.manufacturer || "");
+      if (form.yearOfManufacturing) {
+        formData.append("yearOfManufacturing", form.yearOfManufacturing);
+      }
+      formData.append("ownershipType", form.ownershipType);
+      if (form.dateOfPurchase) formData.append("dateOfPurchase", form.dateOfPurchase);
+      if (form.firstUseDate) formData.append("firstUseDate", form.firstUseDate);
+      if (form.lastTestDate) formData.append("lastTestDate", form.lastTestDate);
+      if (form.nextTestDate) formData.append("nextTestDate", form.nextTestDate);
+      formData.append("retirementPeriodYears", form.retirementPeriodYears || 10);
+      formData.append("remarks", form.remarks || "");
+
+      // Add certificate files if selected
+      if (manufacturingCertificateFile) {
+        formData.append("manufacturingCertificate", manufacturingCertificateFile);
+      }
+      if (testCertificateFile) {
+        formData.append("testCertificate", testCertificateFile);
+      }
 
       const res = await fetch(
         "/api/pms/equipment-inventory/primary-equipment/create",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
+          body: formData,
         }
       );
 
@@ -249,6 +259,13 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
         nextTestDate: "",
         remarks: "",
       }));
+      setManufacturingCertificateFile(null);
+      setTestCertificateFile(null);
+      // Reset file inputs
+      const manufacturingInput = document.querySelector('input[type="file"][name="manufacturingCertificate"]');
+      const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
+      if (manufacturingInput) manufacturingInput.value = "";
+      if (testInput) testInput.value = "";
 
       // Refresh equipments list so list and history tabs are up to date
       if (activeTab === "list" || activeTab === "history") {
@@ -585,7 +602,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       <p className="text-[11px] uppercase tracking-[0.18em] text-sky-200 mb-2">
                         Age
                       </p>
-                      <p className="text-3xl font-bold text-sky-100">
+                      <p className="text-2xl sm:text-3xl font-bold text-sky-100">
                         {(() => {
                           const age = calculateAge(
                             selectedEquipmentDetail.firstUseDate,
@@ -602,7 +619,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-200 mb-2">
                         Days Remaining (Next Test)
                       </p>
-                      <p className="text-3xl font-bold text-emerald-100">
+                      <p className="text-2xl sm:text-3xl font-bold text-emerald-100">
                         {(() => {
                           const days = calculateDaysRemaining(
                             selectedEquipmentDetail.nextTestDate
@@ -617,51 +634,83 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   </div>
 
                   {/* Certificates */}
-                  {selectedEquipmentDetail.certificates &&
-                    selectedEquipmentDetail.certificates.length > 0 && (
+                  {(selectedEquipmentDetail.manufacturingCertificate?.fileUrl ||
+                    selectedEquipmentDetail.testCertificate?.fileUrl) && (
                       <div className="space-y-3">
                         <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
                           Certificates
                         </h4>
                         <div className="space-y-2">
-                          {selectedEquipmentDetail.certificates.map((cert, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-                            >
+                          {selectedEquipmentDetail.manufacturingCertificate?.fileUrl && (
+                            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                               <div className="flex-1">
                                 <p className="text-xs font-medium text-slate-100">
-                                  Certificate {idx + 1}
+                                  Manufacturing Certificate
                                 </p>
-                                <p className="text-[11px] text-slate-400">
-                                  Uploaded: {formatDateTime(cert.uploadedAt)}
-                                </p>
+                                {selectedEquipmentDetail.manufacturingCertificate.originalFileName && (
+                                  <p className="text-[11px] text-slate-400">
+                                    {selectedEquipmentDetail.manufacturingCertificate.originalFileName}
+                                  </p>
+                                )}
                               </div>
-                              {cert.fileUrl && (
-                                <a
-                                  href={cert.fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-1.5 text-[11px] font-semibold text-yellow-100 border border-yellow-400/50 hover:bg-yellow-500/30 transition"
+                              <a
+                                href={selectedEquipmentDetail.manufacturingCertificate.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-1.5 text-[11px] font-semibold text-yellow-100 border border-yellow-400/50 hover:bg-yellow-500/30 transition"
+                              >
+                                <svg
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
                                 >
-                                  <svg
-                                    className="h-4 w-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                    />
-                                  </svg>
-                                  View / Download
-                                </a>
-                              )}
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                  />
+                                </svg>
+                                View / Download
+                              </a>
                             </div>
-                          ))}
+                          )}
+                          {selectedEquipmentDetail.testCertificate?.fileUrl && (
+                            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                              <div className="flex-1">
+                                <p className="text-xs font-medium text-slate-100">
+                                  Test Certificate
+                                </p>
+                                {selectedEquipmentDetail.testCertificate.originalFileName && (
+                                  <p className="text-[11px] text-slate-400">
+                                    {selectedEquipmentDetail.testCertificate.originalFileName}
+                                  </p>
+                                )}
+                              </div>
+                              <a
+                                href={selectedEquipmentDetail.testCertificate.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-1.5 text-[11px] font-semibold text-yellow-100 border border-yellow-400/50 hover:bg-yellow-500/30 transition"
+                              >
+                                <svg
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                  />
+                                </svg>
+                                View / Download
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -888,6 +937,34 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 value={form.nextTestDate}
                 onChange={handleInputChange}
                 className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+          </div>
+
+          {/* Certificates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-200 mb-1">
+                Manufacturing Certificate
+              </label>
+              <input
+                type="file"
+                name="manufacturingCertificate"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(e) => setManufacturingCertificateFile(e.target.files?.[0] || null)}
+                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-200 mb-1">
+                Test Certificate
+              </label>
+              <input
+                type="file"
+                name="testCertificate"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(e) => setTestCertificateFile(e.target.files?.[0] || null)}
+                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
               />
             </div>
           </div>

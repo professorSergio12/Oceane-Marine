@@ -35,6 +35,8 @@ export default function Accessories({ view: controlledView, onViewChange }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [manufacturingCertificateFile, setManufacturingCertificateFile] = useState(null);
+  const [testCertificateFile, setTestCertificateFile] = useState(null);
 
   // Fetch locations
   useEffect(() => {
@@ -84,25 +86,12 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     setError(null);
 
     try {
-      const payload = {
-        category,
-        status: category === "OCCASIONAL" ? status : "ACTIVE",
-        equipmentName: form.equipmentName.trim(),
-        specification: form.specification?.trim() || undefined,
-        purchaseDate: form.purchaseDate || undefined,
-        remarks: form.remarks?.trim() || undefined,
-        putInUse: form.putInUse || false,
-        putInUseDate: form.putInUse && form.putInUseDate ? form.putInUseDate : undefined,
-        placedIn: form.placedIn
-      };
-
       if (category === "REGULAR") {
         if (!form.equipmentNo || !form.equipmentNo.trim()) {
           setError("Equipment number is required for Regular accessories");
           setSaving(false);
           return;
         }
-        payload.equipmentNo = form.equipmentNo.trim();
       }
 
       if (category === "OCCASIONAL") {
@@ -111,7 +100,6 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           setSaving(false);
           return;
         }
-        payload.quantity = Number(form.quantity);
       }
 
       if (!form.equipmentName.trim()) {
@@ -120,10 +108,36 @@ export default function Accessories({ view: controlledView, onViewChange }) {
         return;
       }
 
+      const formData = new FormData();
+      formData.append("category", category);
+      formData.append("status", category === "OCCASIONAL" ? status : "ACTIVE");
+      formData.append("equipmentName", form.equipmentName.trim());
+      formData.append("specification", form.specification?.trim() || "");
+      if (form.purchaseDate) formData.append("purchaseDate", form.purchaseDate);
+      formData.append("remarks", form.remarks?.trim() || "");
+      formData.append("putInUse", form.putInUse ? "true" : "false");
+      if (form.putInUse && form.putInUseDate) formData.append("putInUseDate", form.putInUseDate);
+      formData.append("placedIn", form.placedIn);
+
+      if (category === "REGULAR") {
+        formData.append("equipmentNo", form.equipmentNo.trim());
+      }
+
+      if (category === "OCCASIONAL") {
+        formData.append("quantity", form.quantity);
+      }
+
+      // Add certificate files if selected
+      if (manufacturingCertificateFile) {
+        formData.append("manufacturingCertificate", manufacturingCertificateFile);
+      }
+      if (testCertificateFile) {
+        formData.append("testCertificate", testCertificateFile);
+      }
+
       const res = await fetch("/api/pms/equipment-inventory/accessories/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const data = await res.json();
@@ -143,6 +157,13 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           placedIn: "OFFICE"
         });
         setSelectedLocation("");
+        setManufacturingCertificateFile(null);
+        setTestCertificateFile(null);
+        // Reset file inputs
+        const manufacturingInput = document.querySelector('input[type="file"][name="manufacturingCertificate"]');
+        const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
+        if (manufacturingInput) manufacturingInput.value = "";
+        if (testInput) testInput.value = "";
         setTimeout(() => setMessage(null), 5000);
       } else {
         setError(data.message || "Failed to save accessory");
@@ -166,7 +187,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     <div className="space-y-6">
       {/* Header Section */}
       <div className="border-b border-white/10 pb-4">
-        <h2 className="text-2xl font-bold text-white mb-1">Accessories Inventory</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Accessories Inventory</h2>
       </div>
 
       {/* Status Toggles */}
@@ -241,7 +262,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
       )}
 
       {/* Form Section */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl space-y-6">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           {/* Equipment No - Only for Regular */}
           {category === "REGULAR" && (
@@ -371,6 +392,34 @@ export default function Accessories({ view: controlledView, onViewChange }) {
                 <span className="text-sm text-white/90">{loc}</span>
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* Certificates */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-white/90">
+              Manufacturing Certificate:
+            </label>
+            <input
+              type="file"
+              name="manufacturingCertificate"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => setManufacturingCertificateFile(e.target.files?.[0] || null)}
+              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-white/90">
+              Test Certificate:
+            </label>
+            <input
+              type="file"
+              name="testCertificate"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => setTestCertificateFile(e.target.files?.[0] || null)}
+              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
+            />
           </div>
         </div>
 

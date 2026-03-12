@@ -108,13 +108,13 @@ export default function DrillsListPage() {
   const { contentClassName } = useQhseSidebar();
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Drills
             </p>
-            <h1 className="text-2xl font-bold text-white">Drill Plans & Reports</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Drill Plans & Reports</h1>
             <p className="text-sm text-slate-200 mt-1">
               Year-wise drill plans with quarter-wise reports
             </p>
@@ -194,7 +194,7 @@ export default function DrillsListPage() {
               .filter((yearRow) => yearRow.quartersWithData.length > 0);
             if (filteredRows.length === 0) {
               return (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8 text-center">
                   <p className="text-slate-300 mb-1">No drill plans or reports yet.</p>
                   <p className="text-sm text-slate-400">
                     Use &quot;Drill Matrix&quot; or &quot;Drill Report&quot; above to add entries; they will appear here.

@@ -72,13 +72,13 @@ export default function TargetKpiViewPage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / KPI / Target KPI
             </p>
-            <h1 className="text-2xl font-bold text-white">Target KPI – {data.formCode}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Target KPI – {data.formCode}</h1>
             <div className="flex flex-wrap items-center gap-6 mt-2 text-sm">
               <div>
                 <span className="text-slate-400 text-xs uppercase tracking-wider block">Form Code</span>
@@ -127,7 +127,7 @@ export default function TargetKpiViewPage() {
           </div>
         </header>
 
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
           <div className="overflow-x-auto rounded-xl border border-slate-500/30 overflow-hidden">
             <table className="min-w-full text-sm border-collapse">
               <thead>

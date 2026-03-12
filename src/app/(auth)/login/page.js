@@ -70,39 +70,39 @@ export default function LoginPage() {
       <div className="absolute bottom-0 right-0 z-1" style={{ width: '100px', height: '44px', background: 'linear-gradient(145deg, rgba(25,65,75,0.9) 0%, rgba(18,55,65,1) 40%, rgba(12,45,55,1) 100%)' }} />
 
       {/* Merged Glass Card - Logo + Form */}
-      <div className="relative z-10 w-full max-w-4xl mx-4 flex rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-white/10 backdrop-blur-md">
+      <div className="relative z-10 w-full max-w-4xl mx-4 flex flex-col md:flex-row rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-white/10 backdrop-blur-md">
         
         {/* Left Side - Logo */}
-        <div className="w-1/2 flex items-center justify-center p-10">
+        <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-8 md:p-10">
           <Image
             src="/image/logo.png"
             alt="Oceane Marine Logo"
             width={320}
             height={130}
-            className="object-contain drop-shadow-2xl"
+            className="object-contain drop-shadow-2xl max-w-[200px] sm:max-w-[260px] md:max-w-[320px]"
             priority
           />
         </div>
 
-        {/* Vertical Divider */}
-        <div className="w-px bg-white/30 my-8" />
+        {/* Divider - Horizontal on mobile, Vertical on desktop */}
+        <div className="h-px md:h-auto md:w-px bg-white/30 mx-6 md:mx-0 md:my-8" />
 
         {/* Right Side - Login Form */}
-        <div className="w-1/2 flex flex-col justify-center p-10">
+        <div className="w-full md:w-1/2 flex flex-col justify-center p-6 sm:p-8 md:p-10">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-white mb-6">Oceane Group</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6">Oceane Group</h1>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {/* Error */}
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-xl text-sm">
+              <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
 
             {/* Employee ID */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <label htmlFor="employeeId" className="block text-sm font-semibold text-white/90">
                 Employee ID
               </label>
@@ -112,13 +112,13 @@ export default function LoginPage() {
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm sm:text-base placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
                 placeholder="Enter your Employee ID (e.g., OFD-001)"
               />
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <label htmlFor="password" className="block text-sm font-semibold text-white/90">
                 Password
               </label>
@@ -129,7 +129,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 pr-12 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-12 rounded-xl bg-white/10 border border-white/20 text-white text-sm sm:text-base placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
                   placeholder="Enter your password"
                 />
                 <button
@@ -161,15 +161,15 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 sm:py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-white/50 text-sm">
+          <div className="mt-4 sm:mt-6 text-center">
+            <p className="text-white/50 text-xs sm:text-sm">
               ©2025 Oceane Marine. All rights reserved.
             </p>
           </div>

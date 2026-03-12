@@ -187,7 +187,7 @@ export default function PoacCrossCompetencyViewPage() {
   if (error || !form) {
     return (
       <div className={`${contentClassName} pr-4`}>
-        <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10">
+        <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-10">
           <div className="rounded-3xl border border-red-500/40 bg-red-950/40 p-6">
             <p className="text-red-300">{error || "Form not found"}</p>
             <Link
@@ -204,13 +204,13 @@ export default function PoacCrossCompetencyViewPage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / POAC Cross Competency
             </p>
-            <h1 className="text-2xl font-bold text-white">View POAC Cross Competency Form</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">View POAC Cross Competency Form</h1>
           </div>
           <div className="flex gap-2">
             <TemplateDownloadLink formCode="QAF-OFD-009" />
@@ -233,7 +233,7 @@ export default function PoacCrossCompetencyViewPage() {
 
         <div className="space-y-6">
           {/* Form & POAC Details – actual form data in one card */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             <h2 className="text-lg font-bold mb-4 text-orange-300">Form & POAC Details</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
@@ -304,7 +304,7 @@ export default function PoacCrossCompetencyViewPage() {
           </div>
 
           {/* Evaluation Items */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             <h2 className="text-lg font-bold mb-4 text-orange-300">Evaluation Items</h2>
             <div className="space-y-6">
               {evaluationCategories.map((category) => {
@@ -363,7 +363,7 @@ export default function PoacCrossCompetencyViewPage() {
           </div>
 
           {/* Lead POAC Comments & Signatures */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             <h2 className="text-lg font-bold mb-4 text-orange-300">Lead POAC Comments & Signatures</h2>
             <div className="space-y-4">
               <div>
@@ -418,7 +418,7 @@ export default function PoacCrossCompetencyViewPage() {
 
           {/* Operations Support Team Comment */}
           {form.opsSupportTeamComment && (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
               <h2 className="text-lg font-bold mb-4 text-orange-300">Operations Support Team Comment</h2>
               <p className="text-sm text-white whitespace-pre-wrap">
                 {form.opsSupportTeamComment}
@@ -428,7 +428,7 @@ export default function PoacCrossCompetencyViewPage() {
 
           {/* Ops Team Signatures */}
           {(form.opsTeamName || form.opsTeamSupdtName || form.opsTeamSignature || form.opsTeamSupdtSignature) && (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
               <h2 className="text-lg font-bold mb-4 text-orange-300">Operations Team Signatures</h2>
               <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-3">
@@ -514,7 +514,7 @@ export default function PoacCrossCompetencyViewPage() {
           )}
 
           {/* Footer Info */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             <div className="grid gap-4 md:grid-cols-2 text-xs text-slate-400">
               <div>
                 <span className="font-semibold">Created:</span> {formatDate(form.createdAt)}

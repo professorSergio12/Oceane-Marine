@@ -230,13 +230,13 @@ export default function QuestionnaireListAdminPage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <header className="flex items-start gap-3">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Due Diligence / Supplier Due Diligence Questionnaire
             </p>
-            <h1 className="text-2xl font-bold text-white">Admin Review</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Admin Review</h1>
             <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-043</span>
             </p>
@@ -836,7 +836,7 @@ export default function QuestionnaireListAdminPage() {
 
           {/* Table Section - Only show when no form is selected */}
           {!selectedForm && (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl space-y-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-sm text-slate-100">Loading forms…</div>

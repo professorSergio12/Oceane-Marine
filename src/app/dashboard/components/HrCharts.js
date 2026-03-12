@@ -35,7 +35,7 @@ function PlaceholderCard({ title, value, tone = "sky" }) {
       className={`rounded-2xl border ${toneClasses[tone]} px-4 py-5 backdrop-blur shadow-lg`}
     >
       <p className="text-sm uppercase tracking-wide">{title}</p>
-      <p className="text-3xl font-bold">{value}</p>
+      <p className="text-2xl sm:text-3xl font-bold">{value}</p>
     </div>
   );
 }

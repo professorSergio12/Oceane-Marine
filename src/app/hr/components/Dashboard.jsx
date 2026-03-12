@@ -90,7 +90,7 @@ export default function HrDashboard() {
                 {module.description}
               </p>
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold text-orange-500">
+                <span className="text-2xl sm:text-3xl font-bold text-orange-500">
                   {module.count}
                 </span>
                 <span className="text-white/40 group-hover:text-orange-500 transition-colors">

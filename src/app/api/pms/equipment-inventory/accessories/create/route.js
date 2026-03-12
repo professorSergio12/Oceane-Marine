@@ -1,26 +1,28 @@
 import { NextResponse } from "next/server";
 import Accessories from "@/lib/mongodb/models/pms/Accessories.js";
 import { connectDB } from "@/lib/config/connection.js";
+import path from "path";
+import fs from "fs/promises";
+
+const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
 export async function POST(req) {
   try {
     await connectDB();
 
-    const body = await req.json();
+    const formData = await req.formData();
 
-    const {
-      category,
-      status,
-      equipmentNo,
-      equipmentName,
-      specification,
-      purchaseDate,
-      remarks,
-      quantity,
-      putInUse,
-      putInUseDate,
-      placedIn
-    } = body;
+    const category = formData.get("category");
+    const status = formData.get("status");
+    const equipmentNo = formData.get("equipmentNo");
+    const equipmentName = formData.get("equipmentName");
+    const specification = formData.get("specification");
+    const purchaseDate = formData.get("purchaseDate");
+    const remarks = formData.get("remarks");
+    const quantity = formData.get("quantity");
+    const putInUse = formData.get("putInUse") === "true";
+    const putInUseDate = formData.get("putInUseDate");
+    const placedIn = formData.get("placedIn");
 
     // -----------------------------
     // Basic Validation
@@ -162,6 +164,47 @@ export async function POST(req) {
     if (category === "OCCASIONAL") {
       accessoryData.quantity = Number(quantity);
     }
+
+    // Handle Manufacturing Certificate file
+    let manufacturingCertificate = { fileUrl: "", originalFileName: "" };
+    const manufacturingCertFile = formData.get("manufacturingCertificate");
+    if (manufacturingCertFile && typeof manufacturingCertFile !== "string" && manufacturingCertFile.name && manufacturingCertFile.size > 0) {
+      const identifier = category === "REGULAR" ? sanitize(equipmentNo.trim()) : sanitize(equipmentName.trim());
+      const baseDir = path.join(process.cwd(), "public/uploads/pms/accessories", identifier, "manufacturing-certificate");
+      await fs.mkdir(baseDir, { recursive: true });
+
+      const buffer = Buffer.from(await manufacturingCertFile.arrayBuffer());
+      const fileName = `${Date.now()}-${sanitize(manufacturingCertFile.name)}`;
+      const filePath = path.join(baseDir, fileName);
+      await fs.writeFile(filePath, buffer);
+
+      manufacturingCertificate = {
+        fileUrl: `/uploads/pms/accessories/${identifier}/manufacturing-certificate/${fileName}`,
+        originalFileName: manufacturingCertFile.name,
+      };
+    }
+
+    // Handle Test Certificate file
+    let testCertificate = { fileUrl: "", originalFileName: "" };
+    const testCertFile = formData.get("testCertificate");
+    if (testCertFile && typeof testCertFile !== "string" && testCertFile.name && testCertFile.size > 0) {
+      const identifier = category === "REGULAR" ? sanitize(equipmentNo.trim()) : sanitize(equipmentName.trim());
+      const baseDir = path.join(process.cwd(), "public/uploads/pms/accessories", identifier, "test-certificate");
+      await fs.mkdir(baseDir, { recursive: true });
+
+      const buffer = Buffer.from(await testCertFile.arrayBuffer());
+      const fileName = `${Date.now()}-${sanitize(testCertFile.name)}`;
+      const filePath = path.join(baseDir, fileName);
+      await fs.writeFile(filePath, buffer);
+
+      testCertificate = {
+        fileUrl: `/uploads/pms/accessories/${identifier}/test-certificate/${fileName}`,
+        originalFileName: testCertFile.name,
+      };
+    }
+
+    accessoryData.manufacturingCertificate = manufacturingCertificate;
+    accessoryData.testCertificate = testCertificate;
 
     const accessory = await Accessories.create(accessoryData);
 

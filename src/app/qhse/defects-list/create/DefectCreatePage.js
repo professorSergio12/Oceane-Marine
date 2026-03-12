@@ -148,14 +148,14 @@ export default function DefectCreatePage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div>
               <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                 QHSE / Defects List
               </p>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-white">
                 {editId ? "Edit Equipment Defect" : "Create Equipment Defect"}
               </h1>
               <p className="text-sm text-slate-200 mt-1">
@@ -175,7 +175,7 @@ export default function DefectCreatePage() {
         </header>
 
         <main>
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl space-y-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
             {loading ? (
               <p className="text-sm text-slate-300">Loading defect...</p>
             ) : (

@@ -59,7 +59,7 @@ export async function GET(req) {
         },
       ],
     })
-      .select("performanceItems jobDetails.dateOfOperation jobDetails.vesselName jobDetails.jobReferenceNo operationRef createdAt")
+      .select("performanceItems jobDetails.dateOfOperation jobDetails.vesselName operationRef createdAt")
       .lean();
 
     /**
@@ -103,7 +103,7 @@ export async function GET(req) {
           avg: calcFormAvg(f),
           operationRef: f.operationRef,
           vesselName: f.jobDetails?.vesselName || "—",
-          jobRef: f.jobDetails?.jobReferenceNo || f.operationRef || "—",
+          jobRef: f.operationRef || "—",
         }))
         .filter((x) => x.avg !== null);
 

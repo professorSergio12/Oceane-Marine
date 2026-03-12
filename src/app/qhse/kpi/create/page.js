@@ -14,7 +14,7 @@ export default function KpiCreatePage() {
       {/* Main content */}
       <Suspense
         fallback={
-          <div className="flex-1 ml-[300px] flex items-center justify-center">
+          <div className="flex-1 ml-0 md:ml-0 md:ml-[300px] flex items-center justify-center">
             <p className="text-white/60">Loading drill plan…</p>
           </div>
         }

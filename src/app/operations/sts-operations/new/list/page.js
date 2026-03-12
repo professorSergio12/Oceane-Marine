@@ -210,10 +210,9 @@ export default function STSListPage() {
       {/* Left Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[300px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "300px" }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -322,40 +321,48 @@ export default function STSListPage() {
 
       {/* Sidebar Toggle Button */}
       {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
-          aria-label="Open sidebar"
-        >
-          <span className="text-white text-xl">☰</span>
-        </button>
+        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            aria-label="Open sidebar"
+          >
+            <span className="text-white text-xl">☰</span>
+          </button>
+          <Link
+            href="/dashboard"
+            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+        </div>
       )}
 
       {/* Main Content */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
-        <div className={`mx-auto py-8 space-y-6 ${isSidebarOpen ? "max-w-7xl px-6" : "px-6"}`}>
-          <header className="mb-6 flex items-center gap-4">
-            {/* Left: Dashboard Button */}
+        <div className={`mx-auto py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-7xl px-3 sm:px-4 md:px-6" : "px-3 sm:px-4 md:px-6"}`}>
+          <header className="mt-12 md:mt-0 mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
-            
+
             {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
-              <p className="text-sm uppercase tracking-[0.25em] text-slate-200 font-semibold">
+            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-slate-200 font-semibold">
                 STS Management System
               </p>
-              <h1 className="text-2xl font-bold">All STS Operations</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">All STS Operations</h1>
             </div>
             
             {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
               <Link
                 href="/operations/sts-operations/new"
-                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg text-white text-sm font-medium transition shadow-lg shadow-orange-500/30"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg text-white text-xs sm:text-sm font-medium transition shadow-lg shadow-orange-500/30"
               >
                 + New Operation
               </Link>
@@ -363,14 +370,14 @@ export default function STSListPage() {
           </header>
 
           {/* Search Bar */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search by Ref No, Type, Location, Client, CHS, MS..."
+                placeholder="Search by Ref No, Type, Location, Client..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
+                className="w-full rounded-lg sm:rounded-xl border border-white/10 bg-white/5 px-3 sm:px-4 py-2 sm:py-3 pl-8 sm:pl-10 text-xs sm:text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
               />
               <svg
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50"
@@ -400,33 +407,33 @@ export default function STSListPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
+            <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+              <div className="overflow-x-auto scrollbar-none">
+                <table className="w-full min-w-[700px]">
                   <thead className="bg-white/5 border-b border-white/10">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Type of Operation
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Location
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         VSL Name
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Client
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Barrels
                       </th>
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-white/90 uppercase tracking-wider w-32">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider w-28 sm:w-32">
                         Actions
                       </th>
                     </tr>
@@ -434,24 +441,24 @@ export default function STSListPage() {
                   <tbody className="divide-y divide-white/10">
                     {filteredOperations.map((op) => (
                       <tr key={op._id} className="hover:bg-white/5 transition">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-white/90">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className="text-xs sm:text-sm text-white/90">
                             {formatDateTime(op.operationStartTime)}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-white/90">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <span className="text-xs sm:text-sm text-white/90">
                             {op.typeOfOperation || "—"}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-white/90">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <span className="text-xs sm:text-sm text-white/90">
                             {op.location?.name || "—"}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
+                            className={`px-2 py-1 rounded text-[10px] sm:text-xs font-medium ${
                               statusTone[op.operationStatus]?.pill ||
                               "bg-white/10 text-white"
                             }`}
@@ -459,23 +466,23 @@ export default function STSListPage() {
                             {op.operationStatus || "—"}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-white/90">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <span className="text-xs sm:text-sm text-white/90">
                             {op.chs || op.ms || "—"}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-white/90">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <span className="text-xs sm:text-sm text-white/90">
                             {op.client || "—"}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-white/90">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className="text-xs sm:text-sm text-white/90">
                             {calculateBarrels(op.quantity)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex gap-2 justify-center">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <div className="flex gap-1.5 sm:gap-2 justify-center">
                             <button
                               onClick={() => router.push(`/operations/sts-operations/new/view/${op._id}`)}
                               className="px-3 py-1.5 bg-green-500/20 text-green-300 text-xs font-medium hover:bg-green-500/30 rounded-lg transition"

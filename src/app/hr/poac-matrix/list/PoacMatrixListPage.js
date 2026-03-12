@@ -447,10 +447,10 @@ export default function PoacMatrixListPage({ onRefresh }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
-                      <th className="px-4 py-4 font-semibold w-[60px]">S.No</th>
-                      <th className="px-4 py-4 font-semibold w-[40%]">STS Service Provider</th>
-                      <th className="px-4 py-4 font-semibold text-center w-[20%]">No. of POACs</th>
-                      <th className="px-4 py-4 font-semibold text-right w-[20%]">Actions</th>
+                      <th className="px-4 py-4 font-semibold w-[8%]">S.No</th>
+                      <th className="px-4 py-4 font-semibold w-[50%]">STS Service Provider</th>
+                      <th className="px-4 py-4 font-semibold text-center w-[15%]">No. of POACs</th>
+                      <th className="px-4 py-4 font-semibold text-right w-[27%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>

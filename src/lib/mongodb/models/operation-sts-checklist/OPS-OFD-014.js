@@ -14,7 +14,6 @@ const DocumentInfoSchema = new mongoose.Schema({
 
 // ================= JOB INFO =================
 const JobInfoSchema = new mongoose.Schema({
-    jobNumber: String,
     date: Date,
     time: String,
     mooringMasterName: String,

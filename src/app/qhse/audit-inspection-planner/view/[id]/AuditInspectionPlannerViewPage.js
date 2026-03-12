@@ -45,7 +45,7 @@ export default function AuditInspectionPlannerViewPage() {
   if (error || !item) {
     return (
       <div className={`${contentClassName} pr-4`}>
-        <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-4">
+        <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-3 sm:space-y-4">
           <Link
             href="/qhse/audit-inspection-planner/list"
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/15 bg-white/5 text-white text-sm hover:bg-white/10 transition"
@@ -62,7 +62,7 @@ export default function AuditInspectionPlannerViewPage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <div className="flex items-center gap-3">
           <Link
             href="/qhse/audit-inspection-planner/list"
@@ -74,7 +74,7 @@ export default function AuditInspectionPlannerViewPage() {
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Audit & Inspection Planner / View
             </p>
-            <h1 className="text-2xl font-bold text-white">Planner Details</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Planner Details</h1>
             <p className="text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">{item.formCode || "QAF-OFD-048"}</span>
             </p>
@@ -82,7 +82,7 @@ export default function AuditInspectionPlannerViewPage() {
           <TemplateDownloadLink formCode="QAF-OFD-048" />
         </div>
 
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-3">
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-3">
           <div className="grid grid-cols-2 gap-4 text-sm text-slate-100">
             <div>
               <div className="text-slate-400 text-xs uppercase">Form Code</div>

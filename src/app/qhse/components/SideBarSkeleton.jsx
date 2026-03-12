@@ -3,7 +3,7 @@
 export default function SidebarSkeleton() {
   return (
     <div
-      className={`fixed left-0 top-0 h-full w-[300px] z-50
+      className={`fixed left-0 top-0 h-full w-[260px] sm:w-[300px] z-50
         bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900
         border-r border-white/15 shadow-2xl overflow-hidden`}
     >

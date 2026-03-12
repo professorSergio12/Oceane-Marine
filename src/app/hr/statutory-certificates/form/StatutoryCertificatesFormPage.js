@@ -140,7 +140,7 @@ export default function StatutoryCertificatesFormPage() {
     <div className="w-full">
       <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-8 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
             {editId ? "Edit Statutory Certificate" : "Statutory Certificates"}
           </h2>
         </div>

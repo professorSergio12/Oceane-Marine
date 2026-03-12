@@ -127,13 +127,6 @@ export default function PmsDashboard() {
           icon="⚙️"
         />
         <StatCard
-          label="Certifications"
-          value={data.totalCertificates}
-          gradient="from-violet-900/40 via-violet-800/30 to-purple-900/40"
-          accent="text-violet-300"
-          icon="📜"
-        />
-        <StatCard
           label="Upcoming Tests"
           value={data.upcomingTestDue}
           gradient="from-blue-900/40 via-blue-800/30 to-indigo-900/40"
@@ -265,7 +258,7 @@ function StatCard({ label, value, gradient, accent, icon }) {
         </h3>
         <span className="text-lg">{icon}</span>
       </div>
-      <p className="text-3xl font-bold text-white">{value ?? 0}</p>
+      <p className="text-2xl sm:text-3xl font-bold text-white">{value ?? 0}</p>
     </div>
   );
 }

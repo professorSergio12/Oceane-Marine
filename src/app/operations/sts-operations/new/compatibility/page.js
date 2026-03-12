@@ -276,10 +276,10 @@ function CompatibilityPageContent() {
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[300px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "300px" }}
+        
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-orange-500/10 to-transparent">
@@ -346,26 +346,38 @@ function CompatibilityPageContent() {
       </div>
 
       {!isSidebarOpen && (
-        <button onClick={() => setIsSidebarOpen(true)} className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600" aria-label="Open sidebar">
-          <span className="text-white text-xl">☰</span>
-        </button>
+        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            aria-label="Open sidebar"
+          >
+            <span className="text-white text-xl">☰</span>
+          </button>
+          <Link
+            href="/dashboard"
+            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+        </div>
       )}
 
       <div className={`flex-1 min-w-0 pr-4 overflow-auto transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
-        <div className={`w-full mx-auto py-10 space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-4 pr-4" : "px-6"}`} id="compatibility-top">
-          <header className="flex items-center gap-4">
-            {/* Left: Dashboard Button */}
+        <div className={`w-full mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`} id="compatibility-top">
+          <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
-            
+
             {/* Center: Heading */}
             <div className="flex-1 flex flex-col items-center text-center">
               <p className="text-sm uppercase tracking-[0.25em] text-sky-300">Compatibility</p>
-              <h1 className="text-2xl font-bold text-white">Hose & Fender Calculation</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">Hose & Fender Calculation</h1>
             </div>
             
             {/* Right: Action Buttons */}
@@ -412,7 +424,7 @@ function CompatibilityPageContent() {
           ) : (
             <div className="space-y-6">
               {/* Operation info - shared */}
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-xl">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-xl">
                 <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">Operation</h2>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className={fieldWrapClass}>
@@ -458,7 +470,7 @@ function CompatibilityPageContent() {
               {calcSection === "hose" && (
                 <>
                   <p className="text-xs text-white/60">Freeboard and manifold to rail in meters (m).</p>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-xl">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-xl">
                     <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">CHS</h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       {[
@@ -488,7 +500,7 @@ function CompatibilityPageContent() {
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-xl">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-xl">
                     <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">MS</h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       {[
@@ -576,7 +588,7 @@ function CompatibilityPageContent() {
               {calcSection === "fender" && (
                 <>
                   <p className="text-xs text-white/60">DWT and DISP in MT; Beam and Draft in meters (m).</p>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-xl">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-xl">
                     <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">CHS</h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       {[
@@ -607,7 +619,7 @@ function CompatibilityPageContent() {
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-xl">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-xl">
                     <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">MS</h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       {[

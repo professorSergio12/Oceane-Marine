@@ -89,22 +89,22 @@ export default function DashboardPage() {
       className="min-h-screen text-white"
       style={{ backgroundColor: "#08334f" }}
     >
-      <header className="flex items-center justify-between px-8 py-5 border-b border-white/10 bg-white/10 backdrop-blur-sm relative z-40">
-        <div className="flex-1 flex items-center">
+      <header className="flex items-center justify-between px-3 sm:px-5 md:px-8 py-3 md:py-5 border-b border-white/10 bg-white/10 backdrop-blur-sm relative z-40">
+        <div className="flex-shrink-0 flex items-center">
           <img
             src="/image/logo.png"
             alt="Ocean Group Logo"
-            className="h-16 md:h-20 w-auto object-contain brightness-110 contrast-110 drop-shadow-lg"
+            className="h-10 sm:h-14 md:h-20 w-auto object-contain brightness-110 contrast-110 drop-shadow-lg"
           />
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center flex-1">
+        <h1 className="text-lg sm:text-xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight text-center flex-1 mx-2 sm:mx-4">
           DASHBOARD
         </h1>
         <div
-          className="flex-1 flex justify-end items-center gap-3 relative z-50"
+          className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 md:gap-3 relative z-50"
           ref={menuRef}
         >
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
+          <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
             <div className="h-8 w-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-semibold">
               U
             </div>
@@ -112,21 +112,25 @@ export default function DashboardPage() {
               Profile
             </span>
           </div>
+          {/* Mobile-only compact profile icon */}
+          <div className="flex sm:hidden items-center justify-center h-8 w-8 rounded-full bg-orange-500 text-white text-xs font-semibold">
+            U
+          </div>
           <button
             onClick={handleLogout}
-            className="rounded-full cursor-pointer bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 border border-white/15 hover:bg-white/20 transition"
+            className="rounded-full cursor-pointer bg-white/10 px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 border border-white/15 hover:bg-white/20 transition whitespace-nowrap"
           >
             Sign out
           </button>
           <button
             onClick={() => setIsMenuOpen((v) => !v)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 border border-white/10 hover:border-white/20 hover:scale-105 shadow-lg"
+            className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 border border-white/10 hover:border-white/20 hover:scale-105 shadow-lg flex-shrink-0"
             aria-label="Open menu"
           >
-            <div className="space-y-1.5">
-              <span className="block h-0.5 w-5 bg-white transition-all"></span>
-              <span className="block h-0.5 w-5 bg-white transition-all"></span>
-              <span className="block h-0.5 w-5 bg-white transition-all"></span>
+            <div className="space-y-1 sm:space-y-1.5">
+              <span className="block h-0.5 w-4 sm:w-5 bg-white transition-all"></span>
+              <span className="block h-0.5 w-4 sm:w-5 bg-white transition-all"></span>
+              <span className="block h-0.5 w-4 sm:w-5 bg-white transition-all"></span>
             </div>
           </button>
         </div>
@@ -144,7 +148,7 @@ export default function DashboardPage() {
           {/* Sidebar */}
           <div
             data-sidebar
-            className="fixed right-0 top-0 h-full w-80 bg-slate-900/98 border-l border-white/20 shadow-2xl backdrop-blur-md z-9999"
+            className="fixed right-0 top-0 h-full w-64 sm:w-80 bg-slate-900/98 border-l border-white/20 shadow-2xl backdrop-blur-md z-9999"
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-6 border-b border-white/10">
@@ -175,16 +179,28 @@ export default function DashboardPage() {
         </>
       )}
 
-      <main className="px-6 py-8">
-        <div className="mx-auto max-w-7xl space-y-8">
-          {/* Tabs centered with light border separator - Hidden on mobile, shown on desktop */}
+      <main className="px-3 sm:px-4 md:px-6 py-4 md:py-8">
+        <div className="mx-auto max-w-7xl space-y-4 md:space-y-8">
+          {/* CTA button */}
+          <div className="flex justify-center sm:justify-end">
+            {cta && (
+              <Link
+                href={cta.href}
+                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold shadow-lg shadow-orange-500/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-xl hover:shadow-orange-500/50"
+              >
+                {cta.label}
+              </Link>
+            )}
+          </div>
+
+          {/* Tabs centered with light border separator - Hidden on mobile, shown on md+ */}
           <div className="hidden md:block text-center pb-6 border-b border-white/5">
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-3 lg:gap-4">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => handleTabChange(tab.key)}
-                  className={`rounded-xl px-8 py-3 text-sm font-semibold transition-all duration-200 ${
+                  className={`rounded-xl px-5 lg:px-8 py-2.5 lg:py-3 text-sm font-semibold transition-all duration-200 ${
                     activeTab === tab.key
                       ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40 scale-105"
                       : "bg-white/5 text-white/90 hover:bg-white/10 hover:text-white hover:scale-105 border border-white/5"
@@ -194,17 +210,6 @@ export default function DashboardPage() {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="flex justify-end">
-            {cta && (
-              <Link
-                href={cta.href}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-sm font-semibold shadow-lg shadow-orange-500/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-xl hover:shadow-orange-500/50"
-              >
-                {cta.label}
-              </Link>
-            )}
           </div>
 
           <DashboardTabs activeTab={activeTab} onTabChange={handleTabChange} />

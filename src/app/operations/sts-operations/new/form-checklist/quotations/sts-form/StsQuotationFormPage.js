@@ -257,7 +257,7 @@ export default function StsQuotationFormPage() {
         className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl z-50 transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "300px" }}
+        
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-orange-500/10 to-transparent">
@@ -324,30 +324,38 @@ export default function StsQuotationFormPage() {
         </div>
       </div>
       {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500"
-          aria-label="Open sidebar"
-        >
-          <span className="text-white text-xl">☰</span>
-        </button>
+        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            aria-label="Open sidebar"
+          >
+            <span className="text-white text-xl">☰</span>
+          </button>
+          <Link
+            href="/dashboard"
+            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+        </div>
       )}
 
       <div className={`flex-1 min-w-0 pr-4 transition-all duration-300 ${sidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
-        <div className={`w-full py-10 space-y-6 ${sidebarOpen ? "max-w-[95%] mx-auto pl-4 pr-4" : "px-6"}`}>
-          <header className="flex items-center gap-4">
-            {/* Left: Dashboard Button */}
+        <div className={`w-full py-6 sm:py-10 space-y-4 sm:space-y-6 ${sidebarOpen ? "max-w-[95%] mx-auto pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
+          <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
-            
+
             {/* Center: Heading */}
             <div className="flex-1 flex flex-col items-center text-center">
               <p className="text-xs uppercase tracking-widest text-sky-300">Operations / Quotation</p>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-white">
                 {editId ? "Edit STS Quotation" : "New STS Quotation"}
               </h1>
             </div>
@@ -385,7 +393,7 @@ export default function StsQuotationFormPage() {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Form type (only when creating) */}
             {!editId && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                 <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                   Quotation Type
                 </h2>
@@ -425,7 +433,7 @@ export default function StsQuotationFormPage() {
             )}
 
             {/* Common fields */}
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+            <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
               <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                 Client & Proposal (First page / Cover)
               </h2>
@@ -493,7 +501,7 @@ export default function StsQuotationFormPage() {
             {/* OPS-OFD-030 fields */}
             {form.formType === "OPS-OFD-030" && (
               <>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     Cost of Operation
                   </h2>
@@ -561,7 +569,7 @@ export default function StsQuotationFormPage() {
                     </div>
                   </div>
                 </section>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     STS Equipment
                   </h2>
@@ -596,7 +604,7 @@ export default function StsQuotationFormPage() {
                     </div>
                   </div>
                 </section>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     Acceptance (Client)
                   </h2>
@@ -621,7 +629,7 @@ export default function StsQuotationFormPage() {
             {/* POAC Quotation fields */}
             {form.formType === "POAC" && (
               <>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     Cost of Operation
                   </h2>
@@ -681,7 +689,7 @@ export default function StsQuotationFormPage() {
                     </div>
                   </div>
                 </section>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     Base Information &amp; 03rd Party STS Equipment
                   </h2>
@@ -716,7 +724,7 @@ export default function StsQuotationFormPage() {
                     </div>
                   </div>
                 </section>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     Acceptance (Client)
                   </h2>
@@ -741,7 +749,7 @@ export default function StsQuotationFormPage() {
             {/* OPS-OFD-030B fields */}
             {form.formType === "OPS-OFD-030B" && (
               <>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     POAC Service Charges
                   </h2>
@@ -772,7 +780,7 @@ export default function StsQuotationFormPage() {
                     </div>
                   </div>
                 </section>
-                <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
                   <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
                     Acceptance
                   </h2>

@@ -173,7 +173,6 @@ function buildJobDetailsTable(jobDetails) {
             insideVertical: makeBorder()
         },
         rows: [
-            makeRow("Job reference #", jobDetails.jobReferenceNo || ""),
             makeRow("Vessel's Name:", jobDetails.vesselName || ""),
             makeRow("Date of Operation:", dateStr),
             makeRow("Location:", jobDetails.location || ""),

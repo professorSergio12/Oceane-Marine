@@ -11,7 +11,6 @@ const DocumentInfoSchema = new mongoose.Schema({
 
 // ================= JOB DETAILS =================
 const JobDetailsSchema = new mongoose.Schema({
-    jobReferenceNo: String,
     vesselName: String,
     dateOfOperation: Date,
     location: String,

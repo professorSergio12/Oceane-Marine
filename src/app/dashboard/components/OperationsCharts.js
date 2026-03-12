@@ -166,22 +166,22 @@ export default function OperationsCharts() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">Operations</h2>
-          <p className="text-sm text-slate-300">Overview of STS operations</p>
+          <h2 className="text-base sm:text-xl font-semibold text-white">Operations</h2>
+          <p className="text-xs sm:text-sm text-slate-300">Overview of STS operations</p>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-semibold text-slate-200">Year:</label>
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <label className="text-xs sm:text-sm font-semibold text-slate-200">Year:</label>
             <select
               value={selectedYear}
               onChange={(e) => handleYearChange(e.target.value)}
-              className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+              className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
             >
               {getYears().map((year) => (
                 <option key={year} value={year}>
@@ -191,12 +191,12 @@ export default function OperationsCharts() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-semibold text-slate-200">Month:</label>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <label className="text-xs sm:text-sm font-semibold text-slate-200">Month:</label>
             <select
               value={selectedMonth || "all"}
               onChange={(e) => handleMonthChange(e.target.value)}
-              className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+              className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
             >
               <option value="all">All Months</option>
               {MONTHS.map((month, index) => (
@@ -210,41 +210,41 @@ export default function OperationsCharts() {
       </div>
 
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
         {/* Overall STS Operations */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-orange-900/40 via-orange-800/30 to-red-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-orange-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-orange-300 mb-2">Overall STS Operations</h3>
-          <p className="text-4xl font-bold text-white">{stats.totalOperations}</p>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-orange-900/40 via-orange-800/30 to-red-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-orange-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-orange-300 mb-1 sm:mb-2">Overall STS Operations</h3>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.totalOperations}</p>
         </div>
 
         {/* Total Barrels */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-teal-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-emerald-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-emerald-300 mb-2">Total Barrels Transferred</h3>
-          <p className="text-4xl font-bold text-white">{formatNumber(stats.totalBarrels)}</p>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-teal-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-emerald-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-emerald-300 mb-1 sm:mb-2">Total Barrels Transferred</h3>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{formatNumber(stats.totalBarrels)}</p>
         </div>
 
         {/* Completed */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-green-900/40 via-green-800/30 to-emerald-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-green-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-green-300 mb-2">Completed</h3>
-          <p className="text-4xl font-bold text-white">{stats.statusCount.COMPLETED}</p>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-green-900/40 via-green-800/30 to-emerald-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-green-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-green-300 mb-1 sm:mb-2">Completed</h3>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.statusCount.COMPLETED}</p>
         </div>
 
         {/* In Progress */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-blue-900/40 via-blue-800/30 to-cyan-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-blue-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-blue-300 mb-2">In Progress</h3>
-          <p className="text-4xl font-bold text-white">{stats.statusCount.INPROGRESS}</p>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-blue-900/40 via-blue-800/30 to-cyan-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-blue-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-blue-300 mb-1 sm:mb-2">In Progress</h3>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.statusCount.INPROGRESS}</p>
         </div>
 
         {/* Pending */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-yellow-900/40 via-yellow-800/30 to-amber-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-yellow-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-yellow-300 mb-2">Pending</h3>
-          <p className="text-4xl font-bold text-white">{stats.statusCount.PENDING}</p>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-yellow-900/40 via-yellow-800/30 to-amber-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-yellow-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-yellow-300 mb-1 sm:mb-2">Pending</h3>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.statusCount.PENDING}</p>
         </div>
 
         {/* Cancelled */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-red-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-red-300 mb-2">Cancelled</h3>
-          <p className="text-4xl font-bold text-white">{stats.statusCount.CANCELED}</p>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-red-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-red-300 mb-1 sm:mb-2">Cancelled</h3>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.statusCount.CANCELED}</p>
         </div>
       </div>
 
@@ -252,11 +252,11 @@ export default function OperationsCharts() {
       <OperationsMap year={selectedYear} month={selectedMonth} />
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
         {/* Location-wise Operations */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Location-wise Operations</h2>
-          <div className="h-64 flex items-end justify-around gap-2 px-2">
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Location-wise Operations</h2>
+          <div className="h-48 sm:h-56 md:h-64 flex items-end justify-around gap-1 sm:gap-2 px-1 sm:px-2">
             {locationData.length > 0 ? (
               locationData.slice(0, 6).map((item) => {
                 const maxValue = Math.max(...locationData.map((d) => d.count), 1);
@@ -268,25 +268,25 @@ export default function OperationsCharts() {
                       style={{ height: `${height}%`, minHeight: "4px" }}
                     >
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t"></div>
-                      <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-white whitespace-nowrap">
+                      <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-[10px] sm:text-xs font-semibold text-white whitespace-nowrap">
                         {item.count}
                       </span>
                     </div>
-                    <span className="text-[10px] font-semibold text-slate-300 text-center leading-tight">
+                    <span className="text-[8px] sm:text-[10px] font-semibold text-slate-300 text-center leading-tight break-words">
                       {item.name.length > 8 ? item.name.substring(0, 8) : item.name}
                     </span>
                   </div>
                 );
               })
             ) : (
-              <div className="text-center py-8 text-slate-400 text-sm w-full">No location data</div>
+              <div className="text-center py-8 text-slate-400 text-xs sm:text-sm w-full">No location data</div>
             )}
           </div>
         </div>
 
         {/* Most Used Mooring Master */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Most Used Mooring Master</h2>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Most Used Mooring Master</h2>
           <div className="space-y-3">
             {stats.mostUsedMooringMaster.length > 0 ? (
               stats.mostUsedMooringMaster.slice(0, 5).map((item, idx) => {
@@ -317,8 +317,8 @@ export default function OperationsCharts() {
         </div>
 
         {/* Cargo Types */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Types of Cargos Transferred</h2>
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Types of Cargos Transferred</h2>
           <div className="space-y-3">
             {cargoData.length > 0 ? (
               cargoData.map((item, idx) => {
@@ -350,9 +350,9 @@ export default function OperationsCharts() {
         </div>
 
         {/* Clients-wise Operations */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Clients-wise Operations</h2>
-          <div className="h-64 flex items-end justify-around gap-1 px-2">
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Clients-wise Operations</h2>
+          <div className="h-48 sm:h-56 md:h-64 flex items-end justify-around gap-0.5 sm:gap-1 px-1 sm:px-2">
             {stats.clientsData.length > 0 ? (
               stats.clientsData.slice(0, 8).map((item) => {
                 const maxValue = Math.max(...stats.clientsData.map((d) => d.count), 1);
@@ -383,9 +383,9 @@ export default function OperationsCharts() {
 
       {/* LOA Range - Note: Data not available in current schema */}
       {Object.keys(stats.loaRanges || {}).length > 0 && (
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">LOA Range of Vessels</h2>
-          <div className="h-64 flex items-end justify-around gap-2 px-4">
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">LOA Range of Vessels</h2>
+          <div className="h-48 sm:h-56 md:h-64 flex items-end justify-around gap-1 sm:gap-2 px-1 sm:px-2 md:px-4">
             {Object.entries(stats.loaRanges).map(([range, count]) => {
               const maxValue = Math.max(...Object.values(stats.loaRanges), 1);
               const height = (count / maxValue) * 100;

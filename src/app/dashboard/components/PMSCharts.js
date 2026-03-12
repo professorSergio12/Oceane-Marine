@@ -139,12 +139,12 @@ export default function PMSCharts() {
   const maxStackValue = Math.max(...stackedChartData.map((d) => d.total), 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <SectionHeader />
 
       {/* ==================== ROW 1 — STAT CARDS ==================== */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <StatCard
           label="Total Equipment"
           value={stats.totalEquipment}
@@ -190,35 +190,35 @@ export default function PMSCharts() {
       </div>
 
       {/* ==================== ROW 2 — HOSES / FENDERS ==================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
         {/* Total Hoses */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-teal-900/40 via-teal-800/30 to-cyan-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-teal-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-teal-300 mb-4">
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-teal-900/40 via-teal-800/30 to-cyan-900/40 backdrop-blur-md shadow-2xl p-4 md:p-6 hover:shadow-teal-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-xs md:text-sm font-semibold text-teal-300 mb-3 md:mb-4">
             Total number of Hoses
           </h3>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Total Hoses</span>
-            <span className="text-2xl font-bold text-white">
+            <span className="text-[10px] md:text-xs text-slate-300">Total Hoses</span>
+            <span className="text-xl md:text-2xl font-bold text-white">
               {stats.hoses?.total ?? 0}
             </span>
           </div>
         </div>
 
         {/* Total Fenders */}
-        <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-indigo-900/40 via-indigo-800/30 to-purple-900/40 backdrop-blur-md shadow-2xl p-6 hover:shadow-indigo-500/20 transition-all hover:scale-105">
-          <h3 className="text-sm font-semibold text-indigo-300 mb-4">
+        <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-indigo-900/40 via-indigo-800/30 to-purple-900/40 backdrop-blur-md shadow-2xl p-4 md:p-6 hover:shadow-indigo-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
+          <h3 className="text-xs md:text-sm font-semibold text-indigo-300 mb-3 md:mb-4">
             Total Number of Fenders
           </h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-300">Primary Fenders</span>
-              <span className="text-xl font-bold text-white">
+              <span className="text-[10px] md:text-xs text-slate-300">Primary Fenders</span>
+              <span className="text-lg md:text-xl font-bold text-white">
                 {stats.fenders?.primary ?? 0}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-300">Secondary Fenders</span>
-              <span className="text-xl font-bold text-white">
+              <span className="text-[10px] md:text-xs text-slate-300">Secondary Fenders</span>
+              <span className="text-lg md:text-xl font-bold text-white">
                 {stats.fenders?.secondary ?? 0}
               </span>
             </div>
@@ -227,36 +227,36 @@ export default function PMSCharts() {
       </div>
 
       {/* ==================== ROW 3 — SPARE / DONUT / IN USE ==================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 lg:gap-6">
         {/* Usage of Spare */}
-        <div className="lg:col-span-3">
+        <div className="md:col-span-1 lg:col-span-3">
           <SpareUsageTable spares={stats.spares || []} />
         </div>
 
         {/* Donut Chart */}
-        <div className="lg:col-span-4">
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6 h-full flex flex-col">
-            <h3 className="text-sm font-semibold text-white/80 mb-4">
-              Equipment Distribution
+        <div className="md:col-span-1 lg:col-span-4">
+          <div className="rounded-xl md:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 h-full flex flex-col">
+            <h3 className="text-xs sm:text-sm font-semibold text-white/80 mb-3 md:mb-4">
+              Total accessories
             </h3>
-            <div className="flex-1 relative min-h-[260px]">
+            <div className="flex-1 relative min-h-[180px] sm:min-h-[200px] md:min-h-[260px]">
               {typeLabels.length > 0 ? (
                 <DoughnutChart data={donutData} options={donutOptions} />
               ) : (
-                <div className="flex items-center justify-center h-full text-white/40 text-sm">
+                <div className="flex items-center justify-center h-full text-white/40 text-xs sm:text-sm">
                   No equipment data
                 </div>
               )}
             </div>
             {/* Legend */}
-            <div className="mt-4 flex flex-wrap gap-3 justify-center">
+            <div className="mt-3 md:mt-4 flex flex-wrap gap-2 sm:gap-3 justify-center">
               {typeLabels.map((label, i) => (
                 <span
                   key={label}
-                  className="flex items-center gap-1.5 text-xs text-white/70"
+                  className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-white/70"
                 >
                   <span
-                    className="w-2.5 h-2.5 rounded-full inline-block"
+                    className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full inline-block flex-shrink-0"
                     style={{
                       backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length],
                     }}
@@ -270,7 +270,7 @@ export default function PMSCharts() {
         </div>
 
         {/* Equipment currently in Use */}
-        <div className="lg:col-span-5">
+        <div className="md:col-span-2 lg:col-span-5">
           <EquipmentInUseTable items={stats.equipmentInUse || []} />
         </div>
       </div>
@@ -278,57 +278,11 @@ export default function PMSCharts() {
       {/* ==================== ROW 4 — WAREHOUSE MOVEMENTS ==================== */}
       <WarehouseMovementTracker movements={stats.warehouseMovements || []} />
 
-      {/* ==================== ROW 5 — LOCATION TABLE ==================== */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6">
-        <h3 className="text-sm font-semibold text-white/80 mb-4">
-          Equipment by Location
-        </h3>
-        {locKeys.length > 0 ? (
-          <div className="overflow-x-auto max-h-48 overflow-y-auto styled-scrollbar">
-            <table className="w-full text-xs text-left">
-              <thead className="sticky top-0 bg-slate-800">
-                <tr className="text-white/50 border-b border-white/10">
-                  <th className="py-2 pr-3">Location</th>
-                  <th className="py-2 px-3 text-center">Primary</th>
-                  <th className="py-2 px-3 text-center">Secondary</th>
-                  <th className="py-2 pl-3 text-center">Hoses</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(stats.equipmentByLocation).map(
-                  ([loc, vals]) => (
-                    <tr
-                      key={loc}
-                      className="border-b border-white/5 hover:bg-white/5 transition"
-                    >
-                      <td className="py-2 pr-3 text-white/80 font-medium">
-                        {formatLocation(loc)}
-                      </td>
-                      <td className="py-2 px-3 text-center text-cyan-300">
-                        {vals.primaryFenders}
-                      </td>
-                      <td className="py-2 px-3 text-center text-purple-300">
-                        {vals.secondaryFenders}
-                      </td>
-                      <td className="py-2 pl-3 text-center text-orange-300">
-                        {vals.hoses}
-                      </td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-white/40 text-sm">No location data available</p>
-        )}
-      </div>
-
-      {/* ==================== ROW 6 — RETIREMENT + STACKED BAR (BY LOCATION) ==================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ==================== ROW 5 — RETIREMENT + STACKED BAR (BY LOCATION) ==================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
         {/* Retirement of equipment */}
-        <div className="lg:col-span-1 rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">
+        <div className="lg:col-span-1 rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">
             Retirement of equipment
           </h2>
           <div className="space-y-4">
@@ -392,25 +346,25 @@ export default function PMSCharts() {
         </div>
 
         {/* Stacked Bar Chart — Equipment by Location */}
-        <div className="lg:col-span-2 rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">
+        <div className="lg:col-span-2 rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 overflow-hidden">
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-2 sm:mb-3 md:mb-4">
             Equipment by Location
           </h2>
-          <div className="flex items-center gap-4 mb-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-cyan-400" />
-              <span className="text-xs text-slate-300">P.Fender</span>
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-2 sm:mb-3 md:mb-4 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cyan-400" />
+              <span className="text-[10px] sm:text-xs text-slate-300">P.Fender</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-400" />
-              <span className="text-xs text-slate-300">S.Fender</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-400" />
+              <span className="text-[10px] sm:text-xs text-slate-300">S.Fender</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-400" />
-              <span className="text-xs text-slate-300">LPG Hose</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-purple-400" />
+              <span className="text-[10px] sm:text-xs text-slate-300">P.O.Hose</span>
             </div>
           </div>
-          <div className="h-80 flex items-end justify-around gap-2 px-2">
+          <div className="h-48 sm:h-64 md:h-80 flex items-end justify-around gap-0.5 sm:gap-1 md:gap-2 px-0.5 sm:px-1 md:px-2 overflow-x-auto">
             {stackedChartData.length > 0 ? (
               stackedChartData.map((data) => {
                 const primaryH = (data.primaryFenders / maxStackValue) * 100;
@@ -454,12 +408,12 @@ export default function PMSCharts() {
                         />
                       )}
                       {data.total > 0 && (
-                        <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-white whitespace-nowrap">
+                        <span className="absolute -top-6 md:-top-5 left-1/2 transform -translate-x-1/2 text-[10px] md:text-xs font-semibold text-white whitespace-nowrap z-10">
                           {data.total}
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] font-semibold text-slate-300 text-center leading-tight mt-1">
+                    <span className="text-[9px] md:text-[10px] font-semibold text-slate-300 text-center leading-tight mt-1 break-words">
                       {data.location}
                     </span>
                   </div>
@@ -493,16 +447,17 @@ function SectionHeader() {
 function StatCard({ label, value, gradient, accent, icon }) {
   return (
     <div
-      className={`rounded-2xl border border-white/15 bg-gradient-to-br ${gradient} backdrop-blur-md shadow-2xl p-5 hover:shadow-lg transition-all hover:scale-[1.03] cursor-default`}
+      className={`rounded-xl md:rounded-2xl border border-white/15 bg-gradient-to-br ${gradient} backdrop-blur-md shadow-2xl p-3 md:p-5 hover:shadow-lg transition-all hover:scale-[1.02] md:hover:scale-[1.03] cursor-default`}
     >
-      <div className="mb-2">
+      <div className="mb-1 md:mb-2 flex items-center justify-between">
         <h3
-          className={`text-xs font-semibold ${accent} uppercase tracking-wider`}
+          className={`text-[10px] md:text-xs font-semibold ${accent} uppercase tracking-wider`}
         >
           {label}
         </h3>
+        <span className="text-sm md:text-lg">{icon}</span>
       </div>
-      <p className="text-3xl font-bold text-white">{value ?? 0}</p>
+      <p className="text-2xl md:text-3xl font-bold text-white">{value ?? 0}</p>
     </div>
   );
 }
@@ -511,21 +466,21 @@ function StatCard({ label, value, gradient, accent, icon }) {
 /* ---------- Usage of Spare Table ---------- */
 function SpareUsageTable({ spares }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col">
-      <div className="bg-gradient-to-r from-cyan-800/60 to-sky-900/60 rounded-t-2xl px-5 py-3 border-b border-white/10">
-        <h3 className="text-sm font-bold text-cyan-100 tracking-wide">
+    <div className="rounded-xl md:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col">
+      <div className="bg-gradient-to-r from-cyan-800/60 to-sky-900/60 rounded-t-xl md:rounded-t-2xl px-3 md:px-5 py-2 md:py-3 border-b border-white/10">
+        <h3 className="text-xs md:text-sm font-bold text-cyan-100 tracking-wide">
           Usage of Spare
         </h3>
       </div>
       <div className="flex-1 overflow-y-auto styled-scrollbar">
         {spares.length > 0 ? (
-          <table className="w-full text-sm">
+          <table className="w-full text-xs md:text-sm">
             <thead>
               <tr className="border-b border-cyan-400/20 bg-cyan-950/30">
-                <th className="text-left px-5 py-2.5 text-cyan-200/80 font-semibold text-xs">
+                <th className="text-left px-3 md:px-5 py-2 md:py-2.5 text-cyan-200/80 font-semibold text-[10px] md:text-xs">
                   Item
                 </th>
-                <th className="text-center px-5 py-2.5 text-cyan-200/80 font-semibold text-xs">
+                <th className="text-center px-3 md:px-5 py-2 md:py-2.5 text-cyan-200/80 font-semibold text-[10px] md:text-xs">
                   Qty
                 </th>
               </tr>
@@ -536,10 +491,10 @@ function SpareUsageTable({ spares }) {
                   key={s._id || i}
                   className="border-b border-white/5 hover:bg-white/5 transition"
                 >
-                  <td className="px-5 py-3 text-white/90 font-medium">
+                  <td className="px-3 md:px-5 py-2 md:py-3 text-white/90 font-medium text-xs md:text-sm">
                     {s.equipmentName}
                   </td>
-                  <td className="px-5 py-3 text-center text-white font-bold">
+                  <td className="px-3 md:px-5 py-2 md:py-3 text-center text-white font-bold text-xs md:text-sm">
                     {s.quantity ?? 0}
                   </td>
                 </tr>
@@ -547,7 +502,7 @@ function SpareUsageTable({ spares }) {
             </tbody>
           </table>
         ) : (
-          <div className="flex items-center justify-center py-10 text-white/40 text-sm">
+          <div className="flex items-center justify-center py-8 md:py-10 text-white/40 text-xs md:text-sm">
             No spare data available
           </div>
         )}
@@ -559,30 +514,30 @@ function SpareUsageTable({ spares }) {
 /* ---------- Equipment currently in Use ---------- */
 function EquipmentInUseTable({ items }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col">
-      <div className="bg-gradient-to-r from-orange-600/70 to-orange-700/70 rounded-t-2xl px-5 py-3 border-b border-white/10">
-        <h3 className="text-sm font-bold text-orange-50 tracking-wide">
+    <div className="rounded-xl md:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col">
+      <div className="bg-gradient-to-r from-orange-600/70 to-orange-700/70 rounded-t-xl md:rounded-t-2xl px-3 md:px-5 py-2 md:py-3 border-b border-white/10">
+        <h3 className="text-xs md:text-sm font-bold text-orange-50 tracking-wide">
           Equipment Currently In Use
         </h3>
       </div>
-      <div className="flex-1 overflow-x-auto overflow-y-auto max-h-[340px] styled-scrollbar">
+      <div className="flex-1 overflow-x-auto overflow-y-auto max-h-[280px] md:max-h-[340px] styled-scrollbar">
         {items.length > 0 ? (
-          <table className="w-full text-xs">
+          <table className="w-full text-[10px] md:text-xs min-w-[500px]">
             <thead className="sticky top-0 bg-orange-950/50 z-10">
               <tr className="border-b border-orange-400/20">
-                <th className="text-left px-4 py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
+                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
                   Date
                 </th>
-                <th className="text-left px-4 py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
+                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
                   Ops
                 </th>
-                <th className="text-left px-4 py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
+                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
                   Equipment
                 </th>
-                <th className="text-left px-4 py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
+                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
                   Type
                 </th>
-                <th className="text-left px-4 py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
+                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
                   Location
                 </th>
               </tr>
@@ -593,26 +548,26 @@ function EquipmentInUseTable({ items }) {
                   key={i}
                   className="border-b border-white/5 hover:bg-white/5 transition"
                 >
-                  <td className="px-4 py-2.5 text-white/70 whitespace-nowrap">
+                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/70 whitespace-nowrap">
                     {item.date
                       ? new Date(item.date).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                      })
+                          day: "2-digit",
+                          month: "short",
+                        })
                       : "—"}
                   </td>
-                  <td className="px-4 py-2.5 whitespace-nowrap">
-                    <span className="inline-block px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 text-[10px] font-semibold">
+                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 whitespace-nowrap">
+                    <span className="inline-block px-1.5 md:px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 text-[9px] md:text-[10px] font-semibold">
                       {item.operationRef || "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-white/90 font-medium whitespace-nowrap">
+                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/90 font-medium whitespace-nowrap">
                     {item.equipmentName}
                   </td>
-                  <td className="px-4 py-2.5 text-white/60 whitespace-nowrap">
+                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/60 whitespace-nowrap">
                     {item.equipmentType}
                   </td>
-                  <td className="px-4 py-2.5 text-white/60 whitespace-nowrap">
+                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/60 whitespace-nowrap">
                     {item.location}
                   </td>
                 </tr>
@@ -620,7 +575,7 @@ function EquipmentInUseTable({ items }) {
             </tbody>
           </table>
         ) : (
-          <div className="flex items-center justify-center py-10 text-white/40 text-sm">
+          <div className="flex items-center justify-center py-8 md:py-10 text-white/40 text-xs md:text-sm">
             No equipment currently in use
           </div>
         )}
@@ -632,18 +587,18 @@ function EquipmentInUseTable({ items }) {
 /* ---------- Current Warehouse Movement ---------- */
 function WarehouseMovementTracker({ movements }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6">
-      <h3 className="text-sm font-semibold text-white/80 mb-5">
+    <div className="rounded-xl md:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
+      <h3 className="text-xs md:text-sm font-semibold text-white/80 mb-3 sm:mb-4 md:mb-5">
         Current Warehouse Movement
       </h3>
       {movements.length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {movements.map((m) => (
             <MovementRow key={m._id} movement={m} />
           ))}
         </div>
       ) : (
-        <div className="flex items-center justify-center py-10 text-white/40 text-sm">
+        <div className="flex items-center justify-center py-8 md:py-10 text-white/40 text-xs md:text-sm">
           No active movements
         </div>
       )}
@@ -676,21 +631,23 @@ function MovementRow({ movement }) {
   const truckLeft = 2 + (progress / 100) * 93;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05] transition">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 hover:bg-white/[0.05] transition">
       {/* Equipment info row */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs font-semibold text-white/80">
-          {movement.equipment}
-        </span>
-        {movement.equipmentType && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 font-medium">
-            {movement.equipmentType}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] sm:text-xs font-semibold text-white/80">
+            {movement.equipment}
           </span>
-        )}
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/20">
-          {movement.nos} unit{movement.nos > 1 ? "s" : ""}
-        </span>
-        <div className="ml-auto flex flex-col items-end gap-0.5">
+          {movement.equipmentType && (
+            <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 font-medium">
+              {movement.equipmentType}
+            </span>
+          )}
+          <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/20">
+            {movement.nos} unit{movement.nos > 1 ? "s" : ""}
+          </span>
+        </div>
+        <div className="sm:ml-auto flex sm:flex-col items-start sm:items-end gap-1 sm:gap-0.5">
           {movement.startDate && (
             <span className="text-[9px] text-white/25 font-medium">
               Start: {new Date(movement.startDate).toLocaleDateString("en-GB", {
@@ -701,7 +658,7 @@ function MovementRow({ movement }) {
             </span>
           )}
           {movement.estimatedEndDate && (
-            <span className={`text-[10px] font-semibold ${
+            <span className={`text-[9px] sm:text-[10px] font-semibold ${
               new Date(movement.estimatedEndDate).getTime() < Date.now()
                 ? "text-red-400"
                 : "text-emerald-400/70"
@@ -717,50 +674,52 @@ function MovementRow({ movement }) {
       </div>
 
       {/* Track visualization */}
-      <div className="relative mx-4">
-        {/* Background track line */}
-        <div className="absolute top-[9px] left-[10px] right-[10px] h-[2px] bg-slate-600/50">
+      <div className="relative mx-1 sm:mx-4 overflow-x-auto">
+        <div className="min-w-[240px]">
+          {/* Background track line */}
+          <div className="absolute top-[9px] left-[10px] right-[10px] h-[2px] bg-slate-600/50">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(148,163,184,0.35) 5px, rgba(148,163,184,0.35) 10px)",
+              }}
+            />
+          </div>
+
+          {/* Waypoints row */}
+          <div className="relative flex items-start justify-between">
+            {waypoints.map((wp, i) => {
+              const isFrom = wp.type === "from";
+              const isStop = wp.type === "stop";
+              const dotSize = isFrom ? "w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]" : "w-[12px] h-[12px] sm:w-[14px] sm:h-[14px]";
+              const dotColor = isFrom
+                ? "bg-red-500 border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                : isStop
+                ? "bg-amber-400 border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.4)]"
+                : "bg-emerald-500 border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]";
+              const topOffset = isFrom ? "" : "mt-[2px]";
+
+              return (
+                <div key={i} className="flex flex-col items-center z-[1] min-w-[50px] sm:min-w-[70px]">
+                  <div className={`${dotSize} ${dotColor} ${topOffset} rounded-full border-2`} />
+                  <span className="text-[9px] sm:text-[11px] text-white/70 font-medium mt-1.5 sm:mt-2 text-center break-words max-w-[60px] sm:max-w-none sm:whitespace-nowrap">
+                    {wp.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Truck on the track — position synced with real dates */}
           <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(148,163,184,0.35) 5px, rgba(148,163,184,0.35) 10px)",
-            }}
-          />
-        </div>
-
-        {/* Waypoints row */}
-        <div className="relative flex items-start justify-between">
-          {waypoints.map((wp, i) => {
-            const isFrom = wp.type === "from";
-            const isStop = wp.type === "stop";
-            const dotSize = isFrom ? "w-[18px] h-[18px]" : "w-[14px] h-[14px]";
-            const dotColor = isFrom
-              ? "bg-red-500 border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
-              : isStop
-              ? "bg-amber-400 border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.4)]"
-              : "bg-emerald-500 border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]";
-            const topOffset = isFrom ? "" : "mt-[2px]";
-
-            return (
-              <div key={i} className="flex flex-col items-center z-[1]" style={{ minWidth: 70 }}>
-                <div className={`${dotSize} ${dotColor} ${topOffset} rounded-full border-2`} />
-                <span className="text-[11px] text-white/70 font-medium mt-2 text-center whitespace-nowrap">
-                  {wp.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Truck on the track — position synced with real dates */}
-        <div
-          className="absolute z-10 pointer-events-none transition-all duration-1000"
-          style={{ left: `${truckLeft}%`, top: "-2px" }}
-        >
-          <span className="text-sm" style={{ transform: "scaleX(-1)", display: "inline-block" }}>
-            🚛
-          </span>
+            className="absolute z-10 pointer-events-none transition-all duration-1000"
+            style={{ left: `${truckLeft}%`, top: "-2px" }}
+          >
+            <span className="text-xs sm:text-sm" style={{ transform: "scaleX(-1)", display: "inline-block" }}>
+              🚛
+            </span>
+          </div>
         </div>
       </div>
     </div>

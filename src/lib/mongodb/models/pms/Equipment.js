@@ -1,16 +1,9 @@
 import mongoose from "mongoose";
 
-const certificateSchema = new mongoose.Schema(
-  {
-    fileUrl: String,
-    uploadedAt: {
-      type: Date,
-      default: Date.now
-    }
-  },
-  { _id: false }
-);
-
+const fileAttachmentSchema = {
+  fileUrl: { type: String, default: "" },
+  originalFileName: { type: String, default: "" },
+};
 
 const equipmentSchema = new mongoose.Schema(
   {
@@ -44,7 +37,8 @@ const equipmentSchema = new mongoose.Schema(
 
     retirementPeriodYears: { type: Number, default: 10 },
     dateToBeRetired: Date,
-    certificates: [certificateSchema],
+    manufacturingCertificate: fileAttachmentSchema,
+    testCertificate: fileAttachmentSchema,
     remarks: String
   },
   { timestamps: true }

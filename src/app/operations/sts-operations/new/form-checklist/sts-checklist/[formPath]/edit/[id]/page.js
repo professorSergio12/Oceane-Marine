@@ -344,7 +344,7 @@ export default function EditFormPage() {
             type="date"
             value={dateValue}
             onChange={(e) => handleInputChange(path, e.target.value ? new Date(e.target.value).toISOString() : '')}
-            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm sm:text-base"
           />
         </div>
       );
@@ -359,7 +359,7 @@ export default function EditFormPage() {
           <textarea
             value={value || ''}
             onChange={(e) => handleInputChange(path, e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm sm:text-base"
             rows={4}
           />
         </div>
@@ -375,7 +375,7 @@ export default function EditFormPage() {
           <select
             value={value || ''}
             onChange={(e) => handleInputChange(path, e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm sm:text-base"
           >
             <option value="">Select...</option>
             {['DRAFT', 'SUBMITTED', 'APPROVED', 'SIGNED', 'ARCHIVED', 'FINALIZED', 'PENDING', 'PAID'].map((status) => (
@@ -440,7 +440,7 @@ export default function EditFormPage() {
                     type="text"
                     value={row.description ?? ''}
                     onChange={(e) => handleInputChange(path + '.' + idx + '.description', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"
+                    className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs sm:text-sm"
                   />
                 </td>
                 {hasStatus && (
@@ -461,7 +461,7 @@ export default function EditFormPage() {
                       onChange={(e) => {
                         handleInputChange(path + '.' + idx + '.remarks', e.target.value);
                       }}
-                      className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"
+                      className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs sm:text-sm"
                     />
                   </td>
                 )}
@@ -483,7 +483,7 @@ export default function EditFormPage() {
             type="text"
             value={value.name ?? ''}
             onChange={(e) => handleInputChange(path + '.name', e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white"
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm sm:text-base"
           />
         </div>
         <div>
@@ -492,7 +492,7 @@ export default function EditFormPage() {
             type="text"
             value={value.rank ?? ''}
             onChange={(e) => handleInputChange(path + '.rank', e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white"
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm sm:text-base"
           />
         </div>
         <div>
@@ -501,7 +501,7 @@ export default function EditFormPage() {
             type="date"
             value={value.date ? new Date(value.date).toISOString().split('T')[0] : ''}
             onChange={(e) => handleInputChange(path + '.date', e.target.value ? new Date(e.target.value).toISOString() : '')}
-            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white"
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm sm:text-base"
           />
         </div>
         <div>
@@ -510,7 +510,7 @@ export default function EditFormPage() {
             type="text"
             value={value.time ?? ''}
             onChange={(e) => handleInputChange(path + '.time', e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white"
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm sm:text-base"
           />
         </div>
       </div>
@@ -680,11 +680,7 @@ export default function EditFormPage() {
       <div className="space-y-8">
         <div>
           <h2 className="text-lg font-semibold text-gray-200 mb-4">Job Information</h2>
-          <div className="grid grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Job #</label>
-              <input type="text" value={job.jobNumber ?? ''} onChange={(e) => handleInputChange('jobInfo.jobNumber', e.target.value)} className={inputClass} placeholder="Job Reference" />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Date</label>
               <input type="date" value={job.date ? new Date(job.date).toISOString().split('T')[0] : ''} onChange={(e) => handleInputChange('jobInfo.date', e.target.value ? new Date(e.target.value).toISOString() : '')} className={inputClass} />
@@ -702,7 +698,7 @@ export default function EditFormPage() {
               <input type="text" value={job.location ?? ''} onChange={(e) => handleInputChange('jobInfo.location', e.target.value)} className={inputClass} placeholder="Location" />
             </div>
           </div>
-          <div className="mt-3 flex gap-4 items-center">
+          <div className="mt-3 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <span className="text-sm text-gray-400">Operation Phase</span>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="operationPhase" value="BEFORE_OPERATION" checked={(job.operationPhase || 'BEFORE_OPERATION') === 'BEFORE_OPERATION'} onChange={(e) => handleInputChange('jobInfo.operationPhase', e.target.value)} className="w-4 h-4" />
@@ -720,37 +716,37 @@ export default function EditFormPage() {
             <table className="w-full border-collapse border border-gray-600">
               <thead>
                 <tr className="bg-gray-700">
-                  <th className="border border-gray-600 p-3 text-center bg-gray-600">Fender ID #</th>
-                  <th className="border border-gray-600 p-3 text-center">End Plates</th>
-                  <th className="border border-gray-600 p-3 text-center">B. Shackle</th>
-                  <th className="border border-gray-600 p-3 text-center">Swivel</th>
-                  <th className="border border-gray-600 p-3 text-center">2nd Shackle</th>
-                  <th className="border border-gray-600 p-3 text-center">Mooring Shackle</th>
-                  <th className="border border-gray-600 p-3 text-center">Fender Body</th>
-                  <th className="border border-gray-600 p-3 text-center">Tires</th>
-                  <th className="border border-gray-600 p-3 text-center">Pressure</th>
-                  <th className="border border-gray-600 p-3 text-center w-20">Action</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm bg-gray-600">Fender ID #</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">End Plates</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">B. Shackle</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Swivel</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">2nd Shackle</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Mooring Shackle</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Fender Body</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Tires</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Pressure</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm w-20">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {fender.map((row, index) => (
                   <tr key={index} className="hover:bg-gray-700/50">
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.fenderId ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.fenderId`, e.target.value)} className={inputClassId} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.endPlates ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.endPlates`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.bShackle ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.bShackle`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.swivel ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.swivel`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.secondShackle ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.secondShackle`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.mooringShackle ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.mooringShackle`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.fenderBody ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.fenderBody`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.tires ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.tires`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.pressure ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.pressure`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2 text-center">{fender.length > 1 && <button type="button" onClick={() => handleRemoveFenderRow(index)} className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs">Remove</button>}</td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.fenderId ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.fenderId`, e.target.value)} className={inputClassId} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.endPlates ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.endPlates`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.bShackle ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.bShackle`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.swivel ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.swivel`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.secondShackle ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.secondShackle`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.mooringShackle ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.mooringShackle`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.fenderBody ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.fenderBody`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.tires ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.tires`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.pressure ?? ''} onChange={(e) => handleInputChange(`fenderEquipment.${index}.pressure`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2 text-center">{fender.length > 1 && <button type="button" onClick={() => handleRemoveFenderRow(index)} className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs whitespace-nowrap">Remove</button>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <button type="button" onClick={handleAddFenderRow} className="mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white text-sm">+ Add Row</button>
+          <button type="button" onClick={handleAddFenderRow} className="mt-2 px-3 py-2 sm:px-4 bg-green-600 hover:bg-green-700 rounded text-white text-xs sm:text-sm w-full sm:w-auto">+ Add Row</button>
         </div>
         <div>
           <h2 className="text-lg font-semibold text-gray-200 mb-4">Hose Equipment Checklist</h2>
@@ -758,29 +754,29 @@ export default function EditFormPage() {
             <table className="w-full border-collapse border border-gray-600">
               <thead>
                 <tr className="bg-gray-700">
-                  <th className="border border-gray-600 p-3 text-center bg-gray-600">Hose ID #</th>
-                  <th className="border border-gray-600 p-3 text-center">End Flanges</th>
-                  <th className="border border-gray-600 p-3 text-center">Body Condition</th>
-                  <th className="border border-gray-600 p-3 text-center">Nuts/Bolts</th>
-                  <th className="border border-gray-600 p-3 text-center">Markings</th>
-                  <th className="border border-gray-600 p-3 text-center w-20">Action</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm bg-gray-600">Hose ID #</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">End Flanges</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Body Condition</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Nuts/Bolts</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Markings</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm w-20">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {hose.map((row, index) => (
                   <tr key={index} className="hover:bg-gray-700/50">
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.hoseId ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.hoseId`, e.target.value)} className={inputClassId} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.endFlanges ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.endFlanges`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.bodyCondition ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.bodyCondition`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.nutsBolts ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.nutsBolts`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.markings ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.markings`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2 text-center">{hose.length > 1 && <button type="button" onClick={() => handleRemoveHoseRow(index)} className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs">Remove</button>}</td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.hoseId ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.hoseId`, e.target.value)} className={inputClassId} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.endFlanges ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.endFlanges`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.bodyCondition ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.bodyCondition`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.nutsBolts ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.nutsBolts`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.markings ?? ''} onChange={(e) => handleInputChange(`hoseEquipment.${index}.markings`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2 text-center">{hose.length > 1 && <button type="button" onClick={() => handleRemoveHoseRow(index)} className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs whitespace-nowrap">Remove</button>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <button type="button" onClick={handleAddHoseRow} className="mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white text-sm">+ Add Row</button>
+          <button type="button" onClick={handleAddHoseRow} className="mt-2 px-3 py-2 sm:px-4 bg-green-600 hover:bg-green-700 rounded text-white text-xs sm:text-sm w-full sm:w-auto">+ Add Row</button>
         </div>
         <div>
           <h2 className="text-lg font-semibold text-gray-200 mb-4">Other Equipment Checklist</h2>
@@ -788,24 +784,24 @@ export default function EditFormPage() {
             <table className="w-full border-collapse border border-gray-600">
               <thead>
                 <tr className="bg-gray-700">
-                  <th className="border border-gray-600 p-3 text-center bg-gray-600">Other Equipment ID #</th>
-                  <th className="border border-gray-600 p-3 text-center">Gaskets</th>
-                  <th className="border border-gray-600 p-3 text-center">Ropes</th>
-                  <th className="border border-gray-600 p-3 text-center">Wires</th>
-                  <th className="border border-gray-600 p-3 text-center">Billy Pugh</th>
-                  <th className="border border-gray-600 p-3 text-center">Lifting Strops</th>
-                  <th className="border border-gray-600 p-3 text-center w-20">Action</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm bg-gray-600">Other Equipment ID #</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Gaskets</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Ropes</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Wires</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Billy Pugh</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Lifting Strops</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm w-20">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {other.map((row, index) => (
                   <tr key={index} className="hover:bg-gray-700/50">
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.equipmentId ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.equipmentId`, e.target.value)} className={inputClassId} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.gaskets ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.gaskets`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.ropes ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.ropes`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.wires ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.wires`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.billyPugh ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.billyPugh`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.liftingStrops ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.liftingStrops`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.equipmentId ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.equipmentId`, e.target.value)} className={inputClassId} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.gaskets ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.gaskets`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.ropes ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.ropes`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.wires ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.wires`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.billyPugh ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.billyPugh`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.liftingStrops ?? ''} onChange={(e) => handleInputChange(`otherEquipment.${index}.liftingStrops`, e.target.value)} className={inputClass} /></td>
                     <td className="border border-gray-600 p-2 text-center">{other.length > 1 && <button type="button" onClick={() => handleRemoveOtherEquipmentRow(index)} className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs">Remove</button>}</td>
                   </tr>
                 ))}
@@ -847,7 +843,7 @@ export default function EditFormPage() {
             <div><label className="block text-sm text-gray-400 mb-1">STS Superintendent</label><input type="text" value={basic.stsSuperintendent ?? ""} onChange={(e) => handleInputChange("basicInfo.stsSuperintendent", e.target.value)} className={inputClass} /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Job No.</label><input type="text" value={basic.jobNumber ?? ""} onChange={(e) => handleInputChange("basicInfo.jobNumber", e.target.value)} className={inputClass} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm text-gray-400 mb-1">Receiving Vessel</label><input type="text" value={basic.receivingVessel ?? ""} onChange={(e) => handleInputChange("basicInfo.receivingVessel", e.target.value)} className={inputClass} /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Discharging Vessel</label><input type="text" value={basic.dischargingVessel ?? ""} onChange={(e) => handleInputChange("basicInfo.dischargingVessel", e.target.value)} className={inputClass} /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Support Craft (Mob/Demob)</label><input type="text" value={basic.supportCraftMobDemob ?? ""} onChange={(e) => handleInputChange("basicInfo.supportCraftMobDemob", e.target.value)} className={inputClass} /></div>
@@ -865,12 +861,12 @@ export default function EditFormPage() {
               <tbody>
                 {opTimings.map((row, idx) => (
                   <tr key={idx} className="hover:bg-gray-700/50">
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.activityName ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.activityName`, e.target.value)} className={inputClass} placeholder="Activity" /></td>
-                    <td className="border border-gray-600 p-2"><input type="date" value={dateVal(row.fromDate)} onChange={(e) => handleInputChange(`operationTimings.${idx}.fromDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="time" value={row.fromTime ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.fromTime`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="date" value={dateVal(row.toDate)} onChange={(e) => handleInputChange(`operationTimings.${idx}.toDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="time" value={row.toTime ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.toTime`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.remarks ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.remarks`, e.target.value)} className={inputClass} placeholder="Remarks" /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.activityName ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.activityName`, e.target.value)} className={inputClass} placeholder="Activity" /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="date" value={dateVal(row.fromDate)} onChange={(e) => handleInputChange(`operationTimings.${idx}.fromDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="time" value={row.fromTime ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.fromTime`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="date" value={dateVal(row.toDate)} onChange={(e) => handleInputChange(`operationTimings.${idx}.toDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="time" value={row.toTime ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.toTime`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.remarks ?? ""} onChange={(e) => handleInputChange(`operationTimings.${idx}.remarks`, e.target.value)} className={inputClass} placeholder="Remarks" /></td>
                   </tr>
                 ))}
               </tbody>
@@ -888,12 +884,12 @@ export default function EditFormPage() {
               <tbody>
                 {additional.map((row, idx) => (
                   <tr key={idx} className="hover:bg-gray-700/50">
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.activityName ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.activityName`, e.target.value)} className={inputClass} placeholder="Activity" /></td>
-                    <td className="border border-gray-600 p-2"><input type="date" value={dateVal(row.fromDate)} onChange={(e) => handleInputChange(`additionalActivities.${idx}.fromDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="time" value={row.fromTime ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.fromTime`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="date" value={dateVal(row.toDate)} onChange={(e) => handleInputChange(`additionalActivities.${idx}.toDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="time" value={row.toTime ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.toTime`, e.target.value)} className={inputClass} /></td>
-                    <td className="border border-gray-600 p-2"><input type="text" value={row.remarks ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.remarks`, e.target.value)} className={inputClass} placeholder="Remarks" /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.activityName ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.activityName`, e.target.value)} className={inputClass} placeholder="Activity" /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="date" value={dateVal(row.fromDate)} onChange={(e) => handleInputChange(`additionalActivities.${idx}.fromDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="time" value={row.fromTime ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.fromTime`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="date" value={dateVal(row.toDate)} onChange={(e) => handleInputChange(`additionalActivities.${idx}.toDate`, e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="time" value={row.toTime ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.toTime`, e.target.value)} className={inputClass} /></td>
+                    <td className="border border-gray-600 p-1 sm:p-2"><input type="text" value={row.remarks ?? ""} onChange={(e) => handleInputChange(`additionalActivities.${idx}.remarks`, e.target.value)} className={inputClass} placeholder="Remarks" /></td>
                     <td className="border border-gray-600 p-2 text-center">{additional.length > 1 && <button type="button" onClick={() => handleRemoveAdditionalActivityRow(idx)} className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs">Remove</button>}</td>
                   </tr>
                 ))}
@@ -956,7 +952,7 @@ export default function EditFormPage() {
             <div><label className="block text-sm text-gray-400 mb-1">Name of Designated POAC</label><input type="text" value={transferInfo.designatedPOACName ?? ""} onChange={(e) => handleInputChange("transferInfo.designatedPOACName", e.target.value)} className={inputClass} /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Name of STS Superintendent if Different from POAC</label><input type="text" value={transferInfo.stsSuperintendentName ?? ""} onChange={(e) => handleInputChange("transferInfo.stsSuperintendentName", e.target.value)} className={inputClass} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm text-gray-400 mb-1">Date of Transfer</label><input type="date" value={dateVal(transferInfo.transferDate)} onChange={(e) => handleInputChange("transferInfo.transferDate", e.target.value ? new Date(e.target.value).toISOString() : "")} className={inputClass} /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Location of Transfer</label><input type="text" value={transferInfo.transferLocation ?? ""} onChange={(e) => handleInputChange("transferInfo.transferLocation", e.target.value)} className={inputClass} /></div>
           </div>
@@ -968,9 +964,9 @@ export default function EditFormPage() {
             <table className="w-full border-collapse border border-gray-600">
               <thead>
                 <tr className="bg-gray-700">
-                  <th className="border border-gray-600 p-3 text-left">Activities</th>
-                  <th className="border border-gray-600 p-3 text-center">Status</th>
-                  <th className="border border-gray-600 p-3 text-left">Remarks</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-left text-xs sm:text-sm">Activities</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Status</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-left text-xs sm:text-sm">Remarks</th>
                 </tr>
               </thead>
               <tbody>
@@ -1031,9 +1027,9 @@ export default function EditFormPage() {
             <table className="w-full border-collapse border border-gray-600">
               <thead>
                 <tr className="bg-gray-700">
-                  <th className="border border-gray-600 p-3 text-left">Activities</th>
-                  <th className="border border-gray-600 p-3 text-center">Status</th>
-                  <th className="border border-gray-600 p-3 text-left">Remarks</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-left text-xs sm:text-sm">Activities</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-center text-xs sm:text-sm">Status</th>
+                  <th className="border border-gray-600 p-2 sm:p-3 text-left text-xs sm:text-sm">Remarks</th>
                 </tr>
               </thead>
               <tbody>
@@ -1068,7 +1064,7 @@ export default function EditFormPage() {
         
         <div>
           <h2 className="text-lg font-semibold text-gray-200 mb-4">Responsible Persons</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm text-gray-400 mb-1">Officer in charge of CHS:</label><input type="text" value={responsiblePersons.chsOfficerName ?? ""} onChange={(e) => handleInputChange("responsiblePersons.chsOfficerName", e.target.value)} className={inputClass} placeholder="Name" /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Officer in charge of MS:</label><input type="text" value={responsiblePersons.msOfficerName ?? ""} onChange={(e) => handleInputChange("responsiblePersons.msOfficerName", e.target.value)} className={inputClass} placeholder="Name" /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Terminal:</label><input type="text" value={responsiblePersons.terminalName ?? ""} onChange={(e) => handleInputChange("responsiblePersons.terminalName", e.target.value)} className={inputClass} placeholder="Name" /></div>
@@ -1084,7 +1080,7 @@ export default function EditFormPage() {
     return (
       <div className="min-h-screen bg-transparent text-white flex">
         <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
-          <div className={`mx-auto py-10 ${isSidebarOpen ? "max-w-[95%] pl-4 pr-4" : "px-6"}`}>
+          <div className={`mx-auto py-6 sm:py-10 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
             <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
               Error: {error}
             </div>
@@ -1109,10 +1105,10 @@ export default function EditFormPage() {
       {/* Left Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[300px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "300px" }}
+        
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -1229,27 +1225,35 @@ export default function EditFormPage() {
 
       {/* Sidebar Toggle Button */}
       {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
-          aria-label="Open sidebar"
-        >
-          <span className="text-white text-xl">☰</span>
-        </button>
+        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            aria-label="Open sidebar"
+          >
+            <span className="text-white text-xl">☰</span>
+          </button>
+          <Link
+            href="/dashboard"
+            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+        </div>
       )}
 
       {/* Main Content - same form-style layout as view page */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
-        <div className={`mx-auto py-10 space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-4 pr-4" : "px-6"}`}>
-          <header className="mb-4 flex items-center gap-4">
-            {/* Left: Dashboard Button */}
+        <div className={`mx-auto py-4 sm:py-6 lg:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-2 pr-2 sm:pl-4 sm:pr-4" : "px-3 sm:px-6"}`}>
+          <header className="mt-12 md:mt-0 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
-            
+
             {/* Center: Heading */}
             <div className="flex-1 flex flex-col items-center text-center">
               <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
@@ -1258,7 +1262,7 @@ export default function EditFormPage() {
             </div>
             
             {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 w-full sm:w-auto justify-end sm:justify-start">
               <Link
                 href={`/operations/sts-operations/new/form-checklist/sts-checklist/${formPath}/list`}
                 className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px]"
@@ -1281,20 +1285,20 @@ export default function EditFormPage() {
           )}
 
           {/* Form card - same style as view page (external form layout) */}
-          <form onSubmit={handleSubmit} className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-2xl p-8 text-white">
+          <form onSubmit={handleSubmit} className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 text-white">
             {/* Header row: logo area, title, form meta (Form No, Issue Date, Approved by) */}
-            <div className="flex justify-between items-start mb-8 border-b border-gray-700 pb-6">
-              <div className="w-48 flex items-center justify-start">
-                <span className="text-gray-500 text-sm font-semibold">OCEANE</span>
+            <div className="flex flex-col lg:flex-row justify-between items-start gap-4 mb-6 sm:mb-8 border-b border-gray-700 pb-4 sm:pb-6">
+              <div className="w-full lg:w-48 flex items-center justify-start">
+                <span className="text-gray-500 text-xs sm:text-sm font-semibold">OCEANE</span>
               </div>
-              <div className="flex-1 flex flex-col items-center text-center px-4">
-                <h1 className="text-2xl font-bold mb-2">AT SEA SHIP TO SHIP TRANSFER</h1>
-                <h2 className="text-xl font-semibold text-gray-200">
+              <div className="flex-1 flex flex-col items-center text-center px-2 sm:px-4">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">AT SEA SHIP TO SHIP TRANSFER</h1>
+                <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-200">
                   {FORM_TITLES[formPath] || formPath}
                 </h2>
                 <p className="text-xs text-gray-400 mt-2">Edit form</p>
               </div>
-              <div className="bg-gray-700 p-4 rounded min-w-[200px] text-sm space-y-1">
+              <div className="bg-gray-700 p-3 sm:p-4 rounded w-full lg:min-w-[200px] text-xs sm:text-sm space-y-1">
                 <div><strong>Form No:</strong> {(formData?.formNo ?? formData?.documentInfo?.formNo) || '—'}</div>
                 <div><strong>Rev No:</strong> {(formData?.revisionNo ?? formData?.documentInfo?.revisionNo) || '—'}</div>
                 <div><strong>Issue Date:</strong> {formatDateOnly(formData?.issueDate ?? formData?.revisionDate ?? formData?.documentInfo?.issueDate ?? formData?.documentInfo?.revisionDate)}</div>
@@ -1308,16 +1312,16 @@ export default function EditFormPage() {
             </div>
 
             {/* Action buttons - same style as view page */}
-            <div className="flex gap-4 justify-end mt-8 pt-6 border-t border-gray-700">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-700">
               <Link
                 href={`/operations/sts-operations/new/form-checklist/sts-checklist/${formPath}/view/${id}`}
-                className="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition text-sm font-medium"
+                className="px-4 sm:px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition text-sm font-medium text-center"
               >
                 Cancel
               </Link>
               <button
                 type="submit"
-                className="px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 sm:px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={saving}
               >
                 {saving ? 'Saving...' : 'Update Form'}

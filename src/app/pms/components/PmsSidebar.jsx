@@ -22,11 +22,6 @@ const sidebarTabs = [
     ],
   },
   {
-    key: "certifications",
-    label: "Certifications",
-    href: "/pms/certifications",
-  },
-  {
     key: "equipment-testing",
     label: "Equipment Testing",
     href: "/pms/equipment-testing",
@@ -48,9 +43,7 @@ export default function PmsSidebar() {
 
   // Derive active tab from current route
   useEffect(() => {
-    if (pathname.startsWith("/pms/certifications")) {
-      setActiveTab("certifications");
-    } else if (pathname.startsWith("/pms/equipment-testing")) {
+    if (pathname.startsWith("/pms/equipment-testing")) {
       setActiveTab("equipment-testing");
     } else if (pathname.startsWith("/pms/warehouse-management")) {
       setActiveTab("warehouse-management");
@@ -74,10 +67,9 @@ export default function PmsSidebar() {
     <>
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full bg-slate-900/98 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[280px] bg-slate-900/98 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "280px" }}
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b border-white/10">

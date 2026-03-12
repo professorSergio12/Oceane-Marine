@@ -17,9 +17,9 @@ export default function GoToDashBoardButton({
     <Link
       href={href}
       style={style}
-      className={`absolute z-[60] inline-flex items-center gap-1.5 px-3.5 py-2
-                  rounded-xl border border-white/20 bg-white/10 hover:bg-white/15
-                  text-white text-sm font-semibold shadow-lg shadow-black/25
+      className={`absolute z-[60] inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2
+                  rounded-lg sm:rounded-xl border border-white/20 bg-white/10 hover:bg-white/15
+                  text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25
                   backdrop-blur-md transition duration-200 hover:translate-y-[1px]
                   ${leftClassName}
                   ${className}`}

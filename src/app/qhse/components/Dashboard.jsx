@@ -86,14 +86,14 @@ export default function QhseDashboard() {
 
   return (
     <div className="min-h-screen bg-transparent text-white">
-      <div className="mx-auto max-w-7xl px-6 py-10 space-y-8">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 py-6 sm:py-10 space-y-4 sm:space-y-8">
         {/* Header */}
         <header className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE Dashboard
             </p>
-            <h1 className="text-3xl font-bold mt-2">Near Miss Statistics</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mt-2">Near Miss Statistics</h1>
             <p className="text-sm text-slate-200 mt-1">
               Track and monitor near miss reports and reviews
             </p>
@@ -176,7 +176,7 @@ export default function QhseDashboard() {
                 <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-2">
                   Total Raised
                 </h3>
-                <p className="text-4xl font-bold text-white mb-1">
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1">
                   {stats.totalRaised}
                 </p>
                 <p className="text-xs text-slate-300">
@@ -215,7 +215,7 @@ export default function QhseDashboard() {
                 <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-2">
                   Pending Review
                 </h3>
-                <p className="text-4xl font-bold text-white mb-1">
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1">
                   {stats.pendingReview}
                 </p>
                 <p className="text-xs text-slate-300">
@@ -253,7 +253,7 @@ export default function QhseDashboard() {
                 <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-2">
                   Reviewed
                 </h3>
-                <p className="text-4xl font-bold text-white mb-1">
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1">
                   {stats.reviewed}
                 </p>
                 <p className="text-xs text-slate-300">

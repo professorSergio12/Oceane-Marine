@@ -155,8 +155,6 @@ export async function generateOpsOfd014Doc(checklist, fullPath) {
                         width: { size: 50, type: WidthType.PERCENTAGE },
                         borders: tableBorder,
                         children: [
-                            new Paragraph({ children: [new TextRun({ text: "Job #", bold: true })] }),
-                            new Paragraph({ children: [new TextRun({ text: jobInfo.jobNumber || "" })] }),
                             new Paragraph({ spacing: { before: 100 }, children: [new TextRun({ text: "Date:", bold: true })] }),
                             new Paragraph({ children: [new TextRun({ text: formatDate(jobInfo.date) })] }),
                             new Paragraph({ spacing: { before: 100 }, children: [new TextRun({ text: "Time:", bold: true })] }),

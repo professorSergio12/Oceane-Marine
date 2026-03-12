@@ -67,13 +67,13 @@ export default function CertificationsListPage() {
 
   return (
     <div className="flex-1 ml-72 pr-4">
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
               PMS / Certifications
             </p>
-            <h1 className="text-2xl font-bold">Certificates</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Certificates</h1>
           </div>
           <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link

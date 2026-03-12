@@ -120,13 +120,13 @@ export default function BestPracticeListPage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4">
           <div className="flex-1">
             <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
               QHSE / Best Practices
             </p>
-            <h1 className="text-2xl font-bold text-white">Best Practices List</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Best Practices List</h1>
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export default function BestPracticeListPage() {
         </header>
 
         <main>
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur shadow-2xl">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             {error && (
               <p className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2 mb-4">
                 {error}

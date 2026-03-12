@@ -82,10 +82,10 @@ export default function CompatibilityViewPage() {
     <div className="min-h-screen bg-transparent text-white flex">
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[300px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "300px" }}
+        
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-orange-500/10 to-transparent">
@@ -156,11 +156,11 @@ export default function CompatibilityViewPage() {
       )}
 
       <div className={`flex-1 min-w-0 pr-4 overflow-auto transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
-        <div className={`w-full mx-auto py-10 space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-4 pr-4" : "px-6"}`}>
+        <div className={`w-full mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
           <header className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-[0.25em] text-sky-300">Compatibility</p>
-              <h1 className="text-2xl font-bold text-white">View operation</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">View operation</h1>
             </div>
             <div className="flex items-center gap-2">
               <Link href="/operations/sts-operations/new/compatibility/list" className="px-4 py-2 rounded-xl border border-white/20 text-sm font-medium text-white/90 hover:bg-white/10 transition">
@@ -182,7 +182,7 @@ export default function CompatibilityViewPage() {
             <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-white/60">Loading...</div>
           ) : data ? (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">Operation</h2>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
@@ -200,7 +200,7 @@ export default function CompatibilityViewPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">STBL</h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {["name", "DWT", "Beam", "DISP", "Draft", "MaxFreeboard", "MinFreeboard", "ManifoldToRail"].map((key) => (
@@ -212,7 +212,7 @@ export default function CompatibilityViewPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">SS</h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {["name", "DWT", "Beam", "DISP", "Draft", "MaxFreeboard", "MinFreeboard", "ManifoldToRail"].map((key) => (

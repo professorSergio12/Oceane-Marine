@@ -480,13 +480,13 @@ export default function MOCManagementChangeFormPage() {
 
   return (
     <div className={`${contentClassName} pr-4`}>
-      <div className="mx-auto max-w-[95%] pl-4 pr-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex-1">
             <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
               QHSE / MOC / Management of Change
             </p>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
               {isEditMode ? "Edit Management of Change Draft" : "Management of Change"}
             </h1>
             <p className="text-xs text-slate-300 mt-1">
@@ -570,7 +570,7 @@ export default function MOCManagementChangeFormPage() {
 
         <form className="space-y-8">
           {/* Basic Information */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
             <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
               Basic Information
             </h2>
@@ -674,7 +674,7 @@ export default function MOCManagementChangeFormPage() {
           </section>
 
           {/* Impact & Risk Assessment */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
             <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
               Impact & Risk Assessment
             </h2>
@@ -935,7 +935,7 @@ export default function MOCManagementChangeFormPage() {
           </section>
 
           {/* Training */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
             <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
               Training
             </h2>
@@ -981,7 +981,7 @@ export default function MOCManagementChangeFormPage() {
           </section>
 
           {/* Document Control */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
             <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
               Document Control
             </h2>

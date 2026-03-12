@@ -69,18 +69,18 @@ export default function SignupPage() {
       </div>
 
       {/* Signup Form */}
-      <div className="relative z-10 w-full max-w-lg px-6 py-10">
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
+      <div className="relative z-10 w-full max-w-lg px-4 sm:px-6 py-6 sm:py-10">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-5 sm:p-8">
+          <div className="text-center mb-5 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
               Create Account
             </h1>
-            <p className="text-white/70 text-sm">
+            <p className="text-white/70 text-xs sm:text-sm">
               Register your Oceans Marine account
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Error */}
             {error && (
               <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-xl text-sm">
@@ -181,12 +181,12 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 sm:py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all text-sm sm:text-base"
             >
               {isLoading ? "Creating account..." : "Sign Up"}
             </button>
 
-            <p className="text-center text-white/70 text-sm mt-4">
+            <p className="text-center text-white/70 text-xs sm:text-sm mt-4">
               Already have an account?{" "}
               <a
                 href="/login"
@@ -214,8 +214,8 @@ function InputField({
   placeholder,
 }) {
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-semibold text-white/90">
+    <div className="space-y-1.5 sm:space-y-2">
+      <label className="block text-xs sm:text-sm font-semibold text-white/90">
         {label}
       </label>
       <input
@@ -224,8 +224,8 @@ function InputField({
         value={value}
         onChange={onChange}
         required
-        className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 
-        text-white placeholder-white/50 focus:outline-none focus:ring-2 
+        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-white/10 border border-white/20 
+        text-white text-sm sm:text-base placeholder-white/50 focus:outline-none focus:ring-2 
         focus:ring-orange-500/50 transition-all"
         placeholder={placeholder}
       />

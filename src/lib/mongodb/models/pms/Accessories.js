@@ -67,6 +67,16 @@ const AccessoriesSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Certificates
+    manufacturingCertificate: {
+      fileUrl: { type: String, default: "" },
+      originalFileName: { type: String, default: "" },
+    },
+    testCertificate: {
+      fileUrl: { type: String, default: "" },
+      originalFileName: { type: String, default: "" },
+    },
+
     // System
     isDeleted: {
       type: Boolean,
