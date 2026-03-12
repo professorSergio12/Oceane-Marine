@@ -4,20 +4,59 @@ import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
 import path from "path";
 import fs from "fs/promises";
 
+/* Fields that can have a conditional file upload when set to "Yes" */
+const OPTION_FILE_FIELDS = [
+  "validPassport",
+  "validMastersCOC",
+  "dangerousCargoEndorsementOil",
+  "dangerousCargoEndorsementChem",
+  "dangerousCargoEndorsementGas",
+  "oilSpillResponseTraining",
+  "stsSimulatorTraining",
+  "vesselSizeLimitations",
+  "underwayOperations",
+  "validMedicals",
+];
+
+const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
+
+async function saveFile(file, stsServiceProvider, poacName, subfolder) {
+  const sanitizedProvider = sanitize(stsServiceProvider.trim());
+  const sanitizedName = sanitize(poacName.trim());
+
+  const baseDir = path.join(
+    process.cwd(),
+    "public/uploads/hr/poac-matrix",
+    sanitizedProvider,
+    sanitizedName,
+    subfolder
+  );
+  await fs.mkdir(baseDir, { recursive: true });
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileName = `${Date.now()}-${sanitize(file.name)}`;
+  const filePath = path.join(baseDir, fileName);
+  await fs.writeFile(filePath, buffer);
+
+  return {
+    fileUrl: `/uploads/hr/poac-matrix/${sanitizedProvider}/${sanitizedName}/${subfolder}/${fileName}`,
+    originalFileName: file.name,
+  };
+}
+
 export async function POST(req) {
   await connectDB();
 
   try {
     const formData = await req.formData();
-    
-    // Get rows data - formData will have rows as row_0_field, row_1_field, etc.
+
     const rowsData = [];
     let rowIndex = 0;
-    
+
     while (true) {
       const stsServiceProvider = formData.get(`row_${rowIndex}_stsServiceProvider`);
-      if (!stsServiceProvider) break; // No more rows
-      
+      if (!stsServiceProvider) break;
+
       const poacName = formData.get(`row_${rowIndex}_poacName`);
       const validPassport = formData.get(`row_${rowIndex}_validPassport`) || "No";
       const validMastersCOC = formData.get(`row_${rowIndex}_validMastersCOC`) || "No";
@@ -35,77 +74,60 @@ export async function POST(req) {
 
       // Validate required fields
       if (!stsServiceProvider || !stsServiceProvider.trim()) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: STS Service Provider is required` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: STS Service Provider is required` }, { status: 400 });
       }
       if (!poacName || !poacName.trim()) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: POAC's Name is required` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: POAC's Name is required` }, { status: 400 });
       }
       if (!["Yes", "No"].includes(validPassport)) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: Valid Passport must be Yes or No` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: Valid Passport must be Yes or No` }, { status: 400 });
       }
       if (!["Yes", "No"].includes(validMastersCOC)) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: Valid Master's COC must be Yes or No` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: Valid Master's COC must be Yes or No` }, { status: 400 });
       }
       if (!experienceWithOceane || !experienceWithOceane.trim()) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: Experience with Oceane is required` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: Experience with Oceane is required` }, { status: 400 });
       }
 
+      // Handle main attachment
       let attachmentData = { fileUrl: "", originalFileName: "" };
-
-      // Handle file upload if provided
       if (attachment && typeof attachment !== "string" && attachment.name && attachment.size > 0) {
-        const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
-        const sanitizedProvider = sanitize(stsServiceProvider.trim());
-        const sanitizedName = sanitize(poacName.trim());
+        attachmentData = await saveFile(attachment, stsServiceProvider, poacName, "main");
+      }
 
-        const baseDir = path.join(
-          process.cwd(),
-          "public/uploads/hr/poac-matrix",
-          sanitizedProvider,
-          sanitizedName
-        );
-        await fs.mkdir(baseDir, { recursive: true });
+      // Build row object with Yes/No values
+      const optionValues = {
+        validPassport,
+        validMastersCOC,
+        dangerousCargoEndorsementOil,
+        dangerousCargoEndorsementChem,
+        dangerousCargoEndorsementGas,
+        oilSpillResponseTraining,
+        stsSimulatorTraining,
+        vesselSizeLimitations,
+        underwayOperations,
+        validMedicals,
+      };
 
-        const attachmentBuffer = Buffer.from(await attachment.arrayBuffer());
-        const attachmentFileName = `${Date.now()}-${sanitize(attachment.name)}`;
-        const attachmentFilePath = path.join(baseDir, attachmentFileName);
-        await fs.writeFile(attachmentFilePath, attachmentBuffer);
-        const attachmentFileUrl = `/uploads/hr/poac-matrix/${sanitizedProvider}/${sanitizedName}/${attachmentFileName}`;
+      // Handle per-option file uploads (only when option is "Yes")
+      const optionFileData = {};
+      for (const field of OPTION_FILE_FIELDS) {
+        const fileKey = `${field}File`;
+        optionFileData[fileKey] = { fileUrl: "", originalFileName: "" };
 
-        attachmentData = {
-          fileUrl: attachmentFileUrl,
-          originalFileName: attachment.name,
-        };
+        if (optionValues[field] === "Yes") {
+          const optionFile = formData.get(`row_${rowIndex}_${fileKey}`);
+          if (optionFile && typeof optionFile !== "string" && optionFile.name && optionFile.size > 0) {
+            optionFileData[fileKey] = await saveFile(optionFile, stsServiceProvider, poacName, field);
+          }
+        }
       }
 
       rowsData.push({
         stsServiceProvider: stsServiceProvider.trim(),
         poacName: poacName.trim(),
-        validPassport: validPassport || "No",
-        validMastersCOC: validMastersCOC || "No",
-        dangerousCargoEndorsementOil: dangerousCargoEndorsementOil || "No",
-        dangerousCargoEndorsementChem: dangerousCargoEndorsementChem || "No",
-        dangerousCargoEndorsementGas: dangerousCargoEndorsementGas || "No",
-        oilSpillResponseTraining: oilSpillResponseTraining || "No",
-        stsSimulatorTraining: stsSimulatorTraining || "No",
-        vesselSizeLimitations: vesselSizeLimitations || "No",
-        underwayOperations: underwayOperations || "No",
-        validMedicals: validMedicals || "No",
+        ...optionValues,
+        ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
         remarks: remarks ? remarks.trim() : "",
         attachment: attachmentData,
@@ -115,22 +137,13 @@ export async function POST(req) {
     }
 
     if (rowsData.length === 0) {
-      return NextResponse.json(
-        { message: "At least one row is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "At least one row is required" }, { status: 400 });
     }
 
-    const poacMatrix = await PoacMatrix.create({
-      rows: rowsData,
-    });
-
+    const poacMatrix = await PoacMatrix.create({ rows: rowsData });
     return NextResponse.json({ data: poacMatrix }, { status: 201 });
   } catch (err) {
     console.error("POAC Matrix creation error:", err);
-    return NextResponse.json(
-      { message: err.message || "Upload failed", error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: err.message || "Upload failed", error: err.message }, { status: 500 });
   }
 }

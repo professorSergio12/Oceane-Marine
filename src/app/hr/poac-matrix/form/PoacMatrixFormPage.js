@@ -5,32 +5,43 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useHrLoading } from "../../HrLoadingContext";
 
+/* ── Yes/No option fields that can have conditional file upload ── */
+const YES_NO_OPTIONS = [
+  { key: "validPassport", label: "Valid Passport", required: true },
+  { key: "validMastersCOC", label: "Valid Master's COC", required: true },
+  { key: "dangerousCargoEndorsementOil", label: "Dangerous cargo endorsement (Oil)", required: false },
+  { key: "dangerousCargoEndorsementChem", label: "Dangerous cargo endorsement (Chem)", required: false },
+  { key: "dangerousCargoEndorsementGas", label: "Dangerous cargo endorsements (Gas)", required: false },
+  { key: "oilSpillResponseTraining", label: "Oil spill response training", required: false },
+  { key: "stsSimulatorTraining", label: "STS Simulator training", required: false },
+  { key: "vesselSizeLimitations", label: "Vessel Size Limitations", required: false },
+  { key: "underwayOperations", label: "Underway operations", required: false },
+  { key: "validMedicals", label: "Valid Medicals", required: false },
+];
+
+/* ── Default row factory ── */
+const createEmptyRow = (stsServiceProvider = "") => {
+  const row = {
+    stsServiceProvider,
+    poacName: "",
+    experienceWithOceane: "",
+    remarks: "",
+    attachment: null,
+  };
+  YES_NO_OPTIONS.forEach(({ key }) => {
+    row[key] = "No";
+    row[`${key}File`] = null; // new file to upload
+  });
+  return row;
+};
+
 export default function PoacMatrixFormPage({ onSuccess }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { setPageLoading } = useHrLoading();
 
-  const [rows, setRows] = useState([
-    {
-      stsServiceProvider: "",
-      poacName: "",
-      validPassport: "No",
-      validMastersCOC: "No",
-      dangerousCargoEndorsementOil: "No",
-      dangerousCargoEndorsementChem: "No",
-      dangerousCargoEndorsementGas: "No",
-      oilSpillResponseTraining: "No",
-      stsSimulatorTraining: "No",
-      vesselSizeLimitations: "No",
-      underwayOperations: "No",
-      validMedicals: "No",
-      experienceWithOceane: "",
-      remarks: "",
-      attachment: null,
-    },
-  ]);
-
+  const [rows, setRows] = useState([createEmptyRow()]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [message, setMessage] = useState("");
@@ -50,28 +61,30 @@ export default function PoacMatrixFormPage({ onSuccess }) {
           if (!res.ok) throw new Error(data.error || "Failed to load");
           const record = data.data?.find((r) => r._id === editId);
           if (record && record.rows && record.rows.length > 0) {
-            // Load all rows from the record
-            const loadedRows = record.rows.map((row) => ({
-              stsServiceProvider: row.stsServiceProvider || "",
-              poacName: row.poacName || "",
-              validPassport: row.validPassport || "No",
-              validMastersCOC: row.validMastersCOC || "No",
-              dangerousCargoEndorsementOil: row.dangerousCargoEndorsementOil || "No",
-              dangerousCargoEndorsementChem: row.dangerousCargoEndorsementChem || "No",
-              dangerousCargoEndorsementGas: row.dangerousCargoEndorsementGas || "No",
-              oilSpillResponseTraining: row.oilSpillResponseTraining || "No",
-              stsSimulatorTraining: row.stsSimulatorTraining || "No",
-              vesselSizeLimitations: row.vesselSizeLimitations || "No",
-              underwayOperations: row.underwayOperations || "No",
-              validMedicals: row.validMedicals || "No",
-              experienceWithOceane: row.experienceWithOceane || "",
-              remarks: row.remarks || "",
-              attachment: null, // null = no new file selected yet
-            }));
+            const loadedRows = record.rows.map((row) => {
+              const r = {
+                stsServiceProvider: row.stsServiceProvider || "",
+                poacName: row.poacName || "",
+                experienceWithOceane: row.experienceWithOceane || "",
+                remarks: row.remarks || "",
+                attachment: null,
+              };
+              YES_NO_OPTIONS.forEach(({ key }) => {
+                r[key] = row[key] || "No";
+                r[`${key}File`] = null; // no new file yet
+              });
+              return r;
+            });
             setRows(loadedRows);
 
-            // Store existing file info for each row
-            const files = record.rows.map((row) => row.attachment || null);
+            // Store existing file info (main + per-option) for each row
+            const files = record.rows.map((row) => {
+              const obj = { attachment: row.attachment || null };
+              YES_NO_OPTIONS.forEach(({ key }) => {
+                obj[`${key}File`] = row[`${key}File`] || null;
+              });
+              return obj;
+            });
             setExistingFiles(files);
           }
         } catch (err) {
@@ -86,39 +99,25 @@ export default function PoacMatrixFormPage({ onSuccess }) {
   }, [editId, setPageLoading]);
 
   const addRow = () => {
-    // Pre-fill STS Service Provider from the first row (usually same for all rows)
     const firstProvider = rows.length > 0 ? rows[0].stsServiceProvider : "";
-    setRows([
-      ...rows,
-      {
-        stsServiceProvider: firstProvider,
-        poacName: "",
-        validPassport: "No",
-        validMastersCOC: "No",
-        dangerousCargoEndorsementOil: "No",
-        dangerousCargoEndorsementChem: "No",
-        dangerousCargoEndorsementGas: "No",
-        oilSpillResponseTraining: "No",
-        stsSimulatorTraining: "No",
-        vesselSizeLimitations: "No",
-        underwayOperations: "No",
-        validMedicals: "No",
-        experienceWithOceane: "",
-        remarks: "",
-        attachment: null,
-      },
-    ]);
+    setRows([...rows, createEmptyRow(firstProvider)]);
   };
 
   const removeRow = (index) => {
     if (rows.length > 1) {
       setRows(rows.filter((_, i) => i !== index));
+      setExistingFiles((prev) => prev.filter((_, i) => i !== index));
     }
   };
 
   const updateRow = (index, field, value) => {
     const newRows = [...rows];
-    newRows[index][field] = value;
+    newRows[index] = { ...newRows[index], [field]: value };
+
+    // If a Yes/No field is changed to "No", clear its file
+    if (YES_NO_OPTIONS.some((o) => o.key === field) && value === "No") {
+      newRows[index][`${field}File`] = null;
+    }
     setRows(newRows);
   };
 
@@ -133,80 +132,42 @@ export default function PoacMatrixFormPage({ onSuccess }) {
       // Validate all rows
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-
-        if (!row.stsServiceProvider || !row.stsServiceProvider.trim()) {
-          throw new Error(`Row ${i + 1}: STS Service Provider is required`);
-        }
-        if (!row.poacName || !row.poacName.trim()) {
-          throw new Error(`Row ${i + 1}: POAC's Name is required`);
-        }
-        if (!row.experienceWithOceane || !row.experienceWithOceane.trim()) {
-          throw new Error(`Row ${i + 1}: Experience with Oceane is required`);
-        }
+        if (!row.stsServiceProvider?.trim()) throw new Error(`Row ${i + 1}: STS Service Provider is required`);
+        if (!row.poacName?.trim()) throw new Error(`Row ${i + 1}: POAC's Name is required`);
+        if (!row.experienceWithOceane?.trim()) throw new Error(`Row ${i + 1}: Experience with Oceane is required`);
       }
 
-      // Create FormData with all rows
       const formData = new FormData();
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         formData.append(`row_${i}_stsServiceProvider`, (row.stsServiceProvider || "").trim());
         formData.append(`row_${i}_poacName`, (row.poacName || "").trim());
-        formData.append(`row_${i}_validPassport`, row.validPassport || "No");
-        formData.append(`row_${i}_validMastersCOC`, row.validMastersCOC || "No");
-        formData.append(`row_${i}_dangerousCargoEndorsementOil`, row.dangerousCargoEndorsementOil || "No");
-        formData.append(`row_${i}_dangerousCargoEndorsementChem`, row.dangerousCargoEndorsementChem || "No");
-        formData.append(`row_${i}_dangerousCargoEndorsementGas`, row.dangerousCargoEndorsementGas || "No");
-        formData.append(`row_${i}_oilSpillResponseTraining`, row.oilSpillResponseTraining || "No");
-        formData.append(`row_${i}_stsSimulatorTraining`, row.stsSimulatorTraining || "No");
-        formData.append(`row_${i}_vesselSizeLimitations`, row.vesselSizeLimitations || "No");
-        formData.append(`row_${i}_underwayOperations`, row.underwayOperations || "No");
-        formData.append(`row_${i}_validMedicals`, row.validMedicals || "No");
         formData.append(`row_${i}_experienceWithOceane`, (row.experienceWithOceane || "").trim());
         formData.append(`row_${i}_remarks`, (row.remarks || "").trim());
+
+        // Append Yes/No values + their conditional files
+        YES_NO_OPTIONS.forEach(({ key }) => {
+          formData.append(`row_${i}_${key}`, row[key] || "No");
+          const file = row[`${key}File`];
+          if (file) formData.append(`row_${i}_${key}File`, file);
+        });
+
+        // Main attachment
         if (row.attachment) formData.append(`row_${i}_attachment`, row.attachment);
       }
 
-      const url = editId
-        ? `/api/hr/poac-matrix/${editId}/update`
-        : "/api/hr/poac-matrix/create";
+      const url = editId ? `/api/hr/poac-matrix/${editId}/update` : "/api/hr/poac-matrix/create";
       const method = editId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        body: formData,
-      });
-
+      const res = await fetch(url, { method, body: formData });
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || data.error || `Failed to ${editId ? "update" : "create"} record`);
-      }
+      if (!res.ok) throw new Error(data.message || data.error || `Failed to ${editId ? "update" : "create"} record`);
 
       setMessage(editId ? "POAC Matrix record updated successfully!" : "POAC Matrix records created successfully!");
-
-      // Reset form
-      setRows([
-        {
-          stsServiceProvider: "",
-          poacName: "",
-          validPassport: "No",
-          validMastersCOC: "No",
-          dangerousCargoEndorsementOil: "No",
-          dangerousCargoEndorsementChem: "No",
-          dangerousCargoEndorsementGas: "No",
-          oilSpillResponseTraining: "No",
-          stsSimulatorTraining: "No",
-          vesselSizeLimitations: "No",
-          underwayOperations: "No",
-          validMedicals: "No",
-          experienceWithOceane: "",
-          remarks: "",
-          attachment: null,
-        },
-      ]);
+      setRows([createEmptyRow()]);
       setExistingFiles([]);
 
-      // Redirect after 2 seconds
       setTimeout(() => {
         if (onSuccess) onSuccess();
         router.push("/hr/poac-matrix?tab=list");
@@ -217,6 +178,73 @@ export default function PoacMatrixFormPage({ onSuccess }) {
       setLoading(false);
       setPageLoading(false);
     }
+  };
+
+  /* ── Reusable: Select field with conditional file upload ── */
+  const SelectWithUpload = ({ rowIndex, option }) => {
+    const { key, label, required: isRequired } = option;
+    const row = rows[rowIndex];
+    const value = row[key];
+    const fileKey = `${key}File`;
+    const existingFileInfo = existingFiles[rowIndex]?.[fileKey];
+    const newFile = row[fileKey];
+
+    return (
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-white/90">
+          {label} {isRequired && <span className="text-red-400">*</span>}
+        </label>
+        <select
+          value={value}
+          onChange={(e) => updateRow(rowIndex, key, e.target.value)}
+          required={isRequired}
+          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+        >
+          <option value="Yes" className="bg-slate-900">Yes</option>
+          <option value="No" className="bg-slate-900">No</option>
+        </select>
+
+        {/* Conditional file upload when Yes */}
+        {value === "Yes" && (
+          <div className="mt-2 pl-3 border-l-2 border-orange-500/30 space-y-2">
+            <label className="block text-xs font-medium text-orange-300/80">
+              Upload certificate / document for {label}
+            </label>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+              onChange={(e) => updateRow(rowIndex, fileKey, e.target.files[0])}
+              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/15 text-white text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-orange-500/80 file:text-white hover:file:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition-all"
+            />
+            {/* Show existing file in edit mode */}
+            {editId && existingFileInfo?.fileUrl && !newFile && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs text-emerald-300">
+                  Current: <span className="font-medium text-emerald-200">{existingFileInfo.originalFileName || "File"}</span>
+                  <span className="text-emerald-400/60 ml-1">(keep if empty)</span>
+                </p>
+              </div>
+            )}
+            {/* Show new file selected */}
+            {newFile && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                <svg className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p className="text-xs text-orange-300">
+                  New: <span className="font-medium text-orange-200">{newFile.name}</span>
+                  <span className="text-orange-400/60 ml-1">({(newFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                  {existingFileInfo?.fileUrl && <span className="text-red-300/60 ml-1">— replaces existing</span>}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -284,7 +312,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                 {/* POAC's Name */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-white/90">
-                    POAC's Name <span className="text-red-400">*</span>
+                    POAC&apos;s Name <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -296,157 +324,10 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                   />
                 </div>
 
-                {/* Valid Passport */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Valid Passport <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={row.validPassport}
-                    onChange={(e) => updateRow(rowIndex, "validPassport", e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Valid Master's COC */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Valid Master's COC <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={row.validMastersCOC}
-                    onChange={(e) => updateRow(rowIndex, "validMastersCOC", e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Dangerous cargo endorsement (Oil) */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Dangerous cargo endorsement (Oil)
-                  </label>
-                  <select
-                    value={row.dangerousCargoEndorsementOil}
-                    onChange={(e) => updateRow(rowIndex, "dangerousCargoEndorsementOil", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Dangerous cargo endorsement (Chem) */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Dangerous cargo endorsement (Chem)
-                  </label>
-                  <select
-                    value={row.dangerousCargoEndorsementChem}
-                    onChange={(e) => updateRow(rowIndex, "dangerousCargoEndorsementChem", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Dangerous cargo endorsements (Gas) */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Dangerous cargo endorsements (Gas)
-                  </label>
-                  <select
-                    value={row.dangerousCargoEndorsementGas}
-                    onChange={(e) => updateRow(rowIndex, "dangerousCargoEndorsementGas", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Oil spill response training */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Oil spill response training
-                  </label>
-                  <select
-                    value={row.oilSpillResponseTraining}
-                    onChange={(e) => updateRow(rowIndex, "oilSpillResponseTraining", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* STS Simulator training */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    STS Simulator training
-                  </label>
-                  <select
-                    value={row.stsSimulatorTraining}
-                    onChange={(e) => updateRow(rowIndex, "stsSimulatorTraining", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Vessel Size Limitations */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Vessel Size Limitations
-                  </label>
-                  <select
-                    value={row.vesselSizeLimitations}
-                    onChange={(e) => updateRow(rowIndex, "vesselSizeLimitations", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Underway operations */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Underway operations
-                  </label>
-                  <select
-                    value={row.underwayOperations}
-                    onChange={(e) => updateRow(rowIndex, "underwayOperations", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
-
-                {/* Valid Medicals */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Valid Medicals
-                  </label>
-                  <select
-                    value={row.validMedicals}
-                    onChange={(e) => updateRow(rowIndex, "validMedicals", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  >
-                    <option value="Yes" className="bg-slate-900">Yes</option>
-                    <option value="No" className="bg-slate-900">No</option>
-                  </select>
-                </div>
+                {/* ── Yes/No option fields with conditional upload ── */}
+                {YES_NO_OPTIONS.map((option) => (
+                  <SelectWithUpload key={option.key} rowIndex={rowIndex} option={option} />
+                ))}
 
                 {/* Experience with Oceane */}
                 <div className="space-y-2">
@@ -477,7 +358,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                   />
                 </div>
 
-                {/* Attachment */}
+                {/* Main Attachment */}
                 <div className="space-y-2 md:col-span-2">
                   <label className="block text-sm font-semibold text-white/90">
                     Attachment {!editId && <span className="text-red-400">*</span>}
@@ -486,22 +367,20 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                     type="file"
                     accept=".pdf,.doc,.docx,.xls,.xlsx"
                     onChange={(e) => updateRow(rowIndex, "attachment", e.target.files[0])}
-                    required={!editId && !existingFiles[rowIndex]?.fileUrl}
+                    required={!editId && !existingFiles[rowIndex]?.attachment?.fileUrl}
                     className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
                   />
-                  {/* Show existing file info in edit mode when no new file is selected */}
-                  {editId && existingFiles[rowIndex]?.fileUrl && !row.attachment && (
+                  {editId && existingFiles[rowIndex]?.attachment?.fileUrl && !row.attachment && (
                     <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                       <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <p className="text-sm text-emerald-300">
-                        Current file: <span className="font-medium text-emerald-200">{existingFiles[rowIndex].originalFileName || "File"}</span>
+                        Current file: <span className="font-medium text-emerald-200">{existingFiles[rowIndex].attachment.originalFileName || "File"}</span>
                         <span className="text-emerald-400/70 ml-1">(Leave empty to keep existing file)</span>
                       </p>
                     </div>
                   )}
-                  {/* Show new file selected */}
                   {row.attachment && (
                     <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
                       <svg className="w-4 h-4 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -510,7 +389,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                       <p className="text-sm text-orange-300">
                         New file: <span className="font-medium text-orange-200">{row.attachment.name}</span>
                         <span className="text-orange-400/70 ml-1">({(row.attachment.size / 1024 / 1024).toFixed(2)} MB)</span>
-                        {existingFiles[rowIndex]?.fileUrl && (
+                        {existingFiles[rowIndex]?.attachment?.fileUrl && (
                           <span className="text-red-300/70 ml-1">— will replace existing file</span>
                         )}
                       </p>

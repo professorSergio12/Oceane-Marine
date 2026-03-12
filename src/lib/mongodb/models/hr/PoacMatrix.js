@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
 
+/* Reusable sub-schema for file attachments */
+const fileAttachmentSchema = {
+  fileUrl: { type: String, default: "" },
+  originalFileName: { type: String, default: "" },
+};
+
 const poacMatrixRowSchema = new mongoose.Schema({
   stsServiceProvider: {
     type: String,
@@ -14,51 +20,61 @@ const poacMatrixRowSchema = new mongoose.Schema({
     enum: ["Yes", "No"],
     required: true,
   },
+  validPassportFile: fileAttachmentSchema,
   validMastersCOC: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  validMastersCOCFile: fileAttachmentSchema,
   dangerousCargoEndorsementOil: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  dangerousCargoEndorsementOilFile: fileAttachmentSchema,
   dangerousCargoEndorsementChem: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  dangerousCargoEndorsementChemFile: fileAttachmentSchema,
   dangerousCargoEndorsementGas: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  dangerousCargoEndorsementGasFile: fileAttachmentSchema,
   oilSpillResponseTraining: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  oilSpillResponseTrainingFile: fileAttachmentSchema,
   stsSimulatorTraining: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  stsSimulatorTrainingFile: fileAttachmentSchema,
   vesselSizeLimitations: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  vesselSizeLimitationsFile: fileAttachmentSchema,
   underwayOperations: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  underwayOperationsFile: fileAttachmentSchema,
   validMedicals: {
     type: String,
     enum: ["Yes", "No"],
     required: true,
   },
+  validMedicalsFile: fileAttachmentSchema,
   experienceWithOceane: {
     type: String,
     required: true,

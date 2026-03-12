@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useHrLoading } from "../../HrLoadingContext";
@@ -10,11 +10,14 @@ export default function OilMajorsFormPage({ onSuccess }) {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { setPageLoading } = useHrLoading();
+  const fileInputRef = useRef(null);
 
   const [companyName, setCompanyName] = useState("");
   const [status, setStatus] = useState("Approved");
-  const [attachment, setAttachment] = useState(null);
-  const [existingFile, setExistingFile] = useState(null);
+
+  // Multiple attachments: new files to upload + existing files from server
+  const [newFiles, setNewFiles] = useState([]); // File objects to upload
+  const [existingAttachments, setExistingAttachments] = useState([]); // { fileUrl, originalFileName }
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -41,7 +44,13 @@ export default function OilMajorsFormPage({ onSuccess }) {
           if (record) {
             setCompanyName(record.companyName || "");
             setStatus(record.status || "Approved");
-            setExistingFile(record.attachment || null);
+            // Load existing attachments (support both old single and new array format)
+            if (record.attachments?.length > 0) {
+              setExistingAttachments(record.attachments.filter((a) => a.fileUrl));
+            } else if (record.attachment?.fileUrl) {
+              // Backward compat for old single-file records
+              setExistingAttachments([record.attachment]);
+            }
           }
         } catch (err) {
           setError(err.message);
@@ -53,6 +62,23 @@ export default function OilMajorsFormPage({ onSuccess }) {
       loadData();
     }
   }, [editId, setPageLoading]);
+
+  const handleAddFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setNewFiles((prev) => [...prev, ...files]);
+    }
+    // Reset input so user can re-select same file
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeNewFile = (index) => {
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingFile = (index) => {
+    setExistingAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,35 +94,32 @@ export default function OilMajorsFormPage({ onSuccess }) {
       const formData = new FormData();
       formData.append("companyName", companyName.trim());
       formData.append("status", status);
-      if (attachment) formData.append("attachment", attachment);
 
-      const url = editId
-        ? `/api/hr/oil-majors/${editId}/update`
-        : "/api/hr/oil-majors/create";
+      // Append new files
+      for (const file of newFiles) {
+        formData.append("attachments", file);
+      }
+
+      // For edit mode — tell server which existing files to keep
+      if (editId) {
+        const keepUrls = existingAttachments.map((a) => a.fileUrl);
+        formData.append("keepAttachments", JSON.stringify(keepUrls));
+      }
+
+      const url = editId ? `/api/hr/oil-majors/${editId}/update` : "/api/hr/oil-majors/create";
       const method = editId ? "PUT" : "POST";
 
       const res = await fetch(url, { method, body: formData });
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(
-          data.message || data.error || `Failed to ${editId ? "update" : "create"} record`
-        );
-      }
+      if (!res.ok) throw new Error(data.message || data.error || `Failed to ${editId ? "update" : "create"} record`);
 
-      setMessage(
-        editId
-          ? "Oil Major record updated successfully!"
-          : "Oil Major record created successfully!"
-      );
-
-      // Reset form
+      setMessage(editId ? "Oil Major record updated successfully!" : "Oil Major record created successfully!");
       setCompanyName("");
       setStatus("Approved");
-      setAttachment(null);
-      setExistingFile(null);
+      setNewFiles([]);
+      setExistingAttachments([]);
 
-      // Redirect after 2 seconds
       setTimeout(() => {
         if (onSuccess) onSuccess();
         router.push("/hr/oil-majors?tab=list");
@@ -108,6 +131,8 @@ export default function OilMajorsFormPage({ onSuccess }) {
       setPageLoading(false);
     }
   };
+
+  const totalFiles = existingAttachments.length + newFiles.length;
 
   return (
     <div className="w-full">
@@ -133,10 +158,7 @@ export default function OilMajorsFormPage({ onSuccess }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Company Name */}
           <div className="space-y-2">
-            <label
-              htmlFor="om-company"
-              className="block text-sm font-semibold text-white/90"
-            >
+            <label htmlFor="om-company" className="block text-sm font-semibold text-white/90">
               Company Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -152,10 +174,7 @@ export default function OilMajorsFormPage({ onSuccess }) {
 
           {/* Status */}
           <div className="space-y-2">
-            <label
-              htmlFor="om-status"
-              className="block text-sm font-semibold text-white/90"
-            >
+            <label htmlFor="om-status" className="block text-sm font-semibold text-white/90">
               Status <span className="text-red-400">*</span>
             </label>
             <select
@@ -166,84 +185,101 @@ export default function OilMajorsFormPage({ onSuccess }) {
               className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
             >
               {statusOptions.map((opt) => (
-                <option key={opt} value={opt} className="bg-slate-900">
-                  {opt}
-                </option>
+                <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
               ))}
             </select>
           </div>
 
-          {/* File Upload */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-white/90">
-              Attachment
-            </label>
+          {/* Multiple File Uploads */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-white/90">
+                Attachments
+                {totalFiles > 0 && (
+                  <span className="ml-2 text-xs font-bold text-orange-300 bg-orange-500/20 px-2 py-0.5 rounded-full">
+                    {totalFiles} file{totalFiles !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </label>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-xs font-semibold transition border border-orange-500/30"
+              >
+                + Add Files
+              </button>
+            </div>
+
+            {/* Hidden file input (multiple) */}
             <input
+              ref={fileInputRef}
               type="file"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-              onChange={(e) => setAttachment(e.target.files[0])}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              multiple
+              onChange={handleAddFiles}
+              className="hidden"
             />
-            {/* Show existing file info in edit mode */}
-            {editId && existingFile?.fileUrl && !attachment && (
-              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <svg
-                  className="w-4 h-4 text-emerald-400 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <p className="text-sm text-emerald-300">
-                  Current file:{" "}
-                  <span className="font-medium text-emerald-200">
-                    {existingFile.originalFileName || "File"}
-                  </span>
-                  <span className="text-emerald-400/70 ml-1">
-                    (Leave empty to keep existing file)
-                  </span>
-                </p>
+
+            {/* Existing files (edit mode) */}
+            {existingAttachments.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-emerald-400/80 font-medium">Existing files:</p>
+                {existingAttachments.map((att, i) => (
+                  <div key={`existing-${i}`} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-emerald-300 flex-1 truncate">{att.originalFileName || "File"}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeExistingFile(i)}
+                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
+                      title="Remove file"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
-            {/* Show new file selected */}
-            {attachment && (
-              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                <svg
-                  className="w-4 h-4 text-orange-400 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <p className="text-sm text-orange-300">
-                  New file:{" "}
-                  <span className="font-medium text-orange-200">{attachment.name}</span>
-                  <span className="text-orange-400/70 ml-1">
-                    ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
-                  {existingFile?.fileUrl && (
-                    <span className="text-red-300/70 ml-1">
-                      — will replace existing file
-                    </span>
-                  )}
-                </p>
+
+            {/* New files to upload */}
+            {newFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-orange-400/80 font-medium">New files to upload:</p>
+                {newFiles.map((file, i) => (
+                  <div key={`new-${i}`} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <svg className="w-4 h-4 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span className="text-sm text-orange-300 flex-1 truncate">{file.name}</span>
+                    <span className="text-xs text-orange-400/60">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    <button
+                      type="button"
+                      onClick={() => removeNewFile(i)}
+                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
+                      title="Remove file"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
-            <p className="text-xs text-white/50 mt-1">
-              Accepted formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG
-            </p>
+
+            {totalFiles === 0 && (
+              <div className="border-2 border-dashed border-white/15 rounded-xl p-6 text-center">
+                <svg className="w-8 h-8 text-white/30 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p className="text-sm text-white/40">Click &quot;+ Add Files&quot; to attach documents</p>
+                <p className="text-xs text-white/30 mt-1">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG</p>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -253,13 +289,7 @@ export default function OilMajorsFormPage({ onSuccess }) {
               disabled={loading || loadingData}
               className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading
-                ? editId
-                  ? "Updating..."
-                  : "Creating..."
-                : editId
-                ? "Update Record"
-                : "Create Record"}
+              {loading ? (editId ? "Updating..." : "Creating...") : (editId ? "Update Record" : "Create Record")}
             </button>
             <Link
               href="/hr/oil-majors?tab=list"

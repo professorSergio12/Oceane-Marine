@@ -107,16 +107,16 @@ function DownloadIconButton({ onClick, disabled, loading }) {
 const DETAIL_COLUMNS = [
   { key: "stsServiceProvider", label: "STS Service Provider" },
   { key: "poacName", label: "POAC's Name" },
-  { key: "validPassport", label: "Valid Passport" },
-  { key: "validMastersCOC", label: "Valid Master's COC" },
-  { key: "dangerousCargoEndorsementOil", label: "Dangerous cargo endorsement(Oil)" },
-  { key: "dangerousCargoEndorsementChem", label: "Dangerous cargo endorsement(Chem)" },
-  { key: "dangerousCargoEndorsementGas", label: "Dangerous cargo endorsements(Gas)" },
-  { key: "oilSpillResponseTraining", label: "Oil spill response training" },
-  { key: "stsSimulatorTraining", label: "STS Simulator training" },
-  { key: "vesselSizeLimitations", label: "Vessel Size Limitations" },
-  { key: "underwayOperations", label: "Underway operations" },
-  { key: "validMedicals", label: "Valid Medicals" },
+  { key: "validPassport", label: "Valid Passport", fileKey: "validPassportFile" },
+  { key: "validMastersCOC", label: "Valid Master's COC", fileKey: "validMastersCOCFile" },
+  { key: "dangerousCargoEndorsementOil", label: "Dangerous cargo endorsement(Oil)", fileKey: "dangerousCargoEndorsementOilFile" },
+  { key: "dangerousCargoEndorsementChem", label: "Dangerous cargo endorsement(Chem)", fileKey: "dangerousCargoEndorsementChemFile" },
+  { key: "dangerousCargoEndorsementGas", label: "Dangerous cargo endorsements(Gas)", fileKey: "dangerousCargoEndorsementGasFile" },
+  { key: "oilSpillResponseTraining", label: "Oil spill response training", fileKey: "oilSpillResponseTrainingFile" },
+  { key: "stsSimulatorTraining", label: "STS Simulator training", fileKey: "stsSimulatorTrainingFile" },
+  { key: "vesselSizeLimitations", label: "Vessel Size Limitations", fileKey: "vesselSizeLimitationsFile" },
+  { key: "underwayOperations", label: "Underway operations", fileKey: "underwayOperationsFile" },
+  { key: "validMedicals", label: "Valid Medicals", fileKey: "validMedicalsFile" },
   { key: "experienceWithOceane", label: "Experience with Oceane" },
   { key: "remarks", label: "Remarks: Locations / etc" },
 ];
@@ -356,18 +356,42 @@ export default function PoacMatrixListPage({ onRefresh }) {
                         {DETAIL_COLUMNS.map((col) => {
                           const val = row[col.key] || "—";
                           const isYesNo = ["Yes", "No"].includes(val);
+                          const optionFile = col.fileKey ? row[col.fileKey] : null;
+                          const hasFile = optionFile?.fileUrl;
                           return (
                             <td key={col.key} className="px-3 py-3 text-white whitespace-nowrap">
                               {isYesNo ? (
-                                <span
-                                  className={`inline-flex items-center justify-center text-xs font-bold px-2 py-0.5 rounded ${
-                                    val === "Yes"
-                                      ? "bg-emerald-500/20 text-emerald-300"
-                                      : "bg-red-500/15 text-red-300"
-                                  }`}
-                                >
-                                  {val}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`inline-flex items-center justify-center text-xs font-bold px-2 py-0.5 rounded ${
+                                      val === "Yes"
+                                        ? "bg-emerald-500/20 text-emerald-300"
+                                        : "bg-red-500/15 text-red-300"
+                                    }`}
+                                  >
+                                    {val}
+                                  </span>
+                                  {val === "Yes" && hasFile && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const a = document.createElement("a");
+                                        a.href = optionFile.fileUrl;
+                                        a.download = optionFile.originalFileName || "file";
+                                        a.target = "_blank";
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                      }}
+                                      title={`Download: ${optionFile.originalFileName || "file"}`}
+                                      className="p-0.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-white/90">{val}</span>
                               )}

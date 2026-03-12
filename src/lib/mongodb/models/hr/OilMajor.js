@@ -14,10 +14,12 @@ const oilMajorSchema = new mongoose.Schema(
       required: true,
       default: "In Progress",
     },
-    attachment: {
-      fileUrl: { type: String, default: "" },
-      originalFileName: { type: String, default: "" },
-    },
+    attachments: [
+      {
+        fileUrl: { type: String, default: "" },
+        originalFileName: { type: String, default: "" },
+      },
+    ],
   },
   { timestamps: true }
 );

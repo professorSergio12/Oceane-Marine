@@ -4,6 +4,18 @@ import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import path from "path";
 import fs from "fs/promises";
 
+const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
+
+async function deleteFileIfExists(fileUrl) {
+  if (!fileUrl) return;
+  try {
+    const filePath = path.join(process.cwd(), "public", fileUrl);
+    await fs.unlink(filePath).catch(() => {});
+  } catch {
+    // Ignore
+  }
+}
+
 export async function PUT(req, { params }) {
   await connectDB();
 
@@ -13,91 +25,74 @@ export async function PUT(req, { params }) {
 
     const companyName = formData.get("companyName");
     const status = formData.get("status");
-    const attachment = formData.get("attachment");
 
     // Validate required fields
     if (!companyName || !companyName.trim()) {
-      return NextResponse.json(
-        { message: "Company Name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Company Name is required" }, { status: 400 });
     }
-    if (
-      !status ||
-      !["Approved", "Counterparty STS service provider", "In Progress"].includes(status)
-    ) {
-      return NextResponse.json(
-        { message: "Valid status is required" },
-        { status: 400 }
-      );
+    if (!status || !["Approved", "Counterparty STS service provider", "In Progress"].includes(status)) {
+      return NextResponse.json({ message: "Valid status is required" }, { status: 400 });
     }
 
     // Find existing record
     const existing = await OilMajor.findById(id);
     if (!existing) {
-      return NextResponse.json(
-        { message: "Record not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "Record not found" }, { status: 404 });
     }
 
-    // Determine attachment
-    let attachmentData = existing.attachment || { fileUrl: "", originalFileName: "" };
-
-    if (
-      attachment &&
-      typeof attachment !== "string" &&
-      attachment.name &&
-      attachment.size > 0
-    ) {
-      // Delete old file if exists
-      if (attachmentData.fileUrl) {
-        try {
-          const oldFilePath = path.join(process.cwd(), "public", attachmentData.fileUrl);
-          await fs.unlink(oldFilePath);
-          // Try to clean up empty directory
-          const dir = path.dirname(oldFilePath);
-          const files = await fs.readdir(dir);
-          if (files.length === 0) await fs.rmdir(dir);
-        } catch {
-          // Ignore file deletion errors
-        }
+    // Parse which existing attachments to keep (sent as JSON string of fileUrl arrays)
+    let keepFileUrls = [];
+    const keepAttachmentsRaw = formData.get("keepAttachments");
+    if (keepAttachmentsRaw) {
+      try {
+        keepFileUrls = JSON.parse(keepAttachmentsRaw);
+      } catch {
+        keepFileUrls = [];
       }
-
-      // Save new file
-      const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
-      const sanitizedCompany = sanitize(companyName.trim());
-
-      const baseDir = path.join(
-        process.cwd(),
-        "public/uploads/hr/oil-majors",
-        sanitizedCompany
-      );
-      await fs.mkdir(baseDir, { recursive: true });
-
-      const buffer = Buffer.from(await attachment.arrayBuffer());
-      const fileName = `${Date.now()}-${sanitize(attachment.name)}`;
-      const filePath = path.join(baseDir, fileName);
-      await fs.writeFile(filePath, buffer);
-
-      attachmentData = {
-        fileUrl: `/uploads/hr/oil-majors/${sanitizedCompany}/${fileName}`,
-        originalFileName: attachment.name,
-      };
     }
 
-    // Update
+    // Determine which existing files to keep vs delete
+    const oldAttachments = existing.attachments || [];
+    const keptAttachments = [];
+    for (const att of oldAttachments) {
+      if (keepFileUrls.includes(att.fileUrl)) {
+        keptAttachments.push(att);
+      } else {
+        // Delete the removed file from disk
+        await deleteFileIfExists(att.fileUrl);
+      }
+    }
+
+    // Handle new file uploads
+    const newFiles = formData.getAll("attachments");
+    const newAttachments = [];
+    for (const file of newFiles) {
+      if (file && typeof file !== "string" && file.name && file.size > 0) {
+        const sanitizedCompany = sanitize(companyName.trim());
+        const baseDir = path.join(process.cwd(), "public/uploads/hr/oil-majors", sanitizedCompany);
+        await fs.mkdir(baseDir, { recursive: true });
+
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const fileName = `${Date.now()}-${sanitize(file.name)}`;
+        const filePath = path.join(baseDir, fileName);
+        await fs.writeFile(filePath, buffer);
+
+        newAttachments.push({
+          fileUrl: `/uploads/hr/oil-majors/${sanitizedCompany}/${fileName}`,
+          originalFileName: file.name,
+        });
+      }
+    }
+
+    // Merge kept + new
     existing.companyName = companyName.trim();
     existing.status = status;
-    existing.attachment = attachmentData;
+    existing.attachments = [...keptAttachments, ...newAttachments];
     await existing.save();
 
     return NextResponse.json({ data: existing }, { status: 200 });
   } catch (err) {
     console.error("Oil Major update error:", err);
-    return NextResponse.json(
-      { message: err.message || "Update failed", error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: err.message || "Update failed", error: err.message }, { status: 500 });
   }
 }

@@ -4,6 +4,56 @@ import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
 import path from "path";
 import fs from "fs/promises";
 
+/* Fields that can have a conditional file upload when set to "Yes" */
+const OPTION_FILE_FIELDS = [
+  "validPassport",
+  "validMastersCOC",
+  "dangerousCargoEndorsementOil",
+  "dangerousCargoEndorsementChem",
+  "dangerousCargoEndorsementGas",
+  "oilSpillResponseTraining",
+  "stsSimulatorTraining",
+  "vesselSizeLimitations",
+  "underwayOperations",
+  "validMedicals",
+];
+
+const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
+
+async function deleteFileIfExists(fileUrl) {
+  if (!fileUrl) return;
+  try {
+    const filePath = path.join(process.cwd(), "public", fileUrl);
+    await fs.unlink(filePath).catch(() => {});
+  } catch (err) {
+    console.error("Error deleting file:", err);
+  }
+}
+
+async function saveFile(file, stsServiceProvider, poacName, subfolder) {
+  const sanitizedProvider = sanitize(stsServiceProvider.trim());
+  const sanitizedName = sanitize(poacName.trim());
+
+  const baseDir = path.join(
+    process.cwd(),
+    "public/uploads/hr/poac-matrix",
+    sanitizedProvider,
+    sanitizedName,
+    subfolder
+  );
+  await fs.mkdir(baseDir, { recursive: true });
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileName = `${Date.now()}-${sanitize(file.name)}`;
+  const filePath = path.join(baseDir, fileName);
+  await fs.writeFile(filePath, buffer);
+
+  return {
+    fileUrl: `/uploads/hr/poac-matrix/${sanitizedProvider}/${sanitizedName}/${subfolder}/${fileName}`,
+    originalFileName: file.name,
+  };
+}
+
 export async function PUT(req, { params }) {
   await connectDB();
 
@@ -11,23 +61,18 @@ export async function PUT(req, { params }) {
     const { id } = await params;
     const formData = await req.formData();
 
-    // Find existing record
     const existingRecord = await PoacMatrix.findById(id);
     if (!existingRecord) {
-      return NextResponse.json(
-        { message: "POAC Matrix record not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "POAC Matrix record not found" }, { status: 404 });
     }
 
-    // Get rows data - formData will have rows as row_0_field, row_1_field, etc.
     const rowsData = [];
     let rowIndex = 0;
-    
+
     while (true) {
       const stsServiceProvider = formData.get(`row_${rowIndex}_stsServiceProvider`);
-      if (!stsServiceProvider) break; // No more rows
-      
+      if (!stsServiceProvider) break;
+
       const poacName = formData.get(`row_${rowIndex}_poacName`);
       const validPassport = formData.get(`row_${rowIndex}_validPassport`) || "No";
       const validMastersCOC = formData.get(`row_${rowIndex}_validMastersCOC`) || "No";
@@ -45,89 +90,74 @@ export async function PUT(req, { params }) {
 
       // Validate required fields
       if (!stsServiceProvider || !stsServiceProvider.trim()) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: STS Service Provider is required` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: STS Service Provider is required` }, { status: 400 });
       }
       if (!poacName || !poacName.trim()) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: POAC's Name is required` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: POAC's Name is required` }, { status: 400 });
       }
       if (!["Yes", "No"].includes(validPassport)) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: Valid Passport must be Yes or No` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: Valid Passport must be Yes or No` }, { status: 400 });
       }
       if (!["Yes", "No"].includes(validMastersCOC)) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: Valid Master's COC must be Yes or No` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: Valid Master's COC must be Yes or No` }, { status: 400 });
       }
       if (!experienceWithOceane || !experienceWithOceane.trim()) {
-        return NextResponse.json(
-          { message: `Row ${rowIndex + 1}: Experience with Oceane is required` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `Row ${rowIndex + 1}: Experience with Oceane is required` }, { status: 400 });
       }
 
-      // Get existing row data if available (for preserving old file if new one not provided)
+      // Get existing row data for preserving files
       const existingRow = existingRecord.rows[rowIndex];
+
+      // Handle main attachment (preserve existing if no new file)
       let attachmentData = existingRow?.attachment || { fileUrl: "", originalFileName: "" };
-
-      // Handle file upload if new file is provided
       if (attachment && typeof attachment !== "string" && attachment.name && attachment.size > 0) {
-        // Delete old file if exists
-        if (existingRow?.attachment?.fileUrl) {
-          try {
-            const oldFilePath = path.join(process.cwd(), "public", existingRow.attachment.fileUrl);
-            await fs.unlink(oldFilePath).catch(() => {}); // Ignore if file doesn't exist
-          } catch (err) {
-            console.error("Error deleting old file:", err);
+        await deleteFileIfExists(existingRow?.attachment?.fileUrl);
+        attachmentData = await saveFile(attachment, stsServiceProvider, poacName, "main");
+      }
+
+      // Build option values map
+      const optionValues = {
+        validPassport,
+        validMastersCOC,
+        dangerousCargoEndorsementOil,
+        dangerousCargoEndorsementChem,
+        dangerousCargoEndorsementGas,
+        oilSpillResponseTraining,
+        stsSimulatorTraining,
+        vesselSizeLimitations,
+        underwayOperations,
+        validMedicals,
+      };
+
+      // Handle per-option file uploads
+      const optionFileData = {};
+      for (const field of OPTION_FILE_FIELDS) {
+        const fileKey = `${field}File`;
+        const existingFileData = existingRow?.[fileKey] || { fileUrl: "", originalFileName: "" };
+
+        if (optionValues[field] === "Yes") {
+          // Option is Yes — check for new file upload
+          const optionFile = formData.get(`row_${rowIndex}_${fileKey}`);
+          if (optionFile && typeof optionFile !== "string" && optionFile.name && optionFile.size > 0) {
+            // New file uploaded — delete old and save new
+            await deleteFileIfExists(existingFileData?.fileUrl);
+            optionFileData[fileKey] = await saveFile(optionFile, stsServiceProvider, poacName, field);
+          } else {
+            // No new file — preserve existing
+            optionFileData[fileKey] = existingFileData;
           }
+        } else {
+          // Option changed to "No" — delete existing file if any
+          await deleteFileIfExists(existingFileData?.fileUrl);
+          optionFileData[fileKey] = { fileUrl: "", originalFileName: "" };
         }
-
-        const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
-        const sanitizedProvider = sanitize(stsServiceProvider.trim());
-        const sanitizedName = sanitize(poacName.trim());
-
-        const baseDir = path.join(
-          process.cwd(),
-          "public/uploads/hr/poac-matrix",
-          sanitizedProvider,
-          sanitizedName
-        );
-        await fs.mkdir(baseDir, { recursive: true });
-
-        const attachmentBuffer = Buffer.from(await attachment.arrayBuffer());
-        const attachmentFileName = `${Date.now()}-${sanitize(attachment.name)}`;
-        const attachmentFilePath = path.join(baseDir, attachmentFileName);
-        await fs.writeFile(attachmentFilePath, attachmentBuffer);
-        const attachmentFileUrl = `/uploads/hr/poac-matrix/${sanitizedProvider}/${sanitizedName}/${attachmentFileName}`;
-
-        attachmentData = {
-          fileUrl: attachmentFileUrl,
-          originalFileName: attachment.name,
-        };
       }
 
       rowsData.push({
         stsServiceProvider: stsServiceProvider.trim(),
         poacName: poacName.trim(),
-        validPassport: validPassport || "No",
-        validMastersCOC: validMastersCOC || "No",
-        dangerousCargoEndorsementOil: dangerousCargoEndorsementOil || "No",
-        dangerousCargoEndorsementChem: dangerousCargoEndorsementChem || "No",
-        dangerousCargoEndorsementGas: dangerousCargoEndorsementGas || "No",
-        oilSpillResponseTraining: oilSpillResponseTraining || "No",
-        stsSimulatorTraining: stsSimulatorTraining || "No",
-        vesselSizeLimitations: vesselSizeLimitations || "No",
-        underwayOperations: underwayOperations || "No",
-        validMedicals: validMedicals || "No",
+        ...optionValues,
+        ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
         remarks: remarks ? remarks.trim() : "",
         attachment: attachmentData,
@@ -137,39 +167,26 @@ export async function PUT(req, { params }) {
     }
 
     if (rowsData.length === 0) {
-      return NextResponse.json(
-        { message: "At least one row is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "At least one row is required" }, { status: 400 });
     }
 
-    // Delete old files for rows that were removed
+    // Delete old files for removed rows
     if (existingRecord.rows.length > rowsData.length) {
       for (let i = rowsData.length; i < existingRecord.rows.length; i++) {
         const oldRow = existingRecord.rows[i];
-        if (oldRow?.attachment?.fileUrl) {
-          try {
-            const oldFilePath = path.join(process.cwd(), "public", oldRow.attachment.fileUrl);
-            await fs.unlink(oldFilePath).catch(() => {});
-          } catch (err) {
-            console.error("Error deleting old file:", err);
-          }
+        // Delete main attachment
+        await deleteFileIfExists(oldRow?.attachment?.fileUrl);
+        // Delete per-option files
+        for (const field of OPTION_FILE_FIELDS) {
+          await deleteFileIfExists(oldRow?.[`${field}File`]?.fileUrl);
         }
       }
     }
 
-    const updatedRecord = await PoacMatrix.findByIdAndUpdate(
-      id,
-      { rows: rowsData },
-      { new: true }
-    );
-
+    const updatedRecord = await PoacMatrix.findByIdAndUpdate(id, { rows: rowsData }, { new: true });
     return NextResponse.json({ data: updatedRecord }, { status: 200 });
   } catch (err) {
     console.error("POAC Matrix update error:", err);
-    return NextResponse.json(
-      { message: err.message || "Update failed", error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: err.message || "Update failed", error: err.message }, { status: 500 });
   }
 }
