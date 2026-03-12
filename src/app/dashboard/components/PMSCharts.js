@@ -690,15 +690,30 @@ function MovementRow({ movement }) {
         <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/20">
           {movement.nos} unit{movement.nos > 1 ? "s" : ""}
         </span>
-        {movement.startDate && (
-          <span className="ml-auto text-[10px] text-white/35 font-medium">
-            {new Date(movement.startDate).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })}
-          </span>
-        )}
+        <div className="ml-auto flex flex-col items-end gap-0.5">
+          {movement.startDate && (
+            <span className="text-[9px] text-white/25 font-medium">
+              Start: {new Date(movement.startDate).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+          )}
+          {movement.estimatedEndDate && (
+            <span className={`text-[10px] font-semibold ${
+              new Date(movement.estimatedEndDate).getTime() < Date.now()
+                ? "text-red-400"
+                : "text-emerald-400/70"
+            }`}>
+              ETA: {new Date(movement.estimatedEndDate).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Track visualization */}
