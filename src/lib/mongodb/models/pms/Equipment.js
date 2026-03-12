@@ -16,7 +16,7 @@ const equipmentSchema = new mongoose.Schema(
   {
     equipmentCode: { type: String, required: true, unique: true },
     equipmentName: { type: String, required: true },
-    equipmentType: { type: String, required: true },
+    equipmentType: { type: String, trim: true, default: "" },
 
     specification: String,
     manufacturer: String,

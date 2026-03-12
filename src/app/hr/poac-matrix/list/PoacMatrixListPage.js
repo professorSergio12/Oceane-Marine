@@ -103,6 +103,183 @@ function DownloadIconButton({ onClick, disabled, loading }) {
   );
 }
 
+/* ── PDF Generator (client-side, landscape) ── */
+async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
+  const { default: jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF("l", "mm", "a4"); // landscape
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const displayYear = recordYear || new Date().getFullYear();
+  const safeProvider = providerName || "POAC";
+  const margin = 6;
+  const headerHeight = 28;
+
+  // ── Header banner (bordered box with logo + title) ──
+  // Dark blue background fill for the header area
+  doc.setFillColor(0, 51, 102);
+  doc.setDrawColor(0, 51, 102);
+  doc.setLineWidth(0.6);
+  doc.rect(margin, 4, pageWidth - margin * 2, headerHeight, "FD"); // F = fill, D = draw border
+
+  // Vertical divider between logo and title (white line)
+  const logoDividerX = 55;
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.3);
+  doc.line(logoDividerX, 4, logoDividerX, 4 + headerHeight);
+
+  // Logo in left box
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = "/image/image.png";
+    });
+    const logoWidth = 38;
+    const logoHeight = (img.naturalHeight / img.naturalWidth) * logoWidth;
+    const logoX = margin + (logoDividerX - margin - logoWidth) / 2;
+    const logoY = 4 + (headerHeight - logoHeight) / 2;
+    doc.addImage(img, "PNG", logoX, logoY, logoWidth, logoHeight);
+  } catch {
+    // no logo fallback
+  }
+
+  // Title in right box (white text on dark blue background)
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255); // White text
+  const titleCenterX = logoDividerX + (pageWidth - margin - logoDividerX) / 2;
+  doc.text(`POAC Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+
+  // ── Table columns ──
+  const pdfColumns = [
+    "S.N",
+    "STS Service\nProvider",
+    "POAC's Name",
+    "Valid\nPassport",
+    "Valid\nMaster's\nCOC",
+    "Dangerous\ncargo\nendorsement\n(Oil)",
+    "Dangerous\ncargo\nendorsement(Ch\nem)",
+    "Dangerous\ncargo\nendorsements\n(Gas)",
+    "Oil spill\nresponse\ntraining",
+    "STS\nSimulator\ntraining",
+    "Vessel\nSize\nLimitation",
+    "Underway\noperations",
+    "Valid\nMedicals",
+    "Experience\nwith Oceane",
+    "Remarks:\nLocations / etc",
+  ];
+
+  const pdfKeys = [
+    "stsServiceProvider",
+    "poacName",
+    "validPassport",
+    "validMastersCOC",
+    "dangerousCargoEndorsementOil",
+    "dangerousCargoEndorsementChem",
+    "dangerousCargoEndorsementGas",
+    "oilSpillResponseTraining",
+    "stsSimulatorTraining",
+    "vesselSizeLimitations",
+    "underwayOperations",
+    "validMedicals",
+    "experienceWithOceane",
+    "remarks",
+  ];
+
+  // Build body rows (serial numbered)
+  const body = allRows.map((row, idx) => [
+    idx + 1,
+    ...pdfKeys.map((k) => row[k] || "—"),
+  ]);
+
+  const tableStartY = 4 + headerHeight + 2;
+
+  autoTable(doc, {
+    startY: tableStartY,
+    margin: { left: margin, right: margin },
+    head: [pdfColumns],
+    body,
+    headStyles: {
+      fillColor: [230, 126, 34],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 6,
+      cellPadding: 2,
+      halign: "center",
+      valign: "middle",
+      lineColor: [200, 100, 20],
+      lineWidth: 0.4,
+    },
+    bodyStyles: {
+      fontSize: 6,
+      cellPadding: 2,
+      textColor: [30, 30, 30],
+      valign: "middle",
+      lineColor: [80, 80, 80],
+      lineWidth: 0.3,
+    },
+    alternateRowStyles: { fillColor: [252, 235, 215] },
+    columnStyles: {
+      0: { cellWidth: 8, halign: "center", fontStyle: "bold" },
+      1: { cellWidth: 22 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 14, halign: "center" },
+      4: { cellWidth: 16, halign: "center" },
+      5: { cellWidth: 20, halign: "center" },
+      6: { cellWidth: 22, halign: "center" },
+      7: { cellWidth: 22, halign: "center" },
+      8: { cellWidth: 18, halign: "center" },
+      9: { cellWidth: 16, halign: "center" },
+      10: { cellWidth: 16, halign: "center" },
+      11: { cellWidth: 16, halign: "center" },
+      12: { cellWidth: 14, halign: "center" },
+      13: { cellWidth: 20 },
+      14: { cellWidth: "auto" },
+    },
+    theme: "grid",
+    styles: { lineColor: [80, 80, 80], lineWidth: 0.3, overflow: "linebreak" },
+    didDrawPage: (data) => {
+      // Re-draw header on subsequent pages
+      if (data.pageNumber > 1) {
+        doc.setFillColor(0, 51, 102);
+        doc.setDrawColor(0, 51, 102);
+        doc.setLineWidth(0.6);
+        doc.rect(margin, 4, pageWidth - margin * 2, headerHeight, "FD");
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.3);
+        doc.line(logoDividerX, 4, logoDividerX, 4 + headerHeight);
+        doc.setFontSize(20);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text(`POAC Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+      }
+
+      // Footer on every page
+      const footerY = pageHeight - 8;
+      doc.setDrawColor(230, 126, 34);
+      doc.setLineWidth(0.8);
+      doc.line(10, footerY - 3, 30, footerY - 3);
+      doc.setFontSize(6);
+      doc.setTextColor(80, 80, 80);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        "+971 50 497 4021   |   1201, Fortune Tower, Cluster C, JLT Dubai   |   operations@oceanemarine.com",
+        pageWidth / 2,
+        footerY,
+        { align: "center" }
+      );
+      doc.text("Dubai | Fujairah | Oman", 10, footerY + 3);
+    },
+  });
+
+  const safeName = safeProvider.replace(/[^a-zA-Z0-9_-]/g, "_");
+  doc.save(`POAC_Matrix_${safeName}_${displayYear}.pdf`);
+}
+
 /* ── Column headers for the full detail table ── */
 const DETAIL_COLUMNS = [
   { key: "stsServiceProvider", label: "STS Service Provider" },
@@ -132,6 +309,7 @@ export default function PoacMatrixListPage({ onRefresh }) {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [downloadingKey, setDownloadingKey] = useState(null);
+  const [pdfDownloadingId, setPdfDownloadingId] = useState(null);
 
   useEffect(() => {
     fetchRecords();
@@ -208,6 +386,27 @@ export default function PoacMatrixListPage({ onRefresh }) {
     }
   };
 
+  // Download PDF for a specific record
+  const handleRecordPDF = async (record) => {
+    const rows = record.rows || [];
+    if (rows.length === 0) {
+      setError("No POAC rows in this record");
+      setTimeout(() => setError(""), 4000);
+      return;
+    }
+    try {
+      setPdfDownloadingId(record._id);
+      const provider = rows[0]?.stsServiceProvider || "POAC";
+      const recordYear = record.createdAt ? new Date(record.createdAt).getFullYear() : new Date().getFullYear();
+      await generatePoacMatrixPDF(rows, provider, recordYear);
+    } catch (err) {
+      setError(err.message || "PDF download failed");
+      setTimeout(() => setError(""), 5000);
+    } finally {
+      setPdfDownloadingId(null);
+    }
+  };
+
   // Get a summary for each record (first row's STS provider, count of POACs)
   const getRecordSummary = (record) => {
     const rows = record.rows || [];
@@ -273,6 +472,11 @@ export default function PoacMatrixListPage({ onRefresh }) {
                             <div className="flex items-center justify-end gap-1">
                               <ViewIconButton onClick={() => handleView(record)} />
                               <EditIconButton onClick={() => handleEdit(record)} />
+                              <DownloadIconButton
+                                onClick={() => handleRecordPDF(record)}
+                                disabled={pdfDownloadingId === record._id}
+                                loading={pdfDownloadingId === record._id}
+                              />
                               <DeleteIconButton
                                 onClick={() => handleDelete(record._id)}
                                 disabled={deletingId === record._id}

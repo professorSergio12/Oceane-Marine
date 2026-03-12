@@ -24,7 +24,7 @@ export async function POST(req) {
       remarks
     } = body;
 
-    if (!equipmentCode || !equipmentName || !equipmentType || !ownershipType) {
+    if (!equipmentCode || !equipmentName || !ownershipType) {
       return NextResponse.json(
         { message: "Required fields missing" },
         { status: 400 }

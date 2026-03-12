@@ -750,7 +750,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-1">
-                Equipment Type<span className="text-red-400">*</span>
+                Equipment Type
               </label>
               <input
                 type="text"
@@ -759,7 +759,6 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 onChange={handleInputChange}
                 className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="E.g., Lifting Gear, Hose"
-                required
               />
             </div>
           </div>

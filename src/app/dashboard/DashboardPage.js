@@ -26,17 +26,26 @@ const VALID_TABS = ["operations", "pms", "qhse", "accounts", "hr"];
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState("operations");
+  const [activeTab, setActiveTab] = useState(() => {
+    // Initialize from URL if valid, otherwise default to "operations"
+    return tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : "operations";
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const menuRef = useRef(null);
 
-  // Open tab from ?tab= (e.g. /dashboard?tab=qhse or redirect from /qhse/dashboard)
+  // Sync state when URL ?tab= changes externally (e.g. browser back/forward)
   useEffect(() => {
-    if (tabFromUrl && VALID_TABS.includes(tabFromUrl)) {
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [tabFromUrl]);
+  }, [tabFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update URL whenever activeTab changes (keeps URL in sync so refresh works)
+  const handleTabChange = (tabKey) => {
+    setActiveTab(tabKey);
+    router.replace(`/dashboard?tab=${tabKey}`, { scroll: false });
+  };
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -174,7 +183,7 @@ export default function DashboardPage() {
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   className={`rounded-xl px-8 py-3 text-sm font-semibold transition-all duration-200 ${
                     activeTab === tab.key
                       ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40 scale-105"
@@ -198,7 +207,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <DashboardTabs activeTab={activeTab} onTabChange={handleTabChange} />
         </div>
       </main>
     </div>
