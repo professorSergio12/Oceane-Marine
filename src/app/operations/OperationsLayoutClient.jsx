@@ -2,7 +2,6 @@
 
 import { OperationsLoadingProvider, useOperationsLoading } from "./OperationsLoadingContext";
 import { OperationsSidebarProvider, useOperationsSidebar } from "./OperationsSidebarContext";
-import GoToDashBoardButton from "../components/GoToDashBoardButton";
 import LoadingOverlay from "./components/LoadingOverlay";
 
 function ContentWrapper({ children }) {

@@ -90,7 +90,13 @@ export default function TargetKpiListPage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
+        <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <Link
+            href="/dashboard"
+            className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / KPI / Target KPI
@@ -100,7 +106,7 @@ export default function TargetKpiListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">HSE-001A</span>
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-start sm:items-end gap-2">
             <TemplateDownloadLink formCode="HSE-001A" />
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
@@ -120,31 +126,31 @@ export default function TargetKpiListPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex w-[13rem] rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/qhse/kpi/target-kpi/form"
-                  className="flex-1 min-w-0 text-center px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+                  className="flex-1 min-w-0 text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
                 >
                   Target KPI
                 </Link>
                 <Link
                   href="/qhse/kpi/create"
-                  className="flex-1 min-w-0 text-center px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                  className="flex-1 min-w-0 text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
                 >
                   KPI
                 </Link>
               </div>
             </div>
-            <div className="flex w-[13rem] rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/kpi/target-kpi/form"
-                className="flex-1 min-w-0 text-center px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                className="flex-1 min-w-0 text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
               >
                 Form
               </Link>
               <Link
                 href="/qhse/kpi/target-kpi/list"
-                className="flex-1 min-w-0 text-center px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+                className="flex-1 min-w-0 text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
               >
                 List
               </Link>

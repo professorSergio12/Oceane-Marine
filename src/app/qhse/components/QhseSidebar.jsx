@@ -548,13 +548,21 @@ export default function QhseSidebar() {
 
       {/* Sidebar Toggle Button */}
       {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
-          aria-label="Open sidebar"
-        >
-          <span className="text-white text-xl">☰</span>
-        </button>
+        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            aria-label="Open sidebar"
+          >
+            <span className="text-white text-xl">☰</span>
+          </button>
+          <Link
+            href="/dashboard"
+            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+        </div>
       )}
     </>
   );

@@ -224,7 +224,13 @@ export default function DrillsReportPage() {
       {/* Main Content */}
       <div className={contentClassName}>
         <div className="mx-auto max-w-6xl px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-          <header className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <Link
+              href="/dashboard"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+            >
+              ← Dashboard
+            </Link>
             <div className="flex items-center gap-3">
               <div>
                 <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
@@ -239,10 +245,10 @@ export default function DrillsReportPage() {
               </div>
             </div>
 
-            <div className="ml-auto flex items-center gap-3">
+            <div className="ml-auto flex flex-wrap items-center gap-2 sm:gap-3">
               <Link
                 href="/qhse/drills/list"
-                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition"
+                className="rounded-full border border-white/15 bg-white/5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition"
               >
                 View List
               </Link>

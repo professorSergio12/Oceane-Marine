@@ -109,17 +109,23 @@ export default function DrillsListPage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-4 sm:space-y-6">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
+        <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <Link
+            href="/dashboard"
+            className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               QHSE / Drills
             </p>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Drill Plans & Reports</h1>
-            <p className="text-sm text-slate-200 mt-1">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Drill Plans & Reports</h1>
+            <p className="text-xs sm:text-sm text-slate-200 mt-1">
               Year-wise drill plans with quarter-wise reports
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 sm:ml-auto">
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
                   Year
@@ -140,22 +146,22 @@ export default function DrillsListPage() {
                   ))}
                 </select>
               </div>
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link
               href="/qhse/drills/create/plan"
-              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
             >
               Drill Matrix
             </Link>
             <Link
               href="/qhse/drills/create/report"
-              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
             >
               Drill Report
             </Link>
             <Link
               href="/qhse/drills/list"
-              className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+              className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
             >
               View List
             </Link>

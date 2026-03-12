@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQhseSidebar } from "../QhseSidebarContext";
+import Link from "next/link";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -56,7 +57,13 @@ export default function ControlledDocumentRegisterPage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="flex items-start justify-between gap-4 flex-wrap">
+        <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <Link
+            href="/dashboard"
+            className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
           <div className="min-w-0 flex-1">
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE
@@ -66,7 +73,7 @@ export default function ControlledDocumentRegisterPage() {
               Live index of all controlled forms and documents (QHSE, Operations, PMS). Click a row to go to the module.
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 ml-auto">
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
               <select

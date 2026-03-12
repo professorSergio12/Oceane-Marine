@@ -481,7 +481,13 @@ export default function MOCManagementChangeFormPage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
+        <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <Link
+            href="/dashboard"
+            className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
           <div className="flex-1">
             <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
               QHSE / MOC / Management of Change
@@ -495,7 +501,7 @@ export default function MOCManagementChangeFormPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
               <select
@@ -520,7 +526,7 @@ export default function MOCManagementChangeFormPage() {
             <a
               href="/templates/controlled-register/QAF-OFD-058.docx"
               download
-              className="inline-flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
               title="Download form template (QAF-OFD-058)"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -531,7 +537,7 @@ export default function MOCManagementChangeFormPage() {
             <a
               href="/templates/controlled-register/QAF-OFD-058A.docx"
               download
-              className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
               title="Download form template (QAF-OFD-058A)"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -542,13 +548,13 @@ export default function MOCManagementChangeFormPage() {
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/moc/management-change/form"
-                className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
               >
                 MOC Form
               </Link>
               <Link
                 href="/qhse/moc/management-change/list"
-                className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
               >
                 MOC List
               </Link>
