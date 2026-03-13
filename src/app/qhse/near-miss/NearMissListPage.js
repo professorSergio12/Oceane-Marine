@@ -3,8 +3,9 @@
 import { useQhseSidebar } from "../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../utils/archive";
-import { ViewIconButton, ArchiveIconButton, DeleteIconButton } from "../components/ActionIcons";
+import { ViewIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../components/ActionIcons";
 import { TemplateDownloadLink } from "../components/TemplateDownloadLink";
 
 function formatDate(value) {
@@ -54,6 +55,7 @@ export default function NearMissListPage() {
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [remarksByReviewer, setRemarksByReviewer] = useState("");
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -159,6 +161,27 @@ export default function NearMissListPage() {
       setError(err.message || "Failed to delete report");
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleDownloadWord = async (report) => {
+    setDownloadingId(report._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/near-miss-form/${report._id}/docx`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Download failed");
+      }
+      const blob = await res.blob();
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      const fileName = match ? match[1].trim() : `Near-Miss-${report.serialNumber || report._id}.docx`;
+      saveAs(blob, fileName);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -566,6 +589,11 @@ export default function NearMissListPage() {
                           </td>
                           <td className="py-3 pr-4 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <DownloadIconButton
+                                onClick={() => handleDownloadWord(report)}
+                                disabled={archivingId === report._id || deleting === report._id}
+                                loading={downloadingId === report._id}
+                              />
                               <ArchiveIconButton
                                 onClick={() => handleArchive(report)}
                                 disabled={archivingId === report._id || deleting === report._id}
