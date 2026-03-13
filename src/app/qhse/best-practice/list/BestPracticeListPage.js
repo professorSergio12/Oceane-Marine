@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { useQhseSidebar } from "../../QhseSidebarContext";
-import { ArchiveIconButton, DeleteIconButton } from "../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../components/ActionIcons";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -35,6 +36,7 @@ export default function BestPracticeListPage() {
   const [error, setError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -97,6 +99,27 @@ export default function BestPracticeListPage() {
       setError(err.message);
     } finally {
       setArchivingId(null);
+    }
+  };
+
+  const handleDownload = async (practice) => {
+    setDownloadingId(practice._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/best-practice/${practice._id}/download`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Download failed");
+      }
+      const blob = await res.blob();
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      const fileName = match ? match[1].trim() : `Best-Practice-${practice.serialNumber || practice._id}.docx`;
+      saveAs(blob, fileName);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -234,6 +257,11 @@ export default function BestPracticeListPage() {
                         </td>
                         <td className="py-3 pr-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
+                            <DownloadIconButton
+                              onClick={() => handleDownload(practice)}
+                              disabled={archivingId === practice._id || deletingId === practice._id}
+                              loading={downloadingId === practice._id}
+                            />
                             <ArchiveIconButton
                               onClick={() => handleArchive(practice)}
                               disabled={archivingId === practice._id || deletingId === practice._id}
