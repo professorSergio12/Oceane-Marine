@@ -298,6 +298,173 @@ const DETAIL_COLUMNS = [
   { key: "remarks", label: "Remarks: Locations / etc" },
 ];
 
+/* ── Overall PDF Generator (combines multiple records into one file) ── */
+async function generateOverallPoacPDF(allRows) {
+  const { default: jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF("l", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const displayYear = new Date().getFullYear();
+  const margin = 6;
+  const headerHeight = 28;
+
+  // ── Header banner ──
+  doc.setFillColor(0, 51, 102);
+  doc.setDrawColor(0, 51, 102);
+  doc.setLineWidth(0.6);
+  doc.rect(margin, 4, pageWidth - margin * 2, headerHeight, "FD");
+
+  const logoDividerX = 55;
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.3);
+  doc.line(logoDividerX, 4, logoDividerX, 4 + headerHeight);
+
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = "/image/image.png";
+    });
+    const logoWidth = 38;
+    const logoHeight = (img.naturalHeight / img.naturalWidth) * logoWidth;
+    const logoX = margin + (logoDividerX - margin - logoWidth) / 2;
+    const logoY = 4 + (headerHeight - logoHeight) / 2;
+    doc.addImage(img, "PNG", logoX, logoY, logoWidth, logoHeight);
+  } catch {
+    // no logo fallback
+  }
+
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  const titleCenterX = logoDividerX + (pageWidth - margin - logoDividerX) / 2;
+  doc.text(`POAC Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+
+  // ── Table columns ──
+  const pdfColumns = [
+    "S.N",
+    "STS Service\nProvider",
+    "POAC's Name",
+    "Valid\nPassport",
+    "Valid\nMaster's\nCOC",
+    "Dangerous\ncargo\nendorsement\n(Oil)",
+    "Dangerous\ncargo\nendorsement(Ch\nem)",
+    "Dangerous\ncargo\nendorsements\n(Gas)",
+    "Oil spill\nresponse\ntraining",
+    "STS\nSimulator\ntraining",
+    "Vessel\nSize\nLimitation",
+    "Underway\noperations",
+    "Valid\nMedicals",
+    "Experience\nwith Oceane",
+    "Remarks:\nLocations / etc",
+  ];
+
+  const pdfKeys = [
+    "stsServiceProvider",
+    "poacName",
+    "validPassport",
+    "validMastersCOC",
+    "dangerousCargoEndorsementOil",
+    "dangerousCargoEndorsementChem",
+    "dangerousCargoEndorsementGas",
+    "oilSpillResponseTraining",
+    "stsSimulatorTraining",
+    "vesselSizeLimitations",
+    "underwayOperations",
+    "validMedicals",
+    "experienceWithOceane",
+    "remarks",
+  ];
+
+  const body = allRows.map((row, idx) => [
+    idx + 1,
+    ...pdfKeys.map((k) => row[k] || "—"),
+  ]);
+
+  const tableStartY = 4 + headerHeight + 2;
+
+  autoTable(doc, {
+    startY: tableStartY,
+    margin: { left: margin, right: margin },
+    head: [pdfColumns],
+    body,
+    headStyles: {
+      fillColor: [230, 126, 34],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 6,
+      cellPadding: 2,
+      halign: "center",
+      valign: "middle",
+      lineColor: [200, 100, 20],
+      lineWidth: 0.4,
+    },
+    bodyStyles: {
+      fontSize: 6,
+      cellPadding: 2,
+      textColor: [30, 30, 30],
+      valign: "middle",
+      lineColor: [80, 80, 80],
+      lineWidth: 0.3,
+    },
+    alternateRowStyles: { fillColor: [252, 235, 215] },
+    columnStyles: {
+      0: { cellWidth: 8, halign: "center", fontStyle: "bold" },
+      1: { cellWidth: 22 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 14, halign: "center" },
+      4: { cellWidth: 16, halign: "center" },
+      5: { cellWidth: 20, halign: "center" },
+      6: { cellWidth: 22, halign: "center" },
+      7: { cellWidth: 22, halign: "center" },
+      8: { cellWidth: 18, halign: "center" },
+      9: { cellWidth: 16, halign: "center" },
+      10: { cellWidth: 16, halign: "center" },
+      11: { cellWidth: 16, halign: "center" },
+      12: { cellWidth: 14, halign: "center" },
+      13: { cellWidth: 20 },
+      14: { cellWidth: "auto" },
+    },
+    theme: "grid",
+    styles: { lineColor: [80, 80, 80], lineWidth: 0.3, overflow: "linebreak" },
+    didDrawPage: (data) => {
+      if (data.pageNumber > 1) {
+        doc.setFillColor(0, 51, 102);
+        doc.setDrawColor(0, 51, 102);
+        doc.setLineWidth(0.6);
+        doc.rect(margin, 4, pageWidth - margin * 2, headerHeight, "FD");
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.3);
+        doc.line(logoDividerX, 4, logoDividerX, 4 + headerHeight);
+        doc.setFontSize(20);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text(`POAC Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+      }
+      const footerY = pageHeight - 8;
+      doc.setDrawColor(230, 126, 34);
+      doc.setLineWidth(0.8);
+      doc.line(10, footerY - 3, 30, footerY - 3);
+      doc.setFontSize(6);
+      doc.setTextColor(80, 80, 80);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        "+971 50 497 4021   |   1201, Fortune Tower, Cluster C, JLT Dubai   |   operations@oceanemarine.com",
+        pageWidth / 2,
+        footerY,
+        { align: "center" }
+      );
+      doc.text("Dubai | Fujairah | Oman", 10, footerY + 3);
+    },
+  });
+
+  doc.save(`POAC_Matrix_Overall_${displayYear}.pdf`);
+}
+
 /* ── Main list component ── */
 export default function PoacMatrixListPage({ onRefresh }) {
   const router = useRouter();
@@ -310,6 +477,11 @@ export default function PoacMatrixListPage({ onRefresh }) {
   const [deletingId, setDeletingId] = useState(null);
   const [downloadingKey, setDownloadingKey] = useState(null);
   const [pdfDownloadingId, setPdfDownloadingId] = useState(null);
+
+  // Overall PDF selection
+  const [showPdfPanel, setShowPdfPanel] = useState(false);
+  const [selectedRecordIds, setSelectedRecordIds] = useState(new Set());
+  const [downloadingOverall, setDownloadingOverall] = useState(false);
 
   useEffect(() => {
     fetchRecords();
@@ -407,6 +579,61 @@ export default function PoacMatrixListPage({ onRefresh }) {
     }
   };
 
+  // Overall PDF panel helpers
+  const openPdfPanel = () => {
+    setShowPdfPanel(true);
+    // Select all by default
+    setSelectedRecordIds(new Set(records.map((r) => r._id)));
+  };
+
+  const closePdfPanel = () => {
+    setShowPdfPanel(false);
+    setSelectedRecordIds(new Set());
+  };
+
+  const toggleRecordSelection = (id) => {
+    setSelectedRecordIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllRecords = () => {
+    if (selectedRecordIds.size === records.length) {
+      setSelectedRecordIds(new Set());
+    } else {
+      setSelectedRecordIds(new Set(records.map((r) => r._id)));
+    }
+  };
+
+  const handleOverallDownload = async () => {
+    try {
+      setDownloadingOverall(true);
+      const selected = records.filter((r) => selectedRecordIds.has(r._id));
+      if (selected.length === 0) {
+        setError("Please select at least one record");
+        return;
+      }
+      // Combine all rows from selected records into one flat array
+      const allRows = [];
+      selected.forEach((record) => {
+        (record.rows || []).forEach((row) => allRows.push(row));
+      });
+      if (allRows.length === 0) {
+        setError("No POAC rows found in selected records");
+        return;
+      }
+      await generateOverallPoacPDF(allRows);
+      closePdfPanel();
+    } catch (err) {
+      setError(err.message || "PDF download failed");
+    } finally {
+      setDownloadingOverall(false);
+    }
+  };
+
   // Get a summary for each record (first row's STS provider, count of POACs)
   const getRecordSummary = (record) => {
     const rows = record.rows || [];
@@ -427,6 +654,21 @@ export default function PoacMatrixListPage({ onRefresh }) {
         {actionMessage && (
           <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
             {actionMessage}
+          </div>
+        )}
+
+        {/* Overall Extract PDF Button */}
+        {records.length > 0 && (
+          <div className="flex items-end justify-end">
+            <button
+              onClick={openPdfPanel}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-orange-500/30 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
+              </svg>
+              Extract Overall PDF
+            </button>
           </div>
         )}
 
@@ -494,6 +736,136 @@ export default function PoacMatrixListPage({ onRefresh }) {
           )}
         </main>
       </div>
+
+      {/* ── Overall PDF Selection Modal ── */}
+      {showPdfPanel &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={closePdfPanel}
+          >
+            <div
+              className="relative bg-slate-900 rounded-2xl border border-white/20 shadow-2xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between rounded-t-2xl flex-shrink-0">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Extract Overall PDF</h3>
+                  <p className="text-xs text-white/50 mt-0.5">
+                    Select records to include — all rows will be combined into one PDF
+                  </p>
+                </div>
+                <button
+                  onClick={closePdfPanel}
+                  className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-3">
+                {records.length === 0 ? (
+                  <p className="text-white/50 text-center py-8 text-sm">No records found</p>
+                ) : (
+                  <>
+                    {/* Select All */}
+                    <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition">
+                      <input
+                        type="checkbox"
+                        checked={selectedRecordIds.size === records.length}
+                        onChange={toggleAllRecords}
+                        className="w-4 h-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50 accent-orange-500"
+                      />
+                      <span className="text-sm font-semibold text-white">
+                        Select All
+                        <span className="ml-2 text-xs text-white/40 font-normal">
+                          ({selectedRecordIds.size}/{records.length})
+                        </span>
+                      </span>
+                    </label>
+
+                    <div className="h-px bg-white/10" />
+
+                    {/* Record list */}
+                    {records.map((record) => {
+                      const { provider, poacCount } = getRecordSummary(record);
+                      const totalRows = record.rows?.length || 0;
+                      return (
+                        <label
+                          key={record._id}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition ${
+                            selectedRecordIds.has(record._id)
+                              ? "bg-orange-500/10 border-orange-500/30"
+                              : "bg-white/[0.02] border-white/10 hover:bg-white/5"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedRecordIds.has(record._id)}
+                            onChange={() => toggleRecordSelection(record._id)}
+                            className="w-4 h-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50 accent-orange-500"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-white block truncate">
+                              {provider}
+                            </span>
+                            <span className="text-xs text-white/40">
+                              {totalRows} POAC{totalRows !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <span className="inline-flex items-center justify-center bg-orange-500/20 text-orange-300 text-xs font-bold px-2.5 py-1 rounded-full min-w-[28px]">
+                            {totalRows}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              {records.length > 0 && (
+                <div className="sticky bottom-0 bg-slate-900/95 backdrop-blur-sm border-t border-white/10 px-6 py-4 flex items-center justify-between rounded-b-2xl flex-shrink-0">
+                  <p className="text-xs text-white/40">
+                    {selectedRecordIds.size} of {records.length} selected ·{" "}
+                    {records
+                      .filter((r) => selectedRecordIds.has(r._id))
+                      .reduce((sum, r) => sum + (r.rows?.length || 0), 0)}{" "}
+                    total rows
+                  </p>
+                  <button
+                    onClick={handleOverallDownload}
+                    disabled={downloadingOverall || selectedRecordIds.size === 0}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {downloadingOverall ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
+                        </svg>
+                        Download PDF
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* ── View Modal — full detail table (like Excel) ── */}
       {selectedRecord &&
