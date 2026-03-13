@@ -38,16 +38,50 @@ export async function DELETE(req, { params }) {
     }
 
     // Delete all attached files from all rows and clean up empty directories
+    const OPTION_FILE_FIELDS = [
+      "validPassport", "validMastersCOC", "dangerousCargoEndorsementOil",
+      "dangerousCargoEndorsementChem", "dangerousCargoEndorsementGas",
+      "oilSpillResponseTraining", "stsSimulatorTraining", "vesselSizeLimitations",
+      "underwayOperations", "validMedicals",
+    ];
+
     if (record.rows && Array.isArray(record.rows)) {
       for (const row of record.rows) {
+        // Delete all files in the attachments array (new multi-file format)
+        if (row.attachments && Array.isArray(row.attachments)) {
+          for (const att of row.attachments) {
+            if (att?.fileUrl) {
+              try {
+                const filePath = path.join(process.cwd(), "public", att.fileUrl);
+                await fs.unlink(filePath).catch(() => {});
+                await cleanEmptyDirs(path.dirname(filePath));
+              } catch (err) {
+                console.error("Error deleting file:", err);
+              }
+            }
+          }
+        }
+        // Also clean legacy single attachment
         if (row.attachment?.fileUrl) {
           try {
             const filePath = path.join(process.cwd(), "public", row.attachment.fileUrl);
             await fs.unlink(filePath).catch(() => {});
-            // Clean up empty parent folders
             await cleanEmptyDirs(path.dirname(filePath));
           } catch (err) {
             console.error("Error deleting file:", err);
+          }
+        }
+        // Delete per-option files
+        for (const field of OPTION_FILE_FIELDS) {
+          const fileData = row[`${field}File`];
+          if (fileData?.fileUrl) {
+            try {
+              const filePath = path.join(process.cwd(), "public", fileData.fileUrl);
+              await fs.unlink(filePath).catch(() => {});
+              await cleanEmptyDirs(path.dirname(filePath));
+            } catch (err) {
+              console.error("Error deleting file:", err);
+            }
           }
         }
       }

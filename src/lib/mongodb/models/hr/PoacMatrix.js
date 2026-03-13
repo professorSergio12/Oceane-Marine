@@ -83,6 +83,17 @@ const poacMatrixRowSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  /* Multi-file attachments (array of { fileUrl, originalFileName }) */
+  attachments: {
+    type: [
+      {
+        fileUrl: { type: String, default: "" },
+        originalFileName: { type: String, default: "" },
+      },
+    ],
+    default: [],
+  },
+  /* Legacy single attachment field — kept for backward compatibility */
   attachment: {
     fileUrl: {
       type: String,

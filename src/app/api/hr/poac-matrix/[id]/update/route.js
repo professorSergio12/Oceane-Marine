@@ -86,7 +86,6 @@ export async function PUT(req, { params }) {
       const validMedicals = formData.get(`row_${rowIndex}_validMedicals`) || "No";
       const experienceWithOceane = formData.get(`row_${rowIndex}_experienceWithOceane`);
       const remarks = formData.get(`row_${rowIndex}_remarks`) || "";
-      const attachment = formData.get(`row_${rowIndex}_attachment`);
 
       // Validate required fields
       if (!stsServiceProvider || !stsServiceProvider.trim()) {
@@ -108,12 +107,39 @@ export async function PUT(req, { params }) {
       // Get existing row data for preserving files
       const existingRow = existingRecord.rows[rowIndex];
 
-      // Handle main attachment (preserve existing if no new file)
-      let attachmentData = existingRow?.attachment || { fileUrl: "", originalFileName: "" };
-      if (attachment && typeof attachment !== "string" && attachment.name && attachment.size > 0) {
-        await deleteFileIfExists(existingRow?.attachment?.fileUrl);
-        attachmentData = await saveFile(attachment, stsServiceProvider, poacName, "main");
+      // Handle multiple main attachments with keep/remove logic
+      // 1. Parse which existing attachments to keep
+      let keepFileUrls = [];
+      const keepAttachmentsRaw = formData.get(`row_${rowIndex}_keepAttachments`);
+      if (keepAttachmentsRaw) {
+        try { keepFileUrls = JSON.parse(keepAttachmentsRaw); } catch { keepFileUrls = []; }
       }
+
+      // 2. Determine which existing files to keep vs delete
+      const oldAttachments = existingRow?.attachments || [];
+      // Also handle legacy single attachment
+      if (oldAttachments.length === 0 && existingRow?.attachment?.fileUrl) {
+        oldAttachments.push(existingRow.attachment);
+      }
+      const keptAttachments = [];
+      for (const att of oldAttachments) {
+        if (keepFileUrls.includes(att.fileUrl)) {
+          keptAttachments.push(att);
+        } else {
+          await deleteFileIfExists(att.fileUrl);
+        }
+      }
+
+      // 3. Handle new file uploads
+      const newAttachmentFiles = formData.getAll(`row_${rowIndex}_attachments`);
+      const newAttachments = [];
+      for (const file of newAttachmentFiles) {
+        if (file && typeof file !== "string" && file.name && file.size > 0) {
+          const saved = await saveFile(file, stsServiceProvider, poacName, "main");
+          newAttachments.push(saved);
+        }
+      }
+      const mergedAttachments = [...keptAttachments, ...newAttachments];
 
       // Build option values map
       const optionValues = {
@@ -160,7 +186,7 @@ export async function PUT(req, { params }) {
         ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
         remarks: remarks ? remarks.trim() : "",
-        attachment: attachmentData,
+        attachments: mergedAttachments,
       });
 
       rowIndex++;
@@ -174,7 +200,11 @@ export async function PUT(req, { params }) {
     if (existingRecord.rows.length > rowsData.length) {
       for (let i = rowsData.length; i < existingRecord.rows.length; i++) {
         const oldRow = existingRecord.rows[i];
-        // Delete main attachment
+        // Delete all main attachments (array)
+        for (const att of (oldRow?.attachments || [])) {
+          await deleteFileIfExists(att?.fileUrl);
+        }
+        // Also clean up legacy single attachment
         await deleteFileIfExists(oldRow?.attachment?.fileUrl);
         // Delete per-option files
         for (const field of OPTION_FILE_FIELDS) {

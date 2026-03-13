@@ -70,7 +70,6 @@ export async function POST(req) {
       const validMedicals = formData.get(`row_${rowIndex}_validMedicals`) || "No";
       const experienceWithOceane = formData.get(`row_${rowIndex}_experienceWithOceane`);
       const remarks = formData.get(`row_${rowIndex}_remarks`) || "";
-      const attachment = formData.get(`row_${rowIndex}_attachment`);
 
       // Validate required fields
       if (!stsServiceProvider || !stsServiceProvider.trim()) {
@@ -89,10 +88,14 @@ export async function POST(req) {
         return NextResponse.json({ message: `Row ${rowIndex + 1}: Experience with Oceane is required` }, { status: 400 });
       }
 
-      // Handle main attachment
-      let attachmentData = { fileUrl: "", originalFileName: "" };
-      if (attachment && typeof attachment !== "string" && attachment.name && attachment.size > 0) {
-        attachmentData = await saveFile(attachment, stsServiceProvider, poacName, "main");
+      // Handle multiple main attachments
+      const attachmentFiles = formData.getAll(`row_${rowIndex}_attachments`);
+      const attachmentsData = [];
+      for (const file of attachmentFiles) {
+        if (file && typeof file !== "string" && file.name && file.size > 0) {
+          const saved = await saveFile(file, stsServiceProvider, poacName, "main");
+          attachmentsData.push(saved);
+        }
       }
 
       // Build row object with Yes/No values
@@ -130,7 +133,7 @@ export async function POST(req) {
         ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
         remarks: remarks ? remarks.trim() : "",
-        attachment: attachmentData,
+        attachments: attachmentsData,
       });
 
       rowIndex++;

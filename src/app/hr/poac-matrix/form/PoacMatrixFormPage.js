@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useHrLoading } from "../../HrLoadingContext";
@@ -26,7 +26,8 @@ const createEmptyRow = (stsServiceProvider = "") => {
     poacName: "",
     experienceWithOceane: "",
     remarks: "",
-    attachment: null,
+    newFiles: [],              // new File objects to upload
+    existingAttachments: [],   // { fileUrl, originalFileName } from server
   };
   YES_NO_OPTIONS.forEach(({ key }) => {
     row[key] = "No";
@@ -46,8 +47,10 @@ export default function PoacMatrixFormPage({ onSuccess }) {
   const [loadingData, setLoadingData] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  // Store existing file info per row index for edit mode
+  // Store existing file info per row index for edit mode (option-level files only)
   const [existingFiles, setExistingFiles] = useState([]);
+  // Refs for hidden file inputs (one per row)
+  const fileInputRefs = useRef({});
 
   // Load data if editing
   useEffect(() => {
@@ -62,12 +65,20 @@ export default function PoacMatrixFormPage({ onSuccess }) {
           const record = data.data?.find((r) => r._id === editId);
           if (record && record.rows && record.rows.length > 0) {
             const loadedRows = record.rows.map((row) => {
+              // Build existing attachments list (support both new array + legacy single)
+              let existingAtts = [];
+              if (row.attachments?.length > 0) {
+                existingAtts = row.attachments.filter((a) => a.fileUrl);
+              } else if (row.attachment?.fileUrl) {
+                existingAtts = [row.attachment];
+              }
               const r = {
                 stsServiceProvider: row.stsServiceProvider || "",
                 poacName: row.poacName || "",
                 experienceWithOceane: row.experienceWithOceane || "",
                 remarks: row.remarks || "",
-                attachment: null,
+                newFiles: [],
+                existingAttachments: existingAtts,
               };
               YES_NO_OPTIONS.forEach(({ key }) => {
                 r[key] = row[key] || "No";
@@ -152,8 +163,16 @@ export default function PoacMatrixFormPage({ onSuccess }) {
           if (file) formData.append(`row_${i}_${key}File`, file);
         });
 
-        // Main attachment
-        if (row.attachment) formData.append(`row_${i}_attachment`, row.attachment);
+        // Multiple main attachments — new files
+        for (const file of row.newFiles || []) {
+          formData.append(`row_${i}_attachments`, file);
+        }
+
+        // For edit mode — tell server which existing attachments to keep
+        if (editId) {
+          const keepUrls = (row.existingAttachments || []).map((a) => a.fileUrl);
+          formData.append(`row_${i}_keepAttachments`, JSON.stringify(keepUrls));
+        }
       }
 
       const url = editId ? `/api/hr/poac-matrix/${editId}/update` : "/api/hr/poac-matrix/create";
@@ -178,6 +197,39 @@ export default function PoacMatrixFormPage({ onSuccess }) {
       setLoading(false);
       setPageLoading(false);
     }
+  };
+
+  /* ── Multi-file helpers per row ── */
+  const handleAddFiles = (rowIndex, e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const newRows = [...rows];
+      newRows[rowIndex] = {
+        ...newRows[rowIndex],
+        newFiles: [...(newRows[rowIndex].newFiles || []), ...files],
+      };
+      setRows(newRows);
+    }
+    // Reset input so user can re-select same file
+    if (fileInputRefs.current[rowIndex]) fileInputRefs.current[rowIndex].value = "";
+  };
+
+  const removeNewFile = (rowIndex, fileIndex) => {
+    const newRows = [...rows];
+    newRows[rowIndex] = {
+      ...newRows[rowIndex],
+      newFiles: (newRows[rowIndex].newFiles || []).filter((_, i) => i !== fileIndex),
+    };
+    setRows(newRows);
+  };
+
+  const removeExistingAttachment = (rowIndex, attIndex) => {
+    const newRows = [...rows];
+    newRows[rowIndex] = {
+      ...newRows[rowIndex],
+      existingAttachments: (newRows[rowIndex].existingAttachments || []).filter((_, i) => i !== attIndex),
+    };
+    setRows(newRows);
   };
 
   /* ── Reusable: Select field with conditional file upload ── */
@@ -358,46 +410,103 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                   />
                 </div>
 
-                {/* Main Attachment */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-sm font-semibold text-white/90">
-                    Attachment {!editId && <span className="text-red-400">*</span>}
-                  </label>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={(e) => updateRow(rowIndex, "attachment", e.target.files[0])}
-                    required={!editId && !existingFiles[rowIndex]?.attachment?.fileUrl}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                  />
-                  {editId && existingFiles[rowIndex]?.attachment?.fileUrl && !row.attachment && (
-                    <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                      <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-sm text-emerald-300">
-                        Current file: <span className="font-medium text-emerald-200">{existingFiles[rowIndex].attachment.originalFileName || "File"}</span>
-                        <span className="text-emerald-400/70 ml-1">(Leave empty to keep existing file)</span>
-                      </p>
-                    </div>
-                  )}
-                  {row.attachment && (
-                    <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                      <svg className="w-4 h-4 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                      <p className="text-sm text-orange-300">
-                        New file: <span className="font-medium text-orange-200">{row.attachment.name}</span>
-                        <span className="text-orange-400/70 ml-1">({(row.attachment.size / 1024 / 1024).toFixed(2)} MB)</span>
-                        {existingFiles[rowIndex]?.attachment?.fileUrl && (
-                          <span className="text-red-300/70 ml-1">— will replace existing file</span>
+                {/* Multiple Attachments (Oil-Majors style) */}
+                <div className="space-y-3 md:col-span-2">
+                  {(() => {
+                    const totalFiles = (row.existingAttachments || []).length + (row.newFiles || []).length;
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-sm font-semibold text-white/90">
+                            Attachments
+                            {totalFiles > 0 && (
+                              <span className="ml-2 text-xs font-bold text-orange-300 bg-orange-500/20 px-2 py-0.5 rounded-full">
+                                {totalFiles} file{totalFiles !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => fileInputRefs.current[rowIndex]?.click()}
+                            className="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-xs font-semibold transition border border-orange-500/30"
+                          >
+                            + Add Files
+                          </button>
+                        </div>
+
+                        {/* Hidden file input (multiple) */}
+                        <input
+                          ref={(el) => (fileInputRefs.current[rowIndex] = el)}
+                          type="file"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                          multiple
+                          onChange={(e) => handleAddFiles(rowIndex, e)}
+                          className="hidden"
+                        />
+
+                        {/* Existing files (edit mode) */}
+                        {(row.existingAttachments || []).length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-emerald-400/80 font-medium">Existing files:</p>
+                            {row.existingAttachments.map((att, i) => (
+                              <div key={`existing-${rowIndex}-${i}`} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-sm text-emerald-300 flex-1 truncate">{att.originalFileName || "File"}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeExistingAttachment(rowIndex, i)}
+                                  className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
+                                  title="Remove file"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         )}
-                      </p>
-                    </div>
-                  )}
-                  <p className="text-xs text-white/50 mt-1">
-                    Accepted formats: PDF, DOC, DOCX, XLS, XLSX
-                  </p>
+
+                        {/* New files to upload */}
+                        {(row.newFiles || []).length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-orange-400/80 font-medium">New files to upload:</p>
+                            {row.newFiles.map((file, i) => (
+                              <div key={`new-${rowIndex}-${i}`} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                                <svg className="w-4 h-4 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <span className="text-sm text-orange-300 flex-1 truncate">{file.name}</span>
+                                <span className="text-xs text-orange-400/60">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeNewFile(rowIndex, i)}
+                                  className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
+                                  title="Remove file"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {totalFiles === 0 && (
+                          <div className="border-2 border-dashed border-white/15 rounded-xl p-6 text-center">
+                            <svg className="w-8 h-8 text-white/30 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <p className="text-sm text-white/40">Click &quot;+ Add Files&quot; to attach documents</p>
+                            <p className="text-xs text-white/30 mt-1">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG</p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

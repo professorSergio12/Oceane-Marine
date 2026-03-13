@@ -475,7 +475,6 @@ export default function PoacMatrixListPage({ onRefresh }) {
   const [actionMessage, setActionMessage] = useState("");
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [downloadingKey, setDownloadingKey] = useState(null);
   const [pdfDownloadingId, setPdfDownloadingId] = useState(null);
 
   // Overall PDF selection
@@ -532,30 +531,33 @@ export default function PoacMatrixListPage({ onRefresh }) {
     }
   };
 
-  const handleDownload = async (row, recordId, rowIndex) => {
-    if (!row.attachment?.fileUrl) {
-      alert("No file attached to this row");
+  const handleDownload = async (fileUrl, fileName) => {
+    if (!fileUrl) {
+      alert("No file attached");
       return;
     }
-    const key = `${recordId}-${rowIndex}`;
     try {
-      setDownloadingKey(key);
-      const res = await fetch(row.attachment.fileUrl);
+      const res = await fetch(fileUrl);
       if (!res.ok) throw new Error("Failed to download file");
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = row.attachment.originalFileName || "attachment";
+      a.download = fileName || "attachment";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
       alert(err.message || "Failed to download file");
-    } finally {
-      setDownloadingKey(null);
     }
+  };
+
+  /* Get all attachments for a row (supports both new array and legacy single) */
+  const getRowAttachments = (row) => {
+    if (row.attachments?.length > 0) return row.attachments.filter((a) => a.fileUrl);
+    if (row.attachment?.fileUrl) return [row.attachment];
+    return [];
   };
 
   // Download PDF for a specific record
@@ -913,8 +915,8 @@ export default function PoacMatrixListPage({ onRefresh }) {
                           {col.label}
                         </th>
                       ))}
-                      <th className="px-3 py-3 text-xs uppercase tracking-wider font-bold text-orange-300 border-b border-white/10 whitespace-nowrap min-w-[80px] text-center">
-                        File
+                      <th className="px-3 py-3 text-xs uppercase tracking-wider font-bold text-orange-300 border-b border-white/10 whitespace-nowrap min-w-[120px] text-center">
+                        Files
                       </th>
                     </tr>
                   </thead>
@@ -975,15 +977,28 @@ export default function PoacMatrixListPage({ onRefresh }) {
                           );
                         })}
                         <td className="px-3 py-3 text-center">
-                          {row.attachment?.fileUrl ? (
-                            <DownloadIconButton
-                              onClick={() => handleDownload(row, selectedRecord._id, rowIndex)}
-                              disabled={downloadingKey === `${selectedRecord._id}-${rowIndex}`}
-                              loading={downloadingKey === `${selectedRecord._id}-${rowIndex}`}
-                            />
-                          ) : (
-                            <span className="text-slate-500 text-xs">—</span>
-                          )}
+                          {(() => {
+                            const atts = getRowAttachments(row);
+                            if (atts.length === 0) return <span className="text-slate-500 text-xs">—</span>;
+                            return (
+                              <div className="flex flex-col gap-1 items-center">
+                                {atts.map((att, ai) => (
+                                  <button
+                                    key={ai}
+                                    type="button"
+                                    onClick={() => handleDownload(att.fileUrl, att.originalFileName)}
+                                    title={att.originalFileName || "Download"}
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-sky-300 hover:text-sky-200 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 transition truncate max-w-[160px]"
+                                  >
+                                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    <span className="truncate">{att.originalFileName || "File"}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
