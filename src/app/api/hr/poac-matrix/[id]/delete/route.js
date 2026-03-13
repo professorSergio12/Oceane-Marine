@@ -32,7 +32,7 @@ export async function DELETE(req, { params }) {
     const record = await PoacMatrix.findById(id);
     if (!record) {
       return NextResponse.json(
-        { message: "POAC Matrix record not found" },
+        { message: "POAC Certification Matrix record not found" },
         { status: 404 }
       );
     }
@@ -90,9 +90,9 @@ export async function DELETE(req, { params }) {
     // Delete record from database
     await PoacMatrix.findByIdAndDelete(id);
 
-    return NextResponse.json({ message: "POAC Matrix record deleted successfully" }, { status: 200 });
+    return NextResponse.json({ message: "POAC Certification Matrix record deleted successfully" }, { status: 200 });
   } catch (err) {
-    console.error("POAC Matrix deletion error:", err);
+    console.error("POAC Certification Matrix deletion error:", err);
     return NextResponse.json(
       { message: err.message || "Deletion failed", error: err.message },
       { status: 500 }

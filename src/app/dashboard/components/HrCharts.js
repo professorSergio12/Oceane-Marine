@@ -31,10 +31,10 @@ export default function HrCharts() {
   }, [fetchStats]);
 
   if (error) {
-    return (
+  return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold text-white">HR</h2>
+      <div>
+        <h2 className="text-xl font-semibold text-white">HR</h2>
           <p className="text-sm text-slate-300">Human Resources Overview</p>
         </div>
         <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
@@ -53,10 +53,10 @@ export default function HrCharts() {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   /* ── Chart helpers ── */
   const certLocationData = Object.entries(stats.certsByLocation || {})
@@ -464,7 +464,7 @@ export default function HrCharts() {
       {/* ── POAC Summary ── */}
       <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
         <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">
-          POAC Matrix Summary
+          POAC Certification Matrix Summary
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">

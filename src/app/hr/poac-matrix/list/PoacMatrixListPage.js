@@ -152,7 +152,10 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255); // White text
   const titleCenterX = logoDividerX + (pageWidth - margin - logoDividerX) / 2;
-  doc.text(`POAC Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+  doc.text(`POAC Certification Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+  doc.setFontSize(10);
+  doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
+  doc.setFontSize(20);
 
   // ── Table columns ──
   const pdfColumns = [
@@ -255,7 +258,10 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
         doc.setFontSize(20);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(`POAC Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+        doc.text(`POAC Certification Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+        doc.setFontSize(10);
+        doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
+        doc.setFontSize(20);
       }
 
       // Footer on every page
@@ -277,7 +283,7 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
   });
 
   const safeName = safeProvider.replace(/[^a-zA-Z0-9_-]/g, "_");
-  doc.save(`POAC_Matrix_${safeName}_${displayYear}.pdf`);
+  doc.save(`POAC_Certification_Matrix_${safeName}_${displayYear}.pdf`);
 }
 
 /* ── Column headers for the full detail table ── */
@@ -342,7 +348,10 @@ async function generateOverallPoacPDF(allRows) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
   const titleCenterX = logoDividerX + (pageWidth - margin - logoDividerX) / 2;
-  doc.text(`POAC Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+  doc.text(`POAC Certification Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+  doc.setFontSize(10);
+  doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
+  doc.setFontSize(20);
 
   // ── Table columns ──
   const pdfColumns = [
@@ -443,7 +452,10 @@ async function generateOverallPoacPDF(allRows) {
         doc.setFontSize(20);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(`POAC Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+        doc.text(`POAC Certification Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+        doc.setFontSize(10);
+        doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
+        doc.setFontSize(20);
       }
       const footerY = pageHeight - 8;
       doc.setDrawColor(230, 126, 34);
@@ -462,7 +474,7 @@ async function generateOverallPoacPDF(allRows) {
     },
   });
 
-  doc.save(`POAC_Matrix_Overall_${displayYear}.pdf`);
+  doc.save(`POAC_Certification_Matrix_Overall_${displayYear}.pdf`);
 }
 
 /* ── Main list component ── */
@@ -884,7 +896,7 @@ export default function PoacMatrixListPage({ onRefresh }) {
               {/* Modal Header */}
               <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between rounded-t-2xl flex-shrink-0">
                 <div>
-                  <h3 className="text-xl font-bold text-white">POAC Matrix Record</h3>
+                  <h3 className="text-xl font-bold text-white">POAC Certification Matrix Record</h3>
                   <p className="text-sm text-white/50 mt-0.5">
                     {selectedRecord.rows?.length || 0} POAC{(selectedRecord.rows?.length || 0) !== 1 ? "s" : ""} · {selectedRecord.rows?.[0]?.stsServiceProvider || "—"}
                   </p>

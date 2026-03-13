@@ -44,9 +44,9 @@ function PoacMatrixContent() {
             {/* Center: Heading */}
             <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
               <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
-                HR / POAC Matrix
+                HR / POAC Certification Matrix
               </p>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">POAC Matrix</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">POAC Certification Matrix</h1>
             </div>
             
             {/* Right: Form/List Tabs */}

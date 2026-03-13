@@ -13,9 +13,9 @@ export async function GET(req) {
       data: poacMatrices,
     });
   } catch (err) {
-    console.error("POAC Matrix list error:", err);
+    console.error("POAC Certification Matrix list error:", err);
     return NextResponse.json(
-      { success: false, message: err.message || "Failed to fetch POAC Matrix", error: err.message },
+      { success: false, message: err.message || "Failed to fetch POAC Certification Matrix", error: err.message },
       { status: 500 }
     );
   }

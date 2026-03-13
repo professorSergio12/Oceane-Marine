@@ -21,15 +21,18 @@ const OPTION_FILE_FIELDS = [
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
 async function saveFile(file, stsServiceProvider, poacName, subfolder) {
-  const sanitizedProvider = sanitize(stsServiceProvider.trim());
-  const sanitizedName = sanitize(poacName.trim());
+  const sanitizedProvider = sanitize((stsServiceProvider || "").trim()) || "unknown";
+  const sanitizedName = sanitize((poacName || "").trim()) || "unknown";
+
+  // Ensure base directory exists first
+  const baseUploadDir = path.join(process.cwd(), "public/uploads/hr/poac-matrix");
+  await fs.mkdir(baseUploadDir, { recursive: true });
 
   const baseDir = path.join(
-    process.cwd(),
-    "public/uploads/hr/poac-matrix",
+    baseUploadDir,
     sanitizedProvider,
     sanitizedName,
-    subfolder
+    subfolder || "main"
   );
   await fs.mkdir(baseDir, { recursive: true });
 
@@ -146,7 +149,7 @@ export async function POST(req) {
     const poacMatrix = await PoacMatrix.create({ rows: rowsData });
     return NextResponse.json({ data: poacMatrix }, { status: 201 });
   } catch (err) {
-    console.error("POAC Matrix creation error:", err);
+    console.error("POAC Certification Matrix creation error:", err);
     return NextResponse.json({ message: err.message || "Upload failed", error: err.message }, { status: 500 });
   }
 }

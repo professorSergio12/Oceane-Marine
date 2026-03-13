@@ -13,7 +13,7 @@ export async function GET(req, { params }) {
     const record = await PoacMatrix.findById(id);
     if (!record) {
       return NextResponse.json(
-        { message: "POAC Matrix record not found" },
+        { message: "POAC Certification Matrix record not found" },
         { status: 404 }
       );
     }
@@ -45,7 +45,7 @@ export async function GET(req, { params }) {
       );
     }
   } catch (err) {
-    console.error("POAC Matrix download error:", err);
+    console.error("POAC Certification Matrix download error:", err);
     return NextResponse.json(
       { message: err.message || "Download failed", error: err.message },
       { status: 500 }

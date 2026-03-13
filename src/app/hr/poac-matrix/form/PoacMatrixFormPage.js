@@ -183,7 +183,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
 
       if (!res.ok) throw new Error(data.message || data.error || `Failed to ${editId ? "update" : "create"} record`);
 
-      setMessage(editId ? "POAC Matrix record updated successfully!" : "POAC Matrix records created successfully!");
+      setMessage(editId ? "POAC Certification Matrix record updated successfully!" : "POAC Certification Matrix records created successfully!");
       setRows([createEmptyRow()]);
       setExistingFiles([]);
 
@@ -303,9 +303,12 @@ export default function PoacMatrixFormPage({ onSuccess }) {
     <div className="w-full">
       <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-8 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">
-            {editId ? "Edit POAC Matrix" : "POAC Matrix"}
-          </h2>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              {editId ? "Edit POAC Certification Matrix" : "POAC Certification Matrix"}
+            </h2>
+            <p className="text-xs sm:text-sm text-white/60 mt-1">Form No: QAF-OFD-046</p>
+          </div>
           <button
             type="button"
             onClick={addRow}

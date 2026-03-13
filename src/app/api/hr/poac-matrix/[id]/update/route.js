@@ -31,15 +31,18 @@ async function deleteFileIfExists(fileUrl) {
 }
 
 async function saveFile(file, stsServiceProvider, poacName, subfolder) {
-  const sanitizedProvider = sanitize(stsServiceProvider.trim());
-  const sanitizedName = sanitize(poacName.trim());
+  const sanitizedProvider = sanitize((stsServiceProvider || "").trim()) || "unknown";
+  const sanitizedName = sanitize((poacName || "").trim()) || "unknown";
+
+  // Ensure base directory exists first
+  const baseUploadDir = path.join(process.cwd(), "public/uploads/hr/poac-matrix");
+  await fs.mkdir(baseUploadDir, { recursive: true });
 
   const baseDir = path.join(
-    process.cwd(),
-    "public/uploads/hr/poac-matrix",
+    baseUploadDir,
     sanitizedProvider,
     sanitizedName,
-    subfolder
+    subfolder || "main"
   );
   await fs.mkdir(baseDir, { recursive: true });
 
@@ -63,7 +66,7 @@ export async function PUT(req, { params }) {
 
     const existingRecord = await PoacMatrix.findById(id);
     if (!existingRecord) {
-      return NextResponse.json({ message: "POAC Matrix record not found" }, { status: 404 });
+      return NextResponse.json({ message: "POAC Certification Matrix record not found" }, { status: 404 });
     }
 
     const rowsData = [];
@@ -216,7 +219,7 @@ export async function PUT(req, { params }) {
     const updatedRecord = await PoacMatrix.findByIdAndUpdate(id, { rows: rowsData }, { new: true });
     return NextResponse.json({ data: updatedRecord }, { status: 200 });
   } catch (err) {
-    console.error("POAC Matrix update error:", err);
+    console.error("POAC Certification Matrix update error:", err);
     return NextResponse.json({ message: err.message || "Update failed", error: err.message }, { status: 500 });
   }
 }
