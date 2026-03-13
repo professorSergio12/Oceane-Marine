@@ -382,30 +382,42 @@ export default function PMSCharts() {
                     >
                       {hosesH > 0 && (
                         <div
-                          className="w-full bg-purple-400 rounded-t"
+                          className="w-full bg-purple-400 rounded-t flex items-center justify-center"
                           style={{
                             height: `${hosesH}%`,
-                            minHeight: "2px",
+                            minHeight: "18px",
                           }}
-                        />
+                        >
+                          <span className="text-[10px] sm:text-xs font-bold text-white drop-shadow-md">
+                            {data.hoses}
+                          </span>
+                        </div>
                       )}
                       {secondaryH > 0 && (
                         <div
-                          className="w-full bg-green-400"
+                          className="w-full bg-green-400 flex items-center justify-center"
                           style={{
                             height: `${secondaryH}%`,
-                            minHeight: "2px",
+                            minHeight: "18px",
                           }}
-                        />
+                        >
+                          <span className="text-[10px] sm:text-xs font-bold text-white drop-shadow-md">
+                            {data.secondaryFenders}
+                          </span>
+                        </div>
                       )}
                       {primaryH > 0 && (
                         <div
-                          className="w-full bg-cyan-400 rounded-b"
+                          className="w-full bg-cyan-400 rounded-b flex items-center justify-center"
                           style={{
                             height: `${primaryH}%`,
-                            minHeight: "2px",
+                            minHeight: "18px",
                           }}
-                        />
+                        >
+                          <span className="text-[10px] sm:text-xs font-bold text-white drop-shadow-md">
+                            {data.primaryFenders}
+                          </span>
+                        </div>
                       )}
                       {data.total > 0 && (
                         <span className="absolute -top-6 md:-top-5 left-1/2 transform -translate-x-1/2 text-[10px] md:text-xs font-semibold text-white whitespace-nowrap z-10">
