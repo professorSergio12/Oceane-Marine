@@ -3,6 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
 
@@ -10,7 +11,11 @@ function formatDate(value) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString();
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 // Generate dynamic years
@@ -34,6 +39,7 @@ export default function DefectListPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const [exportingId, setExportingId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -82,6 +88,27 @@ export default function DefectListPage() {
   useEffect(() => {
     fetchDefects();
   }, [year]);
+
+  const handleDownloadWord = async (defect) => {
+    setExportingId(defect._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/defects-list/${defect._id}/docx`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Download failed");
+      }
+      const blob = await res.blob();
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      const fileName = match ? match[1].trim() : `Defect-${defect.serialNumber || defect._id}.docx`;
+      saveAs(blob, fileName);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   const handleStatusChange = async (id, newStatus) => {
     setActionLoadingId(id);
@@ -336,6 +363,11 @@ export default function DefectListPage() {
                         </td>
                         <td className="py-2 pr-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
+                            <DownloadIconButton
+                              onClick={() => handleDownloadWord(defect)}
+                              disabled={archivingId === defect._id || deletingId === defect._id}
+                              loading={exportingId === defect._id}
+                            />
                             <EditIconButton href={`/qhse/defects-list/create?edit=${defect._id}`} />
                             <ArchiveIconButton
                               onClick={() => handleArchive(defect)}
