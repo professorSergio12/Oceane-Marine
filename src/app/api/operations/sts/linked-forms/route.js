@@ -18,7 +18,7 @@ import MasterFeedbackForm from "@/lib/mongodb/models/operation-sts-checklist/OPS
 import RecordOfWorkHours from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-023";
 import ShipStandardQuestionnaire from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-001-A";
 import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
-import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-008";
+import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-028";
 import MooringMastersJobReport from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-009";
 import MooringMasterExpenseSheet from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-029";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
@@ -43,7 +43,7 @@ const LINKED_FORMS = [
   { formCode: "OPS-OFD-005C", label: "Checklist 7",            model: STSChecklist5C,       category: "checklist" },
   { formCode: "OPS-OFD-005E", label: "Declaration at Sea",     model: STSDeclaration,       category: "checklist" },
   { formCode: "OPS-OFD-005F", label: "Checklist 5F",           model: STSChecklistFiveF,    category: "checklist" },
-  { formCode: "OPS-OFD-008",  label: "Checklist 8",            model: STSChecklist8,        category: "checklist" },
+  { formCode: "OPS-OFD-028",  label: "Personnel Transfer Basket Checklist", model: STSChecklist8, category: "checklist" },
 
   // ── Equipment (split into Before / After Operation) ──
   {

@@ -75,7 +75,7 @@ const FORMS = [
   { formNo: 'OPS-OFD-005C', title: 'Checklist 7 - Pre Transfer Conference Alongside a Terminal', apiPath: 'ops-ofd-005c', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005C' },
   { formNo: 'OPS-OFD-005F', title: 'STS Transfer Safety Checklist (At Sea)', apiPath: 'ops-ofd-005f', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005F' },
   { formNo: 'OPS-OFD-005E', title: 'Declaration Of STS At Sea', apiPath: 'declaration-of-sea', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005E' },
-  { formNo: 'OPS-OFD-008', title: 'Indemnity Terms & Conditions', apiPath: 'ops-ofd-008', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-008' },
+  { formNo: 'OPS-OFD-028', title: 'Personnel Transfer Basket Checklist', apiPath: 'ops-ofd-028', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-028' },
   { formNo: 'OPS-OFD-009', title: 'Mooring Master\'s Job Report', apiPath: 'ops-ofd-009', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-009' },
   { formNo: 'OPS-OFD-011', title: 'STS Superintendent Standing Order', apiPath: 'ops-ofd-011', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-011' },
   { formNo: 'OPS-OFD-014', title: 'STS Equipment Checklist', apiPath: 'ops-ofd-014', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-014' },

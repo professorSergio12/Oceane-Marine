@@ -9,7 +9,7 @@ import { defineOpsOfd005bJob } from "../definitions/ops-ofd-005b.job.js";
 import { defineOpsOfd005CJob } from "../definitions/ops-ofd-005c.job.js";
 import { defineOpsOfd005FJob } from "../definitions/ops-ofd-005f.job.js";
 import { defineDeclarationOfSeaJob } from "../definitions/declaration-of-sea.job.js";
-import { defineOpsOfd008Job } from "../definitions/ops-ofd-008.job.js";
+import { defineOpsOfd028Job } from "../definitions/ops-ofd-028.job.js";
 import { defineOpsOfd009Job } from "../definitions/ops-ofd-009.job.js";
 import { defineOpsOfd011Job } from "../definitions/ops-ofd-011.job.js";
 import { defineOpsOfd014Job } from "../definitions/ops-ofd-014.job.js";
@@ -32,7 +32,7 @@ export async function registerJobs() {
   defineOpsOfd005CJob(agenda);
   defineOpsOfd005FJob(agenda);
   defineDeclarationOfSeaJob(agenda);
-  defineOpsOfd008Job(agenda);
+  defineOpsOfd028Job(agenda);
   defineOpsOfd009Job(agenda);
   defineOpsOfd011Job(agenda);
   defineOpsOfd014Job(agenda);

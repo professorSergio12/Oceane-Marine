@@ -81,7 +81,7 @@ const FORM_TITLES = {
   'declaration-of-sea': 'OPS-OFD-005E - Declaration Of STS At Sea',
   'ops-ofd-005e': 'OPS-OFD-005E - Declaration Of STS At Sea',
   'ops-ofd-005f': 'OPS-OFD-005F - Repetitive STS Checklist',
-  'ops-ofd-008': 'OPS-OFD-008 - Master Declaration',
+  'ops-ofd-028': 'OPS-OFD-028 - Personnel Transfer Basket Checklist',
   'ops-ofd-009': 'OPS-OFD-009 - Mooring Master\'s Job Report',
   'ops-ofd-011': 'OPS-OFD-011 - STS Standing Order',
   'ops-ofd-014': 'OPS-OFD-014 - Equipment Checklist',

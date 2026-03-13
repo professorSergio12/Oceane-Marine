@@ -82,7 +82,7 @@ STSChecklist8Schema.pre("save", async function () {
 
   const counter = await FormCounterStsCheckList.findOneAndUpdate(
     {
-      key: "STS_CHECKLIST_OPS-OFD-008",
+      key: "STS_CHECKLIST_OPS-OFD-028",
       year
     },
     { $inc: { seq: 1 } },

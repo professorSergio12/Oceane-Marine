@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-008";
+import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-028";
 import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
@@ -22,8 +22,8 @@ function getSignatureUploadDir() {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-008`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-008`,
+    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-028`,
+    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-028`,
   };
 }
 
@@ -114,7 +114,7 @@ async function handleSignatureUploads(formData, body, existing = {}) {
  * Triggers background job for document generation
  */
 async function triggerDocumentGeneration(checklistId, operationRef) {
-  await createAndScheduleJob(null, "generate-ops-ofd-008", {
+  await createAndScheduleJob(null, "generate-ops-ofd-028", {
     checklistId,
     operationRef,
   });
@@ -130,7 +130,7 @@ export async function OPTIONS() {
 }
 
 /**
- * GET /api/operations/sts-checklist/ops-ofd-008?operationRef=2026-001
+ * GET /api/operations/sts-checklist/ops-ofd-028?operationRef=2026-001
  * Fetches existing checklist data by operationRef
  */
 export async function GET(req) {
@@ -149,7 +149,7 @@ export async function GET(req) {
 
     operationRef = operationRef.trim();
 
-    console.log(`🔍 Searching for OPS-OFD-008 checklist with operationRef: "${operationRef}"`);
+    console.log(`🔍 Searching for OPS-OFD-028 checklist with operationRef: "${operationRef}"`);
 
     let checklist = await STSChecklist8.findOne({ operationRef })
       .sort({ createdAt: -1 })
@@ -166,14 +166,14 @@ export async function GET(req) {
     if (!checklist) {
       return NextResponse.json(
         { 
-          error: `No OPS-OFD-008 checklist found for operation reference: ${operationRef}`,
+          error: `No OPS-OFD-028 checklist found for operation reference: ${operationRef}`,
           searchedValue: operationRef
         },
         { status: 404, headers: CORS_HEADERS }
       );
     }
 
-    console.log(`✅ Found OPS-OFD-008 checklist: ${checklist._id} with operationRef: "${checklist.operationRef}"`);
+    console.log(`✅ Found OPS-OFD-028 checklist: ${checklist._id} with operationRef: "${checklist.operationRef}"`);
 
     return NextResponse.json(
       { success: true, data: checklist },
@@ -189,7 +189,7 @@ export async function GET(req) {
 }
 
 /**
- * PUT /api/operations/sts-checklist/ops-ofd-008?operationRef=2026-001
+ * PUT /api/operations/sts-checklist/ops-ofd-028?operationRef=2026-001
  * Updates existing checklist by operationRef
  */
 export async function PUT(req) {
@@ -208,7 +208,7 @@ export async function PUT(req) {
 
     operationRef = operationRef.trim();
 
-    console.log(`🔍 Searching for OPS-OFD-008 checklist to update with operationRef: "${operationRef}"`);
+    console.log(`🔍 Searching for OPS-OFD-028 checklist to update with operationRef: "${operationRef}"`);
 
     let existing = await STSChecklist8.findOne({ operationRef })
       .sort({ createdAt: -1 })
@@ -225,14 +225,14 @@ export async function PUT(req) {
     if (!existing) {
       return NextResponse.json(
         { 
-          error: `No OPS-OFD-008 checklist found for operation reference: ${operationRef}`,
+          error: `No OPS-OFD-028 checklist found for operation reference: ${operationRef}`,
           searchedValue: operationRef
         },
         { status: 404, headers: CORS_HEADERS }
       );
     }
 
-    console.log(`✅ Found OPS-OFD-008 checklist to update: ${existing._id} with operationRef: "${existing.operationRef}"`);
+    console.log(`✅ Found OPS-OFD-028 checklist to update: ${existing._id} with operationRef: "${existing.operationRef}"`);
 
     const formData = await req.formData();
     const dataStr = formData.get("data");
@@ -254,7 +254,7 @@ export async function PUT(req) {
 
     const updateData = {
       documentInfo: {
-        formNo: body.documentInfo?.formNo || existingDocInfo.formNo || "OPS-OFD-008",
+        formNo: body.documentInfo?.formNo || existingDocInfo.formNo || "OPS-OFD-028",
         revisionNo: revisionNo,
         revisionDate: body.documentInfo?.revisionDate ? new Date(body.documentInfo.revisionDate) : existingDocInfo.revisionDate || new Date(),
         approvedBy: body.documentInfo?.approvedBy || existingDocInfo.approvedBy || "JS",
@@ -284,7 +284,7 @@ export async function PUT(req) {
     return NextResponse.json(
       {
         success: true,
-        message: "OPS-OFD-008 checklist updated successfully & doc regeneration started",
+        message: "OPS-OFD-028 checklist updated successfully & doc regeneration started",
         data: updatedChecklist,
       },
       { headers: CORS_HEADERS }

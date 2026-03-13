@@ -54,10 +54,10 @@ export const FORM_CONFIGS = {
     formNo: "OPS-OFD-005E",
     dateField: "revisionDate",
   },
-  "ops-ofd-008": {
+  "ops-ofd-028": {
     modelName: "STSChecklist8",
-    modelPath: "OPS-OFD-008",
-    formNo: "OPS-OFD-008",
+    modelPath: "OPS-OFD-028",
+    formNo: "OPS-OFD-028",
     dateField: "signedDate",
   },
   "ops-ofd-009": {

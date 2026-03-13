@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-008";
-import { incrementRevisionForUpdate } from "../../../revision";
-import { createAndScheduleJob } from "../../../../../../../jobs/agenda/jobHelper.js";
+import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-028";
+import { getNextRevisionForCreate } from "../../revision.js";
+import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, PUT, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -19,14 +19,13 @@ export async function OPTIONS() {
   });
 }
 
-export async function POST(req, { params }) {
+export async function POST(req) {
   await connectDB();
 
   try {
-    const { id } = await params;
     const formData = await req.formData();
     const dataStr = formData.get("data");
-
+    
     if (!dataStr) {
       return NextResponse.json(
         { error: "Form data is required" },
@@ -36,27 +35,25 @@ export async function POST(req, { params }) {
 
     const body = JSON.parse(dataStr);
 
-    const existing = await STSChecklist8.findById(id).lean();
-
-    if (!existing) {
+    if (!body.operationRef) {
       return NextResponse.json(
-        { error: "Checklist not found" },
-        { status: 404, headers: corsHeaders }
+        { error: "operationRef is required" },
+        { status: 400, headers: corsHeaders }
       );
     }
 
     // Handle signature and stamp file uploads if provided
     const signatureFile = formData.get("signature");
     const stampFile = formData.get("stamp");
-    let signatureUrl = body.signatureBlock?.signatureImage || existing.signatureBlock?.signatureImage || "";
-    let stampUrl = body.signatureBlock?.stampImage || existing.signatureBlock?.stampImage || "";
+    let signatureUrl = body.signatureBlock?.signatureImage || "";
+    let stampUrl = body.signatureBlock?.stampImage || "";
 
     const now = new Date();
     const sigYear = now.getFullYear();
     const sigMonth = String(now.getMonth() + 1).padStart(2, '0');
     const sigDay = String(now.getDate()).padStart(2, '0');
-    const sigBaseDir = `public/signature/operation-sts-checklist/${sigYear}/${sigMonth}/${sigDay}/OPS-OFD-008`;
-    const sigBaseUrl = `/signature/operation-sts-checklist/${sigYear}/${sigMonth}/${sigDay}/OPS-OFD-008`;
+    const sigBaseDir = `public/signature/operation-sts-checklist/${sigYear}/${sigMonth}/${sigDay}/OPS-OFD-028`;
+    const sigBaseUrl = `/signature/operation-sts-checklist/${sigYear}/${sigMonth}/${sigDay}/OPS-OFD-028`;
     const uploadDir = path.join(process.cwd(), sigBaseDir);
 
     // Helper: detect if a string is raw base64 (no data: prefix, no URL path)
@@ -66,6 +63,7 @@ export async function POST(req, { params }) {
 
     // Helper: save base64 string to file and return URL
     async function saveBase64ToFile(base64Str, prefix) {
+      // Strip data:image prefix if present
       const raw = base64Str.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(raw, "base64");
       await fs.mkdir(uploadDir, { recursive: true });
@@ -115,42 +113,61 @@ export async function POST(req, { params }) {
     signatureUrl = normalizeImageUrl(signatureUrl);
     stampUrl = normalizeImageUrl(stampUrl);
 
-    const existingDocInfo = existing.documentInfo || {};
-    const revisionNo = incrementRevisionForUpdate(existingDocInfo.revisionNo);
-    console.log(`📝 Revision updated: ${existingDocInfo.revisionNo} → ${revisionNo} for ${id}`);
+    const revisionNo = await getNextRevisionForCreate(STSChecklist8);
 
-    const updateData = {
+    // Prepare the document data
+    const documentData = {
+      operationRef: body.operationRef,
       documentInfo: {
-        formNo: body.documentInfo?.formNo || existingDocInfo.formNo || "OPS-OFD-008",
-        revisionNo: revisionNo,
-        revisionDate: body.documentInfo?.revisionDate ? new Date(body.documentInfo.revisionDate) : existingDocInfo.revisionDate || new Date(),
-        approvedBy: body.documentInfo?.approvedBy || existingDocInfo.approvedBy || "JS",
+        formNo: body.documentInfo?.formNo || "OPS-OFD-028",
+        revisionNo,
+        revisionDate: body.documentInfo?.revisionDate ? new Date(body.documentInfo.revisionDate) : new Date(),
+        approvedBy: body.documentInfo?.approvedBy || "JS",
       },
-      jobReference: body.jobReference || existing.jobReference || "",
-      masterName: body.masterName || existing.masterName || "",
-      vesselName: body.vesselName || existing.vesselName || "",
-      signedDate: body.signedDate ? new Date(body.signedDate) : existing.signedDate,
-      signedTime: body.signedTime || existing.signedTime || "",
-      timeZoneLabel: body.timeZoneLabel || existing.timeZoneLabel || "LT",
+      jobReference: body.jobReference || "",
+      masterName: body.masterName || "",
+      vesselName: body.vesselName || "",
+      signedDate: body.signedDate ? new Date(body.signedDate) : undefined,
+      signedTime: body.signedTime || "",
+      timeZoneLabel: body.timeZoneLabel || "LT",
       signatureBlock: {
         signatureImage: signatureUrl || "",
         stampImage: stampUrl || "",
       },
-      status: body.status || existing.status || "DRAFT",
-      createdBy: body.createdBy || existing.createdBy || undefined,
+      status: body.status || "SUBMITTED",
+      createdBy: body.createdBy || undefined,
     };
 
-    const updatedChecklist = await STSChecklist8.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    /* ================= DUPLICATE SAFETY CHECK ================= */
+    const existing = await STSChecklist8.findOne({
+      operationRef: body.operationRef,
+    }).sort({ createdAt: -1 });
 
-    // Trigger background job for document regeneration
+    if (existing) {
+      if (existing.sequenceNumber) {
+        console.log(`⚠️ OPS-OFD-028 already exists for ${body.operationRef}, returning existing`);
+        return NextResponse.json(
+          {
+            message: "Checklist already exists",
+            data: existing,
+            isDuplicate: true,
+          },
+          { status: 200, headers: corsHeaders }
+        );
+      }
+      await STSChecklist8.findByIdAndDelete(existing._id);
+      console.log(`🗑️ Deleted incomplete OPS-OFD-028 without sequenceNumber for ${body.operationRef}`);
+    }
+
+    /* ================= STEP 1: SAVE DOCUMENT ================= */
+    const newChecklist = await STSChecklist8.create(documentData);
+    console.log(`✅ OPS-OFD-028 saved: ${newChecklist._id} with sequenceNumber: ${newChecklist.sequenceNumber}`);
+
+    /* ================= STEP 2: QUEUE BACKGROUND JOB ================= */
     try {
-      await createAndScheduleJob(null, "generate-ops-ofd-008", {
-        checklistId: updatedChecklist._id.toString(),
-        operationRef: updatedChecklist.operationRef,
+      await createAndScheduleJob(null, "generate-ops-ofd-028", {
+        checklistId: newChecklist._id.toString(),
+        operationRef: newChecklist.operationRef,
       });
     } catch (err) {
       console.error("Job queue error:", err);
@@ -159,15 +176,16 @@ export async function POST(req, { params }) {
     return NextResponse.json(
       {
         success: true,
-        message: "OPS-OFD-008 checklist updated successfully & doc regeneration started",
-        data: updatedChecklist,
+        message: "OPS-OFD-028 checklist saved successfully. Document generation queued.",
+        data: newChecklist,
       },
       {
+        status: 201,
         headers: corsHeaders,
       }
     );
   } catch (error) {
-    console.error("OPS-OFD-008 update error:", error);
+    console.error("OPS-OFD-028 create error:", error);
     return NextResponse.json(
       { error: error.message },
       {

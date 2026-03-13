@@ -87,7 +87,7 @@ function loadImageData(imageValue) {
 
 /* ================= MAIN EXPORT ================= */
 
-export async function generateOpsOfd008Doc(checklist, fullPath) {
+export async function generateOpsOfd028Doc(checklist, fullPath) {
     const docInfo = checklist.documentInfo || {};
     const sig = checklist.signatureBlock || {};
 
@@ -148,7 +148,7 @@ export async function generateOpsOfd008Doc(checklist, fullPath) {
                                 spacing: { after: 100 },
                                 children: [
                                     new TextRun({
-                                        text: "Indemnity Terms & Condition",
+                                        text: "Personnel Transfer Basket Checklist",
                                         bold: true,
                                         size: 28
                                     })
@@ -162,7 +162,7 @@ export async function generateOpsOfd008Doc(checklist, fullPath) {
                         width: { size: 35, type: WidthType.PERCENTAGE },
                         borders: noBorder,
                         children: [
-                            docInfoRow("Form No:", docInfo.formNo || "OPS-OFD-008"),
+                            docInfoRow("Form No:", docInfo.formNo || "OPS-OFD-028"),
                             docInfoRow("Rev.No.", docInfo.revisionNo || ""),
                             docInfoRow("Rev Date:", formatDate(docInfo.revisionDate)),
                             docInfoRow("Approved by:", docInfo.approvedBy || "JS"),

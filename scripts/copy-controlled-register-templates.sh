@@ -70,7 +70,7 @@ copy_ops "OPS-OFD-005B- STS Checklist 6A & B– CHECKS BEFORE & AFTER  DISCONNEC
 copy_ops "OPS-OFD-005C- STS Checklist 7 – CHECKS PRE TRANFER CONFERENCE ALONGSIDE A TERMINAL.docx" "OPS-OFD-005C.docx"
 copy_ops "Declaration for STS operations at Sea.docx" "OPS-OFD-005E.docx"
 copy_ops "OPS-OFD-006A - Joint Plan of  Operation Fujairah.docx" "OPS-OFD-006A.docx"
-copy_ops "OPS-OFD-008 - Indemnity letter.docx" "OPS-OFD-008.docx"
+copy_ops "OPS-OFD-028 - Personnel Transfer Basket Checklist.docx" "OPS-OFD-028.docx"
 copy_ops "OPS-OFD-009 - Mooring Master Job Report.docx" "OPS-OFD-009.docx"
 copy_ops "OPS-OFD-011 - STS Superintendent Standing Orders.docx" "OPS-OFD-011.docx"
 copy_ops "OPS-OFD-014 - STS Equipment Checklist.docx" "OPS-OFD-014.docx"

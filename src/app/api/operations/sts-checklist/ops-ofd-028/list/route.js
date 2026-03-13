@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-008";
+import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-028";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,7 +73,7 @@ export async function GET(req) {
       }
     );
   } catch (error) {
-    console.error("OPS-OFD-008 list error:", error);
+    console.error("OPS-OFD-028 list error:", error);
     return NextResponse.json(
       {
         success: false,

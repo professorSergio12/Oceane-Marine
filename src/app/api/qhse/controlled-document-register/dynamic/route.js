@@ -35,7 +35,7 @@ import STSChecklist6AB from "@/lib/mongodb/models/operation-sts-checklist/OPS-OF
 import STSChecklist5C from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005C";
 import STSDeclaration from "@/lib/mongodb/models/operation-sts-checklist/DeclarationOfSea";
 import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
-import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-008";
+import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-028";
 import MooringMastersJobReport from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-009";
 import STSStandingOrder from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-011";
 import STSEquipmentChecklist from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-014";
@@ -87,7 +87,7 @@ const REGISTER_ENTRIES = [
   { formCode: "OPS-OFD-005C", title: "Terminal Transfer Checklist", model: STSChecklist5C, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-005c/list", department: "Operations" },
   { formCode: "OPS-OFD-005E", title: "Declaration Of STS At Sea", model: STSDeclaration, href: "/operations/sts-operations/new/form-checklist/sts-checklist/declaration-of-sea/list", department: "Operations" },
   { formCode: "OPS-OFD-005F", title: "STS Transfer Safety Checklist (At Sea)", model: STSChecklistFiveF, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-005f/list", department: "Operations" },
-  { formCode: "OPS-OFD-008", title: "Master Declaration", model: STSChecklist8, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-008/list", department: "Operations" },
+  { formCode: "OPS-OFD-028", title: "Personnel Transfer Basket Checklist", model: STSChecklist8, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-028/list", department: "Operations" },
   { formCode: "OPS-OFD-009", title: "Mooring Master's Job Report", model: MooringMastersJobReport, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-009/list", department: "Operations" },
   { formCode: "OPS-OFD-011", title: "STS Standing Order", model: STSStandingOrder, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-011/list", department: "Operations" },
   { formCode: "OPS-OFD-014", title: "Equipment Checklist", model: STSEquipmentChecklist, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-014/list", department: "Operations" },
@@ -135,7 +135,7 @@ const REGISTER_TEMPLATES = {
   "OPS-OFD-005C": "OPS-OFD-005C.docx",
   "OPS-OFD-005E": "OPS-OFD-005E.docx",
   "OPS-OFD-006A": "OPS-OFD-006A.docx",
-  "OPS-OFD-008": "OPS-OFD-008.docx",
+  "OPS-OFD-028": "OPS-OFD-028.docx",
   "OPS-OFD-009": "OPS-OFD-009.docx",
   "OPS-OFD-011": "OPS-OFD-011.docx",
   "OPS-OFD-014": "OPS-OFD-014.docx",

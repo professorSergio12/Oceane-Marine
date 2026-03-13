@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-008";
+import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-028";
 import { incrementRevisionForUpdate } from "../../revision";
 import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
-import "../../../../../../jobs/definitions/ops-ofd-008.job.js";
+import "../../../../../../jobs/definitions/ops-ofd-028.job.js";
 
 // ==================== CONSTANTS ====================
 
@@ -23,8 +23,8 @@ function getSignatureUploadDir() {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-008`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-008`,
+    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-028`,
+    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-028`,
   };
 }
 
@@ -115,7 +115,7 @@ async function handleSignatureUploads(formData, body, existing = {}) {
  * Triggers background job for document generation
  */
 async function triggerDocumentGeneration(checklistId, operationRef) {
-  await createAndScheduleJob(null, "generate-ops-ofd-008", {
+  await createAndScheduleJob(null, "generate-ops-ofd-028", {
     checklistId,
     operationRef,
   });
@@ -131,7 +131,7 @@ export async function OPTIONS() {
 }
 
 /**
- * GET /api/operations/sts-checklist/ops-ofd-008/[id]
+ * GET /api/operations/sts-checklist/ops-ofd-028/[id]
  * Fetches checklist by ID
  */
 export async function GET(req, { params }) {
@@ -143,7 +143,7 @@ export async function GET(req, { params }) {
 
     if (!checklist) {
       return NextResponse.json(
-        { error: "OPS-OFD-008 checklist not found" },
+        { error: "OPS-OFD-028 checklist not found" },
         { status: 404, headers: CORS_HEADERS }
       );
     }
@@ -162,7 +162,7 @@ export async function GET(req, { params }) {
 }
 
 /**
- * PUT /api/operations/sts-checklist/ops-ofd-008/[id]
+ * PUT /api/operations/sts-checklist/ops-ofd-028/[id]
  * Updates checklist by ID and triggers document regeneration
  */
 export async function PUT(req, { params }) {
@@ -186,7 +186,7 @@ export async function PUT(req, { params }) {
 
     if (!existing) {
       return NextResponse.json(
-        { error: "OPS-OFD-008 checklist not found" },
+        { error: "OPS-OFD-028 checklist not found" },
         { status: 404, headers: CORS_HEADERS }
       );
     }
@@ -199,7 +199,7 @@ export async function PUT(req, { params }) {
 
     const updateData = {
       documentInfo: {
-        formNo: body.documentInfo?.formNo || existingDocInfo.formNo || "OPS-OFD-008",
+        formNo: body.documentInfo?.formNo || existingDocInfo.formNo || "OPS-OFD-028",
         revisionNo: revisionNo,
         revisionDate: body.documentInfo?.revisionDate ? new Date(body.documentInfo.revisionDate) : existingDocInfo.revisionDate || new Date(),
         approvedBy: body.documentInfo?.approvedBy || existingDocInfo.approvedBy || "JS",
@@ -229,7 +229,7 @@ export async function PUT(req, { params }) {
     return NextResponse.json(
       {
         success: true,
-        message: "OPS-OFD-008 checklist updated successfully & doc regeneration started",
+        message: "OPS-OFD-028 checklist updated successfully & doc regeneration started",
         data: updatedChecklist,
       },
       { headers: CORS_HEADERS }

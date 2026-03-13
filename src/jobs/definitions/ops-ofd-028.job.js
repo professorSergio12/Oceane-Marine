@@ -1,14 +1,14 @@
-import STSChecklist8 from "../../lib/mongodb/models/operation-sts-checklist/OPS-OFD-008.js";
+import STSChecklist8 from "../../lib/mongodb/models/operation-sts-checklist/OPS-OFD-028.js";
 import Operation from "../../lib/mongodb/models/sts-documentation/StsOperation.js";
-import { generateOpsOfd008Doc } from "../services/pdf/OPS-OFD-008.js";
+import { generateOpsOfd028Doc } from "../services/pdf/OPS-OFD-028.js";
 import { getPdfStoragePath } from "../services/pdf/pdfStorage.js";
 import fs from "node:fs";
 import path from "node:path";
 
-const DOCUMENT_TYPE = "OPS-OFD-008";
+const DOCUMENT_TYPE = "OPS-OFD-028";
 
-export function defineOpsOfd008Job(agenda) {
-    agenda.define("generate-ops-ofd-008", async (job) => {
+export function defineOpsOfd028Job(agenda) {
+    agenda.define("generate-ops-ofd-028", async (job) => {
         const { checklistId, operationRef } = job.attrs.data;
 
         if (!checklistId || !operationRef) {
@@ -16,7 +16,7 @@ export function defineOpsOfd008Job(agenda) {
         }
 
         try {
-            console.log("🚀 Starting OPS-OFD-008 document generation job", { checklistId, operationRef });
+            console.log("🚀 Starting OPS-OFD-028 document generation job", { checklistId, operationRef });
 
             // ==================== ENSURE MONGODB CONNECTION ====================
             const mongoose = await import("mongoose");
@@ -96,7 +96,7 @@ export function defineOpsOfd008Job(agenda) {
             console.log("💾 Document entry added to StsOperation", { operationRef, filePath: dbPath });
 
             // Generate DOCX document
-            await generateOpsOfd008Doc(checklist, fullPath);
+            await generateOpsOfd028Doc(checklist, fullPath);
             console.log("✅ Document generated successfully", { fullPath });
 
             // Update document status to GENERATED

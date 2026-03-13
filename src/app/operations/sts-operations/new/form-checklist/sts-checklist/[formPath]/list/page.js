@@ -75,7 +75,7 @@ const FORM_TITLES = {
   'ops-ofd-005b': 'OPS-OFD-005B - Before Disconnection & Unmooring',
   'ops-ofd-005c': 'OPS-OFD-005C - Terminal Transfer Checklist',
   'ops-ofd-005f': 'OPS-OFD-005F - STS Transfer Safety Checklist (At Sea)',
-  'ops-ofd-008': 'OPS-OFD-008 - Master Declaration',
+  'ops-ofd-028': 'OPS-OFD-028 - Personnel Transfer Basket Checklist',
   'ops-ofd-009': 'OPS-OFD-009 - Mooring Master\'s Job Report',
   'ops-ofd-011': 'OPS-OFD-011 - STS Standing Order',
   'ops-ofd-014': 'OPS-OFD-014 - Equipment Checklist',
@@ -223,7 +223,7 @@ export default function FormListPage() {
       '';
     const location = typeof rawLocation === 'string' && rawLocation ? rawLocation : '—';
     const issueDate = form.issueDate ?? form.revisionDate ?? form.vesselDetails?.plannedTransferDateTime ?? form.documentInfo?.revisionDate ?? form.createdAt;
-    // Many forms (e.g. OPS-OFD-008) store formNo/revisionNo inside documentInfo
+    // Many forms (e.g. OPS-OFD-028) store formNo/revisionNo inside documentInfo
     const formNoFromTitle = FORM_TITLES[formPath]?.split(' - ')[0];
     const formNo = form.formNo ?? form.documentInfo?.formNo ?? formNoFromTitle ?? '—';
     const revisionNo = form.revisionNo ?? form.documentInfo?.revisionNo ?? '—';
