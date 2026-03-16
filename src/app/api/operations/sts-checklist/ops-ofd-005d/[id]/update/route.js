@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
+import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005D";
 import { incrementRevisionForUpdate } from "../../../revision";
 import { createAndScheduleJob } from "../../../../../../../jobs/agenda/jobHelper.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import "../../../../../../../jobs/definitions/ops-ofd-005f.job.js";
+import "../../../../../../../jobs/definitions/ops-ofd-005d.job.js";
 
 // ==================== CONSTANTS ====================
 
@@ -23,8 +23,8 @@ function getSignatureUploadDir() {
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`,
+    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`,
+    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`,
   };
 }
 
@@ -205,7 +205,7 @@ export async function POST(req, { params }) {
         : existing.revisionDate || new Date();
 
     const updateData = {
-      formNo: body.formNo || existing.formNo || "OPS-OFD-005F",
+      formNo: body.formNo || existing.formNo || "OPS-OFD-005D",
       revisionNo,
       revisionDate,
       approvedBy: body.approvedBy || existing.approvedBy || "JS",
@@ -247,7 +247,7 @@ export async function POST(req, { params }) {
 
     // ==================== TRIGGER DOC REGENERATION ====================
     try {
-      await createAndScheduleJob(null, "generate-ops-ofd-005f", {
+      await createAndScheduleJob(null, "generate-ops-ofd-005d", {
         checklistId: updatedChecklist._id.toString(),
         operationRef: updatedChecklist.operationRef,
       });
@@ -258,13 +258,13 @@ export async function POST(req, { params }) {
     return NextResponse.json(
       {
         success: true,
-        message: "OPS-OFD-005F checklist updated successfully & doc regeneration started",
+        message: "OPS-OFD-005D checklist updated successfully & doc regeneration started",
         data: updatedChecklist,
       },
       { headers: corsHeaders }
     );
   } catch (error) {
-    console.error("OPS-OFD-005F update error:", error);
+    console.error("OPS-OFD-005D update error:", error);
     return NextResponse.json(
       { error: error.message },
       { status: 500, headers: corsHeaders }

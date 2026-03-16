@@ -1,14 +1,14 @@
-import STSChecklistFiveF from "../../lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F.js";
+import STSChecklistFiveF from "../../lib/mongodb/models/operation-sts-checklist/OPS-OFD-005D.js";
 import Operation from "../../lib/mongodb/models/sts-documentation/StsOperation.js";
-import { generateOpsOfd005FDoc } from "../services/pdf/OPS-OFD-005F.js";
+import { generateOpsOfd005DDoc } from "../services/pdf/OPS-OFD-005D.js";
 import { getPdfStoragePath } from "../services/pdf/pdfStorage.js";
 import fs from "node:fs";
 import path from "node:path";
 
-const DOCUMENT_TYPE = "OPS-OFD-005F";
+const DOCUMENT_TYPE = "OPS-OFD-005D";
 
-export function defineOpsOfd005FJob(agenda) {
-    agenda.define("generate-ops-ofd-005f", async (job) => {
+export function defineOpsOfd005DJob(agenda) {
+    agenda.define("generate-ops-ofd-005d", async (job) => {
         const { checklistId, operationRef } = job.attrs.data;
 
         if (!checklistId || !operationRef) {
@@ -16,7 +16,7 @@ export function defineOpsOfd005FJob(agenda) {
         }
 
         try {
-            console.log("🚀 Starting OPS-OFD-005F document generation job", { checklistId, operationRef });
+            console.log("🚀 Starting OPS-OFD-005D document generation job", { checklistId, operationRef });
 
             // ==================== ENSURE MONGODB CONNECTION ====================
             const mongoose = await import("mongoose");
@@ -118,7 +118,7 @@ export function defineOpsOfd005FJob(agenda) {
             }
 
             // ==================== GENERATE DOCX DOCUMENT ====================
-            await generateOpsOfd005FDoc(checklist, fullPath);
+            await generateOpsOfd005DDoc(checklist, fullPath);
             console.log("✅ Document generated successfully", { fullPath });
 
             // ==================== UPDATE DOCUMENT STATUS TO GENERATED ====================

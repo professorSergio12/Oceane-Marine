@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
+import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005D";
 import { incrementRevisionForUpdate } from "../../revision";
 import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import "../../../../../../jobs/definitions/ops-ofd-005f.job.js";
+import "../../../../../../jobs/definitions/ops-ofd-005d.job.js";
 
 // ==================== CONSTANTS ====================
 
@@ -23,8 +23,8 @@ function getSignatureUploadDir() {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`,
+    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`,
+    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`,
   };
 }
 
@@ -118,7 +118,7 @@ function mapSignatureBlock(body, signatureKey, signatureUrl, existing = {}) {
  * Triggers background job for document generation
  */
 async function triggerDocumentGeneration(checklistId, operationRef) {
-  await createAndScheduleJob(null, "generate-ops-ofd-005f", {
+  await createAndScheduleJob(null, "generate-ops-ofd-005d", {
     checklistId,
     operationRef,
   });
@@ -134,7 +134,7 @@ export async function OPTIONS() {
 }
 
 /**
- * GET /api/operations/sts-checklist/ops-ofd-005f/[id]
+ * GET /api/operations/sts-checklist/ops-ofd-005d/[id]
  * Fetches checklist by ID
  */
 export async function GET(req, { params }) {
@@ -195,7 +195,7 @@ export async function GET(req, { params }) {
 }
 
 /**
- * PUT /api/operations/sts-checklist/ops-ofd-005f/[id]
+ * PUT /api/operations/sts-checklist/ops-ofd-005d/[id]
  * Updates checklist by ID and triggers document regeneration
  */
 export async function PUT(req, { params }) {
@@ -301,7 +301,7 @@ export async function PUT(req, { params }) {
 
     // Build update data
     const updateData = {
-      formNo: body.formNo || existing.formNo || "OPS-OFD-005F",
+      formNo: body.formNo || existing.formNo || "OPS-OFD-005D",
       revisionNo,
       revisionDate,
       approvedBy: body.approvedBy || existing.approvedBy || "JS",

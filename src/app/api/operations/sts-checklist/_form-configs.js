@@ -36,10 +36,10 @@ export const FORM_CONFIGS = {
     formNo: "OPS-OFD-005C",
     dateField: "documentInfo.issueDate",
   },
-  "ops-ofd-005f": {
+  "ops-ofd-005d": {
     modelName: "STSChecklistFiveF",
-    modelPath: "OPS-OFD-005F",
-    formNo: "OPS-OFD-005F",
+    modelPath: "OPS-OFD-005D",
+    formNo: "OPS-OFD-005D",
     dateField: "revisionDate",
   },
   "declaration-of-sea": {

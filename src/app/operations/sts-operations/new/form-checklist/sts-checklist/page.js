@@ -73,7 +73,7 @@ const FORMS = [
   { formNo: 'OPS-OFD-005', title: 'Checklist 5A-C – After Connection Checks till Disconnection', apiPath: 'ops-ofd-005', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005' },
   { formNo: 'OPS-OFD-005B', title: 'Checklist 6A & B – Checks Before & After Disconnection', apiPath: 'ops-ofd-005b', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005B' },
   { formNo: 'OPS-OFD-005C', title: 'Checklist 7 - Pre Transfer Conference Alongside a Terminal', apiPath: 'ops-ofd-005c', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005C' },
-  { formNo: 'OPS-OFD-005F', title: 'STS Transfer Safety Checklist (At Sea)', apiPath: 'ops-ofd-005f', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005F' },
+  { formNo: 'OPS-OFD-005D', title: 'Declaration for STS operations (At port & Terminal)', apiPath: 'ops-ofd-005d', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005D' },
   { formNo: 'OPS-OFD-005E', title: 'Declaration Of STS At Sea', apiPath: 'declaration-of-sea', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005E' },
   { formNo: 'OPS-OFD-028', title: 'Personnel Transfer Basket Checklist', apiPath: 'ops-ofd-028', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-028' },
   { formNo: 'OPS-OFD-009', title: 'Mooring Master\'s Job Report', apiPath: 'ops-ofd-009', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-009' },
@@ -97,6 +97,7 @@ export default function StsChecklistPage() {
   const [selectedOperationRef, setSelectedOperationRef] = useState("");
   const [inProgressOperations, setInProgressOperations] = useState([]);
   const [loadingOperations, setLoadingOperations] = useState(false);
+  const [overallCopied, setOverallCopied] = useState(false);
 
   const handleViewList = (apiPath) => {
     router.push(`/operations/sts-operations/new/form-checklist/sts-checklist/${apiPath}/list`);
@@ -169,6 +170,53 @@ export default function StsChecklistPage() {
     const updateLink = `${baseUrl}?operationRef=${cleanOperationRef}&mode=update`;
     
     return { createLink, updateLink };
+  };
+
+  // Forms that need separate copy buttons (001A, 005D, 028)
+  const formsWithSeparateCopy = ['OPS-OFD-001A', 'OPS-OFD-005D', 'OPS-OFD-028'];
+
+  // Forms included in overall copy (001, 002, 003, 004, 005, 005b, 005c, 005e, 009, 011, 014, 015, 018, 020, 023, 028, 029)
+  const overallCopyFormNos = ['OPS-OFD-001', 'OPS-OFD-002', 'OPS-OFD-003', 'OPS-OFD-004', 'OPS-OFD-005', 'OPS-OFD-005B', 'OPS-OFD-005C', 'OPS-OFD-005E', 'OPS-OFD-009', 'OPS-OFD-011', 'OPS-OFD-014', 'OPS-OFD-015', 'OPS-OFD-018', 'OPS-OFD-020', 'OPS-OFD-023', 'OPS-OFD-028', 'OPS-OFD-029'];
+
+  const handleOverallCopy = async () => {
+    if (!selectedOperationRef) {
+      alert('Please select an Operation Ref first');
+      return;
+    }
+
+    const cleanOperationRef = selectedOperationRef.trim();
+    const links = overallCopyFormNos.map(formNo => {
+      const form = FORMS.find(f => f.formNo === formNo);
+      if (!form) return null;
+      const baseUrl = form.link.split('?')[0];
+      return `${formNo}: ${baseUrl}?operationRef=${cleanOperationRef}`;
+    }).filter(Boolean);
+
+    const textToCopy = links.join('\n');
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setOverallCopied(true);
+      setTimeout(() => setOverallCopied(false), 3000);
+    } catch (err) {
+      console.error('Failed to copy links:', err);
+      // Fallback
+      const textArea = document.createElement('textarea');
+      textArea.value = textToCopy;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setOverallCopied(true);
+        setTimeout(() => setOverallCopied(false), 3000);
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Failed to copy links');
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   return (
@@ -343,7 +391,7 @@ export default function StsChecklistPage() {
 
           {/* Operation Ref Dropdown */}
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <label htmlFor="operationRef" className="text-sm font-semibold text-white/90 whitespace-nowrap">
                 Select Operation Ref:
               </label>
@@ -362,12 +410,34 @@ export default function StsChecklistPage() {
                 ))}
               </select>
               {selectedOperationRef && (
-                <button
-                  onClick={() => setSelectedOperationRef("")}
-                  className="px-4 py-2 text-sm text-red-400 hover:text-red-300 transition"
-                >
-                  Clear
-                </button>
+                <>
+                  <button
+                    onClick={() => setSelectedOperationRef("")}
+                    className="px-4 py-2 text-sm text-red-400 hover:text-red-300 transition"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={handleOverallCopy}
+                    className="px-4 py-2.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 hover:border-purple-400/50 text-purple-300 hover:text-purple-200 text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                  >
+                    {overallCopied ? (
+                      <>
+                        <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-green-400">All Links Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>Overall Copy</span>
+                      </>
+                    )}
+                  </button>
+                </>
               )}
             </div>
             {selectedOperationRef && (
@@ -438,6 +508,32 @@ export default function StsChecklistPage() {
                                 </svg>
                                 Update Form
                               </a>
+                              {/* Separate copy button for 001A, 005D, 028 */}
+                              {formsWithSeparateCopy.includes(form.formNo) && (
+                                <button
+                                  onClick={() => {
+                                    const linkWithRef = getFormLinks(form.link).createLink;
+                                    handleCopyLink(linkWithRef, form.formNo);
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5"
+                                >
+                                  {copiedLink === form.formNo ? (
+                                    <>
+                                      <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      <span className="text-green-400">Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                      </svg>
+                                      <span>Copy Link</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           ) : (
                             // Show copy link button when no operation ref is selected

@@ -74,7 +74,7 @@ const FORMS = [
   { formNo: 'OPS-OFD-005B', title: 'Before Disconnection & Unmooring', apiPath: 'ops-ofd-005b' },
   { formNo: 'OPS-OFD-005C', title: 'Terminal Transfer Checklist', apiPath: 'ops-ofd-005c' },
   { formNo: 'OPS-OFD-005E', title: 'Declaration Of STS At Sea', apiPath: 'declaration-of-sea' },
-  { formNo: 'OPS-OFD-005F', title: 'STS Transfer Safety Checklist (At Sea)', apiPath: 'ops-ofd-005f' },
+  { formNo: 'OPS-OFD-005D', title: 'Declaration for STS operations (At port & Terminal)', apiPath: 'ops-ofd-005d' },
   { formNo: 'OPS-OFD-028', title: 'Personnel Transfer Basket Checklist', apiPath: 'ops-ofd-028' },
   { formNo: 'OPS-OFD-009', title: 'Mooring Master\'s Job Report', apiPath: 'ops-ofd-009' },
   { formNo: 'OPS-OFD-011', title: 'STS Standing Order', apiPath: 'ops-ofd-011' },

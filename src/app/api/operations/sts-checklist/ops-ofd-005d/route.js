@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
+import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005D";
 import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import "../../../../../jobs/definitions/ops-ofd-005f.job.js";
+import "../../../../../jobs/definitions/ops-ofd-005d.job.js";
 
 // ==================== CONSTANTS ====================
 
@@ -23,8 +23,8 @@ function getSignatureUploadDir() {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`,
+    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`,
+    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`,
   };
 }
 
@@ -185,7 +185,7 @@ function buildUpdateData(body, signatureUrls, revisionNo, existing) {
   }
 
   return {
-    formNo: body.formNo || existing.formNo || "OPS-OFD-005F",
+    formNo: body.formNo || existing.formNo || "OPS-OFD-005D",
     revisionNo,
     revisionDate,
     approvedBy: body.approvedBy || existing.approvedBy || "JS",
@@ -212,7 +212,7 @@ function buildUpdateData(body, signatureUrls, revisionNo, existing) {
  * @param {string} operationRef - Operation reference number
  */
 async function triggerDocumentGeneration(checklistId, operationRef) {
-  await createAndScheduleJob(null, "generate-ops-ofd-005f", {
+  await createAndScheduleJob(null, "generate-ops-ofd-005d", {
     checklistId,
     operationRef,
   });
@@ -228,7 +228,7 @@ export async function OPTIONS() {
 }
 
 /**
- * GET /api/operations/sts-checklist/ops-ofd-005f?operationRef=2026-001
+ * GET /api/operations/sts-checklist/ops-ofd-005d?operationRef=2026-001
  * Fetches existing checklist data by operationRef (for external form)
  */
 export async function GET(req) {
@@ -249,7 +249,7 @@ export async function GET(req) {
     operationRef = operationRef.trim();
 
     // Debug logging
-    console.log(`🔍 Searching for OPS-OFD-005F checklist with operationRef: "${operationRef}"`);
+    console.log(`🔍 Searching for OPS-OFD-005D checklist with operationRef: "${operationRef}"`);
 
     // Try exact match first
     let checklist = await STSChecklistFiveF.findOne({ operationRef })
@@ -287,14 +287,14 @@ export async function GET(req) {
     if (!checklist) {
       return NextResponse.json(
         { 
-          error: `No OPS-OFD-005F checklist found for operation reference: ${operationRef}`,
+          error: `No OPS-OFD-005D checklist found for operation reference: ${operationRef}`,
           searchedValue: operationRef
         },
         { status: 404, headers: CORS_HEADERS }
       );
     }
 
-    console.log(`✅ Found OPS-OFD-005F checklist: ${checklist._id} with operationRef: "${checklist.operationRef}"`);
+    console.log(`✅ Found OPS-OFD-005D checklist: ${checklist._id} with operationRef: "${checklist.operationRef}"`);
 
     // Transform backend format to frontend format for compatibility
     const transformToFrontendFormat = (data) => {
@@ -340,7 +340,7 @@ export async function GET(req) {
 }
 
 /**
- * PUT /api/operations/sts-checklist/ops-ofd-005f?operationRef=2026-001
+ * PUT /api/operations/sts-checklist/ops-ofd-005d?operationRef=2026-001
  * Updates existing checklist by operationRef (for external form)
  */
 export async function PUT(req) {
@@ -360,7 +360,7 @@ export async function PUT(req) {
     // Trim whitespace and normalize
     operationRef = operationRef.trim();
 
-    console.log(`🔍 Searching for OPS-OFD-005F checklist to update with operationRef: "${operationRef}"`);
+    console.log(`🔍 Searching for OPS-OFD-005D checklist to update with operationRef: "${operationRef}"`);
 
     // Find existing checklist - try exact match first
     let existing = await STSChecklistFiveF.findOne({ operationRef })
@@ -398,14 +398,14 @@ export async function PUT(req) {
     if (!existing) {
       return NextResponse.json(
         { 
-          error: `No OPS-OFD-005F checklist found for operation reference: ${operationRef}`,
+          error: `No OPS-OFD-005D checklist found for operation reference: ${operationRef}`,
           searchedValue: operationRef
         },
         { status: 404, headers: CORS_HEADERS }
       );
     }
 
-    console.log(`✅ Found OPS-OFD-005F checklist to update: ${existing._id} with operationRef: "${existing.operationRef}"`);
+    console.log(`✅ Found OPS-OFD-005D checklist to update: ${existing._id} with operationRef: "${existing.operationRef}"`);
 
     // Parse request body
     const formData = await req.formData();

@@ -13,7 +13,7 @@ import {
     ImageRun
 } from "docx";
 
-export async function generateOpsOfd005FDoc(checklist, fullPath) {
+export async function generateOpsOfd005DDoc(checklist, fullPath) {
 
     const checklistItems = checklist.checklistItems || [];
     const terminalBerthedShipSig = checklist.terminalBerthedShipSignature || {};
@@ -120,7 +120,7 @@ export async function generateOpsOfd005FDoc(checklist, fullPath) {
                     new TableCell({
                         width: { size: 30, type: WidthType.PERCENTAGE },
                         children: [
-                            infoLine("Form No", checklist.formNo || "OPS-OFD-005F"),
+                            infoLine("Form No", checklist.formNo || "OPS-OFD-005D"),
                             infoLine("Rev. No.", checklist.revisionNo),
                             infoLine("Issue Date", formatDate(checklist.revisionDate)),
                             infoLine("Approved by", checklist.approvedBy || "JS"),
@@ -164,7 +164,7 @@ export async function generateOpsOfd005FDoc(checklist, fullPath) {
     const declarationParagraph = new Paragraph({
         children: [
             new TextRun({
-                text: "Declaration for STS operations in port / at a Terminal",
+                text: "Declaration for STS operations (At port & Terminal)",
                 bold: true,
                 size: 24
             })

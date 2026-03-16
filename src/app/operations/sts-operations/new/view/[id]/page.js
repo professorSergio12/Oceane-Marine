@@ -16,7 +16,7 @@ const FORM_NAME_MAP = {
   "OPS-OFD-005B": "Checklist 6A & B",
   "OPS-OFD-005C": "Checklist 7",
   "OPS-OFD-005E": "Declaration at Sea",
-  "OPS-OFD-005F": "Checklist 5F",
+  "OPS-OFD-005D": "Declaration for STS operations (At port & Terminal)",
   "OPS-OFD-028":  "Personnel Transfer Basket Checklist",
   "OPS-OFD-009":  "Mooring Master Job Report",
   "OPS-OFD-011":  "Standing Order",

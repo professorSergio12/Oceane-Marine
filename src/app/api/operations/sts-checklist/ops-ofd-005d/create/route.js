@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
+import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005D";
 import { getNextRevisionForCreate } from "../../revision.js";
 
 import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js";
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import "../../../../../../jobs/definitions/ops-ofd-005f.job.js";
+import "../../../../../../jobs/definitions/ops-ofd-005d.job.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,8 +51,8 @@ export async function POST(req) {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    const sigBaseDir = `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`;
-    const sigBaseUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005F`;
+    const sigBaseDir = `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`;
+    const sigBaseUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005D`;
     const uploadDir = path.join(process.cwd(), sigBaseDir);
 
     // Helper: detect if a string is raw base64
@@ -139,7 +139,7 @@ export async function POST(req) {
     const documentData = {
       operationRef: body.operationRef,
 
-      formNo: body.formNo || "OPS-OFD-005F",
+      formNo: body.formNo || "OPS-OFD-005D",
       revisionNo,
       revisionDate,
       approvedBy: body.approvedBy || "JS",
@@ -230,7 +230,7 @@ export async function POST(req) {
     /* ================= STEP 2: QUEUE BACKGROUND JOB (NON-BLOCKING) ================= */
     // Queue job asynchronously - don't wait for it to complete
     try {
-      await createAndScheduleJob(null, "generate-ops-ofd-005f", {
+      await createAndScheduleJob(null, "generate-ops-ofd-005d", {
         checklistId: newChecklist._id.toString(),
         operationRef: newChecklist.operationRef,
       });

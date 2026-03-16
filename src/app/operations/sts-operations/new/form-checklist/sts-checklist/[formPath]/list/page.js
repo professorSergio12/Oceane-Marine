@@ -74,7 +74,7 @@ const FORM_TITLES = {
   'ops-ofd-005': 'OPS-OFD-005 - During Transfer (5A-5C)',
   'ops-ofd-005b': 'OPS-OFD-005B - Before Disconnection & Unmooring',
   'ops-ofd-005c': 'OPS-OFD-005C - Terminal Transfer Checklist',
-  'ops-ofd-005f': 'OPS-OFD-005F - STS Transfer Safety Checklist (At Sea)',
+  'ops-ofd-005d': 'OPS-OFD-005D - Declaration for STS operations (At port & Terminal)',
   'ops-ofd-028': 'OPS-OFD-028 - Personnel Transfer Basket Checklist',
   'ops-ofd-009': 'OPS-OFD-009 - Mooring Master\'s Job Report',
   'ops-ofd-011': 'OPS-OFD-011 - STS Standing Order',

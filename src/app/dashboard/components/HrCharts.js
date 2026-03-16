@@ -50,7 +50,7 @@ export default function HrCharts() {
         <div>
           <h2 className="text-xl font-semibold text-white">HR</h2>
           <p className="text-sm text-slate-300">Human Resources Overview</p>
-        </div>
+      </div>
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
       </div>

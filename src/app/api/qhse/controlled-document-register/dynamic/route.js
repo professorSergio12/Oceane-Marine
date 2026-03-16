@@ -34,7 +34,7 @@ import STSChecklist5 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-
 import STSChecklist6AB from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005B";
 import STSChecklist5C from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005C";
 import STSDeclaration from "@/lib/mongodb/models/operation-sts-checklist/DeclarationOfSea";
-import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
+import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005D";
 import STSChecklist8 from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-028";
 import MooringMastersJobReport from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-009";
 import STSStandingOrder from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-011";
@@ -86,7 +86,7 @@ const REGISTER_ENTRIES = [
   { formCode: "OPS-OFD-005B", title: "Before Disconnection & Unmooring", model: STSChecklist6AB, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-005b/list", department: "Operations" },
   { formCode: "OPS-OFD-005C", title: "Terminal Transfer Checklist", model: STSChecklist5C, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-005c/list", department: "Operations" },
   { formCode: "OPS-OFD-005E", title: "Declaration Of STS At Sea", model: STSDeclaration, href: "/operations/sts-operations/new/form-checklist/sts-checklist/declaration-of-sea/list", department: "Operations" },
-  { formCode: "OPS-OFD-005F", title: "STS Transfer Safety Checklist (At Sea)", model: STSChecklistFiveF, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-005f/list", department: "Operations" },
+  { formCode: "OPS-OFD-005D", title: "Declaration for STS operations (At port & Terminal)", model: STSChecklistFiveF, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-005d/list", department: "Operations" },
   { formCode: "OPS-OFD-028", title: "Personnel Transfer Basket Checklist", model: STSChecklist8, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-028/list", department: "Operations" },
   { formCode: "OPS-OFD-009", title: "Mooring Master's Job Report", model: MooringMastersJobReport, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-009/list", department: "Operations" },
   { formCode: "OPS-OFD-011", title: "STS Standing Order", model: STSStandingOrder, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-011/list", department: "Operations" },

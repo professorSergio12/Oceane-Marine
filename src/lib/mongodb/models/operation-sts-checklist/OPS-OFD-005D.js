@@ -135,7 +135,7 @@ STSChecklistFiveFSchema.pre("save", async function () {
     try {
         const counter = await FormCounterStsCheckList.findOneAndUpdate(
             {
-                key: "STS_CHECKLIST_OPS-OFD-005F",
+                key: "STS_CHECKLIST_OPS-OFD-005D",
                 year
             },
             { $inc: { seq: 1 } },

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005F";
+import STSChecklistFiveF from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005D";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,7 +49,7 @@ export async function GET(req) {
       .sort({ createdAt: -1 })
       .lean();
 
-    console.log(`📋 Found ${checklists.length} OPS-OFD-005F checklists for year ${year || 'all'}`);
+    console.log(`📋 Found ${checklists.length} OPS-OFD-005D checklists for year ${year || 'all'}`);
 
     // Backfill root-level revisionNo for docs created before revision was added
     const byCreatedAsc = [...checklists].reverse();
@@ -99,7 +99,7 @@ export async function GET(req) {
       }
     );
   } catch (error) {
-    console.error("OPS-OFD-005F list error:", error);
+    console.error("OPS-OFD-005D list error:", error);
     return NextResponse.json(
       {
         success: false,
