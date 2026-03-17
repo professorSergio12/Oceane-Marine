@@ -510,7 +510,7 @@ export default function NearMissListPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="text-left text-slate-200 border-b border-white/10">
@@ -520,7 +520,6 @@ export default function NearMissListPage() {
                         <th className="py-3 pr-4 font-semibold">Date</th>
                         <th className="py-3 pr-4 font-semibold">Observer</th>
                         <th className="py-3 pr-4 font-semibold">Type</th>
-                        <th className="py-3 pr-4 font-semibold">Area</th>
                         <th className="py-3 pr-4 font-semibold">Status</th>
                         <th className="py-3 pr-4 font-semibold text-right">
                           Action
@@ -568,11 +567,6 @@ export default function NearMissListPage() {
                               )}`}
                             >
                               {report.TypeOfReporting || "—"}
-                            </span>
-                          </td>
-                          <td className="py-3 pr-4">
-                            <span className="text-slate-300">
-                              {report.AreaOfNearMiss || "—"}
                             </span>
                           </td>
                           <td className="py-3 pr-4">

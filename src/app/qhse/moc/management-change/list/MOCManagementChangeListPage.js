@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton, ViewIconButton, EditIconButton } from "../../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, ViewIconButton, EditIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 
@@ -38,6 +38,7 @@ export default function MOCManagementChangeListPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [closingId, setClosingId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   // Status filter: Draft, Open, Closed, All
   const [filter, setFilter] = useState("Open");
@@ -325,6 +326,31 @@ export default function MOCManagementChangeListPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleDownload = async (mocId) => {
+    setDownloadingId(mocId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/moc/management-change/${mocId}/download`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download document");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `MOC-${mocId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err.message || "Failed to download document");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className={`${contentClassName} flex items-center justify-center`}>
@@ -522,14 +548,39 @@ export default function MOCManagementChangeListPage() {
                       )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedMoc(null)}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition text-white text-xl font-bold"
-                  aria-label="Close"
-                >
-                  ×
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(selectedMoc._id)}
+                    disabled={downloadingId === selectedMoc._id}
+                    className="px-4 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-sm font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Download Document"
+                  >
+                    {downloadingId === selectedMoc._id ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Downloading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Download</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMoc(null)}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition text-white text-xl font-bold"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
 
               <div className="p-6 space-y-6">
@@ -995,6 +1046,12 @@ export default function MOCManagementChangeListPage() {
                                   <ViewIconButton
                                     onClick={() => handleViewDetails(moc)}
                                     title="View Details"
+                                  />
+                                  <DownloadIconButton
+                                    onClick={() => handleDownload(moc._id)}
+                                    disabled={downloadingId === moc._id}
+                                    loading={downloadingId === moc._id}
+                                    title="Download Document"
                                   />
                                   {moc.status === "Draft" && (
                                     <>
