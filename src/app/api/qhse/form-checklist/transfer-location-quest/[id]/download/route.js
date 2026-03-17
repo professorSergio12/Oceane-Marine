@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import STSTransferLocationQuest from "@/lib/mongodb/models/qhse-form-checklist/StsTransferLocationQuest";
+import { generateTransferLocationQuestDoc } from "@/jobs/services/pdf/TransferLocationQuest";
 
 export const runtime = "nodejs";
 
@@ -11,48 +12,49 @@ export async function GET(req, { params }) {
 
   try {
     const { id } = await params;
-    const record = await STSTransferLocationQuest.findById(id);
+    const quest = await STSTransferLocationQuest.findById(id).lean();
 
-    if (!record) {
+    if (!quest) {
       return NextResponse.json(
-        { error: "Document not found" },
+        { error: "Questionnaire not found" },
         { status: 404 }
       );
     }
 
-    const absolutePath = path.join(process.cwd(), record.filePath);
-
-    if (!fs.existsSync(absolutePath)) {
-      return NextResponse.json(
-        { error: "File not found on server" },
-        { status: 404 }
-      );
+    // Generate temporary file path
+    const tempDir = path.join(process.cwd(), "temp");
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    const fileBuffer = fs.readFileSync(absolutePath);
-    const fileName = path.basename(absolutePath);
-    const fileExt = path.extname(fileName).toLowerCase();
+    const fileName = `TransferLocationQuest-${quest.serialNumber || quest._id.toString()}.docx`;
+    const tempFilePath = path.join(tempDir, fileName);
 
-    const contentTypeMap = {
-      ".docx":
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".doc": "application/msword",
-      ".pdf": "application/pdf",
-      ".xls": "application/vnd.ms-excel",
-      ".xlsx":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ".txt": "text/plain",
-    };
+    // Generate DOCX document
+    await generateTransferLocationQuestDoc(quest, tempFilePath);
 
-    const contentType = contentTypeMap[fileExt] || "application/octet-stream";
+    // Read the generated file
+    const fileBuffer = fs.readFileSync(tempFilePath);
+
+    // Clean up temporary file
+    try {
+      fs.unlinkSync(tempFilePath);
+    } catch (err) {
+      console.error("Error deleting temp file:", err);
+    }
+
+    // Return the file
     return new NextResponse(fileBuffer, {
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${fileName}"`,
       },
     });
   } catch (error) {
-    console.error("STS Transfer Download Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Transfer Location Questionnaire download error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to generate document" },
+      { status: 500 }
+    );
   }
 }

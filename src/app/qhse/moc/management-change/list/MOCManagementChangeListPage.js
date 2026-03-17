@@ -39,6 +39,7 @@ export default function MOCManagementChangeListPage() {
   const [archivingId, setArchivingId] = useState(null);
   const [closingId, setClosingId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingFileId, setDownloadingFileId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   // Status filter: Draft, Open, Closed, All
   const [filter, setFilter] = useState("Open");
@@ -326,7 +327,7 @@ export default function MOCManagementChangeListPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDownload = async (mocId) => {
+  const handleDownloadDocx = async (mocId) => {
     setDownloadingId(mocId);
     setError(null);
     try {
@@ -348,6 +349,81 @@ export default function MOCManagementChangeListPage() {
       setError(err.message || "Failed to download document");
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadFile = async (mocId) => {
+    setDownloadingFileId(mocId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/moc/management-change/${mocId}/download-file`);
+      
+      // Check if response is JSON (error) or binary (file)
+      const contentType = res.headers.get("content-type") || "";
+      
+      if (!res.ok) {
+        // Try to parse as JSON error
+        const data = await res.json().catch(() => ({}));
+        const errorMsg = data.error || data.message || `Failed to download file (${res.status})`;
+        alert(errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      // Check if it's a redirect response
+      if (res.redirected || res.status === 307 || res.status === 308) {
+        // For redirects, open in new window
+        window.open(res.url, "_blank");
+        return;
+      }
+
+      // Check if content type indicates it's a file (not JSON)
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        const errorMsg = data.error || data.message || "No file available";
+        alert(errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      // It's a file - download it
+      const blob = await res.blob();
+      
+      // Extract filename from Content-Disposition header
+      const contentDisposition = res.headers.get("Content-Disposition");
+      let fileName = `MOC-file-${mocId}`;
+      
+      if (contentDisposition) {
+        // Try to extract filename from Content-Disposition header
+        // Format: attachment; filename="file.pdf" or attachment; filename*=UTF-8''file.pdf
+        const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/i) || 
+                             contentDisposition.match(/filename="?([^";]+)"?/i);
+        if (filenameMatch && filenameMatch[1]) {
+          fileName = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+      
+      console.log("[MOC File Download Frontend] Downloading file:", fileName, "Size:", blob.size, "Type:", blob.type);
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up after a short delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+    } catch (err) {
+      const errorMsg = err.message || "Failed to download file";
+      alert(errorMsg);
+      setError(errorMsg);
+    } finally {
+      setDownloadingFileId(null);
     }
   };
 
@@ -549,26 +625,52 @@ export default function MOCManagementChangeListPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Only show file download button if files are attached */}
+                  {selectedMoc.riskAssessmentFiles && selectedMoc.riskAssessmentFiles.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadFile(selectedMoc._id)}
+                      disabled={downloadingFileId === selectedMoc._id}
+                      className="px-3 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 hover:border-purple-400/50 text-purple-300 hover:text-purple-200 text-xs font-medium transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Download Attached File"
+                    >
+                      {downloadingFileId === selectedMoc._id ? (
+                        <>
+                          <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span>Downloading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <span>File</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => handleDownload(selectedMoc._id)}
+                    onClick={() => handleDownloadDocx(selectedMoc._id)}
                     disabled={downloadingId === selectedMoc._id}
-                    className="px-4 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-sm font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download Document"
+                    className="px-3 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-xs font-medium transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Download DOCX Document"
                   >
                     {downloadingId === selectedMoc._id ? (
                       <>
-                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span>Downloading...</span>
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <span>Download</span>
+                        <span>DOCX</span>
                       </>
                     )}
                   </button>
@@ -1047,11 +1149,31 @@ export default function MOCManagementChangeListPage() {
                                     onClick={() => handleViewDetails(moc)}
                                     title="View Details"
                                   />
+                                  {/* Only show file download button if files are attached */}
+                                  {moc.riskAssessmentFiles && moc.riskAssessmentFiles.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadFile(moc._id)}
+                                      disabled={downloadingFileId === moc._id}
+                                      className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                      title="Download Attached File"
+                                    >
+                                      {downloadingFileId === moc._id ? (
+                                        <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                  )}
                                   <DownloadIconButton
-                                    onClick={() => handleDownload(moc._id)}
+                                    onClick={() => handleDownloadDocx(moc._id)}
                                     disabled={downloadingId === moc._id}
                                     loading={downloadingId === moc._id}
-                                    title="Download Document"
+                                    title="Download DOCX Document"
                                   />
                                   {moc.status === "Draft" && (
                                     <>

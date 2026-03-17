@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import StsBaseAuditReport from "@/lib/mongodb/models/qhse-form-checklist/StsBaseAuditReport";
+import { generateBaseAuditReportDoc } from "@/jobs/services/pdf/BaseAuditReport";
 
 export const runtime = "nodejs";
 
@@ -11,48 +12,46 @@ export async function GET(req, { params }) {
 
   try {
     const { id } = await params;
-    const record = await StsBaseAuditReport.findById(id);
+    const report = await StsBaseAuditReport.findById(id).lean();
 
-    if (!record) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
+    if (!report) {
+      return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
-    const absolutePath = path.join(process.cwd(), record.filePath);
-
-    if (!fs.existsSync(absolutePath)) {
-      return NextResponse.json(
-        { error: "File does not exist on server" },
-        { status: 404 }
-      );
+    // Generate temporary file path
+    const tempDir = path.join(process.cwd(), "temp");
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    const fileBuffer = fs.readFileSync(absolutePath);
-    const fileName = path.basename(absolutePath);
-    const fileExt = path.extname(fileName).toLowerCase();
+    const fileName = `BaseAudit-${report.serialNumber || report._id.toString()}.docx`;
+    const tempFilePath = path.join(tempDir, fileName);
 
-    const contentTypeMap = {
-      ".pdf": "application/pdf",
-      ".doc": "application/msword",
-      ".docx":
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".xls": "application/vnd.ms-excel",
-      ".xlsx":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ".txt": "text/plain",
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-    };
+    // Generate DOCX document
+    await generateBaseAuditReportDoc(report, tempFilePath);
 
-    const contentType = contentTypeMap[fileExt] || "application/octet-stream";
+    // Read the generated file
+    const fileBuffer = fs.readFileSync(tempFilePath);
 
+    // Clean up temporary file
+    try {
+      fs.unlinkSync(tempFilePath);
+    } catch (err) {
+      console.error("Error deleting temp file:", err);
+    }
+
+    // Return the file
     return new NextResponse(fileBuffer, {
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${fileName}"`,
       },
     });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Base Audit Report download error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to generate document" },
+      { status: 500 }
+    );
   }
 }

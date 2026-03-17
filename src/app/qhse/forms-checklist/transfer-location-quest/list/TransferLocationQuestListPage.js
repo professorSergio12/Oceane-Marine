@@ -38,6 +38,7 @@ export default function TransferLocationQuestListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const [downloadingFile, setDownloadingFile] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [availableYears, setAvailableYears] = useState(initialYears);
@@ -109,7 +110,7 @@ export default function TransferLocationQuestListPage() {
     fetchForms();
   }, [year, locationName]);
 
-  const handleDownload = async (form) => {
+  const handleDownloadDocx = async (form) => {
     setDownloading(form._id);
     try {
       const res = await fetch(
@@ -117,7 +118,8 @@ export default function TransferLocationQuestListPage() {
       );
 
       if (!res.ok) {
-        throw new Error("Failed to download file");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download document");
       }
 
       // Get blob and create download
@@ -125,17 +127,43 @@ export default function TransferLocationQuestListPage() {
       const url = globalThis.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
+      a.download = `TransferLocationQuest-${form.serialNumber || form._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download document");
+    } finally {
+      setDownloading(null);
+    }
+  };
 
-      // Extract filename from Content-Disposition header or use default
+  const handleDownloadFile = async (form) => {
+    setDownloadingFile(form._id);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/transfer-location-quest/${form._id}/download-file`
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download file");
+      }
+
+      // Get blob and create download
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
       const contentDisposition = res.headers.get("Content-Disposition");
-      let fileName = `transfer-location-questionnaire-v${form.version}.docx`;
+      let fileName = `TransferLocationQuest-file-${form._id}`;
       if (contentDisposition) {
         const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
         if (fileNameMatch) {
           fileName = fileNameMatch[1];
         }
       }
-
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
@@ -144,7 +172,7 @@ export default function TransferLocationQuestListPage() {
     } catch (err) {
       setError(err.message || "Failed to download file");
     } finally {
-      setDownloading(null);
+      setDownloadingFile(null);
     }
   };
 
@@ -384,10 +412,28 @@ export default function TransferLocationQuestListPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadFile(form._id)}
+                              disabled={downloadingFile === form._id}
+                              className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                              title="Download Attached File"
+                            >
+                              {downloadingFile === form._id ? (
+                                <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                              ) : (
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                              )}
+                            </button>
                             <DownloadIconButton
-                              onClick={() => handleDownload(form)}
+                              onClick={() => handleDownloadDocx(form)}
                               disabled={downloading === form._id}
                               loading={downloading === form._id}
+                              title="Download DOCX Document"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}

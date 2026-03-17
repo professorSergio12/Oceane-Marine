@@ -50,6 +50,7 @@ export default function BaseAuditListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const [downloadingFile, setDownloadingFile] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [availableYears, setAvailableYears] = useState(initialYears);
@@ -121,21 +122,17 @@ export default function BaseAuditListPage() {
     fetchReports();
   }, [year, locationId]);
 
-  const handleDownload = async (report) => {
+  const handleDownloadDocx = async (report) => {
     setDownloading(report._id);
     try {
-      // Create download link from file path
-      const filePath = report.filePath;
-      const fileName =
-        filePath.split("/").pop() || `base-audit-v${report.version}.pdf`;
-
-      // Fetch file from server
+      // Fetch generated DOCX from server
       const res = await fetch(
         `/api/qhse/form-checklist/base-audit/${report._id}/download`
       );
 
       if (!res.ok) {
-        throw new Error("Failed to download file");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download document");
       }
 
       // Get blob and create download
@@ -143,15 +140,90 @@ export default function BaseAuditListPage() {
       const url = globalThis.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = fileName;
+      a.download = `BaseAudit-${report.serialNumber || report._id}.docx`;
       document.body.appendChild(a);
       a.click();
       globalThis.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      setError(err.message || "Failed to download file");
+      setError(err.message || "Failed to download document");
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleDownloadFile = async (report) => {
+    setDownloadingFile(report._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/form-checklist/base-audit/${report._id}/download-file`);
+      
+      // Check if response is JSON (error) or binary (file)
+      const contentType = res.headers.get("content-type") || "";
+      
+      if (!res.ok) {
+        // Try to parse as JSON error
+        const data = await res.json().catch(() => ({}));
+        const errorMsg = data.error || data.message || `Failed to download file (${res.status})`;
+        alert(errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      // Check if it's a redirect response
+      if (res.redirected || res.status === 307 || res.status === 308) {
+        // For redirects, open in new window
+        window.open(res.url, "_blank");
+        return;
+      }
+
+      // Check if content type indicates it's a file (not JSON)
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        const errorMsg = data.error || data.message || "No file available";
+        alert(errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      // It's a file - download it
+      const blob = await res.blob();
+      
+      // Extract filename from Content-Disposition header
+      const contentDisposition = res.headers.get("Content-Disposition");
+      let fileName = `BaseAudit-file-${report._id}`;
+      
+      if (contentDisposition) {
+        // Try to extract filename from Content-Disposition header
+        // Format: attachment; filename="file.pdf" or attachment; filename*=UTF-8''file.pdf
+        const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/i) || 
+                             contentDisposition.match(/filename="?([^";]+)"?/i);
+        if (filenameMatch && filenameMatch[1]) {
+          fileName = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+      
+      console.log("[Base Audit File Download Frontend] Downloading file:", fileName, "Size:", blob.size, "Type:", blob.type);
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up after a short delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+    } catch (err) {
+      const errorMsg = err.message || "Failed to download file";
+      alert(errorMsg);
+      setError(errorMsg);
+    } finally {
+      setDownloadingFile(null);
     }
   };
 
@@ -395,10 +467,31 @@ export default function BaseAuditListPage() {
                         <td className="px-6 py-4">{formatDate(report.date)}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-1">
+                            {/* Only show file download button if file is attached */}
+                            {report.filePath && (
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadFile(report)}
+                                disabled={downloadingFile === report._id}
+                                className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                title="Download Attached File"
+                              >
+                                {downloadingFile === report._id ? (
+                                  <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                  </svg>
+                                )}
+                              </button>
+                            )}
                             <DownloadIconButton
-                              onClick={() => handleDownload(report)}
+                              onClick={() => handleDownloadDocx(report)}
                               disabled={downloading === report._id}
                               loading={downloading === report._id}
+                              title="Download DOCX Document"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(report)}
