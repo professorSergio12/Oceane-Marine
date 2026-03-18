@@ -1176,30 +1176,9 @@ export default function MOCManagementChangeListPage() {
                                     title="Download DOCX Document"
                                   />
                                   {moc.status === "Draft" && (
-                                    <>
-                                      <EditIconButton
-                                        onClick={() => router.push(`/qhse/moc/management-change/form?edit=${moc._id}`)}
-                                      />
-                                      <button
-                                        onClick={() => handleSubmit(moc._id)}
-                                        disabled={submitting === moc._id}
-                                        className="text-xs text-orange-300 hover:text-orange-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded border border-orange-400/30"
-                                        title="Submit"
-                                      >
-                                        {submitting === moc._id ? "…" : "Submit"}
-                                      </button>
-                                    </>
-                                  )}
-                                  {moc.status === "Open" && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleClose(moc._id)}
-                                      disabled={closingId === moc._id}
-                                      className="text-xs text-slate-300 hover:text-slate-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded border border-slate-400/30"
-                                      title="Close"
-                                    >
-                                      {closingId === moc._id ? "Closing…" : "Close"}
-                                    </button>
+                                    <EditIconButton
+                                      onClick={() => router.push(`/qhse/moc/management-change/form?edit=${moc._id}`)}
+                                    />
                                   )}
                                   <ArchiveIconButton
                                     onClick={() => handleArchive(moc)}

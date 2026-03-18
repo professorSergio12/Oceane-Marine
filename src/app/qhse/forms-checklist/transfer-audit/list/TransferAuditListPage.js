@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton } from "../../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -81,6 +81,7 @@ export default function TransferAuditListPage() {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const [approving, setApproving] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
@@ -139,6 +140,35 @@ export default function TransferAuditListPage() {
   useEffect(() => {
     fetchForms();
   }, [year]);
+
+  const handleDownloadDocx = async (form) => {
+    setDownloading(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/transfer-audit/${form._id}/download`
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download document");
+      }
+
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `TransferAudit-${form.serialNumber || form._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download document");
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const handleViewDetails = (form) => {
     setSelectedForm(form);
@@ -675,8 +705,14 @@ export default function TransferAuditListPage() {
                   </div>
 
                   {/* Action Buttons */}
-                  {selectedForm.status === "Pending" && (
-                    <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
+                  <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
+                    <DownloadIconButton
+                      onClick={() => handleDownloadDocx(selectedForm)}
+                      disabled={downloading === selectedForm._id}
+                      loading={downloading === selectedForm._id}
+                      title="Download DOCX Document"
+                    />
+                    {selectedForm.status === "Pending" && (
                       <button
                         type="button"
                         onClick={() => handleApprove(selectedForm._id)}
@@ -687,8 +723,8 @@ export default function TransferAuditListPage() {
                           ? "Approving..."
                           : "Approve"}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -761,18 +797,12 @@ export default function TransferAuditListPage() {
                                 >
                                   View
                                 </button>
-                                {form.status === "Pending" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleApprove(form._id)}
-                                    disabled={approving === form._id}
-                                    className="text-xs text-emerald-300 hover:text-emerald-200 font-medium px-3 py-1 rounded border border-emerald-400/30 hover:bg-emerald-400/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {approving === form._id
-                                      ? "Approving..."
-                                      : "Approve"}
-                                  </button>
-                                )}
+                                <DownloadIconButton
+                                  onClick={() => handleDownloadDocx(form)}
+                                  disabled={downloading === form._id}
+                                  loading={downloading === form._id}
+                                  title="Download DOCX Document"
+                                />
                                 <ArchiveIconButton
                                   onClick={(e) => handleArchive(form, e)}
                                   disabled={archivingId === form._id || deleting === form._id}
