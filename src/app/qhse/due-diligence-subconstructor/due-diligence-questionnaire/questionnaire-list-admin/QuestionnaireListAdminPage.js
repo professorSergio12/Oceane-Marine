@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ViewIconButton, ApproveIconButton, RejectIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -44,6 +45,7 @@ export default function QuestionnaireListAdminPage() {
   const [downloading, setDownloading] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending"); // Pending = Pending Review
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchForms = async () => {
     setLoading(true);
@@ -247,13 +249,21 @@ export default function QuestionnaireListAdminPage() {
     }
   };
 
-  // Filter by status based on active tab
-  const forms = allForms.filter((form) => {
+  const statusFiltered = allForms.filter((form) => {
     if (filterStatus === "All") return true;
     return form.status === filterStatus;
   });
 
-  // Pagination calculations
+  const forms = !searchTerm.trim()
+    ? statusFiltered
+    : statusFiltered.filter((f) => {
+        const s = searchTerm.toLowerCase();
+        return (f.serialNumber || "").toLowerCase().includes(s)
+          || (f.formCode || "").toLowerCase().includes(s)
+          || (f.companyName || "").toLowerCase().includes(s)
+          || (f.contact || "").toLowerCase().includes(s);
+      });
+
   const totalPages = Math.ceil(forms.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -283,76 +293,44 @@ export default function QuestionnaireListAdminPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-043</span>
             </p>
           </div>
-          <TemplateDownloadLink formCode="QAF-OFD-043" />
+          <div className="ml-auto">
+            <TemplateDownloadLink formCode="QAF-OFD-043" />
+          </div>
         </header>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-3 mt-2">
-          <button
-            type="button"
-            onClick={() => {
-              setFilterStatus("Pending");
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-              filterStatus === "Pending"
-                ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-            }`}
-          >
-            Pending Review
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFilterStatus("Approved");
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-              filterStatus === "Approved"
-                ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-            }`}
-          >
-            Approved
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFilterStatus("Rejected");
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-              filterStatus === "Rejected"
-                ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-            }`}
-          >
-            Rejected
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFilterStatus("All");
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-              filterStatus === "All"
-                ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-            }`}
-          >
-            All
-          </button>
-        </div>
+        <QhseListPageContainer
+          searchPlaceholder="Search by serial, form code, company, contact..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              {["Pending", "Approved", "Rejected", "All"].map((statusKey) => (
+                <button
+                  key={statusKey}
+                  type="button"
+                  onClick={() => {
+                    setFilterStatus(statusKey);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                    filterStatus === statusKey
+                      ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
+                      : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  {statusKey === "Pending" ? "Pending Review" : statusKey}
+                </button>
+              ))}
+            </>
+          }
+        >
+          {error && (
+            <div className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
 
-        {error && (
-          <div className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
-            {error}
-          </div>
-        )}
-
-        <main className="space-y-6">
+          <main className="space-y-6">
           {/* Detail Card - Shows when form is selected */}
           {selectedForm && (
             <div className="w-full rounded-2xl border border-white/10 bg-slate-800/95 backdrop-blur-md shadow-2xl">
@@ -1066,6 +1044,7 @@ export default function QuestionnaireListAdminPage() {
             </div>
           )}
         </main>
+        </QhseListPageContainer>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
+import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 
 export default function RiskAssessmentListPage() {
   const { contentClassName } = useQhseSidebar();
@@ -16,6 +17,7 @@ export default function RiskAssessmentListPage() {
   const [locations, setLocations] = useState([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const currentYear = new Date().getFullYear();
   const yearOptions = [];
@@ -112,37 +114,7 @@ export default function RiskAssessmentListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-006</span>
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value)}
-                className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 min-w-[100px]"
-              >
-                <option value="">All years</option>
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 min-w-[140px]"
-              >
-                <option value="">All locations</option>
-                {locations.map((loc) => (
-                  <option key={loc._id} value={loc.name}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex flex-wrap items-center gap-4 ml-auto">
             <a
               href="/templates/controlled-register/QAF-OFD-006.xlsx"
               download
@@ -171,18 +143,51 @@ export default function RiskAssessmentListPage() {
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-        {actionMessage && (
-          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
-            {actionMessage}
-          </div>
-        )}
+        <QhseListPageContainer
+          searchPlaceholder="Search by location, form code, serial..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 min-w-[100px]"
+              >
+                <option value="">All years</option>
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 min-w-[140px]"
+              >
+                <option value="">All locations</option>
+                {locations.map((loc) => (
+                  <option key={loc._id} value={loc.name}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          }
+        >
+          {error && (
+            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+              {error}
+            </div>
+          )}
+          {actionMessage && (
+            <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
+              {actionMessage}
+            </div>
+          )}
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
           <div className="grid grid-cols-6 text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3 gap-2">
             <div>Location</div>
             <div>Form Code</div>
@@ -194,11 +199,22 @@ export default function RiskAssessmentListPage() {
 
           {loading ? (
             <div className="p-6 text-sm text-slate-300">Loading...</div>
-          ) : items.length === 0 ? (
-            <div className="p-6 text-sm text-slate-300">No records found.</div>
-          ) : (
+          ) : (() => {
+            const searchFiltered = !searchTerm.trim()
+              ? items
+              : items.filter((i) => {
+                  const s = searchTerm.toLowerCase();
+                  return (i.locationName || "").toLowerCase().includes(s)
+                    || (i.formCode || "").toLowerCase().includes(s)
+                    || (i.serialNumber || "").toLowerCase().includes(s);
+                });
+            return searchFiltered.length === 0 ? (
+              <div className="p-6 text-sm text-slate-300">
+                {searchTerm.trim() ? "No records match your search." : "No records found."}
+              </div>
+            ) : (
             <div className="divide-y divide-white/10">
-              {items.map((item) => (
+              {searchFiltered.map((item) => (
                 <div
                   key={item._id}
                   className="grid grid-cols-6 items-center px-4 py-3 text-sm gap-2"
@@ -277,8 +293,10 @@ export default function RiskAssessmentListPage() {
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
         </div>
+        </QhseListPageContainer>
       </div>
     </div>
   );

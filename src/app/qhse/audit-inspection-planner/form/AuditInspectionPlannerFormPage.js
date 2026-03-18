@@ -295,52 +295,54 @@ export default function AuditInspectionPlannerFormPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-048</span>
             </p>
           </div>
-          <div className="flex flex-col items-start sm:items-end gap-2">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <TemplateDownloadLink formCode="QAF-OFD-048" />
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-                <select
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase bg-slate-800 border border-white/20 text-white min-w-[5rem]"
-                >
-                  {getYears().map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-                <Link
-                  href="/qhse/audit-inspection-planner/form"
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
-                >
-                  Planner Form
-                </Link>
-                <Link
-                  href="/qhse/audit-inspection-planner/list"
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-                >
-                  Planner List
-                </Link>
-              </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 ml-auto">
+            <TemplateDownloadLink formCode="QAF-OFD-048" />
+            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <Link
+                href="/qhse/audit-inspection-planner/form"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+              >
+                Planner Form
+              </Link>
+              <Link
+                href="/qhse/audit-inspection-planner/list"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              >
+                Planner List
+              </Link>
             </div>
           </div>
         </header>
 
-        {(error || success) && (
-          <div
-            className={`rounded-xl px-4 py-3 text-sm font-medium border ${
-              error
-                ? "bg-red-950/40 border-red-500/40 text-red-200"
-                : "bg-emerald-950/40 border-emerald-500/40 text-emerald-200"
-            }`}
-          >
-            {error || success}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 min-w-[100px]"
+              >
+                {getYears().map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+          {(error || success) && (
+            <div
+              className={`rounded-xl px-4 py-3 text-sm font-medium border ${
+                error
+                  ? "bg-red-950/40 border-red-500/40 text-red-200"
+                  : "bg-emerald-950/40 border-emerald-500/40 text-emerald-200"
+              }`}
+            >
+              {error || success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
           {categories.map((cat) => (
             <section
               key={cat.key}
@@ -484,6 +486,7 @@ export default function AuditInspectionPlannerFormPage() {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

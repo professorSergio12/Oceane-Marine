@@ -171,7 +171,7 @@ export default function AuditInspectionPlannerListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-048</span>
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 ml-auto">
             <a
               href="/templates/controlled-register/QAF-OFD-048.xlsx"
               download
