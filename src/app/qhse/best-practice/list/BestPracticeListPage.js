@@ -6,6 +6,7 @@ import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../components/ActionIcons";
+import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -41,6 +42,7 @@ export default function BestPracticeListPage() {
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
   useEffect(() => {
@@ -158,31 +160,6 @@ export default function BestPracticeListPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-white">Best Practices List</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Year
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === null || year === undefined ? "" : year}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-                disabled={loadingYears}
-              >
-                <option value="">All years</option>
-                {loadingYears ? (
-                  <option disabled>Loading…</option>
-                ) : (
-                  availableYears.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/best-practice/create"
@@ -201,39 +178,73 @@ export default function BestPracticeListPage() {
         </header>
 
         <main>
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
+          <QhseListPageContainer
+            searchPlaceholder="Search by Serial, Description..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                <select
+                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                  value={year === null || year === undefined ? "" : year}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setYear(v === "" ? "" : Number(v));
+                  }}
+                  disabled={loadingYears}
+                >
+                  <option value="">All years</option>
+                  {loadingYears ? (
+                    <option disabled>Loading…</option>
+                  ) : (
+                    availableYears.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+            }
+          >
             {error && (
-              <p className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2 mb-4">
+              <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
                 {error}
-              </p>
+              </div>
             )}
             {actionMessage && (
-              <p className="text-xs text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-3 py-2 mb-4">
+              <div className="text-sm text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-4 py-3">
                 {actionMessage}
-              </p>
+              </div>
             )}
-
             {loading ? (
               <p className="text-sm text-slate-100">Loading...</p>
-            ) : bestPractices.length === 0 ? (
-              <p className="text-sm text-slate-100">
-                {year !== "" && year != null ? `No records found for ${year}.` : "No records found."}
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-left text-slate-200 border-b border-white/10">
-                      <th className="py-3 pr-4 font-semibold">Form Code</th>
-                      <th className="py-3 pr-4 font-semibold">Serial</th>
-                      <th className="py-3 pr-4 font-semibold">Event Date</th>
-                      <th className="py-3 pr-4 font-semibold">Description</th>
-                      <th className="py-3 pr-4 font-semibold">Created At</th>
-                      <th className="py-3 pr-4 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bestPractices.map((practice) => (
+            ) : (() => {
+              const filtered = !searchTerm.trim()
+                ? bestPractices
+                : bestPractices.filter((p) => {
+                    const s = searchTerm.toLowerCase();
+                    return (p.serialNumber || "").toLowerCase().includes(s) || (p.description || "").toLowerCase().includes(s) || (p.formCode || "").toLowerCase().includes(s);
+                  });
+              return filtered.length === 0 ? (
+                <p className="text-sm text-slate-100">
+                  {year !== "" && year != null ? `No records found for ${year}.` : "No records found."}
+                  {searchTerm.trim() ? " matching search." : ""}
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-slate-200 border-b border-white/10">
+                        <th className="py-3 pr-4 font-semibold">Form Code</th>
+                        <th className="py-3 pr-4 font-semibold">Serial</th>
+                        <th className="py-3 pr-4 font-semibold">Event Date</th>
+                        <th className="py-3 pr-4 font-semibold">Description</th>
+                        <th className="py-3 pr-4 font-semibold">Created At</th>
+                        <th className="py-3 pr-4 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((practice) => (
                       <tr
                         key={practice._id}
                         className="border-b border-white/5 hover:bg-white/5"
@@ -276,12 +287,13 @@ export default function BestPracticeListPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </QhseListPageContainer>
         </main>
       </div>
     </div>

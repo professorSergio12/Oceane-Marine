@@ -4,6 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 
@@ -90,6 +91,7 @@ export default function TransferAuditListPage() {
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
   useEffect(() => {
@@ -287,88 +289,95 @@ export default function TransferAuditListPage() {
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <TemplateDownloadLink formCode="QAF-OFD-003" />
-            <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-              Year
-            </span>
-            <select
-              className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-              value={year === null || year === undefined ? "" : year}
-              onChange={(e) => {
-                const v = e.target.value;
-                setYear(v === "" ? "" : Number(v));
-              }}
-              disabled={loadingYears}
-            >
-              <option value="">All years</option>
-              {loadingYears ? (
-                <option disabled>Loading…</option>
-              ) : (
-                availableYears.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))
-              )}
-            </select>
-          </div>
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
+        <QhseListPageContainer
+          searchPlaceholder="Search by serial, form code, location..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year === null || year === undefined ? "" : year}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setYear(v === "" ? "" : Number(v));
+                }}
+                disabled={loadingYears}
+              >
+                <option value="">All years</option>
+                {loadingYears ? (
+                  <option disabled>Loading…</option>
+                ) : (
+                  availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))
+                )}
+              </select>
+              <button
+                type="button"
+                onClick={() => setFilter("pending")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === "pending"
+                    ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
+                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                }`}
+              >
+                Pending Review
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("approved")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === "approved"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
+                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                }`}
+              >
+                Approved
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("rejected")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === "rejected"
+                    ? "bg-red-500/20 text-red-300 border border-red-500/50"
+                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                }`}
+              >
+                Rejected
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === "all"
+                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/50"
+                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                }`}
+              >
+                All
+              </button>
+            </>
+          }
+        >
+          {error && (
+            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+              {error}
+            </div>
+          )}
 
-        <main>
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-6">
-            <button
-              type="button"
-              onClick={() => setFilter("pending")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === "pending"
-                  ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                  : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              Pending Review
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter("approved")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === "approved"
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
-                  : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              Approved
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter("rejected")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === "rejected"
-                  ? "bg-red-500/20 text-red-300 border border-red-500/50"
-                  : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              Rejected
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === "all"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/50"
-                  : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              All
-            </button>
-          </div>
-
-          {filteredForms.length === 0 ? (
+          {(() => {
+            const searchFiltered = !searchTerm.trim()
+              ? filteredForms
+              : filteredForms.filter((f) => {
+                  const s = searchTerm.toLowerCase();
+                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s) || (f.header?.locationName || "").toLowerCase().includes(s);
+                });
+            return searchFiltered.length === 0 ? (
             <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
               <div className="flex justify-center mb-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/20 border border-sky-500/50">
@@ -748,7 +757,7 @@ export default function TransferAuditListPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredForms.map((form) => (
+                        {searchFiltered.map((form) => (
                           <tr
                             key={form._id}
                             className="border-b border-white/5 hover:bg-white/5 transition cursor-pointer"
@@ -823,8 +832,8 @@ export default function TransferAuditListPage() {
                 </div>
               )}
             </div>
-          )}
-        </main>
+          ); })()}
+        </QhseListPageContainer>
       </div>
     </div>
   );

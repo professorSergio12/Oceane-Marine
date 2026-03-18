@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditIconButton, DownloadIconButton, ViewIconButton } from "../../../components/ActionIcons";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -81,6 +82,7 @@ export default function EquipmentBaseStockListPage() {
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
   useEffect(() => {
@@ -275,7 +277,6 @@ export default function EquipmentBaseStockListPage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        {/* Header */}
         <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Link
             href="/dashboard"
@@ -292,23 +293,19 @@ export default function EquipmentBaseStockListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-013</span>
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            {/* Year Filter */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <a
-                href="/templates/controlled-register/QAF-OFD-013.docx"
-                download
-                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-                title="Download form template (QAF-OFD-013)"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                </svg>
-                Template
-              </a>
-            </div>
-          </div>
-          <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <a
+              href="/templates/controlled-register/QAF-OFD-013.docx"
+              download
+              className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+              title="Download form template (QAF-OFD-013)"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+              </svg>
+              Template
+            </a>
+            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/equipment-base-stock-level/form"
                 className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
@@ -327,84 +324,73 @@ export default function EquipmentBaseStockListPage() {
               >
                 Base Stock Admin
               </Link>
+            </div>
           </div>
         </header>
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
-        {/* Year filter + Status filter tabs */}
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-              Year
-            </span>
-            <select
-              className="theme-select rounded-full px-3 py-1.5 text-xs tracking-widest uppercase"
-              value={year === null || year === undefined ? "" : year}
-              onChange={(e) => {
-                const v = e.target.value;
-                setYear(v === "" ? "" : Number(v));
-              }}
-              disabled={loadingYears}
-            >
-              <option value="">All years</option>
-              {loadingYears ? (
-                <option disabled>Loading…</option>
-              ) : (
-                availableYears.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))
-              )}
-            </select>
-          </div>
-          <div className="flex gap-2">
-          {["DRAFT", "PENDING", "APPROVED", "REJECTED", "ALL"].map((key) => {
-            const labelMap = {
-              DRAFT: "Draft",
-              PENDING: "Pending Review",
-              APPROVED: "Approved",
-              REJECTED: "Rejected",
-              ALL: "All",
-            };
-            const active = filter === key;
-            const base =
-              "px-4 py-2 rounded-lg text-sm font-medium transition border";
-            let activeClass =
-              "bg-slate-700/50 text-white/80 border-sky-400/40";
-            if (key === "DRAFT") {
-              activeClass =
-                "bg-yellow-500/20 text-yellow-300 border-yellow-500/50";
-            } else if (key === "PENDING") {
-              activeClass =
-                "bg-sky-500/20 text-sky-300 border-sky-500/50";
-            } else if (key === "APPROVED") {
-              activeClass =
-                "bg-emerald-500/20 text-emerald-300 border-emerald-500/50";
-            } else if (key === "REJECTED") {
-              activeClass =
-                "bg-red-500/20 text-red-300 border-red-500/50";
-            }
-            const inactiveClass =
-              "bg-slate-800/40 text-white/70 border-slate-500/40 hover:bg-slate-700/60";
-
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setFilter(key)}
-                className={`${base} ${active ? activeClass : inactiveClass}`}
-              >
-                {labelMap[key]}
-              </button>
-            );
-          })}
-          </div>
-        </div>
+        <QhseListPageContainer
+            searchPlaceholder="Search by Serial, Form Code..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                <select
+                  className="theme-select rounded-full px-3 py-1.5 text-xs tracking-widest uppercase"
+                  value={year === null || year === undefined ? "" : year}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setYear(v === "" ? "" : Number(v));
+                  }}
+                  disabled={loadingYears}
+                >
+                  <option value="">All years</option>
+                  {loadingYears ? (
+                    <option disabled>Loading…</option>
+                  ) : (
+                    availableYears.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {["DRAFT", "PENDING", "APPROVED", "REJECTED", "ALL"].map((key) => {
+                  const labelMap = {
+                    DRAFT: "Draft",
+                    PENDING: "Pending Review",
+                    APPROVED: "Approved",
+                    REJECTED: "Rejected",
+                    ALL: "All",
+                  };
+                  const active = filter === key;
+                  const base = "px-4 py-2 rounded-lg text-sm font-medium transition border";
+                  let activeClass = "bg-slate-700/50 text-white/80 border-sky-400/40";
+                  if (key === "DRAFT") activeClass = "bg-yellow-500/20 text-yellow-300 border-yellow-500/50";
+                  else if (key === "PENDING") activeClass = "bg-sky-500/20 text-sky-300 border-sky-500/50";
+                  else if (key === "APPROVED") activeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-500/50";
+                  else if (key === "REJECTED") activeClass = "bg-red-500/20 text-red-300 border-red-500/50";
+                  const inactiveClass = "bg-slate-800/40 text-white/70 border-slate-500/40 hover:bg-slate-700/60";
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFilter(key)}
+                      className={`${base} ${active ? activeClass : inactiveClass}`}
+                    >
+                      {labelMap[key]}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          }
+        >
+          {error && (
+            <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3 mb-4">
+              {error}
+            </div>
+          )}
 
         {/* Detail card (when View is opened) */}
         {selectedForm && (
@@ -554,7 +540,13 @@ export default function EquipmentBaseStockListPage() {
 
         {/* List */}
         {!selectedForm && (() => {
-          if (filteredForms.length === 0) {
+          const searchFiltered = !searchTerm.trim()
+            ? filteredForms
+            : filteredForms.filter((f) => {
+                const s = searchTerm.toLowerCase();
+                return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s);
+              });
+          if (searchFiltered.length === 0) {
             let message = "No equipment base stock forms found.";
             if (filter === "DRAFT") {
               message = "No draft forms found.";
@@ -574,7 +566,7 @@ export default function EquipmentBaseStockListPage() {
 
           return (
             <div className="space-y-4">
-              {filteredForms.map((form) => (
+              {searchFiltered.map((form) => (
                 <div
                   key={form._id}
                   className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 flex items-center justify-between gap-4 hover:border-white/20 transition"
@@ -641,6 +633,8 @@ export default function EquipmentBaseStockListPage() {
             </div>
           );
         })()}
+
+        </QhseListPageContainer>
 
         {/* Reject modal */}
         {showRejectModal && formToReject && (

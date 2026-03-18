@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, EditIconButton, DownloadIconButton } from "../../../components/ActionIcons";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 
@@ -44,6 +45,7 @@ export default function MOCManagementChangeListPage() {
   // Status filter: Draft, Open, Closed, All
   const [filter, setFilter] = useState("Open");
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [availableYears, setAvailableYears] = useState([]);
   const [loadingYears, setLoadingYears] = useState(false);
 
@@ -311,11 +313,20 @@ export default function MOCManagementChangeListPage() {
     return true; // "All"
   });
 
+  const searchFiltered = !searchTerm.trim()
+    ? filteredMocs
+    : filteredMocs.filter((m) => {
+        const s = searchTerm.toLowerCase();
+        return (m.serialNumber || "").toLowerCase().includes(s)
+          || (m.formCode || "").toLowerCase().includes(s)
+          || (m.proposedChange || "").toLowerCase().includes(s);
+      });
+
   // Pagination calculations
-  const totalPages = Math.ceil(filteredMocs.length / itemsPerPage);
+  const totalPages = Math.ceil(searchFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentMocs = filteredMocs.slice(startIndex, endIndex);
+  const currentMocs = searchFiltered.slice(startIndex, endIndex);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -456,99 +467,70 @@ export default function MOCManagementChangeListPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            {/* Year Filter */}
-            {!selectedMoc && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year
-                </span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year === null || year === undefined ? "" : year}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setYear(v === "" ? "" : Number(v));
-                  }}
-                  disabled={loadingYears}
-                >
-                  <option value="">All years</option>
-                  {availableYears.length === 0 ? (
-                    <option disabled>Loading…</option>
-                  ) : (
-                    availableYears.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            )}
-
-            {/* Template (058) - Management of Change Form */}
-            {!selectedMoc && (
-              <a
-                href="/templates/controlled-register/QAF-OFD-058.docx"
-                download
-                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
-                title="Download form template (QAF-OFD-058)"
+            <a
+              href="/templates/controlled-register/QAF-OFD-058.docx"
+              download
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
+              title="Download form template (QAF-OFD-058)"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+              </svg>
+              Template (058)
+            </a>
+            <a
+              href="/templates/controlled-register/QAF-OFD-058A.docx"
+              download
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+              title="Download form template (QAF-OFD-058A)"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+              </svg>
+              Template (058A)
+            </a>
+            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <Link
+                href="/qhse/moc/management-change/form"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                </svg>
-                Template (058)
-              </a>
-            )}
-            {/* Template (058A) - MOC Risk Assessment */}
-            {!selectedMoc && (
-              <a
-                href="/templates/controlled-register/QAF-OFD-058A.docx"
-                download
-                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-                title="Download form template (QAF-OFD-058A)"
+                MOC Form
+              </Link>
+              <button
+                type="button"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition cursor-default"
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                </svg>
-                Template (058A)
-              </a>
-            )}
-
-            {/* Top-right Form/List toggle */}
-            {!selectedMoc && (
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-                <Link
-                  href="/qhse/moc/management-change/form"
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-                >
-                  MOC Form
-                </Link>
-                <button
-                  type="button"
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition cursor-default"
-                >
-                  MOC List
-                </button>
-              </div>
-            )}
+                MOC List
+              </button>
+            </div>
           </div>
         </header>
 
-        {error && (
-          <div className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
-            {error}
-          </div>
-        )}
-        {actionMessage && (
-          <div className="text-xs text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-3 py-2">
-            {actionMessage}
-          </div>
-        )}
-
-        <main className="space-y-6">
-          {/* Status Filter Tabs */}
-          {!selectedMoc && (
-            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+        <QhseListPageContainer
+          searchPlaceholder="Search by serial, form code, proposed change..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year === null || year === undefined ? "" : year}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setYear(v === "" ? "" : Number(v));
+                }}
+                disabled={loadingYears}
+              >
+                <option value="">All years</option>
+                {availableYears.length === 0 ? (
+                  <option disabled>Loading…</option>
+                ) : (
+                  availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))
+                )}
+              </select>
               {["Open", "Closed", "Draft", "All"].map((statusKey) => {
                 const label = statusKey === "All" ? "All" : statusKey;
                 return (
@@ -569,9 +551,21 @@ export default function MOCManagementChangeListPage() {
                   </button>
                 );
               })}
+            </>
+          }
+        >
+          {error && (
+            <div className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
+          {actionMessage && (
+            <div className="text-xs text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-3 py-2">
+              {actionMessage}
             </div>
           )}
 
+          <main className="space-y-6">
           {/* Detail Card - Takes full space when MOC is selected */}
           {selectedMoc && (
             <div className="w-full rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl">
@@ -1039,10 +1033,12 @@ export default function MOCManagementChangeListPage() {
           {/* Table - Hidden when detail card is shown */}
           {!selectedMoc && (
             <>
-              {filteredMocs.length === 0 ? (
+              {searchFiltered.length === 0 ? (
                 <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
                     <p className="text-white/60 mb-4">
-                      {year
+                      {searchTerm.trim()
+                        ? "No forms match your search."
+                        : year
                         ? `No forms found for ${year}${filter !== "All" ? ` (${filter})` : ""}`
                         : filter === "Draft"
                         ? "No draft forms found"
@@ -1226,6 +1222,7 @@ export default function MOCManagementChangeListPage() {
             </>
           )}
         </main>
+        </QhseListPageContainer>
       </div>
 
       {/* Reject Modal */}

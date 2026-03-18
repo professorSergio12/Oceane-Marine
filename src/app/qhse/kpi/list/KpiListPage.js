@@ -6,6 +6,7 @@ import Link from "next/link";
 import { TemplateDownloadLink } from "../../components/TemplateDownloadLink";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../components/ActionIcons";
+import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 
 export default function KpiListPage() {
   const { contentClassName } = useQhseSidebar();
@@ -15,6 +16,7 @@ export default function KpiListPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [years, setYears] = useState([]);
   const [year, setYear] = useState(""); // "" = All years
+  const [searchTerm, setSearchTerm] = useState("");
   const [archivingId, setArchivingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -99,23 +101,6 @@ export default function KpiListPage() {
           <div className="flex flex-col items-start sm:items-end gap-2">
             <TemplateDownloadLink formCode="HSE-001B" />
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year
-                </span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                >
-                  <option value="">All years</option>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/kpi/target-kpi/form"
@@ -148,35 +133,60 @@ export default function KpiListPage() {
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-        {actionMessage && (
-          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
-            {actionMessage}
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
+        <QhseListPageContainer
+          searchPlaceholder="Search by file name, serial..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+              >
+                <option value="">All years</option>
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          }
+        >
+          {error && (
+            <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
+              {error}
+            </div>
+          )}
+          {actionMessage && (
+            <div className="text-sm text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-4 py-3">
+              {actionMessage}
+            </div>
+          )}
           {loading ? (
             <p className="text-sm text-slate-300">Loading...</p>
-          ) : items.length === 0 ? (
-            <p className="text-sm text-slate-300">No uploads yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-left text-slate-200">
-                <thead className="text-xs uppercase tracking-wide text-slate-300 border-b border-white/10">
-                  <tr>
-                    <th className="px-4 py-3">Form code</th>
-                    <th className="px-4 py-3">Serial</th>
-                    <th className="px-4 py-3">File name</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {items.map((item) => (
+          ) : (() => {
+            const filtered = !searchTerm.trim()
+              ? items
+              : items.filter((i) => {
+                  const s = searchTerm.toLowerCase();
+                  return (i.originalName || "").toLowerCase().includes(s) || (i.serialNumber || "").toLowerCase().includes(s) || (i.formCode || "").toLowerCase().includes(s);
+                });
+            return filtered.length === 0 ? (
+              <p className="text-sm text-slate-300">No uploads yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-left text-slate-200">
+                  <thead className="text-xs uppercase tracking-wide text-slate-300 border-b border-white/10">
+                    <tr>
+                      <th className="px-4 py-3">Form code</th>
+                      <th className="px-4 py-3">Serial</th>
+                      <th className="px-4 py-3">File name</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filtered.map((item) => (
                     <tr key={item._id} className="hover:bg-white/5">
                       <td className="px-4 py-3 font-mono text-sky-300">
                         {item.formCode || "—"}
@@ -203,12 +213,13 @@ export default function KpiListPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+        </QhseListPageContainer>
       </div>
     </div>
   );

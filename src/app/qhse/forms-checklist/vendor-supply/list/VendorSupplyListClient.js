@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 /* ---------------- helpers ---------------- */
 
@@ -74,6 +75,7 @@ export default function VendorSupplyListClient() {
   const [formToReject, setFormToReject] = useState(null);
   const [filter, setFilter] = useState("DRAFT");
   const [selectedForm, setSelectedForm] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchForms = async () => {
     setLoading(true);
@@ -298,39 +300,17 @@ export default function VendorSupplyListClient() {
             </p>
           </div>
           <div className="flex items-center gap-4 flex-wrap ml-auto">
-            <div className="flex items-center gap-3">
-              <a
-                href="/templates/controlled-register/QAF-OFD-037.xlsx"
-                download
-                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-                title="Download form template (QAF-OFD-037)"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                </svg>
-                Template
-              </a>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Year
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === null || year === undefined ? "" : year}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-              >
-                <option value="">All years</option>
-                {getYears().map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <a
+              href="/templates/controlled-register/QAF-OFD-037.xlsx"
+              download
+              className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+              title="Download form template (QAF-OFD-037)"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+              </svg>
+              Template
+            </a>
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link
               href="/qhse/forms-checklist/vendor-supply/form"
@@ -354,56 +334,54 @@ export default function VendorSupplyListClient() {
           </div>
         </header>
 
-        {/* Error */}
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
-          {["DRAFT", "UNDER_REVIEW", "APPROVED", "REJECTED", "ALL"].map(
-            (key) => {
-              const labelMap = {
-                DRAFT: "Draft",
-                UNDER_REVIEW: "Under Review",
-                APPROVED: "Approved",
-                REJECTED: "Rejected",
-                ALL: "All",
-              };
-              const active = filter === key;
-              const base =
-                "px-4 py-2 rounded-lg text-sm font-medium transition border";
-              const activeClass =
-                key === "DRAFT"
-                  ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/50"
-                  : key === "UNDER_REVIEW"
-                  ? "bg-sky-500/20 text-sky-300 border-sky-500/50"
-                  : key === "APPROVED"
-                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                  : key === "REJECTED"
-                  ? "bg-red-500/20 text-red-300 border-red-500/50"
-                  : "bg-slate-700/50 text-white/80 border-sky-400/40";
-              const inactiveClass =
-                "bg-slate-800/40 text-white/70 border-slate-500/40 hover:bg-slate-700/60";
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFilter(key)}
-                  className={`${base} ${active ? activeClass : inactiveClass}`}
-                >
-                  {labelMap[key]}
-                </button>
-              );
-            }
+        <QhseListPageContainer
+          searchPlaceholder="Search by serial, form code, vendor..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year === null || year === undefined ? "" : year}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setYear(v === "" ? "" : Number(v));
+                }}
+              >
+                <option value="">All years</option>
+                {getYears().map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              {["DRAFT", "UNDER_REVIEW", "APPROVED", "REJECTED", "ALL"].map((key) => {
+                const labelMap = { DRAFT: "Draft", UNDER_REVIEW: "Under Review", APPROVED: "Approved", REJECTED: "Rejected", ALL: "All" };
+                const active = filter === key;
+                const base = "px-4 py-2 rounded-lg text-sm font-medium transition border";
+                const activeClass = key === "DRAFT" ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/50" : key === "UNDER_REVIEW" ? "bg-sky-500/20 text-sky-300 border-sky-500/50" : key === "APPROVED" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50" : key === "REJECTED" ? "bg-red-500/20 text-red-300 border-red-500/50" : "bg-slate-700/50 text-white/80 border-sky-400/40";
+                const inactiveClass = "bg-slate-800/40 text-white/70 border-slate-500/40 hover:bg-slate-700/60";
+                return (
+                  <button key={key} type="button" onClick={() => setFilter(key)} className={`${base} ${active ? activeClass : inactiveClass}`}>
+                    {labelMap[key]}
+                  </button>
+                );
+              })}
+            </>
+          }
+        >
+          {error && (
+            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+              {error}
+            </div>
           )}
-        </div>
-
-        {/* List */}
-        {filteredForms.length === 0 ? (
+          {(() => {
+            const searchFiltered = !searchTerm.trim()
+              ? filteredForms
+              : filteredForms.filter((f) => {
+                  const s = searchTerm.toLowerCase();
+                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || f.formNo || "").toLowerCase().includes(s) || (f.vendorName || "").toLowerCase().includes(s);
+                });
+            return searchFiltered.length === 0 ? (
           <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
             <p className="text-white/60 text-sm">
               {filter === "DRAFT"
@@ -695,7 +673,7 @@ export default function VendorSupplyListClient() {
             {/* List View - Hidden when detail card is shown */}
             {!selectedForm && (
               <div className="space-y-4">
-                {filteredForms.map((form) => (
+                {searchFiltered.map((form) => (
                   <div
                     key={form._id}
                     className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 flex items-center justify-between gap-4 hover:border-white/20 transition"
@@ -779,7 +757,9 @@ export default function VendorSupplyListClient() {
               </div>
             )}
           </div>
-        )}
+        );
+          })()}
+        </QhseListPageContainer>
       </div>
 
       {/* Reject Modal */}

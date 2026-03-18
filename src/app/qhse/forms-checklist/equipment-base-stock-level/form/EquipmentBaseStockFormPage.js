@@ -354,20 +354,6 @@ export default function EquipmentBaseStockFormPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 ml-auto">
             <TemplateDownloadLink formCode="QAF-OFD-013" />
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                id="form-year"
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className="theme-select rounded-full px-3 py-1.5 text-xs tracking-widest uppercase bg-slate-800 border border-white/20 text-white focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500/40 outline-none cursor-pointer"
-                aria-label="Filter by year"
-              >
-                {getYears().map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/equipment-base-stock-level/form"
@@ -391,23 +377,41 @@ export default function EquipmentBaseStockFormPage() {
           </div>
         </header>
 
-        {/* Feedback */}
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                id="form-year"
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="theme-select rounded-full px-3 py-1.5 text-xs tracking-widest uppercase bg-slate-800 border border-white/20 text-white focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500/40 outline-none cursor-pointer"
+                aria-label="Form year"
+              >
+                {getYears().map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        )}
 
-        {success && (
-          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
-            {success}
-          </div>
-        )}
+          {/* Feedback */}
+          {error && (
+            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+              {error}
+            </div>
+          )}
 
-        {/* Revision date and status – only when editing (rev no/date updated on edit) */}
-        {mode === "edit" && (
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-4">
-            <div className="flex flex-col md:flex-row md:items-end gap-4">
+          {success && (
+            <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
+              {success}
+            </div>
+          )}
+
+          {/* Revision date and status – only when editing (rev no/date updated on edit) */}
+          {mode === "edit" && (
+            <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-end gap-4">
               <div className="flex-1">
                 <label
                   htmlFor="revisionDate"
@@ -435,13 +439,13 @@ export default function EquipmentBaseStockFormPage() {
                   </span>
                 </p>
               </div>
-            </div>
-          </section>
-        )}
+              </div>
+            </section>
+          )}
 
-        {/* Equipment table */}
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          {/* Equipment table */}
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <h2 className="text-lg font-semibold text-white/90">
               Equipment Details
             </h2>
@@ -449,9 +453,9 @@ export default function EquipmentBaseStockFormPage() {
               Fill quantities and condition for each relevant line item. Leave
               unused rows blank.
             </p>
-          </div>
+            </div>
 
-          <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/20">
+            <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/20">
             <table className="min-w-full text-xs md:text-sm">
               <thead className="bg-amber-200/80 text-slate-900">
                 <tr>
@@ -586,11 +590,11 @@ export default function EquipmentBaseStockFormPage() {
                 })}
               </tbody>
             </table>
-          </div>
-        </section>
+            </div>
+          </section>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pt-2">
           <Link
             href="/qhse/forms-checklist/equipment-base-stock-level/list"
             className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
@@ -613,6 +617,7 @@ export default function EquipmentBaseStockFormPage() {
           >
             {submitting ? "Submitting..." : "Submit for Review"}
           </button>
+          </div>
         </div>
       </div>
     </div>

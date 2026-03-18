@@ -6,6 +6,7 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { useEffect, useState } from "react";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import Link from "next/link";
 
 function formatDate(value) {
@@ -146,6 +147,7 @@ export default function HseInductionChecklistListPage() {
   const [year, setYear] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
   useEffect(() => {
@@ -218,10 +220,16 @@ export default function HseInductionChecklistListPage() {
     }
   }, [filter, filteredForms, selectedForm]);
 
-  const totalPages = Math.ceil(filteredForms.length / itemsPerPage);
+  const searchFiltered = !searchTerm.trim()
+    ? filteredForms
+    : filteredForms.filter((f) => {
+        const s = searchTerm.toLowerCase();
+        return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || f.formNo || "").toLowerCase().includes(s) || (f.employeeOrContractorName || "").toLowerCase().includes(s);
+      });
+  const totalPages = Math.ceil(searchFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentForms = filteredForms.slice(startIndex, endIndex);
+  const currentForms = searchFiltered.slice(startIndex, endIndex);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -442,82 +450,87 @@ export default function HseInductionChecklistListPage() {
             </div>
             <div className="flex items-center gap-2 ml-auto">
               <TemplateDownloadLink formCode="QAF-OFD-008" />
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === null || year === undefined ? "" : year}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                  setCurrentPage(1);
-                }}
-                disabled={loadingYears}
-              >
-                <option value="">All years</option>
-                {loadingYears ? (
-                  <option disabled>Loading…</option>
-                ) : (
-                  availableYears.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))
-                )}
-              </select>
             </div>
           </header>
 
-          {/* Filter Tabs – same style as Subcontractor Audit */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => { setFilter("pending"); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-                filter === "pending"
-                  ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                  : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              Pending Review
-            </button>
-            <button
-              type="button"
-              onClick={() => { setFilter("approved"); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-                filter === "approved"
-                  ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                  : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              Approved
-            </button>
-            <button
-              type="button"
-              onClick={() => { setFilter("rejected"); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-                filter === "rejected"
-                  ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                  : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              Rejected
-            </button>
-            <button
-              type="button"
-              onClick={() => { setFilter("all"); setCurrentPage(1); }}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-                filter === "all"
-                  ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                  : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              All
-            </button>
-          </div>
-
-          {error && (
-            <div className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
-              {error}
-            </div>
-          )}
+          <QhseListPageContainer
+            searchPlaceholder="Search by serial, form code, name..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <>
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                <select
+                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                  value={year === null || year === undefined ? "" : year}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setYear(v === "" ? "" : Number(v));
+                    setCurrentPage(1);
+                  }}
+                  disabled={loadingYears}
+                >
+                  <option value="">All years</option>
+                  {loadingYears ? (
+                    <option disabled>Loading…</option>
+                  ) : (
+                    availableYears.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))
+                  )}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => { setFilter("pending"); setCurrentPage(1); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                    filter === "pending"
+                      ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
+                      : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  Pending Review
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setFilter("approved"); setCurrentPage(1); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                    filter === "approved"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
+                      : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  Approved
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setFilter("rejected"); setCurrentPage(1); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                    filter === "rejected"
+                      ? "bg-red-500/20 text-red-300 border border-red-500/50"
+                      : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  Rejected
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setFilter("all"); setCurrentPage(1); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                    filter === "all"
+                      ? "bg-sky-500/20 text-sky-300 border border-sky-500/50"
+                      : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  All
+                </button>
+              </>
+            }
+          >
+            {error && (
+              <div className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
+                {error}
+              </div>
+            )}
 
           <main className="space-y-6">
             {/* Detail Card – shows when a form is selected (same pattern as Subcontractor Audit) */}
@@ -864,7 +877,7 @@ export default function HseInductionChecklistListPage() {
 
             {!selectedForm && (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-                {filteredForms.length === 0 ? (
+                {searchFiltered.length === 0 ? (
                   <p className="text-white/60 text-center py-8">
                     {filter === "pending"
                       ? "No pending HSE induction checklists."
@@ -964,8 +977,8 @@ export default function HseInductionChecklistListPage() {
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10 text-xs text-white/70">
                         <span>
                           Showing {startIndex + 1} to{" "}
-                          {Math.min(endIndex, filteredForms.length)} of{" "}
-                          {filteredForms.length}
+                          {Math.min(endIndex, searchFiltered.length)} of{" "}
+                          {searchFiltered.length}
                         </span>
                         <div className="flex gap-2">
                           <button
@@ -995,6 +1008,7 @@ export default function HseInductionChecklistListPage() {
               </div>
             )}
           </main>
+          </QhseListPageContainer>
         </div>
       </div>
 

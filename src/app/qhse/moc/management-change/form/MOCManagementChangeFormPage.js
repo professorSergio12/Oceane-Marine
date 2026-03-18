@@ -502,27 +502,6 @@ export default function MOCManagementChangeFormPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                id="year"
-                name="year"
-                value={form.year ?? currentYear}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    year: Number(e.target.value),
-                  }))
-                }
-                className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
             <a
               href="/templates/controlled-register/QAF-OFD-058.docx"
               download
@@ -562,19 +541,44 @@ export default function MOCManagementChangeFormPage() {
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                id="year"
+                name="year"
+                value={form.year ?? currentYear}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    year: Number(e.target.value),
+                  }))
+                }
+                className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+              >
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        )}
 
-        {success && (
-          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
-            {success}
-          </div>
-        )}
+          {error && (
+            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+              {error}
+            </div>
+          )}
 
-        <form className="space-y-8">
+          {success && (
+            <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
+              {success}
+            </div>
+          )}
+
+          <form className="space-y-8">
           {/* Basic Information */}
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
             <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
@@ -1052,6 +1056,7 @@ export default function MOCManagementChangeFormPage() {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -44,6 +45,7 @@ export default function DefectListPage() {
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
   useEffect(() => {
@@ -221,29 +223,6 @@ export default function DefectListPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Year
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === null || year === undefined ? "" : year}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-                disabled={loadingYears}
-              >
-                <option value="">All years</option>
-                {loadingYears ? (
-                  <option disabled>Loading…</option>
-                ) : (
-                  availableYears.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))
-                )}
-              </select>
-            </div>
             <a
               href="/templates/controlled-register/QAF-OFD-025.xlsx"
               download
@@ -272,24 +251,60 @@ export default function DefectListPage() {
           </div>
         </header>
 
-        <main>
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
-            {error && (
-              <p className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
-                {error}
-              </p>
-            )}
-            {actionMessage && (
-              <p className="text-xs text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-3 py-2">
-                {actionMessage}
-              </p>
-            )}
+        <QhseListPageContainer
+          searchPlaceholder="Search by serial, form code, defect, base..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year === null || year === undefined ? "" : year}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setYear(v === "" ? "" : Number(v));
+                }}
+                disabled={loadingYears}
+              >
+                <option value="">All years</option>
+                {loadingYears ? (
+                  <option disabled>Loading…</option>
+                ) : (
+                  availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))
+                )}
+              </select>
+            </>
+          }
+        >
+          {error && (
+            <p className="text-xs text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+          {actionMessage && (
+            <p className="text-xs text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-3 py-2">
+              {actionMessage}
+            </p>
+          )}
 
-            {loading ? (
-              <p className="text-sm text-slate-100">Loading defects…</p>
-            ) : defects.length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-slate-100">Loading defects…</p>
+          ) : (() => {
+            const searchFiltered = !searchTerm.trim()
+              ? defects
+              : defects.filter((d) => {
+                  const s = searchTerm.toLowerCase();
+                  return (d.serialNumber || "").toLowerCase().includes(s)
+                    || (d.formCode || "").toLowerCase().includes(s)
+                    || (d.equipmentDefect || "").toLowerCase().includes(s)
+                    || (d.base || "").toLowerCase().includes(s);
+                });
+            return searchFiltered.length === 0 ? (
               <p className="text-sm text-slate-100">
-                {year !== "" && year != null ? `No equipment defects found for ${year}.` : "No equipment defects found."}
+                {searchTerm.trim() ? "No defects match your search." : (year !== "" && year != null ? `No equipment defects found for ${year}.` : "No equipment defects found.")}
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -308,7 +323,7 @@ export default function DefectListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {defects.map((defect) => (
+                    {searchFiltered.map((defect) => (
                       <tr
                         key={defect._id}
                         className="border-b border-white/5 hover:bg-white/5"
@@ -388,9 +403,9 @@ export default function DefectListPage() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
-        </main>
+            );
+          })()}
+        </QhseListPageContainer>
       </div>
     </div>
   );

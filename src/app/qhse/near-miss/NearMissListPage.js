@@ -7,6 +7,7 @@ import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../utils/archive";
 import { ViewIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../components/ActionIcons";
 import { TemplateDownloadLink } from "../components/TemplateDownloadLink";
+import { QhseListPageContainer } from "../components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -60,6 +61,7 @@ export default function NearMissListPage() {
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
   useEffect(() => {
@@ -113,11 +115,21 @@ export default function NearMissListPage() {
     fetchNearMisses();
   }, [year]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(nearMisses.length / itemsPerPage);
+  const searchFiltered = !searchTerm.trim()
+    ? nearMisses
+    : nearMisses.filter((r) => {
+        const s = searchTerm.toLowerCase();
+        return (r.serialNumber || "").toLowerCase().includes(s)
+          || (r.formCode || "").toLowerCase().includes(s)
+          || (r.JobRefNo || "").toLowerCase().includes(s)
+          || (r.VesselName || "").toLowerCase().includes(s)
+          || (r.NameOfObserver || "").toLowerCase().includes(s)
+          || (r.TypeOfReporting || "").toLowerCase().includes(s);
+      });
+  const totalPages = Math.ceil(searchFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentReports = nearMisses.slice(startIndex, endIndex);
+  const currentReports = searchFiltered.slice(startIndex, endIndex);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -259,32 +271,39 @@ export default function NearMissListPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <TemplateDownloadLink formCode="QAF-OFD-015" />
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-              Year
-            </span>
-            <select
-              className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-              value={year === null || year === undefined ? "" : year}
-              onChange={(e) => {
-                const v = e.target.value;
-                setYear(v === "" ? "" : Number(v));
-              }}
-              disabled={loadingYears}
-            >
-              <option value="">All years</option>
-              {loadingYears ? (
-                <option disabled>Loading…</option>
-              ) : (
-                availableYears.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))
-              )}
-            </select>
           </div>
         </header>
 
+        <QhseListPageContainer
+          searchPlaceholder="Search by serial, job ref, vessel, observer, type..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year === null || year === undefined ? "" : year}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setYear(v === "" ? "" : Number(v));
+                }}
+                disabled={loadingYears}
+              >
+                <option value="">All years</option>
+                {loadingYears ? (
+                  <option disabled>Loading…</option>
+                ) : (
+                  availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))
+                )}
+              </select>
+            </>
+          }
+        >
         <main className="space-y-6">
           {/* Report Details - Only visible when a report is selected */}
           {selectedReport && (
@@ -502,10 +521,10 @@ export default function NearMissListPage() {
               <div className="flex items-center justify-center py-12">
                 <div className="text-sm text-slate-100">Loading reports…</div>
               </div>
-            ) : nearMisses.length === 0 ? (
+            ) : searchFiltered.length === 0 ? (
               <div className="flex items-center justify-center py-12">
                 <p className="text-sm text-slate-100">
-                  {year !== "" && year != null ? `No near-miss reports found for ${year}.` : "No near-miss reports found."}
+                  {searchTerm.trim() ? "No reports match your search." : (year !== "" && year != null ? `No near-miss reports found for ${year}.` : "No near-miss reports found.")}
                 </p>
               </div>
             ) : (
@@ -616,8 +635,8 @@ export default function NearMissListPage() {
                   <div className="flex items-center justify-between pt-4 border-t border-white/10">
                     <div className="text-xs text-slate-300">
                       Showing {startIndex + 1} to{" "}
-                      {Math.min(endIndex, nearMisses.length)} of{" "}
-                      {nearMisses.length} reports
+                      {Math.min(endIndex, searchFiltered.length)} of{" "}
+                      {searchFiltered.length} reports
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -676,6 +695,7 @@ export default function NearMissListPage() {
           </div>
           )}
         </main>
+        </QhseListPageContainer>
       </div>
     </div>
   );

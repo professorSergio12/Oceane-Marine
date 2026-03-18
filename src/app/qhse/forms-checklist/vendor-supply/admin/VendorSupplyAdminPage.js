@@ -5,6 +5,7 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton } from "../../../components/ActionIcons";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -70,6 +71,7 @@ export default function VendorSupplyAdminPage() {
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchForms = async () => {
     setLoading(true);
@@ -233,24 +235,6 @@ export default function VendorSupplyAdminPage() {
             </p>
           </div>
           <div className="flex items-center gap-4 flex-wrap ml-auto">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Year
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === null || year === undefined ? "" : year}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-              >
-                <option value="">All years</option>
-                {getYears().map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link
               href="/qhse/forms-checklist/vendor-supply/form"
@@ -274,55 +258,75 @@ export default function VendorSupplyAdminPage() {
           </div>
         </header>
 
-        {/* Error */}
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
-          {["UNDER_REVIEW", "APPROVED", "REJECTED", "ALL"].map((key) => {
-            const labelMap = {
-              UNDER_REVIEW: "Pending Review",
-              APPROVED: "Approved",
-              REJECTED: "Rejected",
-              ALL: "All",
-            };
-            const active = filter === key;
-            const base =
-              "px-4 py-2 rounded-lg text-sm font-medium transition border";
-            const activeClass =
-              key === "UNDER_REVIEW"
-                ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/50"
-                : key === "APPROVED"
-                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                : key === "REJECTED"
-                ? "bg-red-500/20 text-red-300 border-red-500/50"
-                : "bg-slate-700/50 text-white/80 border-sky-400/40";
-            const inactiveClass =
-              "bg-slate-800/40 text-white/70 border-slate-500/40 hover:bg-slate-700/60";
-
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  setFilter(key);
-                  setShowRejectFor(null);
-                  setRejectionReason("");
+        <QhseListPageContainer
+          searchPlaceholder="Search by serial, form code, vendor..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
+            <>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year === null || year === undefined ? "" : year}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setYear(v === "" ? "" : Number(v));
                 }}
-                className={`${base} ${active ? activeClass : inactiveClass}`}
               >
-                {labelMap[key]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* List */}
-        {filteredForms.length === 0 ? (
+                <option value="">All years</option>
+                {getYears().map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              {["UNDER_REVIEW", "APPROVED", "REJECTED", "ALL"].map((key) => {
+                const labelMap = {
+                  UNDER_REVIEW: "Pending Review",
+                  APPROVED: "Approved",
+                  REJECTED: "Rejected",
+                  ALL: "All",
+                };
+                const active = filter === key;
+                const base = "px-4 py-2 rounded-lg text-sm font-medium transition border";
+                const activeClass =
+                  key === "UNDER_REVIEW"
+                    ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/50"
+                    : key === "APPROVED"
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                    : key === "REJECTED"
+                    ? "bg-red-500/20 text-red-300 border-red-500/50"
+                    : "bg-slate-700/50 text-white/80 border-sky-400/40";
+                const inactiveClass = "bg-slate-800/40 text-white/70 border-slate-500/40 hover:bg-slate-700/60";
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setFilter(key);
+                      setShowRejectFor(null);
+                      setRejectionReason("");
+                    }}
+                    className={`${base} ${active ? activeClass : inactiveClass}`}
+                  >
+                    {labelMap[key]}
+                  </button>
+                );
+              })}
+            </>
+          }
+        >
+          {error && (
+            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+              {error}
+            </div>
+          )}
+          {(() => {
+            const searchFiltered = !searchTerm.trim()
+              ? filteredForms
+              : filteredForms.filter((f) => {
+                  const s = searchTerm.toLowerCase();
+                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || f.formNo || "").toLowerCase().includes(s) || (f.vendorName || "").toLowerCase().includes(s);
+                });
+            return searchFiltered.length === 0 ? (
           <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
             <p className="text-white/60 text-sm">
               {filter === "UNDER_REVIEW"
@@ -336,7 +340,7 @@ export default function VendorSupplyAdminPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredForms.map((form) => (
+            {searchFiltered.map((form) => (
               <div
                 key={form._id}
                 className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 space-y-3 hover:border-white/20 transition"
@@ -487,7 +491,9 @@ export default function VendorSupplyAdminPage() {
               </div>
             ))}
           </div>
-        )}
+        );
+          })()}
+        </QhseListPageContainer>
       </div>
     </div>
   );

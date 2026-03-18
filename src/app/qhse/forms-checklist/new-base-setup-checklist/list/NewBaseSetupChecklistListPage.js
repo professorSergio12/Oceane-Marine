@@ -3,6 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -56,6 +57,7 @@ export default function NewBaseSetupChecklistListPage() {
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
   useEffect(() => {
@@ -239,30 +241,7 @@ export default function NewBaseSetupChecklistListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-051</span>
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Year
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === null || year === undefined ? "" : year}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-                disabled={loadingYears}
-              >
-                <option value="">All years</option>
-                {loadingYears ? (
-                  <option disabled>Loading…</option>
-                ) : (
-                  availableYears.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))
-                )}
-              </select>
-            </div>
+          <div className="flex items-center gap-2">
             <a
               href="/templates/controlled-register/QAF-OFD-051.docx"
               download
@@ -291,14 +270,41 @@ export default function NewBaseSetupChecklistListPage() {
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
         <main>
-          {forms.length === 0 ? (
+          <QhseListPageContainer
+            searchPlaceholder="Search by Serial, Base Name..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                <select
+                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                  value={year === null || year === undefined ? "" : year}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setYear(v === "" ? "" : Number(v));
+                  }}
+                  disabled={loadingYears}
+                >
+                  <option value="">All years</option>
+                  {loadingYears ? (
+                    <option disabled>Loading…</option>
+                  ) : (
+                    availableYears.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+            }
+          >
+            {error && (
+              <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
+                {error}
+              </div>
+            )}
+            {forms.length === 0 ? (
             <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
               <div className="flex justify-center mb-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/20 border border-sky-500/50">
@@ -345,9 +351,19 @@ export default function NewBaseSetupChecklistListPage() {
                 Upload Checklist
               </Link>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="overflow-x-auto">
+          ) : (() => {
+            const filtered = !searchTerm.trim()
+              ? forms
+              : forms.filter((f) => {
+                  const s = searchTerm.toLowerCase();
+                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.baseName || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s);
+                });
+            return filtered.length === 0 ? (
+              <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
+                <p className="text-white/60">No checklists matching search.</p>
+              </div>
+            ) : (
+            <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
@@ -363,7 +379,7 @@ export default function NewBaseSetupChecklistListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {forms.map((form) => (
+                    {filtered.map((form) => (
                       <tr
                         key={form._id}
                         className="border-b border-white/5 hover:bg-white/5 transition"
@@ -447,8 +463,9 @@ export default function NewBaseSetupChecklistListPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            );
+          })()}
+          </QhseListPageContainer>
         </main>
       </div>
     </div>

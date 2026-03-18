@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -59,6 +60,7 @@ export default function BaseAuditListPage() {
   const [locations, setLocations] = useState([]);
   const [locationId, setLocationId] = useState("");
   const [loadingLocations, setLoadingLocations] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -293,47 +295,6 @@ export default function BaseAuditListPage() {
             </p>
           </div>
           <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Year
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === null || year === undefined ? "" : year}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-                disabled={loadingYears}
-              >
-                <option value="">All years</option>
-                {loadingYears ? (
-                  <option disabled>Loading…</option>
-                ) : (
-                  availableYears.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))
-                )}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Location
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={locationId || ""}
-                onChange={(e) => setLocationId(e.target.value)}
-                disabled={loadingLocations}
-              >
-                <option value="">All</option>
-                {locations.map((loc) => (
-                  <option key={loc._id} value={loc._id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
             <a
               href="/templates/controlled-register/QAF-OFD-004.docx"
               download
@@ -362,14 +323,59 @@ export default function BaseAuditListPage() {
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
         <main>
-          {reports.length === 0 ? (
+          <QhseListPageContainer
+            searchPlaceholder="Search by Serial, Location..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                  <select
+                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                    value={year === null || year === undefined ? "" : year}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setYear(v === "" ? "" : Number(v));
+                    }}
+                    disabled={loadingYears}
+                  >
+                    <option value="">All years</option>
+                    {loadingYears ? (
+                      <option disabled>Loading…</option>
+                    ) : (
+                      availableYears.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
+                  <select
+                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                    value={locationId || ""}
+                    onChange={(e) => setLocationId(e.target.value)}
+                    disabled={loadingLocations}
+                  >
+                    <option value="">All</option>
+                    {locations.map((loc) => (
+                      <option key={loc._id} value={loc._id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            }
+          >
+            {error && (
+              <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
+                {error}
+              </div>
+            )}
+            {reports.length === 0 ? (
             <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
               <div className="flex justify-center mb-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/20 border border-sky-500/50">
@@ -416,9 +422,20 @@ export default function BaseAuditListPage() {
                 Upload Report
               </Link>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="overflow-x-auto">
+          ) : (() => {
+            const filtered = !searchTerm.trim()
+              ? reports
+              : reports.filter((r) => {
+                  const s = searchTerm.toLowerCase();
+                  const locName = (locations.find((l) => l._id === r.locationId) || {}).name || "";
+                  return (r.serialNumber || "").toLowerCase().includes(s) || (r.formCode || "").toLowerCase().includes(s) || locName.toLowerCase().includes(s);
+                });
+            return filtered.length === 0 ? (
+              <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
+                <p className="text-white/60">No reports matching search.</p>
+              </div>
+            ) : (
+            <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
@@ -434,7 +451,7 @@ export default function BaseAuditListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {reports.map((report) => (
+                    {filtered.map((report) => (
                       <tr
                         key={report._id}
                         className="border-b border-white/5 hover:bg-white/5 transition"
@@ -511,8 +528,9 @@ export default function BaseAuditListPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            );
+          })()}
+          </QhseListPageContainer>
         </main>
       </div>
     </div>

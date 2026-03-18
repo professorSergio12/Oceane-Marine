@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import Link from "next/link";
 
 function formatDate(value) {
@@ -243,23 +244,14 @@ export default function PoacCrossCompetencyListPage() {
         </header>
 
         <main>
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex-1 w-full sm:max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search by Form Code, Job Ref No, or POAC Name..."
-                  className="w-full rounded-xl bg-slate-900/40 border border-white/15 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
+          <QhseListPageContainer
+            searchPlaceholder="Search by Form Code, Job Ref No, or POAC Name..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                    Year
-                  </span>
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
                   <select
                     className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
                     value={year === null || year === undefined ? "" : year}
@@ -294,9 +286,9 @@ export default function PoacCrossCompetencyListPage() {
                   <option value="Reviewed">Reviewed</option>
                   <option value="Approved">Approved</option>
                 </select>
-              </div>
-            </div>
-
+              </>
+            }
+          >
             {error && (
               <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
                 {error}
@@ -410,8 +402,6 @@ export default function PoacCrossCompetencyListPage() {
                     </tbody>
                   </table>
                 </div>
-
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between pt-4 border-t border-white/10">
                     <p className="text-xs text-slate-300">
@@ -438,7 +428,7 @@ export default function PoacCrossCompetencyListPage() {
                 )}
               </>
             )}
-          </div>
+          </QhseListPageContainer>
         </main>
       </div>
     </div>

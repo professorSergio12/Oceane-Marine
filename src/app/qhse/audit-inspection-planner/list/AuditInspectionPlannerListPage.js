@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, EditIconButton, ViewIconButton, DownloadIconButton } from "../../components/ActionIcons";
+import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 
 export default function AuditInspectionPlannerListPage() {
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [year, setYear] = useState(""); // "" = All years
   const [availableYears, setAvailableYears] = useState([]);
   const [loadingYears, setLoadingYears] = useState(false);
@@ -170,38 +172,17 @@ export default function AuditInspectionPlannerListPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            {/* Year Filter */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <a
-                href="/templates/controlled-register/QAF-OFD-048.xlsx"
-                download
-                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-                title="Download form template (QAF-OFD-048)"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                </svg>
-                Template
-              </a>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                Year
-              </span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                disabled={loadingYears}
-              >
-                <option value="">All years</option>
-                {(availableYears.length ? availableYears : getYears()).map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <a
+              href="/templates/controlled-register/QAF-OFD-048.xlsx"
+              download
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+              title="Download form template (QAF-OFD-048)"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+              </svg>
+              Template
+            </a>
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/audit-inspection-planner/form"
@@ -219,46 +200,79 @@ export default function AuditInspectionPlannerListPage() {
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-        {actionMessage && (
-          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl px-4 py-3 text-emerald-200 text-sm font-medium">
-            {actionMessage}
-          </div>
-        )}
-
         <main>
-          {items.length === 0 ? (
-            <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
-              <p className="text-white/60 mb-2">
-                {year ? `No planners found for ${year}` : "No planners found"}
-              </p>
-              <Link
-                href="/qhse/audit-inspection-planner/form"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition"
-              >
-                Create Planner
-              </Link>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
-                      <th className="px-6 py-4 font-semibold">Form Code</th>
-                      <th className="px-6 py-4 font-semibold">Serial</th>
-                      <th className="px-6 py-4 font-semibold">Rev</th>
-                      <th className="px-6 py-4 font-semibold">Issue Date</th>
-                      <th className="px-6 py-4 font-semibold">Status</th>
-                      <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item) => (
+          <QhseListPageContainer
+            searchPlaceholder="Search by Form Code, Serial..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                  <select
+                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    disabled={loadingYears}
+                  >
+                    <option value="">All years</option>
+                    {(availableYears.length ? availableYears : getYears()).map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            }
+          >
+            {error && (
+              <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
+                {error}
+              </div>
+            )}
+            {actionMessage && (
+              <div className="text-sm text-emerald-200 bg-emerald-950/40 border border-emerald-500/40 rounded-lg px-4 py-3">
+                {actionMessage}
+              </div>
+            )}
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-sm text-slate-300">Loading...</p>
+              </div>
+            ) : (() => {
+              const filtered = !searchTerm.trim()
+                ? items
+                : items.filter((i) => {
+                    const s = searchTerm.toLowerCase();
+                    return (i.serialNumber || "").toLowerCase().includes(s) || (i.formCode || "").toLowerCase().includes(s);
+                  });
+              return filtered.length === 0 ? (
+                <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
+                  <p className="text-white/60 mb-2">
+                    {year ? `No planners found for ${year}` : "No planners found"}
+                    {searchTerm.trim() ? " matching search." : ""}
+                  </p>
+                  <Link
+                    href="/qhse/audit-inspection-planner/form"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition"
+                  >
+                    Create Planner
+                  </Link>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
+                        <th className="px-6 py-4 font-semibold">Form Code</th>
+                        <th className="px-6 py-4 font-semibold">Serial</th>
+                        <th className="px-6 py-4 font-semibold">Rev</th>
+                        <th className="px-6 py-4 font-semibold">Issue Date</th>
+                        <th className="px-6 py-4 font-semibold">Status</th>
+                        <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((item) => (
                       <tr key={item._id} className="border-b border-white/5">
                         <td className="px-6 py-4 font-mono text-sky-300">{item.formCode}</td>
                         <td className="px-6 py-4 font-mono text-slate-200">{item.serialNumber || "—"}</td>
@@ -290,12 +304,13 @@ export default function AuditInspectionPlannerListPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </QhseListPageContainer>
         </main>
       </div>
     </div>

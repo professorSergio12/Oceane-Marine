@@ -3,6 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
+import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
@@ -47,6 +48,7 @@ export default function TransferLocationQuestListPage() {
   const [locations, setLocations] = useState([]);
   const [locationName, setLocationName] = useState("");
   const [loadingLocations, setLoadingLocations] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -243,52 +245,9 @@ export default function TransferLocationQuestListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-049</span>
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-wrap flex-1 min-w-0">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year
-                </span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year === null || year === undefined ? "" : year}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setYear(v === "" ? "" : Number(v));
-                  }}
-                  disabled={loadingYears}
-                >
-                  <option value="">All years</option>
-                  {loadingYears ? (
-                    <option disabled>Loading…</option>
-                  ) : (
-                    availableYears.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))
-                  )}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Location
-                </span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={locationName || ""}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  disabled={loadingLocations}
-                >
-                  <option value="">All</option>
-                  {locations.map((loc) => (
-                    <option key={loc._id} value={loc.name}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-049" />
-            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden flex-shrink-0 ml-auto">
+            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/transfer-location-quest/form"
                 className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
@@ -305,14 +264,59 @@ export default function TransferLocationQuestListPage() {
           </div>
         </header>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
         <main>
-          {forms.length === 0 ? (
+          <QhseListPageContainer
+            searchPlaceholder="Search by Serial, Location..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                  <select
+                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                    value={year === null || year === undefined ? "" : year}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setYear(v === "" ? "" : Number(v));
+                    }}
+                    disabled={loadingYears}
+                  >
+                    <option value="">All years</option>
+                    {loadingYears ? (
+                      <option disabled>Loading…</option>
+                    ) : (
+                      availableYears.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
+                  <select
+                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                    value={locationName || ""}
+                    onChange={(e) => setLocationName(e.target.value)}
+                    disabled={loadingLocations}
+                  >
+                    <option value="">All</option>
+                    {locations.map((loc) => (
+                      <option key={loc._id} value={loc.name}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            }
+          >
+            {error && (
+              <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
+                {error}
+              </div>
+            )}
+            {forms.length === 0 ? (
             <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
               <div className="flex justify-center mb-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/20 border border-sky-500/50">
@@ -359,9 +363,19 @@ export default function TransferLocationQuestListPage() {
                 Upload Questionnaire
               </Link>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="overflow-x-auto">
+          ) : (() => {
+            const filtered = !searchTerm.trim()
+              ? forms
+              : forms.filter((f) => {
+                  const s = searchTerm.toLowerCase();
+                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.locationName || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s);
+                });
+            return filtered.length === 0 ? (
+              <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
+                <p className="text-white/60">No questionnaires matching search.</p>
+              </div>
+            ) : (
+            <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
@@ -379,7 +393,7 @@ export default function TransferLocationQuestListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {forms.map((form) => (
+                    {filtered.map((form) => (
                       <tr
                         key={form._id}
                         className="border-b border-white/5 hover:bg-white/5 transition"
@@ -453,8 +467,9 @@ export default function TransferLocationQuestListPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            );
+          })()}
+          </QhseListPageContainer>
         </main>
       </div>
     </div>
