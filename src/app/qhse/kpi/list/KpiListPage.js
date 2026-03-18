@@ -189,7 +189,7 @@ export default function KpiListPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1 inline-flex">
-                          <DownloadIconButton href={`/api/qhse/kpi/${item._id}/download`} />
+                          <DownloadIconButton href={`/api/qhse/kpi/${item._id}/download`} title="Download as Word" />
                           <ArchiveIconButton
                             onClick={() => handleArchive(item)}
                             disabled={archivingId === item._id || deletingId === item._id}

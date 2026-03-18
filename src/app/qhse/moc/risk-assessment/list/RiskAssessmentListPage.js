@@ -312,7 +312,7 @@ export default function RiskAssessmentListPage() {
                                         file.name || file.filename || `file-${index + 1}`
                                       )
                                     }
-                                    title={file.name || file.filename}
+                                    title="Download attached file"
                                   />
                                 ))}
                               </>

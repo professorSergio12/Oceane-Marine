@@ -261,6 +261,7 @@ export default function BestPracticeListPage() {
                               onClick={() => handleDownload(practice)}
                               disabled={archivingId === practice._id || deletingId === practice._id}
                               loading={downloadingId === practice._id}
+                              title="Download as Word"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(practice)}

@@ -710,7 +710,7 @@ export default function TransferAuditListPage() {
                       onClick={() => handleDownloadDocx(selectedForm)}
                       disabled={downloading === selectedForm._id}
                       loading={downloading === selectedForm._id}
-                      title="Download DOCX Document"
+                      title="Download as Word"
                     />
                     {selectedForm.status === "Pending" && (
                       <button
@@ -801,7 +801,7 @@ export default function TransferAuditListPage() {
                                   onClick={() => handleDownloadDocx(form)}
                                   disabled={downloading === form._id}
                                   loading={downloading === form._id}
-                                  title="Download DOCX Document"
+                                  title="Download as Word"
                                 />
                                 <ArchiveIconButton
                                   onClick={(e) => handleArchive(form, e)}

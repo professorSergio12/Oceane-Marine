@@ -35,7 +35,8 @@ export function ArchiveIconButton({ onClick, disabled, loading, className = "" }
   );
 }
 
-export function DownloadIconButton({ href, onClick, disabled, loading, className = "" }) {
+export function DownloadIconButton({ href, onClick, disabled, loading, title: titleProp = "Download", className = "" }) {
+  const title = titleProp || "Download";
   const content = (
     <>
       {loading ? (
@@ -53,15 +54,15 @@ export function DownloadIconButton({ href, onClick, disabled, loading, className
   return (
     <span className="relative group inline-flex">
       {href ? (
-        <a href={href} download title="Download" aria-label="Download" className={`p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex ${className}`}>
+        <a href={href} download title={title} aria-label={title} className={`p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex ${className}`}>
           {content}
         </a>
       ) : (
-        <button type="button" onClick={onClick} disabled={disabled} title="Download" aria-label="Download" className={`p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 disabled:opacity-50 transition inline-flex ${className}`}>
+        <button type="button" onClick={onClick} disabled={disabled} title={title} aria-label={title} className={`p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 disabled:opacity-50 transition inline-flex ${className}`}>
           {content}
         </button>
       )}
-      <span className={tooltipClass}>Download</span>
+      <span className={tooltipClass}>{title}</span>
     </span>
   );
 }

@@ -587,6 +587,7 @@ export default function NearMissListPage() {
                                 onClick={() => handleDownloadWord(report)}
                                 disabled={archivingId === report._id || deleting === report._id}
                                 loading={downloadingId === report._id}
+                                title="Download as Word"
                               />
                               <ArchiveIconButton
                                 onClick={() => handleArchive(report)}

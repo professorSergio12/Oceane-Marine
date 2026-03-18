@@ -3,7 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import QhseSidebar from "../../../components/QhseSidebar";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton } from "../../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { useEffect, useState } from "react";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import Link from "next/link";
@@ -138,6 +138,8 @@ export default function HseInductionChecklistListPage() {
   const [formToReject, setFormToReject] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [downloadingDocx, setDownloadingDocx] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [filter, setFilter] = useState("pending"); // "pending", "approved", "rejected", "all"
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -224,6 +226,64 @@ export default function HseInductionChecklistListPage() {
   const handlePageChange = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDownloadDocx = async (form) => {
+    setDownloadingDocx(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/hse-induction-checklist/${form._id}/download`
+      );
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download document");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `HSE-Induction-Checklist-${form.serialNumber || form._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download document");
+    } finally {
+      setDownloadingDocx(null);
+    }
+  };
+
+  /** Download as PDF - placeholder for future implementation */
+  const handleDownloadPdf = async (_form) => {
+    setDownloadingPdf(_form._id);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/hse-induction-checklist/${_form._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 501) {
+          alert("PDF download will be available soon.");
+          return;
+        }
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `HSE-Induction-Checklist-${_form.serialNumber || _form._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(null);
+    }
   };
 
   const handleApprove = async (formId) => {
@@ -494,6 +554,30 @@ export default function HseInductionChecklistListPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
+                    <DownloadIconButton
+                      onClick={() => handleDownloadDocx(selectedForm)}
+                      disabled={downloadingDocx === selectedForm._id}
+                      loading={downloadingDocx === selectedForm._id}
+                      title="Download as Word"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPdf(selectedForm)}
+                      disabled={downloadingPdf === selectedForm._id}
+                      title="Download as PDF"
+                      className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 inline-flex disabled:opacity-50"
+                      aria-label="Download as PDF (coming soon)"
+                    >
+                      {downloadingPdf === selectedForm._id ? (
+                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
                     <ArchiveIconButton
                       onClick={() => handleArchive(selectedForm)}
                       disabled={archivingId === selectedForm._id || deleting === selectedForm._id}
@@ -792,7 +876,7 @@ export default function HseInductionChecklistListPage() {
                   </p>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
+                    <div>
                       <table className="w-full text-sm text-left">
                         <thead>
                           <tr className="border-b border-white/10 text-slate-300 uppercase tracking-wider text-xs">
@@ -835,6 +919,30 @@ export default function HseInductionChecklistListPage() {
                                     onClick={() => setSelectedForm(form)}
                                     title="View Details"
                                   />
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadDocx(form)}
+                                    disabled={downloadingDocx === form._id}
+                                    loading={downloadingDocx === form._id}
+                                    title="Download as Word"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadPdf(form)}
+                                    disabled={downloadingPdf === form._id}
+                                    title="Download as PDF"
+                                    className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 inline-flex disabled:opacity-50"
+                                    aria-label="Download as PDF (coming soon)"
+                                  >
+                                    {downloadingPdf === form._id ? (
+                                      <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                      </svg>
+                                    ) : (
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                      </svg>
+                                    )}
+                                  </button>
                                   <ArchiveIconButton
                                     onClick={() => handleArchive(form)}
                                     disabled={archivingId === form._id || deleting === form._id}

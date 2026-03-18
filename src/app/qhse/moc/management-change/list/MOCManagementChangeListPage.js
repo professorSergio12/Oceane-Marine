@@ -632,7 +632,7 @@ export default function MOCManagementChangeListPage() {
                       onClick={() => handleDownloadFile(selectedMoc._id)}
                       disabled={downloadingFileId === selectedMoc._id}
                       className="px-3 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 hover:border-purple-400/50 text-purple-300 hover:text-purple-200 text-xs font-medium transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Download Attached File"
+                      title="Download attached file"
                     >
                       {downloadingFileId === selectedMoc._id ? (
                         <>
@@ -656,7 +656,7 @@ export default function MOCManagementChangeListPage() {
                     onClick={() => handleDownloadDocx(selectedMoc._id)}
                     disabled={downloadingId === selectedMoc._id}
                     className="px-3 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-xs font-medium transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download DOCX Document"
+                    title="Download as Word"
                   >
                     {downloadingId === selectedMoc._id ? (
                       <>
@@ -1156,7 +1156,7 @@ export default function MOCManagementChangeListPage() {
                                       onClick={() => handleDownloadFile(moc._id)}
                                       disabled={downloadingFileId === moc._id}
                                       className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                      title="Download Attached File"
+                                      title="Download attached file"
                                     >
                                       {downloadingFileId === moc._id ? (
                                         <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1173,7 +1173,7 @@ export default function MOCManagementChangeListPage() {
                                     onClick={() => handleDownloadDocx(moc._id)}
                                     disabled={downloadingId === moc._id}
                                     loading={downloadingId === moc._id}
-                                    title="Download DOCX Document"
+                                    title="Download as Word"
                                   />
                                   {moc.status === "Draft" && (
                                     <EditIconButton

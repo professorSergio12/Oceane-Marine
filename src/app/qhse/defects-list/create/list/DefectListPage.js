@@ -354,6 +354,7 @@ export default function DefectListPage() {
                                   onClick={() => handleDownload(defect._id, idx, att.originalName)}
                                   disabled={downloading === defect._id}
                                   loading={downloading === defect._id}
+                                  title="Download attached file"
                                 />
                               ))}
                             </div>
@@ -367,6 +368,7 @@ export default function DefectListPage() {
                               onClick={() => handleDownloadWord(defect)}
                               disabled={archivingId === defect._id || deletingId === defect._id}
                               loading={exportingId === defect._id}
+                              title="Download as Word"
                             />
                             <EditIconButton href={`/qhse/defects-list/create?edit=${defect._id}`} />
                             <ArchiveIconButton

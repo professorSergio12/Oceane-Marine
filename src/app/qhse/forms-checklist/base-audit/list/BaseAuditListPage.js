@@ -474,7 +474,7 @@ export default function BaseAuditListPage() {
                                 onClick={() => handleDownloadFile(report)}
                                 disabled={downloadingFile === report._id}
                                 className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                title="Download Attached File"
+                                title="Download attached file"
                               >
                                 {downloadingFile === report._id ? (
                                   <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -491,7 +491,7 @@ export default function BaseAuditListPage() {
                               onClick={() => handleDownloadDocx(report)}
                               disabled={downloading === report._id}
                               loading={downloading === report._id}
-                              title="Download DOCX Document"
+                              title="Download as Word"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(report)}

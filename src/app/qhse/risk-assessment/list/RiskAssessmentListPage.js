@@ -237,8 +237,8 @@ export default function RiskAssessmentListPage() {
                       <a
                         href={`/api/qhse/risk-assessment/${item._id}/download`}
                         download
-                        title="Download"
-                        aria-label="Download"
+                        title="Download as Word"
+                        aria-label="Download as Word"
                         className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -246,7 +246,7 @@ export default function RiskAssessmentListPage() {
                         </svg>
                       </a>
                       <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                        Download
+                        Download as Word
                       </span>
                     </span>
                     <span className="relative group inline-flex">

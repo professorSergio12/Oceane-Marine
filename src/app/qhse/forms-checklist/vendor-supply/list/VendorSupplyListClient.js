@@ -4,7 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { EditIconButton, ViewIconButton } from "../../../components/ActionIcons";
+import { EditIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 
 /* ---------------- helpers ---------------- */
 
@@ -65,6 +65,13 @@ export default function VendorSupplyListClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submittingId, setSubmittingId] = useState(null);
+  const [downloadingDocx, setDownloadingDocx] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [formToReject, setFormToReject] = useState(null);
   const [filter, setFilter] = useState("DRAFT");
   const [selectedForm, setSelectedForm] = useState(null);
 
@@ -104,6 +111,135 @@ export default function VendorSupplyListClient() {
     router.push(
       `/qhse/forms-checklist/vendor-supply/form?edit=${id}&from=list`
     );
+  };
+
+  const handleDownloadDocx = async (form) => {
+    setDownloadingDocx(form._id);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/vendor-supply-form/${form._id}/download`
+      );
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download document");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Vendor-Supplier-Approval-${form.serialNumber || form._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download document");
+    } finally {
+      setDownloadingDocx(null);
+    }
+  };
+
+  const handleDownloadPdf = async (form) => {
+    setDownloadingPdf(form._id);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/vendor-supply-form/${form._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 501) {
+          alert("PDF download will be available soon.");
+          return;
+        }
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Vendor-Supplier-Approval-${form.serialNumber || form._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(null);
+    }
+  };
+
+  const handleApprove = async (id) => {
+    if (!confirm("Are you sure you want to approve this vendor/supplier form?")) return;
+    setApprovingId(id);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/vendor-supply-form/${id}/approval`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "APPROVED",
+            approvedBy: "admin",
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to approve form");
+      await fetchForms();
+      if (selectedForm && selectedForm._id === id && data.data) {
+        setSelectedForm(data.data);
+      }
+      alert("Vendor/Supplier form approved successfully.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const openRejectModal = (form) => {
+    setFormToReject(form);
+    setRejectionReason("");
+    setShowRejectModal(true);
+  };
+
+  const handleReject = async () => {
+    if (!formToReject || !rejectionReason.trim()) {
+      setError("Please provide a reason for rejection.");
+      return;
+    }
+    setRejectingId(formToReject._id);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/vendor-supply-form/${formToReject._id}/approval`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "REJECTED",
+            rejectionReason: rejectionReason.trim(),
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject form");
+      setShowRejectModal(false);
+      setFormToReject(null);
+      setRejectionReason("");
+      await fetchForms();
+      if (selectedForm && selectedForm._id === formToReject._id && data.data) {
+        setSelectedForm(data.data);
+      }
+      alert("Vendor/Supplier form rejected.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRejectingId(null);
+    }
   };
 
   const handleSubmitForm = async (id) => {
@@ -297,25 +433,51 @@ export default function VendorSupplyListClient() {
                       {" • Year: "}{selectedForm.year ?? "N/A"}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedForm(null)}
-                    className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  <div className="flex items-center gap-1">
+                    <DownloadIconButton
+                      onClick={() => handleDownloadDocx(selectedForm)}
+                      disabled={downloadingDocx === selectedForm._id}
+                      loading={downloadingDocx === selectedForm._id}
+                      title="Download as Word"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPdf(selectedForm)}
+                      disabled={downloadingPdf === selectedForm._id}
+                      title="Download as PDF"
+                      className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 inline-flex disabled:opacity-50"
+                      aria-label="Download as PDF"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                      {downloadingPdf === selectedForm._id ? (
+                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedForm(null)}
+                      className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition"
+                    >
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Basic Information */}
@@ -507,6 +669,26 @@ export default function VendorSupplyListClient() {
                     </button>
                   </div>
                 )}
+                {selectedForm.status === "UNDER_REVIEW" && (
+                  <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => openRejectModal(selectedForm)}
+                      disabled={approvingId === selectedForm._id}
+                      className="px-5 py-2.5 rounded-lg border border-red-500/50 bg-red-500/10 text-red-300 font-medium hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {rejectingId === selectedForm._id ? "Rejecting…" : "Reject"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(selectedForm._id)}
+                      disabled={rejectingId === selectedForm._id}
+                      className="px-5 py-2.5 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {approvingId === selectedForm._id ? "Approving…" : "Approve"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -554,6 +736,30 @@ export default function VendorSupplyListClient() {
 
                     <div className="flex items-center gap-3">
                       <ViewIconButton onClick={() => setSelectedForm(form)} />
+                      <DownloadIconButton
+                        onClick={() => handleDownloadDocx(form)}
+                        disabled={downloadingDocx === form._id}
+                        loading={downloadingDocx === form._id}
+                        title="Download as Word"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadPdf(form)}
+                        disabled={downloadingPdf === form._id}
+                        title="Download as PDF"
+                        className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 inline-flex disabled:opacity-50"
+                        aria-label="Download as PDF"
+                      >
+                        {downloadingPdf === form._id ? (
+                          <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </button>
                       {form.status === "DRAFT" && (
                         <>
                           <EditIconButton onClick={() => handleEdit(form._id)} />
@@ -575,6 +781,48 @@ export default function VendorSupplyListClient() {
           </div>
         )}
       </div>
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-800 border border-white/20 rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-white mb-4">
+              Reject Vendor/Supplier Form
+            </h3>
+            <p className="text-sm text-white/70 mb-4">
+              Please provide a reason for rejecting this form:
+            </p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-sky-500/50 resize-none"
+              rows={4}
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectionReason("");
+                  setFormToReject(null);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white/90 font-semibold text-sm hover:bg-white/10 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleReject}
+                disabled={!rejectionReason.trim() || rejectingId}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 font-semibold text-sm hover:bg-red-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {rejectingId ? "Rejecting..." : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

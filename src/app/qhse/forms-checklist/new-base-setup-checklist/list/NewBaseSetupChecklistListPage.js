@@ -369,6 +369,7 @@ export default function NewBaseSetupChecklistListPage() {
                               onClick={() => handleDownload(form)}
                               disabled={downloading === form._id}
                               loading={downloading === form._id}
+                              title="Download as Word"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}
