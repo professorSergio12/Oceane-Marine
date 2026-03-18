@@ -4,7 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ViewIconButton, ArchiveIconButton, DeleteIconButton } from "../../../components/ActionIcons";
+import { ViewIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 function formatDate(value) {
@@ -40,6 +40,7 @@ export default function AuditSubContractorListAdminPage() {
   const [rejecting, setRejecting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending"); // "Pending", "Approved", "Rejected", "All"
 
@@ -89,6 +90,41 @@ export default function AuditSubContractorListAdminPage() {
   useEffect(() => {
     fetchAudits();
   }, []);
+
+  const handleDownload = async (audit) => {
+    setDownloading(audit._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/due-diligence/audit-sub-contractor/${audit._id}/download`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `SubContractor-Audit-${audit.serialNumber || audit._id}.docx`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download");
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const handleApprove = async (auditId) => {
     if (!confirm("Are you sure you want to approve this audit form?")) {
@@ -665,6 +701,12 @@ export default function AuditSubContractorListAdminPage() {
                             </td>
                             <td className="py-3 pr-4 text-right">
                               <div className="flex items-center justify-end gap-1">
+                                <DownloadIconButton
+                                  onClick={() => handleDownload(audit)}
+                                  disabled={downloading === audit._id}
+                                  loading={downloading === audit._id}
+                                  title="Download as Word"
+                                />
                                 <ViewIconButton
                                   onClick={() => setSelectedAudit(audit)}
                                   title="View Details"

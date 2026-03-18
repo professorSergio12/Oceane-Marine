@@ -4,7 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ViewIconButton, ApproveIconButton, RejectIconButton, ArchiveIconButton, DeleteIconButton } from "../../../components/ActionIcons";
+import { ViewIconButton, ApproveIconButton, RejectIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 function formatDate(value) {
@@ -41,6 +41,7 @@ export default function QuestionnaireListAdminPage() {
   const [rejecting, setRejecting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending"); // Pending = Pending Review
 
@@ -127,6 +128,41 @@ export default function QuestionnaireListAdminPage() {
       setError(err.message);
     } finally {
       setApproving(null);
+    }
+  };
+
+  const handleDownload = async (form) => {
+    setDownloading(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/due-diligence/due-diligence-questionnaire/${form._id}/download`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `Supplier-Due-Diligence-${form.serialNumber || form._id}.docx`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download");
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -926,24 +962,16 @@ export default function QuestionnaireListAdminPage() {
                             </td>
                             <td className="py-3 pr-4 text-right">
                               <div className="flex items-center justify-end gap-1">
+                                <DownloadIconButton
+                                  onClick={() => handleDownload(form)}
+                                  disabled={downloading === form._id}
+                                  loading={downloading === form._id}
+                                  title="Download as Word"
+                                />
                                 <ViewIconButton
                                   onClick={() => setSelectedForm(form)}
                                   title="View Details"
                                 />
-                                {form.status === "Pending" && (
-                                  <>
-                                    <ApproveIconButton
-                                      onClick={() => handleApprove(form._id)}
-                                      disabled={rejecting === form._id}
-                                      loading={approving === form._id}
-                                    />
-                                    <RejectIconButton
-                                      onClick={() => handleReject(form._id)}
-                                      disabled={approving === form._id}
-                                      loading={rejecting === form._id}
-                                    />
-                                  </>
-                                )}
                                 <ArchiveIconButton
                                   onClick={() => handleArchive(form)}
                                   disabled={archivingId === form._id || deleting === form._id}
