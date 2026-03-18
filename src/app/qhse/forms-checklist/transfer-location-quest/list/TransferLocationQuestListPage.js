@@ -157,11 +157,11 @@ export default function TransferLocationQuestListPage() {
       const a = document.createElement("a");
       a.href = url;
       const contentDisposition = res.headers.get("Content-Disposition");
-      let fileName = `TransferLocationQuest-file-${form._id}`;
+      let fileName = `TransferLocationQuest-file-${form._id}.docx`;
       if (contentDisposition) {
-        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-        if (fileNameMatch) {
-          fileName = fileNameMatch[1];
+        const fileNameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = fileNameMatch[1].trim().replace(/"$/g, "");
         }
       }
       a.download = fileName;

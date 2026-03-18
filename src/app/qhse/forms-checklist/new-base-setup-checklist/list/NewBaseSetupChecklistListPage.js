@@ -50,6 +50,7 @@ export default function NewBaseSetupChecklistListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const [downloadingFile, setDownloadingFile] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [availableYears, setAvailableYears] = useState(initialYears);
@@ -108,34 +109,66 @@ export default function NewBaseSetupChecklistListPage() {
       );
 
       if (!res.ok) {
-        throw new Error("Failed to download file");
+        throw new Error("Failed to download report");
       }
 
-      // Get blob and create download
       const blob = await res.blob();
       const url = globalThis.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      
-      // Extract filename from Content-Disposition header or use default
       const contentDisposition = res.headers.get("Content-Disposition");
-      let fileName = `new-base-setup-checklist-v${form.version}.docx`;
+      let fileName = `New-Base-Setup-Checklist-${form.serialNumber || form._id}.docx`;
       if (contentDisposition) {
-        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-        if (fileNameMatch) {
-          fileName = fileNameMatch[1];
+        const fileNameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = fileNameMatch[1].trim().replace(/"$/g, "");
         }
       }
-      
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       globalThis.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      setError(err.message || "Failed to download file");
+      setError(err.message || "Failed to download report");
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleDownloadFile = async (form) => {
+    if (!form.filePath) return;
+    setDownloadingFile(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/new-base-setup-checklist/${form._id}/download-file`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download file");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = (form.filePath && form.filePath.split(/[/\\]/).pop()) || `checklist-v${form.version}.docx`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = decodeURIComponent(match[1].trim().replace(/"$/g, ""));
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download attached file");
+    } finally {
+      setDownloadingFile(null);
     }
   };
 
@@ -365,6 +398,31 @@ export default function NewBaseSetupChecklistListPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-1">
+                            {form.filePath && (
+                              <span className="relative group inline-flex">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadFile(form)}
+                                  disabled={downloadingFile === form._id}
+                                  className="p-1.5 rounded text-purple-400 hover:text-purple-300 hover:bg-white/10 disabled:opacity-50 transition inline-flex"
+                                  title="Download attached file"
+                                  aria-label="Download attached file"
+                                >
+                                  {downloadingFile === form._id ? (
+                                    <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                  )}
+                                </button>
+                                <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                  Download attached file
+                                </span>
+                              </span>
+                            )}
                             <DownloadIconButton
                               onClick={() => handleDownload(form)}
                               disabled={downloading === form._id}

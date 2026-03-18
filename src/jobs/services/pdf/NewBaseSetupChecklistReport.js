@@ -1,0 +1,172 @@
+import fs from "fs";
+import path from "path";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  AlignmentType,
+  VerticalAlign,
+  ImageRun,
+} from "docx";
+
+const FORM_TITLE = "NEW BASE SETUP CHECKLIST";
+const FORM_CODE_DEFAULT = "QAF-OFD-051";
+
+function buildNewBaseSetupHeaderTable(record, currentPage, totalPages, logoImage) {
+  const reportDate = record.date || record.uploadedAt;
+  const pageText = totalPages > 1 ? `${currentPage} of ${totalPages}` : "";
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 30, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              logoImage
+                ? new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new ImageRun({
+                        data: logoImage,
+                        transformation: { width: 120, height: 60 },
+                      }),
+                    ],
+                  })
+                : new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [new TextRun("OCEANE")],
+                  }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 40, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({
+                    text: FORM_TITLE,
+                    bold: true,
+                    size: 28,
+                  }),
+                ],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 30, type: WidthType.PERCENTAGE },
+            children: [
+              infoLine("Form Number", record.formCode || FORM_CODE_DEFAULT),
+              infoLine("Serial Number", record.serialNumber || ""),
+              infoLine("Version", record.version || ""),
+              infoLine("Date", formatDate(reportDate)),
+              ...(pageText ? [infoLine("Page", pageText)] : []),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+function infoLine(label, value) {
+  return new Paragraph({
+    children: [
+      new TextRun({ text: `${label}: `, bold: true }),
+      new TextRun(value ?? ""),
+    ],
+  });
+}
+
+function tableCell(text, bold = false) {
+  const textValue = text !== null && text !== undefined ? String(text) : "";
+  return new TableCell({
+    children: [
+      new Paragraph({
+        children: [new TextRun({ text: textValue, bold })],
+      }),
+    ],
+  });
+}
+
+function formatDate(date) {
+  if (!date) return "";
+  try {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Generates a DOCX for New Base Setup Checklist with header on every page
+ * (same pattern as OPS-OFD-004/005 and STS Equipment Base Stock Level).
+ * @param {Object} record - DB record (formCode, serialNumber, baseName, version, date, uploadedBy, etc.)
+ * @param {string} fullPath - Output file path
+ */
+export async function generateNewBaseSetupChecklistDoc(record, fullPath) {
+  let logoImage = null;
+  try {
+    logoImage = fs.readFileSync(
+      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
+    );
+  } catch {}
+
+  const basicInfoRows = [
+    ["Base Name", record.baseName ?? ""],
+    ["Date", formatDate(record.date)],
+    ["Uploaded By", record.uploadedBy?.name ?? ""],
+    ["Form Code", record.formCode || FORM_CODE_DEFAULT],
+    ["Serial Number", record.serialNumber ?? ""],
+    ["Version", record.version ?? ""],
+  ];
+
+  const basicInfoTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: basicInfoRows.map(([label, value]) =>
+      new TableRow({
+        children: [
+          tableCell(label, true),
+          tableCell(value || "________________________"),
+        ],
+      })
+    ),
+  });
+
+  const totalPages = 1;
+  const pageMargins = { top: 500, right: 600, bottom: 500, left: 600 };
+
+  const sectionChildren = [
+    buildNewBaseSetupHeaderTable(record, 1, totalPages, logoImage),
+    new Paragraph({ spacing: { before: 200 } }),
+    new Paragraph({
+      children: [new TextRun({ text: "BASIC INFORMATION", bold: true, size: 24 })],
+    }),
+    basicInfoTable,
+  ];
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: { page: { margin: pageMargins } },
+        children: sectionChildren,
+      },
+    ],
+  });
+
+  const buffer = await Packer.toBuffer(doc);
+  fs.writeFileSync(fullPath, buffer);
+}
