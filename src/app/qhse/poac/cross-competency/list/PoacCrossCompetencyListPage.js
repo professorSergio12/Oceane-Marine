@@ -3,7 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton, ViewIconButton } from "../../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import Link from "next/link";
 
@@ -34,6 +34,7 @@ export default function PoacCrossCompetencyListPage() {
   const [loadingYears, setLoadingYears] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
 
   const getYears = () => {
@@ -122,6 +123,39 @@ export default function PoacCrossCompetencyListPage() {
       setError(err.message);
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleDownload = async (form) => {
+    setDownloading(form._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/cross-competency/${form._id}/download`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `POAC-Cross-Competency-${form.serialNumber || form._id}.docx`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download");
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -352,6 +386,12 @@ export default function PoacCrossCompetencyListPage() {
                           </td>
                           <td className="py-3 pr-4">
                             <div className="flex flex-wrap items-center justify-end gap-1">
+                              <DownloadIconButton
+                                onClick={() => handleDownload(form)}
+                                disabled={downloading === form._id || archivingId === form._id || deleting === form._id}
+                                loading={downloading === form._id}
+                                title="Download as Word"
+                              />
                               <ViewIconButton href={`/qhse/poac/cross-competency/${form._id}`} />
                               <ArchiveIconButton
                                 onClick={() => handleArchive(form)}

@@ -3,7 +3,7 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 function formatDate(value) {
@@ -125,11 +125,13 @@ const evaluationCategories = [
 export default function PoacCrossCompetencyViewPage() {
   const { contentClassName } = useQhseSidebar();
   const params = useParams();
+  const router = useRouter();
   const formId = params.id;
 
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -156,6 +158,40 @@ export default function PoacCrossCompetencyViewPage() {
 
     fetchForm();
   }, [formId]);
+
+  const handleDownload = async () => {
+    if (!formId || !form) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/cross-competency/${formId}/download`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `POAC-Cross-Competency-${form.serialNumber || formId}.docx`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -220,6 +256,22 @@ export default function PoacCrossCompetencyViewPage() {
           </div>
           <div className="flex gap-2">
             <TemplateDownloadLink formCode="QAF-OFD-009" />
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition inline-flex items-center gap-1.5 disabled:opacity-50"
+              title="Download as Word"
+            >
+              {downloading ? (
+                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              Download as Word
+            </button>
             {form.status === "Draft" && (
               <Link
                 href={`/qhse/poac/cross-competency/form?edit=${form._id}`}
@@ -228,19 +280,26 @@ export default function PoacCrossCompetencyViewPage() {
                 Edit
               </Link>
             )}
-            <Link
-              href="/qhse/poac/cross-competency/list"
-              className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition"
-            >
-              Back to List
-            </Link>
           </div>
         </header>
 
         <div className="space-y-6">
           {/* Form & POAC Details – actual form data in one card */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-            <h2 className="text-lg font-bold mb-4 text-orange-300">Form & POAC Details</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-orange-300">Form & POAC Details</h2>
+              <button
+                type="button"
+                onClick={() => router.push("/qhse/poac/cross-competency/list")}
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition shrink-0"
+                title="Close"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Form Code</label>

@@ -2,16 +2,18 @@
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 export default function AuditInspectionPlannerViewPage() {
   const { contentClassName } = useQhseSidebar();
   const { id } = useParams();
+  const router = useRouter();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     const fetchOne = async () => {
@@ -33,6 +35,27 @@ export default function AuditInspectionPlannerViewPage() {
     };
     if (id) fetchOne();
   }, [id]);
+
+  const handleApprove = async () => {
+    if (!item || item.status === "Approved") return;
+    if (!confirm("Approve this planner? This will set the status to Approved.")) return;
+    setApproving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/qhse/audit-inspection-planner/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item._id, status: "Approved" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update status");
+      setItem((prev) => (prev ? { ...prev, status: "Approved" } : null));
+    } catch (err) {
+      setError(err.message || "Failed to approve");
+    } finally {
+      setApproving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -63,13 +86,7 @@ export default function AuditInspectionPlannerViewPage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/qhse/audit-inspection-planner/list"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-white/20 transition"
-          >
-            <span className="text-lg">←</span>
-          </Link>
+        <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
               QHSE / Audit & Inspection Planner / View
@@ -79,7 +96,20 @@ export default function AuditInspectionPlannerViewPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">{item.formCode || "QAF-OFD-048"}</span>
             </p>
           </div>
-          <TemplateDownloadLink formCode="QAF-OFD-048" />
+          <div className="flex items-center gap-2 shrink-0">
+            <TemplateDownloadLink formCode="QAF-OFD-048" />
+            <button
+              type="button"
+              onClick={() => router.push("/qhse/audit-inspection-planner/list")}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition"
+              title="Close"
+              aria-label="Close"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-3">
@@ -166,6 +196,19 @@ export default function AuditInspectionPlannerViewPage() {
             </div>
           </section>
         ))}
+
+        <footer className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-end gap-3">
+          {item.status !== "Approved" && (
+            <button
+              type="button"
+              onClick={handleApprove}
+              disabled={approving}
+              className="px-6 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold uppercase tracking-wider transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {approving ? "Approving…" : "Approve"}
+            </button>
+          )}
+        </footer>
       </div>
     </div>
   );

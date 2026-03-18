@@ -4,19 +4,19 @@ import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton, EditIconButton, ViewIconButton, ApproveIconButton } from "../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, EditIconButton, ViewIconButton, DownloadIconButton } from "../../components/ActionIcons";
 
 export default function AuditInspectionPlannerListPage() {
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [approving, setApproving] = useState(null);
   const [year, setYear] = useState(""); // "" = All years
   const [availableYears, setAvailableYears] = useState([]);
   const [loadingYears, setLoadingYears] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
 
   const handleArchive = async (item) => {
@@ -87,6 +87,41 @@ export default function AuditInspectionPlannerListPage() {
     fetchData();
   }, [year]);
 
+  const handleDownload = async (item) => {
+    setDownloading(item._id);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/audit-inspection-planner/${item._id}/download`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `Audit-Inspection-Planner-${item.serialNumber || item._id}.docx`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   useEffect(() => {
     const fetchYears = async () => {
       setLoadingYears(true);
@@ -106,25 +141,6 @@ export default function AuditInspectionPlannerListPage() {
     };
     fetchYears();
   }, []);
-
-  const handleApprove = async (id) => {
-    setApproving(id);
-    setError("");
-    try {
-      const res = await fetch("/api/qhse/audit-inspection-planner/update", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: "Approved" }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update status");
-      await fetchData();
-    } catch (err) {
-      setError(err.message || "Failed to update status");
-    } finally {
-      setApproving(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -253,6 +269,12 @@ export default function AuditInspectionPlannerListPage() {
                         <td className="px-6 py-4">{item.status}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
+                            <DownloadIconButton
+                              onClick={() => handleDownload(item)}
+                              disabled={downloading === item._id}
+                              loading={downloading === item._id}
+                              title="Download as Word"
+                            />
                             <ViewIconButton href={`/qhse/audit-inspection-planner/view/${item._id}`} />
                             <EditIconButton href={`/qhse/audit-inspection-planner/form?edit=${item._id}`} />
                             <ArchiveIconButton
@@ -264,12 +286,6 @@ export default function AuditInspectionPlannerListPage() {
                               onClick={() => handleDelete(item)}
                               disabled={archivingId === item._id || deletingId === item._id}
                               loading={deletingId === item._id}
-                            />
-                            <ApproveIconButton
-                              onClick={() => handleApprove(item._id)}
-                              disabled={item.status === "Approved" || approving === item._id || deletingId === item._id}
-                              loading={approving === item._id}
-                              approved={item.status === "Approved"}
                             />
                           </div>
                         </td>
