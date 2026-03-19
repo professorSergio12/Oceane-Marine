@@ -39,7 +39,8 @@ export default function MOCManagementChangeListPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [closingId, setClosingId] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [downloadingFileId, setDownloadingFileId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   // Status filter: Draft, Open, Closed, All
@@ -339,7 +340,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleDownloadDocx = async (mocId) => {
-    setDownloadingId(mocId);
+    setDownloadingDocxId(mocId);
     setError(null);
     try {
       const res = await fetch(`/api/qhse/moc/management-change/${mocId}/download`);
@@ -351,7 +352,9 @@ export default function MOCManagementChangeListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `MOC-${mocId}.docx`;
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      a.download = match ? match[1].trim() : `MOC-${mocId}.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -359,7 +362,36 @@ export default function MOCManagementChangeListPage() {
     } catch (err) {
       setError(err.message || "Failed to download document");
     } finally {
-      setDownloadingId(null);
+      setDownloadingDocxId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (mocId) => {
+    setDownloadingPdfId(mocId);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/moc/management-change/${mocId}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      a.download = match ? match[1].trim() : `MOC-${mocId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -507,7 +539,7 @@ export default function MOCManagementChangeListPage() {
         </header>
 
         <QhseListPageContainer
-          searchPlaceholder="Search by serial, form code, proposed change..."
+          searchPlaceholder="Search by serial, form code..."
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           filterChildren={
@@ -648,11 +680,14 @@ export default function MOCManagementChangeListPage() {
                   <button
                     type="button"
                     onClick={() => handleDownloadDocx(selectedMoc._id)}
-                    disabled={downloadingId === selectedMoc._id}
+                    disabled={
+                      downloadingDocxId === selectedMoc._id ||
+                      downloadingPdfId === selectedMoc._id
+                    }
                     className="px-3 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-xs font-medium transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Download as Word"
                   >
-                    {downloadingId === selectedMoc._id ? (
+                    {downloadingDocxId === selectedMoc._id ? (
                       <>
                         <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -665,6 +700,32 @@ export default function MOCManagementChangeListPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span>DOCX</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadPdf(selectedMoc._id)}
+                    disabled={
+                      downloadingPdfId === selectedMoc._id ||
+                      downloadingDocxId === selectedMoc._id
+                    }
+                    className="px-3 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/30 hover:border-rose-400/50 text-rose-300 hover:text-rose-200 text-xs font-medium transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Download as PDF"
+                  >
+                    {downloadingPdfId === selectedMoc._id ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Downloading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <span>PDF</span>
                       </>
                     )}
                   </button>
@@ -1071,9 +1132,6 @@ export default function MOCManagementChangeListPage() {
                               Serial
                             </th>
                             <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/80">
-                              Proposed Change
-                            </th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/80">
                               Initiation Date
                             </th>
                             <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/80">
@@ -1098,11 +1156,6 @@ export default function MOCManagementChangeListPage() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap font-mono text-slate-200">
                                 {moc.serialNumber || "—"}
-                              </td>
-                              <td className="px-6 py-4">
-                                <p className="text-sm text-white line-clamp-2 max-w-md">
-                                  {moc.proposedChange || "—"}
-                                </p>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className="text-sm text-white/80">
@@ -1167,9 +1220,22 @@ export default function MOCManagementChangeListPage() {
                                   )}
                                   <DownloadIconButton
                                     onClick={() => handleDownloadDocx(moc._id)}
-                                    disabled={downloadingId === moc._id}
-                                    loading={downloadingId === moc._id}
+                                    disabled={
+                                      downloadingDocxId === moc._id ||
+                                      downloadingPdfId === moc._id
+                                    }
+                                    loading={downloadingDocxId === moc._id}
                                     title="Download as Word"
+                                  />
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadPdf(moc._id)}
+                                    disabled={
+                                      downloadingPdfId === moc._id ||
+                                      downloadingDocxId === moc._id
+                                    }
+                                    loading={downloadingPdfId === moc._id}
+                                    title="Download as PDF"
+                                    className="!text-rose-400 hover:!text-rose-300"
                                   />
                                   {moc.status === "Draft" && (
                                     <EditIconButton

@@ -97,6 +97,9 @@ const PoacCrossCompetencySchema = new mongoose.Schema(
     /** Set when document is approved (e.g. in main app). */
     approvedBy: { type: String, trim: true },
 
+    /** Set when document is rejected from QHSE review. */
+    rejectionReason: { type: String, trim: true, default: "" },
+
     evaluationItems: {
       type: [EvaluationItemSchema],
       required: true,
@@ -120,7 +123,7 @@ const PoacCrossCompetencySchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Draft", "Submitted", "Reviewed", "Approved"],
+      enum: ["Draft", "Submitted", "Reviewed", "Approved", "Rejected"],
       default: "Draft",
     },
 
@@ -142,6 +145,15 @@ PoacCrossCompetencySchema.pre("save", async function () {
     }
   }
 });
+
+/**
+ * Next.js dev hot-reload keeps the first-compiled model in memory; schema enum
+ * updates (e.g. adding "Rejected") are ignored until the process restarts unless
+ * we drop the cached model before re-registering.
+ */
+if (process.env.NODE_ENV !== "production" && mongoose.models.PoacCrossCompetency) {
+  delete mongoose.models.PoacCrossCompetency;
+}
 
 const PoacCrossCompetency =
   mongoose.models.PoacCrossCompetency ||

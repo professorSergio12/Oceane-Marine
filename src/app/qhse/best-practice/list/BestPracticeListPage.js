@@ -37,7 +37,8 @@ export default function BestPracticeListPage() {
   const [error, setError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -104,8 +105,8 @@ export default function BestPracticeListPage() {
     }
   };
 
-  const handleDownload = async (practice) => {
-    setDownloadingId(practice._id);
+  const handleDownloadDocx = async (practice) => {
+    setDownloadingDocxId(practice._id);
     setError(null);
     try {
       const res = await fetch(`/api/qhse/best-practice/${practice._id}/download`);
@@ -121,7 +122,32 @@ export default function BestPracticeListPage() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setDownloadingId(null);
+      setDownloadingDocxId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (practice) => {
+    setDownloadingPdfId(practice._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/best-practice/${practice._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "PDF download failed");
+      }
+      const blob = await res.blob();
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      const fileName = match
+        ? match[1].trim()
+        : `Best-Practice-${practice.serialNumber || practice._id}.pdf`;
+      saveAs(blob, fileName);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -269,10 +295,25 @@ export default function BestPracticeListPage() {
                         <td className="py-3 pr-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
                             <DownloadIconButton
-                              onClick={() => handleDownload(practice)}
-                              disabled={archivingId === practice._id || deletingId === practice._id}
-                              loading={downloadingId === practice._id}
+                              onClick={() => handleDownloadDocx(practice)}
+                              disabled={
+                                archivingId === practice._id ||
+                                deletingId === practice._id ||
+                                downloadingPdfId === practice._id
+                              }
+                              loading={downloadingDocxId === practice._id}
                               title="Download as Word"
+                            />
+                            <DownloadIconButton
+                              onClick={() => handleDownloadPdf(practice)}
+                              disabled={
+                                archivingId === practice._id ||
+                                deletingId === practice._id ||
+                                downloadingDocxId === practice._id
+                              }
+                              loading={downloadingPdfId === practice._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(practice)}

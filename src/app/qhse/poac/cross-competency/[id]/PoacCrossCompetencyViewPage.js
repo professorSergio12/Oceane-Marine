@@ -131,7 +131,12 @@ export default function PoacCrossCompetencyViewPage() {
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -159,9 +164,9 @@ export default function PoacCrossCompetencyViewPage() {
     fetchForm();
   }, [formId]);
 
-  const handleDownload = async () => {
+  const handleDownloadDocx = async () => {
     if (!formId || !form) return;
-    setDownloading(true);
+    setDownloadingDocx(true);
     setError(null);
     try {
       const res = await fetch(`/api/qhse/cross-competency/${formId}/download`);
@@ -189,7 +194,128 @@ export default function PoacCrossCompetencyViewPage() {
     } catch (err) {
       setError(err.message || "Failed to download");
     } finally {
-      setDownloading(false);
+      setDownloadingDocx(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!formId || !form) return;
+    setDownloadingPdf(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/cross-competency/${formId}/download/pdf`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `POAC-Cross-Competency-${form.serialNumber || formId}.pdf`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!formId || !form) return;
+    const name = window.prompt(
+      "Approver name (shown on PDF / Word header as Approved by):",
+      form.approvedBy?.trim() || ""
+    );
+    if (name == null) return;
+    const approvedBy = name.trim();
+    if (!approvedBy) {
+      setError("Approver name is required.");
+      return;
+    }
+    if (!window.confirm(`Approve this form and set "Approved by" to ${approvedBy}?`)) return;
+
+    setApproving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/cross-competency/${formId}/approve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvedBy }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to approve");
+      }
+      setForm((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "Approved",
+              approvedBy,
+              rejectionReason: "",
+            }
+          : prev
+      );
+    } catch (err) {
+      setError(err.message || "Failed to approve");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const openRejectModal = () => {
+    setRejectionReason("");
+    setShowRejectModal(true);
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!formId || !form) return;
+    const reason = rejectionReason.trim();
+    if (!reason) {
+      setError("Rejection reason is required.");
+      return;
+    }
+
+    setRejecting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/cross-competency/${formId}/reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rejectionReason: reason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to reject");
+      }
+      setShowRejectModal(false);
+      setRejectionReason("");
+      setForm((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "Rejected",
+              rejectionReason: reason,
+              approvedBy: "",
+            }
+          : prev
+      );
+    } catch (err) {
+      setError(err.message || "Failed to reject");
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -199,6 +325,7 @@ export default function PoacCrossCompetencyViewPage() {
       Submitted: "bg-blue-500/15 text-blue-300 border-blue-400/40",
       Reviewed: "bg-purple-500/15 text-purple-300 border-purple-400/40",
       Approved: "bg-emerald-500/15 text-emerald-300 border-emerald-400/40",
+      Rejected: "bg-red-500/15 text-red-300 border-red-400/40",
     };
 
     const className = statusConfig[status] || statusConfig.Draft;
@@ -253,17 +380,18 @@ export default function PoacCrossCompetencyViewPage() {
               QHSE / POAC Cross Competency
             </p>
             <h1 className="text-xl sm:text-2xl font-bold text-white">View POAC Cross Competency Form</h1>
+            <div className="mt-2">{getStatusBadge(form.status || "Draft")}</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <TemplateDownloadLink formCode="QAF-OFD-009" />
             <button
               type="button"
-              onClick={handleDownload}
-              disabled={downloading}
+              onClick={handleDownloadDocx}
+              disabled={downloadingDocx || downloadingPdf || approving}
               className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition inline-flex items-center gap-1.5 disabled:opacity-50"
               title="Download as Word"
             >
-              {downloading ? (
+              {downloadingDocx ? (
                 <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,6 +399,22 @@ export default function PoacCrossCompetencyViewPage() {
                 </svg>
               )}
               Download as Word
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf || downloadingDocx || approving}
+              className="rounded-full border cursor-pointer border-rose-400/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition inline-flex items-center gap-1.5 disabled:opacity-50"
+              title="Download as PDF"
+            >
+              {downloadingPdf ? (
+                <span className="inline-block w-4 h-4 border-2 border-rose-300/30 border-t-rose-200 rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              Download as PDF
             </button>
             {form.status === "Draft" && (
               <Link
@@ -590,8 +734,90 @@ export default function PoacCrossCompetencyViewPage() {
                 </div>
               )}
             </div>
+            {form.status === "Rejected" && form.rejectionReason && (
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-red-300/90 mb-1">
+                  Rejection reason
+                </p>
+                <p className="text-sm text-red-200/90 whitespace-pre-wrap">{form.rejectionReason}</p>
+              </div>
+            )}
           </div>
+
+          {/* Approve / Reject — same pattern as other QHSE list detail cards (e.g. equipment base stock) */}
+          {form.status !== "Approved" && form.status !== "Rejected" && (
+            <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-4 sm:px-6 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={openRejectModal}
+                disabled={rejecting || approving}
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-red-400/50 bg-red-500/20 text-red-300 hover:bg-red-500/30 disabled:opacity-50 transition"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={approving || rejecting}
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-50 transition inline-flex items-center gap-2"
+              >
+                {approving ? (
+                  <span className="inline-block w-4 h-4 border-2 border-emerald-300/30 border-t-emerald-100 rounded-full animate-spin" />
+                ) : null}
+                {approving ? "Approving…" : "Approve"}
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Reject modal */}
+        {showRejectModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="poac-reject-modal-title"
+          >
+            <div className="bg-slate-800 border border-white/15 rounded-xl shadow-xl max-w-md w-full p-6">
+              <h2 id="poac-reject-modal-title" className="text-lg font-semibold text-white mb-4">
+                Reject form
+              </h2>
+              <p className="text-slate-300 text-sm mb-3">
+                Form: {form.formCode || "QAF-OFD-009"} • {form.serialNumber || "—"}
+              </p>
+              <label htmlFor="poac-reject-reason" className="block text-sm text-slate-400 mb-1">
+                Reason <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                id="poac-reject-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="w-full rounded-lg border border-white/20 bg-white/5 text-white px-3 py-2 text-sm min-h-[100px] resize-y"
+                placeholder="Enter rejection reason…"
+              />
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setRejectionReason("");
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectSubmit}
+                  disabled={rejecting}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/20 text-red-300 border border-red-400/50 hover:bg-red-500/30 disabled:opacity-50"
+                >
+                  {rejecting ? "Rejecting…" : "Reject"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

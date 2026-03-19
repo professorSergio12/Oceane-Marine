@@ -41,6 +41,7 @@ export default function DefectListPage() {
   const [archivingId, setArchivingId] = useState(null);
   const [downloading, setDownloading] = useState(null);
   const [exportingId, setExportingId] = useState(null);
+  const [exportingPdfId, setExportingPdfId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -109,6 +110,29 @@ export default function DefectListPage() {
       setError(err.message);
     } finally {
       setExportingId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (defect) => {
+    setExportingPdfId(defect._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/qhse/defects-list/${defect._id}/pdf`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "PDF download failed");
+      }
+      const blob = await res.blob();
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      const fileName = match
+        ? match[1].trim()
+        : `Defect-${defect.serialNumber || defect._id}.pdf`;
+      saveAs(blob, fileName);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExportingPdfId(null);
     }
   };
 
@@ -381,9 +405,24 @@ export default function DefectListPage() {
                           <div className="flex flex-wrap items-center justify-end gap-1">
                             <DownloadIconButton
                               onClick={() => handleDownloadWord(defect)}
-                              disabled={archivingId === defect._id || deletingId === defect._id}
+                              disabled={
+                                archivingId === defect._id ||
+                                deletingId === defect._id ||
+                                exportingPdfId === defect._id
+                              }
                               loading={exportingId === defect._id}
                               title="Download as Word"
+                            />
+                            <DownloadIconButton
+                              onClick={() => handleDownloadPdf(defect)}
+                              disabled={
+                                archivingId === defect._id ||
+                                deletingId === defect._id ||
+                                exportingId === defect._id
+                              }
+                              loading={exportingPdfId === defect._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
                             />
                             <EditIconButton href={`/qhse/defects-list/create?edit=${defect._id}`} />
                             <ArchiveIconButton

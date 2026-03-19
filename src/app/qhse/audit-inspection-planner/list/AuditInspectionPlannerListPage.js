@@ -18,7 +18,8 @@ export default function AuditInspectionPlannerListPage() {
   const [loadingYears, setLoadingYears] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [downloading, setDownloading] = useState(null);
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
 
   const handleArchive = async (item) => {
@@ -89,8 +90,8 @@ export default function AuditInspectionPlannerListPage() {
     fetchData();
   }, [year]);
 
-  const handleDownload = async (item) => {
-    setDownloading(item._id);
+  const handleDownloadDocx = async (item) => {
+    setDownloadingDocxId(item._id);
     setError("");
     try {
       const res = await fetch(
@@ -120,7 +121,42 @@ export default function AuditInspectionPlannerListPage() {
     } catch (err) {
       setError(err.message || "Failed to download");
     } finally {
-      setDownloading(null);
+      setDownloadingDocxId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (item) => {
+    setDownloadingPdfId(item._id);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/audit-inspection-planner/${item._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `Audit-Inspection-Planner-${item.serialNumber || item._id}.pdf`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -284,10 +320,23 @@ export default function AuditInspectionPlannerListPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
                             <DownloadIconButton
-                              onClick={() => handleDownload(item)}
-                              disabled={downloading === item._id}
-                              loading={downloading === item._id}
+                              onClick={() => handleDownloadDocx(item)}
+                              disabled={
+                                downloadingDocxId === item._id ||
+                                downloadingPdfId === item._id
+                              }
+                              loading={downloadingDocxId === item._id}
                               title="Download as Word"
+                            />
+                            <DownloadIconButton
+                              onClick={() => handleDownloadPdf(item)}
+                              disabled={
+                                downloadingPdfId === item._id ||
+                                downloadingDocxId === item._id
+                              }
+                              loading={downloadingPdfId === item._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
                             />
                             <ViewIconButton href={`/qhse/audit-inspection-planner/view/${item._id}`} />
                             <EditIconButton href={`/qhse/audit-inspection-planner/form?edit=${item._id}`} />

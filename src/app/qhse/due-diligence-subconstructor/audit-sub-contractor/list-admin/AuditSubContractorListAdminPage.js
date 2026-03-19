@@ -41,7 +41,8 @@ export default function AuditSubContractorListAdminPage() {
   const [rejecting, setRejecting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [downloading, setDownloading] = useState(null);
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending"); // "Pending", "Approved", "Rejected", "All"
   const [searchTerm, setSearchTerm] = useState("");
@@ -103,8 +104,8 @@ export default function AuditSubContractorListAdminPage() {
     fetchAudits();
   }, []);
 
-  const handleDownload = async (audit) => {
-    setDownloading(audit._id);
+  const handleDownloadDocx = async (audit) => {
+    setDownloadingDocxId(audit._id);
     setError(null);
     try {
       const res = await fetch(
@@ -134,7 +135,42 @@ export default function AuditSubContractorListAdminPage() {
     } catch (err) {
       setError(err.message || "Failed to download");
     } finally {
-      setDownloading(null);
+      setDownloadingDocxId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (audit) => {
+    setDownloadingPdfId(audit._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/due-diligence/audit-sub-contractor/${audit._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `SubContractor-Audit-${audit.serialNumber || audit._id}.pdf`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -682,10 +718,23 @@ export default function AuditSubContractorListAdminPage() {
                             <td className="py-3 pr-4 text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <DownloadIconButton
-                                  onClick={() => handleDownload(audit)}
-                                  disabled={downloading === audit._id}
-                                  loading={downloading === audit._id}
+                                  onClick={() => handleDownloadDocx(audit)}
+                                  disabled={
+                                    downloadingDocxId === audit._id ||
+                                    downloadingPdfId === audit._id
+                                  }
+                                  loading={downloadingDocxId === audit._id}
                                   title="Download as Word"
+                                />
+                                <DownloadIconButton
+                                  onClick={() => handleDownloadPdf(audit)}
+                                  disabled={
+                                    downloadingPdfId === audit._id ||
+                                    downloadingDocxId === audit._id
+                                  }
+                                  loading={downloadingPdfId === audit._id}
+                                  title="Download as PDF"
+                                  className="!text-rose-400 hover:!text-rose-300"
                                 />
                                 <ViewIconButton
                                   onClick={() => setSelectedAudit(audit)}

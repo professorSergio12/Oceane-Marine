@@ -42,7 +42,8 @@ export default function QuestionnaireListAdminPage() {
   const [rejecting, setRejecting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [downloading, setDownloading] = useState(null);
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending"); // Pending = Pending Review
   const [searchTerm, setSearchTerm] = useState("");
@@ -133,8 +134,8 @@ export default function QuestionnaireListAdminPage() {
     }
   };
 
-  const handleDownload = async (form) => {
-    setDownloading(form._id);
+  const handleDownloadDocx = async (form) => {
+    setDownloadingDocxId(form._id);
     setError(null);
     try {
       const res = await fetch(
@@ -164,7 +165,42 @@ export default function QuestionnaireListAdminPage() {
     } catch (err) {
       setError(err.message || "Failed to download");
     } finally {
-      setDownloading(null);
+      setDownloadingDocxId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (form) => {
+    setDownloadingPdfId(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/due-diligence/due-diligence-questionnaire/${form._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let fileName = `Supplier-Due-Diligence-${form.serialNumber || form._id}.pdf`;
+      const contentDisposition = res.headers.get("Content-Disposition");
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^";]+)/i) || contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          fileName = match[1].trim().replace(/"$/g, "");
+        }
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -941,10 +977,23 @@ export default function QuestionnaireListAdminPage() {
                             <td className="py-3 pr-4 text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <DownloadIconButton
-                                  onClick={() => handleDownload(form)}
-                                  disabled={downloading === form._id}
-                                  loading={downloading === form._id}
+                                  onClick={() => handleDownloadDocx(form)}
+                                  disabled={
+                                    downloadingDocxId === form._id ||
+                                    downloadingPdfId === form._id
+                                  }
+                                  loading={downloadingDocxId === form._id}
                                   title="Download as Word"
+                                />
+                                <DownloadIconButton
+                                  onClick={() => handleDownloadPdf(form)}
+                                  disabled={
+                                    downloadingPdfId === form._id ||
+                                    downloadingDocxId === form._id
+                                  }
+                                  loading={downloadingPdfId === form._id}
+                                  title="Download as PDF"
+                                  className="!text-rose-400 hover:!text-rose-300"
                                 />
                                 <ViewIconButton
                                   onClick={() => setSelectedForm(form)}

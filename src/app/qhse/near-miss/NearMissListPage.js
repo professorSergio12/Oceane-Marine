@@ -56,7 +56,8 @@ export default function NearMissListPage() {
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [remarksByReviewer, setRemarksByReviewer] = useState("");
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -177,7 +178,7 @@ export default function NearMissListPage() {
   };
 
   const handleDownloadWord = async (report) => {
-    setDownloadingId(report._id);
+    setDownloadingDocxId(report._id);
     setError(null);
     try {
       const res = await fetch(`/api/near-miss-form/${report._id}/docx`);
@@ -193,7 +194,30 @@ export default function NearMissListPage() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setDownloadingId(null);
+      setDownloadingDocxId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (report) => {
+    setDownloadingPdfId(report._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/near-miss-form/${report._id}/pdf`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "PDF download failed");
+      }
+      const blob = await res.blob();
+      const disp = res.headers.get("Content-Disposition");
+      const match = disp && disp.match(/filename="?([^";]+)"?/);
+      const fileName = match
+        ? match[1].trim()
+        : `Near-Miss-${report.serialNumber || report._id}.pdf`;
+      saveAs(blob, fileName);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -604,9 +628,24 @@ export default function NearMissListPage() {
                             <div className="flex items-center justify-end gap-1">
                               <DownloadIconButton
                                 onClick={() => handleDownloadWord(report)}
-                                disabled={archivingId === report._id || deleting === report._id}
-                                loading={downloadingId === report._id}
+                                disabled={
+                                  archivingId === report._id ||
+                                  deleting === report._id ||
+                                  downloadingPdfId === report._id
+                                }
+                                loading={downloadingDocxId === report._id}
                                 title="Download as Word"
+                              />
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(report)}
+                                disabled={
+                                  archivingId === report._id ||
+                                  deleting === report._id ||
+                                  downloadingDocxId === report._id
+                                }
+                                loading={downloadingPdfId === report._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
                               />
                               <ArchiveIconButton
                                 onClick={() => handleArchive(report)}
