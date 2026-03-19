@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
 import {
     Document,
     Packer,
@@ -131,6 +132,76 @@ export async function generateBaseAuditReportDoc(report, fullPath) {
 
     const buffer = await Packer.toBuffer(doc);
     fs.writeFileSync(fullPath, buffer);
+}
+
+const FORM_TITLE_PDF = "STS BASE AUDIT REPORT";
+const FORM_CODE_DEFAULT_PDF = "QAF-OFD-004";
+
+/**
+ * Same information layout as the Word export: logo + title + form meta header,
+ * then BASIC INFORMATION table. Returns a PDF buffer (no temp file).
+ * @param {object} report - StsBaseAuditReport lean document
+ * @returns {Promise<Buffer>}
+ */
+export async function generateBaseAuditReportPdf(report) {
+    const jspdfModule = await import("jspdf");
+    /** Node resolves `jspdf` with named `jsPDF`; browser bundles often use default as constructor */
+    const JsPDF = jspdfModule.jsPDF
+        ?? (typeof jspdfModule.default === "function" ? jspdfModule.default : null);
+    if (!JsPDF) {
+        throw new Error("jsPDF constructor not found");
+    }
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+    const metaPairs = [
+        ["Form Number", report.formCode || FORM_CODE_DEFAULT_PDF],
+        ["Serial Number", report.serialNumber || ""],
+        ["Version", report.version || ""],
+        ["Date", formatDate(report.date || report.createdAt)],
+    ];
+    const headerCtl = createQhsePdfHeaderController({
+        formTitle: FORM_TITLE_PDF,
+        metaPairs,
+    });
+    const tableMargins = headerCtl.getAutoTableMargins();
+
+    /* Section title only on first page; header repeats via willDrawPage on every page */
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("BASIC INFORMATION", headerCtl.sideMarginMm, headerCtl.tableTopMm - 5);
+
+    autoTable(doc, {
+        startY: headerCtl.tableTopMm + 5,
+        margin: tableMargins,
+        willDrawPage: headerCtl.willDrawPage,
+        head: [],
+        body: [
+            ["Description", report.description || "________________________"],
+            ["Location", report.location?.name || "________________________"],
+            ["Uploaded By", report.uploadedBy?.name || "________________________"],
+            [
+                "Upload Date",
+                formatDate(report.uploadedAt || report.createdAt) || "________________________",
+            ],
+        ],
+        theme: "grid",
+        styles: {
+            fontSize: 9,
+            cellPadding: 3,
+            textColor: [30, 30, 30],
+            lineColor: [200, 200, 200],
+            lineWidth: 0.2,
+        },
+        headStyles: { fillColor: [240, 240, 240] },
+        columnStyles: {
+            0: { fontStyle: "bold", cellWidth: 48 },
+            1: { cellWidth: "auto" },
+        },
+    });
+
+    return Buffer.from(doc.output("arraybuffer"));
 }
 
 /* HELPERS */

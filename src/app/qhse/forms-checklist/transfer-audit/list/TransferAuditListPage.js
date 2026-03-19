@@ -83,6 +83,7 @@ export default function TransferAuditListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [approving, setApproving] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
@@ -169,6 +170,35 @@ export default function TransferAuditListPage() {
       setError(err.message || "Failed to download document");
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleDownloadPdf = async (form) => {
+    setDownloadingPdf(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/transfer-audit/${form._id}/download-pdf`
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download PDF");
+      }
+
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `TransferAudit-${form.serialNumber || form._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -717,9 +747,16 @@ export default function TransferAuditListPage() {
                   <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
                     <DownloadIconButton
                       onClick={() => handleDownloadDocx(selectedForm)}
-                      disabled={downloading === selectedForm._id}
+                      disabled={downloading === selectedForm._id || downloadingPdf === selectedForm._id}
                       loading={downloading === selectedForm._id}
                       title="Download as Word"
+                    />
+                    <DownloadIconButton
+                      onClick={() => handleDownloadPdf(selectedForm)}
+                      disabled={downloadingPdf === selectedForm._id || downloading === selectedForm._id}
+                      loading={downloadingPdf === selectedForm._id}
+                      title="Download as PDF"
+                      className="!text-rose-400 hover:!text-rose-300"
                     />
                     {selectedForm.status === "Pending" && (
                       <button
@@ -808,9 +845,16 @@ export default function TransferAuditListPage() {
                                 </button>
                                 <DownloadIconButton
                                   onClick={() => handleDownloadDocx(form)}
-                                  disabled={downloading === form._id}
+                                  disabled={downloading === form._id || downloadingPdf === form._id}
                                   loading={downloading === form._id}
                                   title="Download as Word"
+                                />
+                                <DownloadIconButton
+                                  onClick={() => handleDownloadPdf(form)}
+                                  disabled={downloadingPdf === form._id || downloading === form._id}
+                                  loading={downloadingPdf === form._id}
+                                  title="Download as PDF"
+                                  className="!text-rose-400 hover:!text-rose-300"
                                 />
                                 <ArchiveIconButton
                                   onClick={(e) => handleArchive(form, e)}

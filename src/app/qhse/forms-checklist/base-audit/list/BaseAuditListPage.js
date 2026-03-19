@@ -51,6 +51,7 @@ export default function BaseAuditListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [downloadingFile, setDownloadingFile] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
@@ -151,6 +152,34 @@ export default function BaseAuditListPage() {
       setError(err.message || "Failed to download document");
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleDownloadPdf = async (report) => {
+    setDownloadingPdf(report._id);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/base-audit/${report._id}/download-pdf`
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download PDF");
+      }
+
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `BaseAudit-${report.serialNumber || report._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -506,9 +535,16 @@ export default function BaseAuditListPage() {
                             )}
                             <DownloadIconButton
                               onClick={() => handleDownloadDocx(report)}
-                              disabled={downloading === report._id}
+                              disabled={downloading === report._id || downloadingPdf === report._id}
                               loading={downloading === report._id}
                               title="Download as Word"
+                            />
+                            <DownloadIconButton
+                              onClick={() => handleDownloadPdf(report)}
+                              disabled={downloadingPdf === report._id || downloading === report._id}
+                              loading={downloadingPdf === report._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(report)}

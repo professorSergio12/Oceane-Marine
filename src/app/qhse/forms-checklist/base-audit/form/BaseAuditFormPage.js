@@ -27,6 +27,8 @@ export default function BaseAuditFormPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [existingReport, setExistingReport] = useState(null);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -108,6 +110,55 @@ export default function BaseAuditFormPage() {
     setFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const downloadReportBlob = async (pathSuffix, fileName) => {
+    const res = await fetch(pathSuffix);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const url = globalThis.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    globalThis.URL.revokeObjectURL(url);
+    a.remove();
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!editId) return;
+    setDownloadingDocx(true);
+    setError("");
+    try {
+      await downloadReportBlob(
+        `/api/qhse/form-checklist/base-audit/${editId}/download`,
+        `BaseAudit-${existingReport?.serialNumber || editId}.docx`
+      );
+    } catch (err) {
+      setError(err.message || "Failed to download Word document");
+    } finally {
+      setDownloadingDocx(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!editId) return;
+    setDownloadingPdf(true);
+    setError("");
+    try {
+      await downloadReportBlob(
+        `/api/qhse/form-checklist/base-audit/${editId}/download-pdf`,
+        `BaseAudit-${existingReport?.serialNumber || editId}.pdf`
+      );
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -225,6 +276,42 @@ export default function BaseAuditFormPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <TemplateDownloadLink formCode="QAF-OFD-004" />
+            {editId && existingReport && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadDocx()}
+                  disabled={downloadingDocx || downloadingPdf}
+                  className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 hover:bg-sky-500/20 transition disabled:opacity-50"
+                  title="Download report as Word"
+                >
+                  {downloadingDocx ? (
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                    </svg>
+                  )}
+                  Word
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadPdf()}
+                  disabled={downloadingPdf || downloadingDocx}
+                  className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition disabled:opacity-50"
+                  title="Download report as PDF"
+                >
+                  {downloadingPdf ? (
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-rose-300 border-t-transparent" />
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                    </svg>
+                  )}
+                  PDF
+                </button>
+              </>
+            )}
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/base-audit/form"
