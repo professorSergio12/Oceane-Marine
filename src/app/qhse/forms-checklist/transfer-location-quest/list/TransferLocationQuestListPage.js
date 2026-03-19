@@ -39,6 +39,7 @@ export default function TransferLocationQuestListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [downloadingFile, setDownloadingFile] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
@@ -138,6 +139,33 @@ export default function TransferLocationQuestListPage() {
       setError(err.message || "Failed to download document");
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleDownloadPdf = async (form) => {
+    setDownloadingPdf(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/transfer-location-quest/${form._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `TransferLocationQuest-${form.serialNumber || form._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -428,7 +456,7 @@ export default function TransferLocationQuestListPage() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
-                              onClick={() => handleDownloadFile(form._id)}
+                              onClick={() => handleDownloadFile(form)}
                               disabled={downloadingFile === form._id}
                               className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                               title="Download attached file"
@@ -445,9 +473,20 @@ export default function TransferLocationQuestListPage() {
                             </button>
                             <DownloadIconButton
                               onClick={() => handleDownloadDocx(form)}
-                              disabled={downloading === form._id}
+                              disabled={
+                                downloading === form._id || downloadingPdf === form._id
+                              }
                               loading={downloading === form._id}
                               title="Download as Word"
+                            />
+                            <DownloadIconButton
+                              onClick={() => handleDownloadPdf(form)}
+                              disabled={
+                                downloadingPdf === form._id || downloading === form._id
+                              }
+                              loading={downloadingPdf === form._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}

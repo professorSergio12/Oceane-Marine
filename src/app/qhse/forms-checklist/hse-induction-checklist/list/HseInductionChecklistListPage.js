@@ -263,19 +263,15 @@ export default function HseInductionChecklistListPage() {
     }
   };
 
-  /** Download as PDF - placeholder for future implementation */
   const handleDownloadPdf = async (_form) => {
     setDownloadingPdf(_form._id);
+    setError(null);
     try {
       const res = await fetch(
         `/api/qhse/form-checklist/hse-induction-checklist/${_form._id}/download/pdf`
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        if (res.status === 501) {
-          alert("PDF download will be available soon.");
-          return;
-        }
         throw new Error(data.error || "Failed to download PDF");
       }
       const blob = await res.blob();
@@ -569,28 +565,17 @@ export default function HseInductionChecklistListPage() {
                   <div className="flex items-center gap-1">
                     <DownloadIconButton
                       onClick={() => handleDownloadDocx(selectedForm)}
-                      disabled={downloadingDocx === selectedForm._id}
+                      disabled={downloadingDocx === selectedForm._id || downloadingPdf === selectedForm._id}
                       loading={downloadingDocx === selectedForm._id}
                       title="Download as Word"
                     />
-                    <button
-                      type="button"
+                    <DownloadIconButton
                       onClick={() => handleDownloadPdf(selectedForm)}
-                      disabled={downloadingPdf === selectedForm._id}
+                      disabled={downloadingPdf === selectedForm._id || downloadingDocx === selectedForm._id}
+                      loading={downloadingPdf === selectedForm._id}
                       title="Download as PDF"
-                      className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 inline-flex disabled:opacity-50"
-                      aria-label="Download as PDF (coming soon)"
-                    >
-                      {downloadingPdf === selectedForm._id ? (
-                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                    </button>
+                      className="!text-rose-400 hover:!text-rose-300"
+                    />
                     <ArchiveIconButton
                       onClick={() => handleArchive(selectedForm)}
                       disabled={archivingId === selectedForm._id || deleting === selectedForm._id}
@@ -934,28 +919,17 @@ export default function HseInductionChecklistListPage() {
                                   />
                                   <DownloadIconButton
                                     onClick={() => handleDownloadDocx(form)}
-                                    disabled={downloadingDocx === form._id}
+                                    disabled={downloadingDocx === form._id || downloadingPdf === form._id}
                                     loading={downloadingDocx === form._id}
                                     title="Download as Word"
                                   />
-                                  <button
-                                    type="button"
+                                  <DownloadIconButton
                                     onClick={() => handleDownloadPdf(form)}
-                                    disabled={downloadingPdf === form._id}
+                                    disabled={downloadingPdf === form._id || downloadingDocx === form._id}
+                                    loading={downloadingPdf === form._id}
                                     title="Download as PDF"
-                                    className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 inline-flex disabled:opacity-50"
-                                    aria-label="Download as PDF (coming soon)"
-                                  >
-                                    {downloadingPdf === form._id ? (
-                                      <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                      </svg>
-                                    ) : (
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                      </svg>
-                                    )}
-                                  </button>
+                                    className="!text-rose-400 hover:!text-rose-300"
+                                  />
                                   <ArchiveIconButton
                                     onClick={() => handleArchive(form)}
                                     disabled={archivingId === form._id || deleting === form._id}

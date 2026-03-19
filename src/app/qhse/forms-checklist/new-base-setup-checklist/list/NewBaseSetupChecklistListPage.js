@@ -50,7 +50,8 @@ export default function NewBaseSetupChecklistListPage() {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [downloading, setDownloading] = useState(null);
+  const [downloadingDocx, setDownloadingDocx] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [downloadingFile, setDownloadingFile] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
@@ -103,8 +104,9 @@ export default function NewBaseSetupChecklistListPage() {
     fetchForms();
   }, [year]);
 
-  const handleDownload = async (form) => {
-    setDownloading(form._id);
+  const handleDownloadDocx = async (form) => {
+    setDownloadingDocx(form._id);
+    setError(null);
     try {
       const res = await fetch(
         `/api/qhse/form-checklist/new-base-setup-checklist/${form._id}/download`
@@ -134,7 +136,34 @@ export default function NewBaseSetupChecklistListPage() {
     } catch (err) {
       setError(err.message || "Failed to download report");
     } finally {
-      setDownloading(null);
+      setDownloadingDocx(null);
+    }
+  };
+
+  const handleDownloadPdf = async (form) => {
+    setDownloadingPdf(form._id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/new-base-setup-checklist/${form._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `New-Base-Setup-Checklist-${form.serialNumber || form._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -440,10 +469,23 @@ export default function NewBaseSetupChecklistListPage() {
                               </span>
                             )}
                             <DownloadIconButton
-                              onClick={() => handleDownload(form)}
-                              disabled={downloading === form._id}
-                              loading={downloading === form._id}
+                              onClick={() => handleDownloadDocx(form)}
+                              disabled={
+                                downloadingDocx === form._id ||
+                                downloadingPdf === form._id
+                              }
+                              loading={downloadingDocx === form._id}
                               title="Download as Word"
+                            />
+                            <DownloadIconButton
+                              onClick={() => handleDownloadPdf(form)}
+                              disabled={
+                                downloadingPdf === form._id ||
+                                downloadingDocx === form._id
+                              }
+                              loading={downloadingPdf === form._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
                             />
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}

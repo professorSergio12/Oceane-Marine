@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
     Document,
     Packer,
@@ -13,6 +15,9 @@ import {
     VerticalAlign,
     ImageRun
 } from "docx";
+
+const PDF_FORM_CODE_DEFAULT = "QAF-OFD-049";
+const PDF_FORM_TITLE = "TRANSFER LOCATION QUESTIONNAIRE";
 
 export async function generateTransferLocationQuestDoc(quest, fullPath) {
     /* ================= LOAD IMAGES ================= */
@@ -130,6 +135,83 @@ export async function generateTransferLocationQuestDoc(quest, fullPath) {
 
     const buffer = await Packer.toBuffer(doc);
     fs.writeFileSync(fullPath, buffer);
+}
+
+/**
+ * PDF export: same fields as Word + repeating QHSE header.
+ * Dynamic text uses {@link pdfSafeText} for jsPDF Helvetica compatibility.
+ *
+ * @param {object} quest – lean STSTransferLocationQuest document
+ * @returns {Promise<Buffer>}
+ */
+export async function generateTransferLocationQuestPdf(quest) {
+    const jspdfModule = await import("jspdf");
+    const JsPDF =
+        jspdfModule.jsPDF ??
+        (typeof jspdfModule.default === "function" ? jspdfModule.default : null);
+    if (!JsPDF) {
+        throw new Error("jsPDF constructor not found");
+    }
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+    const reportDate = quest.date || quest.createdAt;
+    const headerCtl = createQhsePdfHeaderController({
+        formTitle: PDF_FORM_TITLE,
+        metaPairs: [
+            ["Form Number", quest.formCode || PDF_FORM_CODE_DEFAULT],
+            ["Serial Number", quest.serialNumber || ""],
+            ["Version", String(quest.version || "")],
+            ["Date", formatDate(reportDate)],
+        ],
+    });
+    const tableMargins = headerCtl.getAutoTableMargins();
+    const m = headerCtl.sideMarginMm;
+
+    const gridStyles = {
+        fontSize: 9,
+        cellPadding: 3,
+        textColor: [30, 30, 30],
+        lineColor: [200, 200, 200],
+        lineWidth: 0.2,
+        overflow: "linebreak",
+    };
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("BASIC INFORMATION", m, headerCtl.tableTopMm - 5);
+
+    const uploadDateStr =
+        formatDate(quest.uploadedAt || quest.createdAt) || "________________________";
+
+    const basicBody = [
+        [
+            "Location Name",
+            pdfSafeText(quest.locationName) || "________________________",
+        ],
+        [
+            "Uploaded By",
+            pdfSafeText(quest.uploadedBy?.name) || "________________________",
+        ],
+        ["Upload Date", pdfSafeText(uploadDateStr) || "________________________"],
+    ];
+
+    autoTable(doc, {
+        startY: headerCtl.tableTopMm + 5,
+        margin: tableMargins,
+        willDrawPage: headerCtl.willDrawPage,
+        head: [],
+        body: basicBody,
+        theme: "grid",
+        styles: gridStyles,
+        columnStyles: {
+            0: { fontStyle: "bold", cellWidth: 48 },
+            1: { cellWidth: "auto" },
+        },
+    });
+
+    return Buffer.from(doc.output("arraybuffer"));
 }
 
 /* HELPERS */

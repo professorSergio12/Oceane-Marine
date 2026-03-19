@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
 import {
   Document,
   Packer,
@@ -387,4 +388,312 @@ function formatDate(date) {
   } catch {
     return "";
   }
+}
+
+const PDF_FORM_CODE_DEFAULT = "QAF-OFD-008";
+
+function yn(v) {
+  return v ? "Yes" : "No";
+}
+
+/** @returns {{ data: string, format: "PNG"|"JPEG" } | null} */
+function bufferToPdfImage(buf) {
+  if (!buf || !buf.length) return null;
+  const format = buf[0] === 0xff && buf[1] === 0xd8 ? "JPEG" : "PNG";
+  return { data: buf.toString("base64"), format };
+}
+
+/**
+ * PDF export: same structure as Word + repeating header on every page (like Base/Transfer Audit).
+ * @param {object} report – lean HseInductionChecklist document
+ * @returns {Promise<Buffer>}
+ */
+export async function generateHseInductionChecklistPdf(report) {
+  const jspdfModule = await import("jspdf");
+  const JsPDF =
+    jspdfModule.jsPDF ??
+    (typeof jspdfModule.default === "function" ? jspdfModule.default : null);
+  if (!JsPDF) {
+    throw new Error("jsPDF constructor not found");
+  }
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
+  const pageH = doc.internal.pageSize.getHeight();
+  const pageW = doc.internal.pageSize.getWidth();
+
+  const reportDate =
+    report.revisionDate || report.dateOfInduction || report.createdAt;
+  const headerCtl = createQhsePdfHeaderController({
+    formTitle: "HSE INDUCTION CHECKLIST",
+    metaPairs: [
+      ["Form Number", report.formNo || report.formCode || PDF_FORM_CODE_DEFAULT],
+      ["Serial Number", report.serialNumber || ""],
+      ["Version", String(report.revisionNo || report.version || "")],
+      ["Date", formatDate(reportDate)],
+    ],
+  });
+  const tableMargins = headerCtl.getAutoTableMargins();
+  const m = headerCtl.sideMarginMm;
+  const contentW = pageW - 2 * m;
+
+  const autoTableOpts = {
+    margin: tableMargins,
+    willDrawPage: headerCtl.willDrawPage,
+  };
+
+  const gridStyles = {
+    fontSize: 9,
+    cellPadding: 3,
+    textColor: [30, 30, 30],
+    lineColor: [200, 200, 200],
+    lineWidth: 0.2,
+    overflow: "linebreak",
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("EMPLOYEE / CONTRACTOR DETAILS", m, headerCtl.tableTopMm - 5);
+
+  const basicBody = [
+    ["Employee / Contractor Name", report.employeeOrContractorName || "________________________"],
+    ["Date of Induction", formatDate(report.dateOfInduction) || "________________________"],
+    ["Location", report.location || "________________________"],
+    ["Status", report.status || "________________________"],
+    ["Submitted By", report.submittedBy || "________________________"],
+  ];
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: headerCtl.tableTopMm + 5,
+    head: [],
+    body: basicBody,
+    theme: "grid",
+    styles: gridStyles,
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 62 },
+      1: { cellWidth: "auto" },
+    },
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+
+  const hseChecklist = report.hseChecklist || {};
+  const hseBody = Object.entries(hseChecklistLabels).map(([key, label]) => [
+    label,
+    yn(hseChecklist[key]),
+  ]);
+
+  if (y > pageH - 40) {
+    doc.addPage();
+    headerCtl.notifyManualNewPage(doc);
+    y = headerCtl.tableTopMm;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("HSE INDUCTION CHECKLIST", m, y);
+  y += 6;
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: y,
+    head: [["Topic", "Discussed"]],
+    body: hseBody,
+    theme: "grid",
+    styles: { ...gridStyles, fontSize: 8 },
+    headStyles: { fillColor: [240, 240, 240], fontStyle: "bold", fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+      1: { cellWidth: 22, halign: "center" },
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  const jobChecklist = report.jobSpecificChecklist || {};
+  const jobBody = Object.entries(jobSpecificLabels).map(([key, label]) => [
+    label,
+    yn(jobChecklist[key]),
+  ]);
+
+  if (y > pageH - 40) {
+    doc.addPage();
+    headerCtl.notifyManualNewPage(doc);
+    y = headerCtl.tableTopMm;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  const jobTitleLines = doc.splitTextToSize(
+    "As appropriate by job function & facility operation",
+    contentW
+  );
+  jobTitleLines.forEach((line, i) => {
+    doc.text(line, m, y + i * 5);
+  });
+  y += jobTitleLines.length * 5 + 4;
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: y,
+    head: [["Topic", "Discussed"]],
+    body: jobBody,
+    theme: "grid",
+    styles: { ...gridStyles, fontSize: 8 },
+    headStyles: { fillColor: [240, 240, 240], fontStyle: "bold", fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+      1: { cellWidth: 22, halign: "center" },
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  const sigs = report.signatures;
+  if (sigs) {
+    const sigTextRows = [];
+    if (sigs.employeeSignatureDate != null) {
+      sigTextRows.push([
+        "Employee Signature Date",
+        formatDate(sigs.employeeSignatureDate) || "—",
+      ]);
+    }
+    if (sigs.employeeSignature && !getSignatureBuffer(sigs.employeeSignature)) {
+      sigTextRows.push(["Employee Signature (text)", String(sigs.employeeSignature).trim() || "—"]);
+    }
+
+    if (sigTextRows.length > 0) {
+      if (y > pageH - 35) {
+        doc.addPage();
+        headerCtl.notifyManualNewPage(doc);
+        y = headerCtl.tableTopMm;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("SIGNATURES", m, y);
+      y += 6;
+      autoTable(doc, {
+        ...autoTableOpts,
+        startY: y,
+        head: [],
+        body: sigTextRows,
+        theme: "grid",
+        styles: gridStyles,
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 62 },
+          1: { cellWidth: "auto" },
+        },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    } else if (
+      getSignatureBuffer(sigs.employeeSignature) ||
+      getSignatureBuffer(sigs.inductionGivenBySignature) ||
+      (sigs.inductionGivenBySignature &&
+        typeof sigs.inductionGivenBySignature === "string" &&
+        !getSignatureBuffer(sigs.inductionGivenBySignature))
+    ) {
+      if (y > pageH - 35) {
+        doc.addPage();
+        headerCtl.notifyManualNewPage(doc);
+        y = headerCtl.tableTopMm;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("SIGNATURES", m, y);
+      y += 8;
+    }
+
+    const empImg = bufferToPdfImage(getSignatureBuffer(sigs.employeeSignature));
+    if (empImg) {
+      if (y > pageH - 35) {
+        doc.addPage();
+        headerCtl.notifyManualNewPage(doc);
+        y = headerCtl.tableTopMm;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Employee Signature:", m, y);
+      y += 5;
+      try {
+        doc.addImage(empImg.data, empImg.format, m, y, 55, 18);
+        y += 22;
+      } catch {
+        y += 4;
+      }
+    }
+
+    const indImg = bufferToPdfImage(getSignatureBuffer(sigs.inductionGivenBySignature));
+    if (indImg) {
+      if (y > pageH - 35) {
+        doc.addPage();
+        headerCtl.notifyManualNewPage(doc);
+        y = headerCtl.tableTopMm;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Signature of Person Giving Induction:", m, y);
+      y += 5;
+      try {
+        doc.addImage(indImg.data, indImg.format, m, y, 55, 18);
+        y += 22;
+      } catch {
+        y += 4;
+      }
+    }
+
+    if (
+      sigs.inductionGivenBySignature &&
+      !getSignatureBuffer(sigs.inductionGivenBySignature) &&
+      typeof sigs.inductionGivenBySignature === "string"
+    ) {
+      const t = sigs.inductionGivenBySignature.trim();
+      if (t) {
+        if (y > pageH - 25) {
+          doc.addPage();
+          headerCtl.notifyManualNewPage(doc);
+          y = headerCtl.tableTopMm;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("Signature of Person Giving Induction:", m, y);
+        y += 5;
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(t, contentW);
+        lines.forEach((line) => {
+          if (y > pageH - 12) {
+            doc.addPage();
+            headerCtl.notifyManualNewPage(doc);
+            y = headerCtl.tableTopMm;
+          }
+          doc.text(line, m, y);
+          y += 5;
+        });
+      }
+    }
+  }
+
+  if (report.status === "Rejected" && report.rejectionReason) {
+    if (y > pageH - 30) {
+      doc.addPage();
+      headerCtl.notifyManualNewPage(doc);
+      y = headerCtl.tableTopMm;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("REJECTION REASON", m, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const reasonLines = doc.splitTextToSize(String(report.rejectionReason), contentW);
+    reasonLines.forEach((line) => {
+      if (y > pageH - 12) {
+        doc.addPage();
+        headerCtl.notifyManualNewPage(doc);
+        y = headerCtl.tableTopMm;
+      }
+      doc.text(line, m, y);
+      y += 5;
+    });
+  }
+
+  return Buffer.from(doc.output("arraybuffer"));
 }

@@ -2,7 +2,7 @@
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton } from "../../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -70,6 +70,8 @@ export default function EquipmentBaseStockAdminPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [downloadingDocx, setDownloadingDocx] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [year, setYear] = useState("");
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -181,6 +183,60 @@ export default function EquipmentBaseStockAdminPage() {
       setError(err.message || "Failed to archive");
     } finally {
       setArchivingId(null);
+    }
+  };
+
+  const handleDownloadDocx = async (form) => {
+    setDownloadingDocx(form._id);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/equipment-base-stock-level/${form._id}/download`
+      );
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download document");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `STS-Equipment-Base-Stock-${form.serialNumber || form._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download document");
+    } finally {
+      setDownloadingDocx(null);
+    }
+  };
+
+  const handleDownloadPdf = async (form) => {
+    setDownloadingPdf(form._id);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/form-checklist/equipment-base-stock-level/${form._id}/download/pdf`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `STS-Equipment-Base-Stock-${form.serialNumber || form._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -378,6 +434,25 @@ export default function EquipmentBaseStockAdminPage() {
                             expandedId === form._id ? null : form._id
                           )}
                         title={expandedId === form._id ? "Hide details" : "View details"}
+                      />
+                      <DownloadIconButton
+                        onClick={() => handleDownloadDocx(form)}
+                        disabled={
+                          downloadingDocx === form._id ||
+                          downloadingPdf === form._id
+                        }
+                        loading={downloadingDocx === form._id}
+                        title="Download as Word"
+                      />
+                      <DownloadIconButton
+                        onClick={() => handleDownloadPdf(form)}
+                        disabled={
+                          downloadingPdf === form._id ||
+                          downloadingDocx === form._id
+                        }
+                        loading={downloadingPdf === form._id}
+                        title="Download as PDF"
+                        className="!text-rose-400 hover:!text-rose-300"
                       />
                       {form.status === "PENDING" && (
                         <>

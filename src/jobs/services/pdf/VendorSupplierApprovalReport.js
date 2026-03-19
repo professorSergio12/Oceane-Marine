@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
   Document,
   Packer,
@@ -406,4 +408,351 @@ function formatDate(date) {
   } catch {
     return "";
   }
+}
+
+const PDF_FORM_CODE_DEFAULT = "QAF-OFD-037";
+
+function bufferToPdfImage(buf) {
+  if (!buf || !buf.length) return null;
+  const format = buf[0] === 0xff && buf[1] === 0xd8 ? "JPEG" : "PNG";
+  return { data: buf.toString("base64"), format };
+}
+
+function loadVendorSignatureBuffer(report, key) {
+  const v = report[key];
+  if (!v || typeof v !== "string") return null;
+  if (v.startsWith("data:")) return getSignatureBuffer(v);
+  return readSignatureFromPath(v);
+}
+
+/**
+ * PDF export: same structure as Word + repeating header on every page.
+ * @param {object} report – lean VendorSupplierApproval document
+ * @returns {Promise<Buffer>}
+ */
+export async function generateVendorSupplierApprovalPdf(report) {
+  const jspdfModule = await import("jspdf");
+  const JsPDF =
+    jspdfModule.jsPDF ??
+    (typeof jspdfModule.default === "function" ? jspdfModule.default : null);
+  if (!JsPDF) {
+    throw new Error("jsPDF constructor not found");
+  }
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
+  const pageH = doc.internal.pageSize.getHeight();
+  const pageW = doc.internal.pageSize.getWidth();
+
+  const reportDate = report.revisionDate || report.date || report.createdAt;
+  const headerCtl = createQhsePdfHeaderController({
+    formTitle: "VENDOR / SUPPLIER APPROVAL",
+    metaPairs: [
+      ["Form Number", report.formCode || report.formNo || PDF_FORM_CODE_DEFAULT],
+      ["Serial Number", report.serialNumber || ""],
+      ["Version", String(report.revisionNo || report.version || "")],
+      ["Date", formatDate(reportDate)],
+    ],
+  });
+  const tableMargins = headerCtl.getAutoTableMargins();
+  const m = headerCtl.sideMarginMm;
+  const contentW = pageW - 2 * m;
+
+  const autoTableOpts = {
+    margin: tableMargins,
+    willDrawPage: headerCtl.willDrawPage,
+  };
+
+  const gridStyles = {
+    fontSize: 9,
+    cellPadding: 3,
+    textColor: [30, 30, 30],
+    lineColor: [200, 200, 200],
+    lineWidth: 0.2,
+    overflow: "linebreak",
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("BASIC INFORMATION", m, headerCtl.tableTopMm - 5);
+
+  const basicBody = [
+    ["Vendor Name", pdfSafeText(report.vendorName) || "________________________"],
+    ["Vendor Address", pdfSafeText(report.vendorAddress) || "________________________"],
+    ["Date", formatDate(report.date) || "________________________"],
+    ["Year", report.year != null ? String(report.year) : "________________________"],
+    ["Status", pdfSafeText(report.status) || "________________________"],
+    ["Requested By", pdfSafeText(report.requestedBy) || "________________________"],
+    ["For Accounts (Sign)", pdfSafeText(report.forAccountsSign) || "________________________"],
+  ];
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: headerCtl.tableTopMm + 5,
+    head: [],
+    body: basicBody,
+    theme: "grid",
+    styles: gridStyles,
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 52 },
+      1: { cellWidth: "auto" },
+    },
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+
+  const supplyOfParts = report.supplyOfParts || {};
+  const partsBody = Object.entries(supplyOfPartsLabels).map(([key, label]) => [
+    pdfSafeText(label),
+    supplyOfParts[key] != null ? pdfSafeText(String(supplyOfParts[key])) : "-",
+  ]);
+  partsBody.push([
+    "Percentage Score",
+    `${supplyOfParts.percentageScore != null ? supplyOfParts.percentageScore : 0}%`,
+  ]);
+
+  if (y > pageH - 40) {
+    doc.addPage();
+    headerCtl.notifyManualNewPage(doc);
+    y = headerCtl.tableTopMm;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("For Supply of Parts", m, y);
+  y += 6;
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: y,
+    head: [["Criterion", "Rating (1-4)"]],
+    body: partsBody,
+    theme: "grid",
+    styles: { ...gridStyles, fontSize: 8 },
+    headStyles: { fillColor: [240, 240, 240], fontStyle: "bold", fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+      1: { cellWidth: 24, halign: "center" },
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  const supplyOfServices = report.supplyOfServices || {};
+  const servicesBody = Object.entries(supplyOfServicesLabels).map(([key, label]) => [
+    pdfSafeText(label),
+    supplyOfServices[key] != null ? pdfSafeText(String(supplyOfServices[key])) : "-",
+  ]);
+  servicesBody.push([
+    "Percentage Score",
+    `${supplyOfServices.percentageScore != null ? supplyOfServices.percentageScore : 0}%`,
+  ]);
+
+  if (y > pageH - 40) {
+    doc.addPage();
+    headerCtl.notifyManualNewPage(doc);
+    y = headerCtl.tableTopMm;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("For Supply of Services", m, y);
+  y += 6;
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: y,
+    head: [["Criterion", "Rating (1-4)"]],
+    body: servicesBody,
+    theme: "grid",
+    styles: { ...gridStyles, fontSize: 8 },
+    headStyles: { fillColor: [240, 240, 240], fontStyle: "bold", fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+      1: { cellWidth: 24, halign: "center" },
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  if (y > pageH - 35) {
+    doc.addPage();
+    headerCtl.notifyManualNewPage(doc);
+    y = headerCtl.tableTopMm;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Overall Result", m, y);
+  y += 6;
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: y,
+    head: [],
+    body: [
+      [
+        "Overall Percentage Score",
+        `${report.overallPercentageScore != null ? report.overallPercentageScore : 0}%`,
+      ],
+      // ASCII only — Unicode "≥" breaks jsPDF Helvetica (wide letter spacing, clipping)
+      ["Approved Vendor Eligible (>= 80%)", report.approvedVendorEligible ? "Yes" : "No"],
+    ],
+    theme: "grid",
+    styles: gridStyles,
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: "auto" },
+      1: { cellWidth: 28, halign: "center" },
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  if (y > pageH - 45) {
+    doc.addPage();
+    headerCtl.notifyManualNewPage(doc);
+    y = headerCtl.tableTopMm;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Signatures", m, y);
+  y += 6;
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: y,
+    head: [],
+    body: [
+      ["Requested By", pdfSafeText(report.requestedBy) || "-"],
+      ["For Accounts (Sign)", pdfSafeText(report.forAccountsSign) || "-"],
+    ],
+    theme: "grid",
+    styles: gridStyles,
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 52 },
+      1: { cellWidth: "auto" },
+    },
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  const reqBuf = loadVendorSignatureBuffer(report, "requestedBySignatureImage");
+  const reqImg = bufferToPdfImage(reqBuf);
+  if (reqImg) {
+    if (y > pageH - 32) {
+      doc.addPage();
+      headerCtl.notifyManualNewPage(doc);
+      y = headerCtl.tableTopMm;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Requested By Signature:", m, y);
+    y += 5;
+    try {
+      doc.addImage(reqImg.data, reqImg.format, m, y, 55, 18);
+      y += 22;
+    } catch {
+      y += 4;
+    }
+  }
+
+  const accBuf = loadVendorSignatureBuffer(report, "forAccountsSignSignatureImage");
+  const accImg = bufferToPdfImage(accBuf);
+  if (accImg) {
+    if (y > pageH - 32) {
+      doc.addPage();
+      headerCtl.notifyManualNewPage(doc);
+      y = headerCtl.tableTopMm;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("For Accounts Signature:", m, y);
+    y += 5;
+    try {
+      doc.addImage(accImg.data, accImg.format, m, y, 55, 18);
+      y += 22;
+    } catch {
+      y += 4;
+    }
+  }
+
+  if (report.approvedBy || report.approvedAt) {
+    if (y > pageH - 35) {
+      doc.addPage();
+      headerCtl.notifyManualNewPage(doc);
+      y = headerCtl.tableTopMm;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Approval", m, y);
+    y += 6;
+    const approvalBody = [];
+    if (report.approvedBy) approvalBody.push(["Approved By", pdfSafeText(report.approvedBy)]);
+    if (report.approvedAt) approvalBody.push(["Approved At", formatDate(report.approvedAt)]);
+    if (approvalBody.length > 0) {
+      autoTable(doc, {
+        ...autoTableOpts,
+        startY: y,
+        head: [],
+        body: approvalBody,
+        theme: "grid",
+        styles: gridStyles,
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 52 },
+          1: { cellWidth: "auto" },
+        },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+  }
+
+  if (report.rejectionReason) {
+    if (y > pageH - 30) {
+      doc.addPage();
+      headerCtl.notifyManualNewPage(doc);
+      y = headerCtl.tableTopMm;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Rejection Reason", m, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const reasonLines = doc.splitTextToSize(pdfSafeText(report.rejectionReason), contentW);
+    for (const line of reasonLines) {
+      if (y > pageH - 12) {
+        doc.addPage();
+        headerCtl.notifyManualNewPage(doc);
+        y = headerCtl.tableTopMm;
+      }
+      doc.text(line, m, y);
+      y += 5;
+    }
+    y += 4;
+  }
+
+  if (report.instructionsToAccountsDepartment) {
+    if (y > pageH - 30) {
+      doc.addPage();
+      headerCtl.notifyManualNewPage(doc);
+      y = headerCtl.tableTopMm;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Instructions to Accounts Department", m, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const instLines = doc.splitTextToSize(
+      pdfSafeText(report.instructionsToAccountsDepartment),
+      contentW
+    );
+    for (const line of instLines) {
+      if (y > pageH - 12) {
+        doc.addPage();
+        headerCtl.notifyManualNewPage(doc);
+        y = headerCtl.tableTopMm;
+      }
+      doc.text(line, m, y);
+      y += 5;
+    }
+  }
+
+  return Buffer.from(doc.output("arraybuffer"));
 }

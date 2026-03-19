@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
   Document,
   Packer,
@@ -169,4 +171,92 @@ export async function generateNewBaseSetupChecklistDoc(record, fullPath) {
 
   const buffer = await Packer.toBuffer(doc);
   fs.writeFileSync(fullPath, buffer);
+}
+
+/**
+ * PDF export: same BASIC INFORMATION as Word + repeating QHSE header.
+ * @param {object} record – lean NewBaseSetupChecklist document
+ * @returns {Promise<Buffer>}
+ */
+export async function generateNewBaseSetupChecklistPdf(record) {
+  const jspdfModule = await import("jspdf");
+  const JsPDF =
+    jspdfModule.jsPDF ??
+    (typeof jspdfModule.default === "function" ? jspdfModule.default : null);
+  if (!JsPDF) {
+    throw new Error("jsPDF constructor not found");
+  }
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+  const reportDate = record.date || record.uploadedAt;
+  const headerCtl = createQhsePdfHeaderController({
+    formTitle: FORM_TITLE,
+    metaPairs: [
+      ["Form Number", record.formCode || FORM_CODE_DEFAULT],
+      ["Serial Number", record.serialNumber || ""],
+      ["Version", String(record.version || "")],
+      ["Date", formatDate(reportDate)],
+    ],
+  });
+  const tableMargins = headerCtl.getAutoTableMargins();
+  const m = headerCtl.sideMarginMm;
+
+  const gridStyles = {
+    fontSize: 9,
+    cellPadding: 3,
+    textColor: [30, 30, 30],
+    lineColor: [200, 200, 200],
+    lineWidth: 0.2,
+    overflow: "linebreak",
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("BASIC INFORMATION", m, headerCtl.tableTopMm - 5);
+
+  const basicBody = [
+    [
+      "Base Name",
+      pdfSafeText(record.baseName) || "________________________",
+    ],
+    [
+      "Date",
+      pdfSafeText(formatDate(record.date)) || "________________________",
+    ],
+    [
+      "Uploaded By",
+      pdfSafeText(record.uploadedBy?.name) || "________________________",
+    ],
+    [
+      "Form Code",
+      pdfSafeText(record.formCode || FORM_CODE_DEFAULT) ||
+        "________________________",
+    ],
+    [
+      "Serial Number",
+      pdfSafeText(record.serialNumber) || "________________________",
+    ],
+    [
+      "Version",
+      pdfSafeText(record.version) || "________________________",
+    ],
+  ];
+
+  autoTable(doc, {
+    startY: headerCtl.tableTopMm + 5,
+    margin: tableMargins,
+    willDrawPage: headerCtl.willDrawPage,
+    head: [],
+    body: basicBody,
+    theme: "grid",
+    styles: gridStyles,
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 48 },
+      1: { cellWidth: "auto" },
+    },
+  });
+
+  return Buffer.from(doc.output("arraybuffer"));
 }

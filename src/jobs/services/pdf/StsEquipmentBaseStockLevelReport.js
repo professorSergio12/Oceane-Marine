@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
   Document,
   Packer,
@@ -16,6 +18,9 @@ import {
 
 const ROWS_PER_PAGE = 28;
 const BASIC_INFO_ROW_COUNT = 6;
+
+const PDF_FORM_CODE_DEFAULT = "QAF-OFD-013";
+const PDF_FORM_TITLE = "STS EQUIPMENT BASE STOCK LEVEL";
 
 function buildStsHeaderTable(report, currentPage, totalPages, logoImage) {
   const reportDate = report.revisionDate || report.createdAt;
@@ -224,6 +229,157 @@ export async function generateStsEquipmentBaseStockLevelDoc(report, fullPath) {
 
   const buffer = await Packer.toBuffer(doc);
   fs.writeFileSync(fullPath, buffer);
+}
+
+/**
+ * PDF export: same content as Word + repeating QHSE header.
+ * All dynamic text passes through {@link pdfSafeText} for jsPDF Helvetica compatibility.
+ *
+ * @param {object} report – lean STSEquipmentBaseStock document
+ * @returns {Promise<Buffer>}
+ */
+export async function generateStsEquipmentBaseStockLevelPdf(report) {
+  const jspdfModule = await import("jspdf");
+  const JsPDF =
+    jspdfModule.jsPDF ??
+    (typeof jspdfModule.default === "function" ? jspdfModule.default : null);
+  if (!JsPDF) {
+    throw new Error("jsPDF constructor not found");
+  }
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
+  const pageH = doc.internal.pageSize.getHeight();
+  const pageW = doc.internal.pageSize.getWidth();
+
+  const reportDate = report.revisionDate || report.createdAt;
+  const headerCtl = createQhsePdfHeaderController({
+    formTitle: PDF_FORM_TITLE,
+    metaPairs: [
+      ["Form Number", report.formCode || PDF_FORM_CODE_DEFAULT],
+      ["Serial Number", report.serialNumber || ""],
+      ["Version", String(report.version || "")],
+      ["Date", formatDate(reportDate)],
+    ],
+  });
+  const tableMargins = headerCtl.getAutoTableMargins();
+  const m = headerCtl.sideMarginMm;
+  const contentW = pageW - 2 * m;
+
+  const autoTableOpts = {
+    margin: tableMargins,
+    willDrawPage: headerCtl.willDrawPage,
+  };
+
+  const gridStyles = {
+    fontSize: 9,
+    cellPadding: 3,
+    textColor: [30, 30, 30],
+    lineColor: [200, 200, 200],
+    lineWidth: 0.2,
+    overflow: "linebreak",
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("BASIC INFORMATION", m, headerCtl.tableTopMm - 5);
+
+  const basicBody = [
+    [
+      "Year",
+      pdfSafeText(report.year != null ? String(report.year) : "") ||
+        "________________________",
+    ],
+    ["Status", pdfSafeText(report.status) || "________________________"],
+    [
+      "Filled By",
+      pdfSafeText(report.filledBy?.name) || "________________________",
+    ],
+    [
+      "Role at Submission",
+      pdfSafeText(report.filledBy?.roleAtSubmission) || "________________________",
+    ],
+  ];
+
+  autoTable(doc, {
+    ...autoTableOpts,
+    startY: headerCtl.tableTopMm + 5,
+    head: [],
+    body: basicBody,
+    theme: "grid",
+    styles: gridStyles,
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 48 },
+      1: { cellWidth: "auto" },
+    },
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+
+  const categories = report.equipmentCategories || [];
+  for (const cat of categories) {
+    const rawTitle = cat.subCategory
+      ? `${cat.categoryName} – ${cat.subCategory}`
+      : cat.categoryName;
+    const title = pdfSafeText(rawTitle);
+
+    if (y > pageH - 50) {
+      doc.addPage();
+      headerCtl.notifyManualNewPage(doc);
+      y = headerCtl.tableTopMm;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    const titleLines = doc.splitTextToSize(title || "(Category)", contentW);
+    titleLines.forEach((line, i) => {
+      doc.text(line, m, y + i * 5.2);
+    });
+    y += titleLines.length * 5.2 + 4;
+
+    const items = cat.items || [];
+    if (items.length === 0) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      doc.text("No items.", m, y);
+      doc.setFont("helvetica", "bold");
+      y += 8;
+      continue;
+    }
+
+    const body = items.map((item) => [
+      pdfSafeText(item.name || ""),
+      item.quantityInUse != null ? pdfSafeText(String(item.quantityInUse)) : "-",
+      item.quantitySpare != null ? pdfSafeText(String(item.quantitySpare)) : "-",
+      pdfSafeText(item.overallCondition || "-"),
+      pdfSafeText(item.additionalComments || "-"),
+    ]);
+
+    autoTable(doc, {
+      ...autoTableOpts,
+      startY: y,
+      head: [["Item Name", "Qty in Use", "Qty Spare", "Condition", "Comments"]],
+      body,
+      theme: "grid",
+      styles: { ...gridStyles, fontSize: 8 },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        fontStyle: "bold",
+        fontSize: 8,
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 16, halign: "center" },
+        2: { cellWidth: 16, halign: "center" },
+        3: { cellWidth: 22 },
+        4: { cellWidth: "auto" },
+      },
+    });
+
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  return Buffer.from(doc.output("arraybuffer"));
 }
 
 function infoLine(label, value) {
