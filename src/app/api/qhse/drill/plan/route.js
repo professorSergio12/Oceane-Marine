@@ -91,7 +91,7 @@ export async function POST(req) {
         topic: item.topic?.trim(),
         instructor: item.instructor?.trim(),
         description: item.description?.trim(),
-        status: item.status || "Draft",
+        status: "Approved", // Drill matrix is saved as approved so it shows in list/report immediately
       };
     });
 

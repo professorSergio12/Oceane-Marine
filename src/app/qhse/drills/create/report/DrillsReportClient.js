@@ -56,6 +56,8 @@ export default function DrillsReportClient() {
   const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState(() => getInitialFormData());
+  const [downloadingPlanDocx, setDownloadingPlanDocx] = useState(false);
+  const [downloadingPlanPdf, setDownloadingPlanPdf] = useState(false);
 
   /* ---------------- effects ---------------- */
 
@@ -266,11 +268,74 @@ export default function DrillsReportClient() {
           <div className="rounded-2xl border border-white/10 bg-[#0b2740]/70 p-4 space-y-3">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <h2 className="text-lg font-semibold">Quarterly Drill Plan</h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {plan && (
-                  <span className="text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5 text-slate-200">
-                    Plan year: {plan.year}
-                  </span>
+                  <>
+                    <span className="text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5 text-slate-200">
+                      Plan year: {plan.year}
+                    </span>
+                    {(plan.formCode || plan.serialNumber) && (
+                      <span className="text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5 text-slate-200">
+                        {[plan.formCode, plan.serialNumber].filter(Boolean).join(" • ")}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!plan._id) return;
+                        setDownloadingPlanDocx(true);
+                        try {
+                          const res = await fetch(`/api/qhse/drill/plan/${plan._id}/download`);
+                          if (!res.ok) throw new Error("Failed to download");
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `Drill-Plan-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.docx`;
+                          document.body.appendChild(a);
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          a.remove();
+                        } catch (err) {
+                          alert(err.message || "Failed to download Word");
+                        } finally {
+                          setDownloadingPlanDocx(false);
+                        }
+                      }}
+                      disabled={downloadingPlanDocx || downloadingPlanPdf}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                    >
+                      {downloadingPlanDocx ? "…" : "Word"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!plan._id) return;
+                        setDownloadingPlanPdf(true);
+                        try {
+                          const res = await fetch(`/api/qhse/drill/plan/${plan._id}/download/pdf`);
+                          if (!res.ok) throw new Error("Failed to download");
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `Drill-Plan-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          a.remove();
+                        } catch (err) {
+                          alert(err.message || "Failed to download PDF");
+                        } finally {
+                          setDownloadingPlanPdf(false);
+                        }
+                      }}
+                      disabled={downloadingPlanDocx || downloadingPlanPdf}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                    >
+                      {downloadingPlanPdf ? "…" : "PDF"}
+                    </button>
+                  </>
                 )}
                 <span className="text-xs text-slate-300">
                   Select a quarter to create report

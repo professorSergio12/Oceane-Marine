@@ -66,6 +66,11 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
   const [formData, setFormData] = useState(() => getInitialFormData());
   const [attachmentFile, setAttachmentFile] = useState(null);
 
+  const [downloadingPlanDocx, setDownloadingPlanDocx] = useState(false);
+  const [downloadingPlanPdf, setDownloadingPlanPdf] = useState(false);
+  const [downloadingRecordDocxId, setDownloadingRecordDocxId] = useState(null);
+  const [downloadingRecordPdfId, setDownloadingRecordPdfId] = useState(null);
+
   /* ---------------- effects ---------------- */
 
   useEffect(() => {
@@ -143,6 +148,92 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
       setPlanError(err.message);
     } finally {
       setPlanDeleting(false);
+    }
+  };
+
+  const handleDownloadPlanDocx = async () => {
+    if (!plan?._id) return;
+    setDownloadingPlanDocx(true);
+    try {
+      const res = await fetch(`/api/qhse/training/plan/${plan._id}/download`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Training-Matrix-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download Word");
+    } finally {
+      setDownloadingPlanDocx(false);
+    }
+  };
+
+  const handleDownloadPlanPdf = async () => {
+    if (!plan?._id) return;
+    setDownloadingPlanPdf(true);
+    try {
+      const res = await fetch(`/api/qhse/training/plan/${plan._id}/download/pdf`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Training-Matrix-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPlanPdf(false);
+    }
+  };
+
+  const handleDownloadRecordDocx = async (recordId, serialNumber) => {
+    setDownloadingRecordDocxId(recordId);
+    try {
+      const res = await fetch(`/api/qhse/training/record/${recordId}/download/docx`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Training-Record-${serialNumber ?? recordId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download Word");
+    } finally {
+      setDownloadingRecordDocxId(null);
+    }
+  };
+
+  const handleDownloadRecordPdf = async (recordId, serialNumber) => {
+    setDownloadingRecordPdfId(recordId);
+    try {
+      const res = await fetch(`/api/qhse/training/record/${recordId}/download/pdf`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Training-Record-${serialNumber ?? recordId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingRecordPdfId(null);
     }
   };
 
@@ -412,6 +503,22 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                         {[plan.formCode, plan.serialNumber].filter(Boolean).join(" • ")}
                       </span>
                     )}
+                    <button
+                      type="button"
+                      onClick={handleDownloadPlanDocx}
+                      disabled={downloadingPlanDocx || downloadingPlanPdf}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                    >
+                      {downloadingPlanDocx ? "…" : "Word"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadPlanPdf}
+                      disabled={downloadingPlanDocx || downloadingPlanPdf}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                    >
+                      {downloadingPlanPdf ? "…" : "PDF"}
+                    </button>
                     <button
                       type="button"
                       onClick={handleDeletePlan}
@@ -830,6 +937,33 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                           {record.instructor || "—"}
                         </div>
                       </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadRecordDocx(record._id, record.serialNumber)}
+                          disabled={downloadingRecordDocxId === record._id || downloadingRecordPdfId === record._id}
+                          className="text-xs text-sky-300 hover:text-sky-200 font-medium px-2 py-1 rounded border border-sky-400/30 hover:bg-sky-400/10 disabled:opacity-50 transition"
+                        >
+                          {downloadingRecordDocxId === record._id ? "…" : "Word"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadRecordPdf(record._id, record.serialNumber)}
+                          disabled={downloadingRecordDocxId === record._id || downloadingRecordPdfId === record._id}
+                          className="text-xs text-rose-300 hover:text-rose-200 font-medium px-2 py-1 rounded border border-rose-400/30 hover:bg-rose-500/10 disabled:opacity-50 transition"
+                        >
+                          {downloadingRecordPdfId === record._id ? "…" : "PDF"}
+                        </button>
+                        {record.attachment?.fileName && (
+                          <a
+                            href={`/api/qhse/training/record/${record._id}/download`}
+                            download={record.attachment.fileName}
+                            className="text-xs text-slate-300 hover:text-slate-200 font-medium px-2 py-1 rounded border border-white/20 hover:bg-white/10 transition inline-block"
+                          >
+                            📥 Attachment
+                          </a>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -932,8 +1066,24 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                                 {record.attendance.length}
                               </div>
                             )}
-                            {record.attachment?.fileName && (
-                              <div className="mt-2">
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadRecordDocx(record._id, record.serialNumber)}
+                                disabled={downloadingRecordDocxId === record._id || downloadingRecordPdfId === record._id}
+                                className="text-xs text-sky-300 hover:text-sky-200 font-medium px-2 py-1 rounded border border-sky-400/30 hover:bg-sky-400/10 disabled:opacity-50 transition"
+                              >
+                                {downloadingRecordDocxId === record._id ? "…" : "Word"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadRecordPdf(record._id, record.serialNumber)}
+                                disabled={downloadingRecordDocxId === record._id || downloadingRecordPdfId === record._id}
+                                className="text-xs text-rose-300 hover:text-rose-200 font-medium px-2 py-1 rounded border border-rose-400/30 hover:bg-rose-500/10 disabled:opacity-50 transition"
+                              >
+                                {downloadingRecordPdfId === record._id ? "…" : "PDF"}
+                              </button>
+                              {record.attachment?.fileName && (
                                 <button
                                   type="button"
                                   onClick={async () => {
@@ -957,12 +1107,12 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                                       alert(err.message || "Failed to download file");
                                     }
                                   }}
-                                  className="text-xs text-sky-300 hover:text-sky-200 font-medium px-2 py-1 rounded border border-sky-400/30 hover:bg-sky-400/10 transition"
+                                  className="text-xs text-slate-300 hover:text-slate-200 font-medium px-2 py-1 rounded border border-white/20 hover:bg-white/10 transition"
                                 >
-                                  📥 Download: {record.attachment.fileName}
+                                  📥 {record.attachment.fileName}
                                 </button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <div className="text-xs text-slate-400">

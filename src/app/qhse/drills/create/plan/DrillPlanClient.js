@@ -56,6 +56,8 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [savedPlan, setSavedPlan] = useState(null);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [quarterFiles, setQuarterFiles] = useState({
     Q1: null,
     Q2: null,
@@ -187,6 +189,50 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
       setError(err.message);
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!savedPlan?._id) return;
+    setDownloadingDocx(true);
+    try {
+      const res = await fetch(`/api/qhse/drill/plan/${savedPlan._id}/download`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Drill-Plan-${savedPlan.year ?? "plan"}-${savedPlan.serialNumber ?? savedPlan._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download Word");
+    } finally {
+      setDownloadingDocx(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!savedPlan?._id) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch(`/api/qhse/drill/plan/${savedPlan._id}/download/pdf`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Drill-Plan-${savedPlan.year ?? "plan"}-${savedPlan.serialNumber ?? savedPlan._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -464,15 +510,33 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
           {/* Submit Button */}
           <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
             {savedPlan && (
-              <button
-                type="button"
-                onClick={handleApprove}
-                disabled={approving}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/40 hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <span>✔</span>
-                <span>{approving ? "Approving..." : "Approve Plan"}</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleDownloadDocx}
+                  disabled={downloadingDocx || downloadingPdf}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl border border-sky-400/30 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:bg-sky-500/20 transition disabled:opacity-50"
+                >
+                  {downloadingDocx ? "…" : "Word"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={downloadingDocx || downloadingPdf}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl border border-rose-400/30 bg-rose-500/10 text-rose-200 text-sm font-semibold hover:bg-rose-500/20 transition disabled:opacity-50"
+                >
+                  {downloadingPdf ? "…" : "PDF"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/40 hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span>✔</span>
+                  <span>{approving ? "Approving..." : "Approve Plan"}</span>
+                </button>
+              </>
             )}
             <button
               type="submit"

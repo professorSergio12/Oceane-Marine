@@ -21,6 +21,10 @@ export default function DrillsListPage() {
   const [availableYears, setAvailableYears] = useState(getYears());
   const [deletingId, setDeletingId] = useState(null);
   const [deletingReportId, setDeletingReportId] = useState(null);
+  const [downloadingPlanDocx, setDownloadingPlanDocx] = useState(null);
+  const [downloadingPlanPdf, setDownloadingPlanPdf] = useState(null);
+  const [downloadingReportDocxId, setDownloadingReportDocxId] = useState(null);
+  const [downloadingReportPdfId, setDownloadingReportPdfId] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -102,6 +106,94 @@ export default function DrillsListPage() {
       setError(err.message);
     } finally {
       setDeletingReportId(null);
+    }
+  };
+
+  const handleDownloadPlanDocx = async (planId, year, serialNumber) => {
+    if (!planId) return;
+    setDownloadingPlanDocx(planId);
+    try {
+      const res = await fetch(`/api/qhse/drill/plan/${planId}/download`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Drill-Plan-${year ?? "plan"}-${serialNumber ?? planId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download Word");
+    } finally {
+      setDownloadingPlanDocx(null);
+    }
+  };
+
+  const handleDownloadPlanPdf = async (planId, year, serialNumber) => {
+    if (!planId) return;
+    setDownloadingPlanPdf(planId);
+    try {
+      const res = await fetch(`/api/qhse/drill/plan/${planId}/download/pdf`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Drill-Plan-${year ?? "plan"}-${serialNumber ?? planId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPlanPdf(null);
+    }
+  };
+
+  const handleDownloadReportDocx = async (reportId, serialNumber) => {
+    if (!reportId) return;
+    setDownloadingReportDocxId(reportId);
+    try {
+      const res = await fetch(`/api/qhse/drill/report/${reportId}/download/docx`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Drill-Report-${serialNumber ?? reportId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download Word");
+    } finally {
+      setDownloadingReportDocxId(null);
+    }
+  };
+
+  const handleDownloadReportPdf = async (reportId, serialNumber) => {
+    if (!reportId) return;
+    setDownloadingReportPdfId(reportId);
+    try {
+      const res = await fetch(`/api/qhse/drill/report/${reportId}/download/pdf`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Drill-Report-${serialNumber ?? reportId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingReportPdfId(null);
     }
   };
 
@@ -225,14 +317,32 @@ export default function DrillsListPage() {
                       </p>
                     </div>
                     {yearRow.planId && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePlan(yearRow.planId, yearRow.year)}
-                        disabled={deletingId === yearRow.planId}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-50 transition"
-                      >
-                        {deletingId === yearRow.planId ? "Deleting…" : "Delete plan"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPlanDocx(yearRow.planId, yearRow.year, yearRow.serialNumber)}
+                          disabled={downloadingPlanDocx === yearRow.planId || downloadingPlanPdf === yearRow.planId}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                        >
+                          {downloadingPlanDocx === yearRow.planId ? "…" : "Word"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPlanPdf(yearRow.planId, yearRow.year, yearRow.serialNumber)}
+                          disabled={downloadingPlanDocx === yearRow.planId || downloadingPlanPdf === yearRow.planId}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                        >
+                          {downloadingPlanPdf === yearRow.planId ? "…" : "PDF"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePlan(yearRow.planId, yearRow.year)}
+                          disabled={deletingId === yearRow.planId}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-50 transition"
+                        >
+                          {deletingId === yearRow.planId ? "Deleting…" : "Delete plan"}
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -300,24 +410,44 @@ export default function DrillsListPage() {
                               )}
                             </div>
                             {report ? (
-                              <div className="space-y-1 text-xs text-slate-200">
-                                <div>
-                                  <span className="text-slate-400">
-                                    Drill No:
-                                  </span>{" "}
-                                  {report.drillNo}
+                              <div className="space-y-2">
+                                <div className="space-y-1 text-xs text-slate-200">
+                                  <div>
+                                    <span className="text-slate-400">
+                                      Drill No:
+                                    </span>{" "}
+                                    {report.drillNo}
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-400">Date:</span>{" "}
+                                    {report.drillDate
+                                      ? new Date(
+                                          report.drillDate
+                                        ).toLocaleDateString()
+                                      : "—"}
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-400">Status:</span>{" "}
+                                    {report.status || "—"}
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="text-slate-400">Date:</span>{" "}
-                                  {report.drillDate
-                                    ? new Date(
-                                        report.drillDate
-                                      ).toLocaleDateString()
-                                    : "—"}
-                                </div>
-                                <div>
-                                  <span className="text-slate-400">Status:</span>{" "}
-                                  {report.status || "—"}
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadReportDocx(report.id || report._id, report.serialNumber)}
+                                    disabled={downloadingReportDocxId === (report.id || report._id) || downloadingReportPdfId === (report.id || report._id)}
+                                    className="text-xs text-sky-300 hover:text-sky-200 font-medium px-2 py-1 rounded border border-sky-400/30 hover:bg-sky-400/10 disabled:opacity-50 transition"
+                                  >
+                                    {downloadingReportDocxId === (report.id || report._id) ? "…" : "Word"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadReportPdf(report.id || report._id, report.serialNumber)}
+                                    disabled={downloadingReportDocxId === (report.id || report._id) || downloadingReportPdfId === (report.id || report._id)}
+                                    className="text-xs text-rose-300 hover:text-rose-200 font-medium px-2 py-1 rounded border border-rose-400/30 hover:bg-rose-500/10 disabled:opacity-50 transition"
+                                  >
+                                    {downloadingReportPdfId === (report.id || report._id) ? "…" : "PDF"}
+                                  </button>
                                 </div>
                               </div>
                             ) : (
