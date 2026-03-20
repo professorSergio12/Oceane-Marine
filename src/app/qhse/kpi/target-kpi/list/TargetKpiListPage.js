@@ -24,6 +24,8 @@ export default function TargetKpiListPage() {
   const [archivingId, setArchivingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
 
   const handleArchive = async (item) => {
     if (!confirm("Archive this Target KPI? It will be stored in QHSE Archive (Target KPI).")) return;
@@ -58,6 +60,50 @@ export default function TargetKpiListPage() {
       setError(err.message || "Failed to delete");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDownloadDocx = async (item) => {
+    if (!item._id) return;
+    setDownloadingDocxId(item._id);
+    try {
+      const res = await fetch(`/api/qhse/kpi/target/${item._id}/download`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Target-KPI-${item.year ?? "kpi"}-${item.serialNumber ?? item._id}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download Word");
+    } finally {
+      setDownloadingDocxId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (item) => {
+    if (!item._id) return;
+    setDownloadingPdfId(item._id);
+    try {
+      const res = await fetch(`/api/qhse/kpi/target/${item._id}/download/pdf`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Target-KPI-${item.year ?? "kpi"}-${item.serialNumber ?? item._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -205,6 +251,24 @@ export default function TargetKpiListPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1 inline-flex">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadDocx(item)}
+                            disabled={downloadingDocxId === item._id || downloadingPdfId === item._id}
+                            className="text-xs px-2 py-1 rounded border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                            title="Download Word"
+                          >
+                            {downloadingDocxId === item._id ? "…" : "Word"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadPdf(item)}
+                            disabled={downloadingDocxId === item._id || downloadingPdfId === item._id}
+                            className="text-xs px-2 py-1 rounded border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                            title="Download PDF"
+                          >
+                            {downloadingPdfId === item._id ? "…" : "PDF"}
+                          </button>
                           <ArchiveIconButton
                             onClick={() => handleArchive(item)}
                             disabled={archivingId === item._id || deletingId === item._id}
