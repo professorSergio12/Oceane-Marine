@@ -230,66 +230,49 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
   const content = (
     <div className={hideSidebar ? "flex-1" : `${contentClassName} pr-4`}>
         <div className="w-full max-w-[95%] mx-auto pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-          <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
             >
               ← Dashboard
             </Link>
-            <div className="flex items-center gap-4 flex-wrap">
-              <div>
-                <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
-                  QHSE / Training
-                </p>
-                <h1 className="text-xl sm:text-2xl font-bold text-white">Annual Training Matrix</h1>
-                <p className="text-sm text-slate-200 mt-1">
-                  Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-038</span>
-                </p>
-              </div>
+
+            {/* Center: Title */}
+            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
+                QHSE / Training
+              </p>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Annual Training Matrix</h1>
+              <p className="text-xs sm:text-sm text-slate-200 mt-1">
+                Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-038</span>
+              </p>
             </div>
 
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-3">
-                <a
-                  href="/templates/controlled-register/QAF-OFD-038.docx"
-                  download
-                  className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-                  title="Download form template (QAF-OFD-038)"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                  </svg>
-                  Template
-                </a>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year
-                </span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year}
-                  onChange={(e) => handleYearChange(Number(e.target.value))}
-                >
-                  {getYears().map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            {/* Right: Template + Year + Tabs */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+              <a
+                href="/templates/controlled-register/QAF-OFD-038.docx"
+                download
+                className="inline-flex items-center gap-1.5 rounded-lg sm:rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+                title="Download form template (QAF-OFD-038)"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                </svg>
+                Template
+              </a>
+              <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/qhse/training/create/plan"
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
                 >
                   Training Matrix
                 </Link>
                 <Link
                   href="/qhse/training/create/record"
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
                 >
                   Training Record
                 </Link>
@@ -301,6 +284,20 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
             onSubmit={handleSubmit}
             className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
           >
+            <div className="flex items-center justify-end">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                <select
+                  className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+                  value={year}
+                  onChange={(e) => handleYearChange(Number(e.target.value))}
+                >
+                  {getYears().map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             {/* Month Selector Bar */}
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-300 text-center">

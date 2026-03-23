@@ -81,48 +81,21 @@ export default function ArchivePage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Link
             href="/dashboard"
-            className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+            className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
           >
             ← Dashboard
           </Link>
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
+          <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               QHSE
             </p>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Archive</h1>
-            <p className="text-sm text-slate-200 mt-1">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Archive</h1>
+            <p className="text-xs sm:text-sm text-slate-200 mt-1">
               Year-wise list of archived documents by submodule (e.g. Risk Assessment, Equipment Defects).
             </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase bg-slate-800 border border-white/20 text-white"
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-              >
-                {(availableYears.length ? availableYears : yearOptions).map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Module</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase bg-slate-800 border border-white/20 text-white min-w-[180px]"
-                value={moduleFilter}
-                onChange={(e) => setModuleFilter(e.target.value)}
-              >
-                <option value="">All modules</option>
-                {availableModules.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
           </div>
         </header>
 
@@ -138,6 +111,33 @@ export default function ArchivePage() {
         )}
 
         <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+          <div className="flex items-center justify-end gap-4 flex-wrap p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+              >
+                {(availableYears.length ? availableYears : yearOptions).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Module</span>
+              <select
+                className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[10rem]"
+                value={moduleFilter}
+                onChange={(e) => setModuleFilter(e.target.value)}
+              >
+                <option value="">All modules</option>
+                {availableModules.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           {loading ? (
             <div className="p-8 text-center text-slate-300 text-sm">
               Loading…

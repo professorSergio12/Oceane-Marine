@@ -116,15 +116,23 @@ export default function PmsPage() {
         </div>
       </div>
 
-      {/* Sidebar Toggle Button */}
+      {/* Sidebar Toggle + Dashboard (mobile) */}
       {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition border border-white/10 shadow-lg"
-          aria-label="Open sidebar"
-        >
-          <span className="text-white text-xl">☰</span>
-        </button>
+        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            aria-label="Open sidebar"
+          >
+            <span className="text-white text-xl">☰</span>
+          </button>
+          <Link
+            href="/dashboard"
+            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+        </div>
       )}
 
       {/* Main Content */}
@@ -132,45 +140,35 @@ export default function PmsPage() {
         className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-0 md:ml-[280px]" : "mx-auto max-w-7xl"}`}
       >
         <div className={`mx-auto py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] px-3 sm:pl-4 sm:pr-4" : "px-3 sm:px-4 md:px-6"}`}>
-          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 relative">
-            {/* Left: Dashboard Button */}
+          <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition duration-200 hover:translate-y-[1px] flex-shrink-0"
+              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
             >
               ← Dashboard
             </Link>
-            
-            {/* Center: Heading */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center text-center hidden sm:flex">
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
-                PMS
-              </p>
-              <h1 className="text-xl sm:text-2xl font-bold">Planned maintenance system</h1>
-            </div>
-            
-            {/* Mobile Heading */}
-            <div className="sm:hidden w-full text-center">
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
-                PMS
-              </p>
-              <h1 className="text-lg font-bold">Planned maintenance system</h1>
-            </div>
-            
-            {/* Right: Navigation Buttons */}
-            <div className="ml-auto sm:ml-auto">
 
-              {/* Form / List / History switch for Primary Equipment */}
+            {/* Center: Title */}
+            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
+                PMS
+              </p>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Planned maintenance system</h1>
+            </div>
+
+            {/* Right: Form/List Tabs */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
               {activeTab === "equipment-inventory" &&
                 activeSubmodule === "primary-equipment" && (
-                  <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-0.5 sm:p-1 shadow-md">
+                  <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setPrimaryEquipmentTab("form")}
-                      className={`px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition ${
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                         primaryEquipmentTab === "form"
-                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                          : "text-slate-200 hover:text-white"
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-white/90 hover:bg-white/10"
                       }`}
                     >
                       Form
@@ -178,10 +176,10 @@ export default function PmsPage() {
                     <button
                       type="button"
                       onClick={() => setPrimaryEquipmentTab("list")}
-                      className={`px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition ${
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                         primaryEquipmentTab === "list"
-                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                          : "text-slate-200 hover:text-white"
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-white/90 hover:bg-white/10"
                       }`}
                     >
                       List
@@ -189,10 +187,10 @@ export default function PmsPage() {
                     <button
                       type="button"
                       onClick={() => setPrimaryEquipmentTab("history")}
-                      className={`px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition ${
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                         primaryEquipmentTab === "history"
-                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                          : "text-slate-200 hover:text-white"
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-white/90 hover:bg-white/10"
                       }`}
                     >
                       History
@@ -200,30 +198,25 @@ export default function PmsPage() {
                   </div>
                 )}
 
-              {/* Form / List switch for Accessories */}
               {activeTab === "equipment-inventory" &&
                 activeSubmodule === "accessories" && (
-                  <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-0.5 sm:p-1 shadow-md">
+                  <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                     <button
-                      onClick={() => {
-                        setAccessoriesView("form");
-                      }}
-                      className={`px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition ${
+                      onClick={() => setAccessoriesView("form")}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                         accessoriesView === "form"
-                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                          : "text-slate-200 hover:text-white"
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-white/90 hover:bg-white/10"
                       }`}
                     >
                       Form
                     </button>
                     <button
-                      onClick={() => {
-                        setAccessoriesView("list");
-                      }}
-                      className={`px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition ${
+                      onClick={() => setAccessoriesView("list")}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                         accessoriesView === "list"
-                          ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                          : "text-slate-200 hover:text-white"
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-white/90 hover:bg-white/10"
                       }`}
                     >
                       List
@@ -231,32 +224,30 @@ export default function PmsPage() {
                   </div>
                 )}
 
-              {/* Form / List switch for Warehouse Management */}
               {activeTab === "warehouse-management" && (
-                <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-500/40 p-0.5 sm:p-1 shadow-md">
+                <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                   <button
                     onClick={() => setWarehouseView("form")}
-                    className={`px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                       warehouseView === "form"
-                        ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                        : "text-slate-200 hover:text-white"
+                        ? "text-white bg-orange-500 hover:bg-orange-600"
+                        : "text-white/90 hover:bg-white/10"
                     }`}
                   >
                     Form
                   </button>
                   <button
                     onClick={() => setWarehouseView("list")}
-                    className={`px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                       warehouseView === "list"
-                        ? "bg-orange-500 text-white shadow shadow-orange-500/40"
-                        : "text-slate-200 hover:text-white"
+                        ? "text-white bg-orange-500 hover:bg-orange-600"
+                        : "text-white/90 hover:bg-white/10"
                     }`}
                   >
                     List
                   </button>
                 </div>
               )}
-
             </div>
           </header>
 

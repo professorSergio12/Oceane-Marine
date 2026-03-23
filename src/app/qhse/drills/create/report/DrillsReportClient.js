@@ -204,43 +204,20 @@ export default function DrillsReportClient() {
     <div className={contentClassName}>
       <div className="flex-1">
         <div className="mx-auto max-w-6xl px-3 sm:px-4 md:px-6 py-6 sm:py-10 space-y-3 sm:space-y-4 md:space-y-6">
-          <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <Link
               href="/dashboard"
-              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+              className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
-            <div className="min-w-0">
+            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
               <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
                 QHSE / Drills
               </p>
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Drill Report</h1>
             </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 sm:ml-auto">
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year
-                </span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year || ""}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  disabled={loadingYears || availableYears.length === 0}
-                >
-                  {loadingYears ? (
-                    <option>Loading...</option>
-                  ) : availableYears.length === 0 ? (
-                    <option>No data</option>
-                  ) : (
-                    availableYears.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
               <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/qhse/drills/create/plan"
@@ -266,6 +243,27 @@ export default function DrillsReportClient() {
 
           {/* Plan list and create-report trigger */}
           <div className="rounded-2xl border border-white/10 bg-[#0b2740]/70 p-4 space-y-3">
+            <div className="flex items-center justify-end mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                <select
+                  className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+                  value={year || ""}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  disabled={loadingYears || availableYears.length === 0}
+                >
+                  {loadingYears ? (
+                    <option>Loading...</option>
+                  ) : availableYears.length === 0 ? (
+                    <option>No data</option>
+                  ) : (
+                    availableYears.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <h2 className="text-lg font-semibold">Quarterly Drill Plan</h2>
               <div className="flex items-center gap-3 flex-wrap">

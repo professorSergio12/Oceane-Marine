@@ -118,42 +118,49 @@ export default function CertificationsFormPage() {
   };
 
   return (
-    <div className="flex-1 ml-72 pr-4">
+    <div className="flex-1 min-w-0 pr-4">
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-4 sm:space-y-6">
-        <header className="flex items-center justify-between gap-4 flex-wrap relative">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <Link
+            href="/dashboard"
+            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
+          >
+            ← Dashboard
+          </Link>
+          <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               PMS / Certifications
             </p>
-            <h1 className="text-xl sm:text-2xl font-bold">{editId ? "Edit Certificate" : "New Certificate"}</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">{editId ? "Edit Certificate" : "New Certificate"}</h1>
           </div>
-          {/* Close button when editing - aligned with header */}
-          {editId && (
-            <button
-              type="button"
-              onClick={() => router.push("/pms/certifications/list")}
-              className="p-2.5 rounded-lg bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 text-red-300 hover:text-red-200 transition shadow-lg"
-              aria-label="Close edit mode"
-              title="Cancel editing"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-          <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-            <Link
-              href="/pms/certifications/form"
-              className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
-            >
-              Certificate Form
-            </Link>
-            <Link
-              href="/pms/certifications/list"
-              className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-            >
-              Certificate List
-            </Link>
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
+            {editId && (
+              <button
+                type="button"
+                onClick={() => router.push("/pms/certifications/list")}
+                className="p-2 rounded-lg bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 text-red-300 hover:text-red-200 transition shadow-lg"
+                aria-label="Close edit mode"
+                title="Cancel editing"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <Link
+                href="/pms/certifications/form"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+              >
+                Certificate Form
+              </Link>
+              <Link
+                href="/pms/certifications/list"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              >
+                Certificate List
+              </Link>
+            </div>
           </div>
         </header>
 

@@ -244,14 +244,14 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
 
   const content = (
     <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-      <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+      <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
         <Link
           href="/dashboard"
-          className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
         >
           ← Dashboard
         </Link>
-        <div className="min-w-0">
+        <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
           <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
             QHSE / Drills
           </p>
@@ -260,26 +260,8 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
             Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-040</span>
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2 sm:gap-4 sm:ml-auto">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
           <TemplateDownloadLink formCode="QAF-OFD-040" />
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-              Year
-            </span>
-            <select
-              className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-              value={year}
-              onChange={(e) => handleYearChange(Number(e.target.value))}
-            >
-              {getYears().map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link
               href="/qhse/drills/create/plan"
@@ -301,12 +283,26 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
             </Link>
           </div>
         </div>
-        </header>
+      </header>
 
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
         >
+          <div className="flex items-center justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+                value={year}
+                onChange={(e) => handleYearChange(Number(e.target.value))}
+              >
+                {getYears().map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           {/* Quarter Slider */}
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-300 text-center">

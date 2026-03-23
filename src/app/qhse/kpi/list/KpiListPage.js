@@ -89,24 +89,23 @@ export default function KpiListPage() {
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Link
             href="/dashboard"
-            className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+            className="flex-shrink-0 shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
           >
             ← Dashboard
           </Link>
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
+          <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               QHSE / KPI
             </p>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">HSE Objectives & Targets</h1>
-            <p className="text-sm text-slate-200 mt-1">Form code: <span className="font-mono font-semibold text-sky-300">HSE-001B</span></p>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">HSE Objectives & Targets</h1>
+            <p className="text-xs sm:text-sm text-slate-200 mt-1">Form code: <span className="font-mono font-semibold text-sky-300">HSE-001B</span></p>
           </div>
-          <div className="flex flex-col items-start sm:items-end gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
             <TemplateDownloadLink formCode="HSE-001B" />
-            <div className="flex items-center gap-3">
-              <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/kpi/target-kpi/form"
                 className="flex-1 min-w-0 text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
@@ -119,7 +118,6 @@ export default function KpiListPage() {
               >
                 KPI
               </Link>
-            </div>
             </div>
             <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
