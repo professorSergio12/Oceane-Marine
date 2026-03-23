@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { ActionEditIcon, ActionDeleteIcon } from "@/app/components/RecordActionIcons";
 
 const OFFICE_CHECK_LABELS = {
   jpo: "JPO",
@@ -733,12 +734,15 @@ export default function LocationsPage() {
                                 </>
                               ) : (
                                 <>
-                                  <button type="button" onClick={() => startEditing(item)} className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 border border-blue-400/30 px-3 py-1.5 text-xs font-semibold text-blue-200 hover:bg-blue-500/20">
-                                    📍 Edit Coords
-                                  </button>
-                                  <button type="button" onClick={() => handleDelete(item._id)} disabled={actionLoading} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 border border-red-400/30 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50">
-                                    Delete
-                                  </button>
+                                  <ActionEditIcon
+                                    onClick={() => startEditing(item)}
+                                    title="Edit coordinates"
+                                  />
+                                  <ActionDeleteIcon
+                                    onClick={() => handleDelete(item._id)}
+                                    disabled={actionLoading}
+                                    title="Delete location"
+                                  />
                                 </>
                               )}
                             </div>

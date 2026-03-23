@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import {
+  ActionViewIconLink,
+  ActionEditIconLink,
+  ActionDeleteIcon,
+} from "@/app/components/RecordActionIcons";
 
 const sidebarTabs = [
   { key: "documentation", label: "Documentation", href: "/operations/sts-operations/new" },
@@ -292,19 +297,15 @@ export default function CompatibilityListPage() {
                           <td className="px-4 py-3 text-sm text-white/90">{typeLabel}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <Link
+                              <ActionViewIconLink
                                 href={`/operations/sts-operations/new/compatibility/view/${rec._id}`}
-                                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-medium hover:bg-sky-500/30 transition"
-                              >
-                                View
-                              </Link>
-                              <Link
+                                title="View"
+                              />
+                              <ActionEditIconLink
                                 href={`/operations/sts-operations/new/compatibility?edit=${rec._id}`}
-                                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-300 text-xs font-medium hover:bg-orange-500/30 transition"
-                              >
-                                Edit
-                              </Link>
-                              <button
+                                title="Edit"
+                              />
+                              <ActionDeleteIcon
                                 onClick={async () => {
                                   if (!confirm(`Are you sure you want to delete operation ${rec.operationNumber}? This action cannot be undone.`)) {
                                     return;
@@ -314,15 +315,14 @@ export default function CompatibilityListPage() {
                                     const res = await fetch(`/api/operations/compatibility/${rec._id}/delete`, { method: "DELETE" });
                                     const data = await res.json();
                                     if (!res.ok) throw new Error(data.error || "Failed to delete");
-                                    // Refresh list
                                     const fetchRecords = async () => {
                                       const params = new URLSearchParams();
                                       if (year) params.set("year", year);
                                       if (locationId) params.set("locationId", locationId);
                                       const url = `/api/operations/compatibility/list${params.toString() ? `?${params.toString()}` : ""}`;
-                                      const res = await fetch(url);
-                                      const data = await res.json();
-                                      if (res.ok) setRecords(data.data || []);
+                                      const res2 = await fetch(url);
+                                      const data2 = await res2.json();
+                                      if (res2.ok) setRecords(data2.data || []);
                                     };
                                     await fetchRecords();
                                   } catch (err) {
@@ -332,10 +332,9 @@ export default function CompatibilityListPage() {
                                   }
                                 }}
                                 disabled={deleting === rec._id}
-                                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {deleting === rec._id ? "Deleting..." : "Delete"}
-                              </button>
+                                loading={deleting === rec._id}
+                                title="Delete"
+                              />
                             </div>
                           </td>
                         </tr>

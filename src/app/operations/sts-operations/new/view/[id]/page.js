@@ -111,7 +111,7 @@ const sidebarTabs = [
 ];
 
 function formatDate(date) {
-  if (!date) return "—";
+  if (!date) return "-";
   return new Date(date).toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -122,7 +122,7 @@ function formatDate(date) {
 }
 
 function formatDateOnly(date) {
-  if (!date) return "—";
+  if (!date) return "-";
   return new Date(date).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -130,7 +130,7 @@ function formatDateOnly(date) {
   });
 }
 
-export default function ViewOperationPage() {
+function ViewOperationPage() {
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
@@ -202,7 +202,7 @@ export default function ViewOperationPage() {
   }, [id]);
 
   const calculateBarrels = (mt) => {
-    if (!mt || Number.isNaN(Number(mt))) return "—";
+    if (!mt || Number.isNaN(Number(mt))) return "-";
     return (Number(mt) * 7.33).toFixed(2);
   };
 
@@ -388,7 +388,7 @@ export default function ViewOperationPage() {
               </p>
               <h1 className="text-xl sm:text-2xl font-bold">View STS Operation</h1>
               <p className="text-xs text-slate-300 mt-1">
-                Operation Ref: {op.Operation_Ref_No || "—"}
+                Operation Ref: {op.Operation_Ref_No || "-"}
               </p>
             </div>
             
@@ -423,7 +423,7 @@ export default function ViewOperationPage() {
                     "bg-white/10 text-white"
                   }`}
                 >
-                  {op.operationStatus || "—"}
+                  {op.operationStatus || "-"}
                 </span>
               </div>
 
@@ -433,61 +433,61 @@ export default function ViewOperationPage() {
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Operation Ref No
                   </label>
-                  <p className="text-white font-medium">{op.Operation_Ref_No || "—"}</p>
+                  <p className="text-white font-medium">{op.Operation_Ref_No || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Type of Operation
                   </label>
-                  <p className="text-white font-medium">{op.typeOfOperation || "—"}</p>
+                  <p className="text-white font-medium">{op.typeOfOperation || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Client
                   </label>
-                  <p className="text-white font-medium">{op.client || "—"}</p>
+                  <p className="text-white font-medium">{op.client || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Location
                   </label>
-                  <p className="text-white font-medium">{op.location?.name || "—"}</p>
+                  <p className="text-white font-medium">{op.location?.name || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Mooring Master
                   </label>
-                  <p className="text-white font-medium">{op.mooringMaster?.name || "—"}</p>
+                  <p className="text-white font-medium">{op.mooringMaster?.name || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Type of Cargo
                   </label>
-                  <p className="text-white font-medium">{op.typeOfCargo?.type || "—"}</p>
+                  <p className="text-white font-medium">{op.typeOfCargo?.type || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Operation Type
                   </label>
-                  <p className="text-white font-medium">{op.operationType || "—"}</p>
+                  <p className="text-white font-medium">{op.operationType || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Vessel Type (CHS)
                   </label>
-                  <p className="text-white font-medium">{op.vesselTypeCHS || "—"}</p>
+                  <p className="text-white font-medium">{op.vesselTypeCHS || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Vessel Type (MS)
                   </label>
-                  <p className="text-white font-medium">{op.vesselTypeMS || "—"}</p>
+                  <p className="text-white font-medium">{op.vesselTypeMS || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Quantity (MT)
                   </label>
-                  <p className="text-white font-medium">{op.quantity || "—"}</p>
+                  <p className="text-white font-medium">{op.quantity || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
@@ -499,7 +499,7 @@ export default function ViewOperationPage() {
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Flow Direction
                   </label>
-                  <p className="text-white font-medium capitalize">{op.flowDirection || "—"}</p>
+                  <p className="text-white font-medium capitalize">{op.flowDirection || "-"}</p>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
@@ -521,82 +521,207 @@ export default function ViewOperationPage() {
                 </div>
               </div>
 
-              {/* CHS / MS Section */}
+              {/* CHS / MS Information — includes vessel info + attached docs (merged) */}
               <div className="border-t border-white/10 pt-6">
                 <h3 className="text-lg font-semibold text-white mb-4">CHS / MS Information</h3>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="rounded-xl border border-sky-400/20 bg-sky-500/5 p-4">
-                    <h4 className="text-sm font-semibold text-sky-200 mb-3">CHS (Constant Heading Ship)</h4>
-                    <div className="space-y-2">
-                      <div>
-                        <label className="block text-xs text-white/60 mb-1">CHS Name</label>
-                        <p className="text-white">{op.chs || "—"}</p>
+                {(() => {
+                  const downloadIcon = (
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  );
+                  const chsDocRows = [
+                    { label: "SSQ", description: "Ship Standard Questionnaire", path: op.chsSSQ },
+                    { label: "Q88", description: "Q88 Vessel Data", path: op.chsQ88 },
+                    { label: "Mooring Arr.", description: "Mooring Arrangement", path: op.chsMooringArrangement },
+                    { label: "GA Plan", description: "General Arrangement Plan", path: op.chsGAPlan },
+                    { label: "MSDS", description: "Material Safety Data Sheet", path: op.chsMSDS },
+                    { label: "Indemnity", description: "Indemnity Document", path: op.chsIndemnity },
+                  ];
+                  const msDocRows = [
+                    { label: "SSQ", description: "Ship Standard Questionnaire", path: op.msSSQ },
+                    { label: "Q88", description: "Q88 Vessel Data", path: op.msQ88 },
+                    { label: "Mooring Arr.", description: "Mooring Arrangement", path: op.msMooringArrangement },
+                    { label: "GA Plan", description: "General Arrangement Plan", path: op.msGAPlan },
+                    { label: "MSDS", description: "Material Safety Data Sheet", path: op.msMSDS },
+                    { label: "Indemnity", description: "Indemnity Document", path: op.msIndemnity },
+                  ];
+                  const DocRow = ({ label, description, path, accent }) => {
+                    const isSky = accent === "sky";
+                    const labelClass = isSky ? "text-[#54c1f9]" : "text-[#d8964e]";
+                    const boxClass = "rounded-xl border border-white/10 bg-slate-800/60 shadow";
+                    const btnClass = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg shadow border border-white/10 bg-slate-700/80 text-white hover:bg-slate-600/80 text-sm font-medium transition";
+                    return (
+                      <div className="space-y-1">
+                        <p className="text-sm">
+                          <span className={`font-bold ${labelClass}`}>{label}</span>
+                          <span className="text-white/60"> — {description}</span>
+                        </p>
+                        <div className={`p-3 ${boxClass}`}>
+                          {path ? (
+                            <a href={path} target="_blank" rel="noopener noreferrer" download className={btnClass}>
+                              {downloadIcon}
+                              Download
+                            </a>
+                          ) : (
+                            <span className="text-white/70 text-sm">No file chosen</span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs text-white/60 mb-1">Vessel Type</label>
-                        <p className="text-white">{op.vesselTypeCHS || "—"}</p>
+                    );
+                  };
+                  return (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-2xl border border-sky-400/20 bg-sky-500/5 p-4 space-y-3">
+                        <h4 className="text-sm font-semibold text-sky-200 mb-3">CHS (Constant Heading Ship)</h4>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs text-white/60 mb-1">CHS Name</label>
+                            <p className="text-white">{op.chs || "-"}</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/60 mb-1">Vessel Type</label>
+                            <p className="text-white">{op.vesselTypeCHS || "-"}</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/60 mb-1">LOA (CHS)</label>
+                            <p className="text-white">{op.loaCHS || "-"}</p>
+                          </div>
+                        </div>
+                        <div className="border-t border-sky-400/20 pt-3 mt-3 space-y-3">
+                          {chsDocRows.map((row) => (
+                            <DocRow key={row.label} label={row.label} description={row.description} path={row.path} accent="sky" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-orange-400/20 bg-orange-500/5 p-4 space-y-3">
+                        <h4 className="text-sm font-semibold text-orange-200 mb-3">MS (Manoeuvring Ship)</h4>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs text-white/60 mb-1">MS Name</label>
+                            <p className="text-white">{op.ms || "-"}</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/60 mb-1">Vessel Type</label>
+                            <p className="text-white">{op.vesselTypeMS || "-"}</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/60 mb-1">LOA (MS)</label>
+                            <p className="text-white">{op.loaMS || "-"}</p>
+                          </div>
+                        </div>
+                        <div className="border-t border-orange-400/20 pt-3 mt-3 space-y-3">
+                          {msDocRows.map((row) => (
+                            <DocRow key={row.label} label={row.label} description={row.description} path={row.path} accent="orange" />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="rounded-xl border border-orange-400/20 bg-orange-500/5 p-4">
-                    <h4 className="text-sm font-semibold text-orange-200 mb-3">MS (Manoeuvring Ship)</h4>
-                    <div className="space-y-2">
-                      <div>
-                        <label className="block text-xs text-white/60 mb-1">MS Name</label>
-                        <p className="text-white">{op.ms || "—"}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/60 mb-1">Vessel Type</label>
-                        <p className="text-white">{op.vesselTypeMS || "—"}</p>
-                      </div>
+                  );
+                })()}
+              </div>
+
+              {/* Pre-STS Documents — same layout and CSS as Operations form */}
+              <div className="border-t border-white/10 pt-6">
+                <h3 className="text-lg font-bold text-white mb-4">Pre-STS Documents</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                  {[
+                    { label: "Joint Plan Operation", path: op.jpo },
+                    { label: "Risk Assessment", path: op.riskAssessment },
+                    { label: "Mooring Plan", description: "Upload mooring plan document", path: op.mooringPlan },
+                  ].map((doc) => (
+                    <div key={doc.label} className="min-w-0 space-y-2 flex flex-col">
+                      <label className="block text-sm font-medium text-white break-words">
+                        {doc.label}
+                        {doc.description && <span className="text-white/60 font-normal"> — {doc.description}</span>}
+                      </label>
+                      {doc.path ? (
+                        <div className="rounded-xl border border-white/10 bg-slate-800/80 shadow-md px-4 py-3 min-h-[44px] flex items-center w-full">
+                          <a
+                            href={doc.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg shadow border border-white/10 bg-slate-700/80 text-sm font-medium transition hover:bg-slate-600/80 shrink-0"
+                          >
+                            <svg className="w-4 h-4 shrink-0 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            <span className="text-[#d8964e]">Download</span>
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-white/10 bg-[#2b4961] shadow px-4 py-3 min-h-[44px] flex items-center w-full">
+                          <span className="text-white/70 text-sm">No file chosen</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Equipment Section */}
-              {op.equipments && op.equipments.length > 0 && (
-                <div className="border-t border-white/10 pt-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">Equipment Used</h3>
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {op.equipments.map((eq) => (
-                      <div
-                        key={eq.equipment?._id || eq.equipment?.id || `${eq.startTime}-${eq.equipment}`}
-                        className="rounded-lg border border-white/10 bg-white/5 p-3"
-                      >
-                        <p className="text-white font-medium">
-                          {eq.equipment?.equipmentName || eq.equipment?.name || "Equipment"}
-                        </p>
-                        {eq.startTime && (
-                          <p className="text-xs text-white/60 mt-1">
-                            Start: {formatDate(eq.startTime)}
-                          </p>
-                        )}
-                        {eq.endTime && (
-                          <p className="text-xs text-white/60">
-                            End: {formatDate(eq.endTime)}
-                          </p>
-                        )}
-                        {eq.status && (
-                          <p className="text-xs text-white/60 mt-1">
-                            Status: {eq.status}
-                          </p>
-                        )}
+              {/* Attached Documents — same as form: System Generated + Other Documents */}
+              {(() => {
+                const linkedFormCodes = new Set(linkedForms.map(f => f.formCode));
+                const systemDocs = (op.documents || []).filter(doc => !linkedFormCodes.has(doc.documentType));
+                const otherDocs = [
+                  { label: "Standing Order", path: op.standingOrder },
+                  { label: "Checklist 1", path: op.checklist1 },
+                ].filter((d) => d.path);
+                const hasAny = systemDocs.length > 0 || otherDocs.length > 0;
+                if (!hasAny) return null;
+                const downloadIcon = (
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                );
+                return (
+                  <div className="border-t border-white/10 pt-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Attached Documents</h3>
+                    {systemDocs.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-sm font-semibold text-white/80 mb-3">System Generated Documents</h4>
+                        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                          {systemDocs.map((doc) => (
+                            <div
+                              key={`${doc.documentType}-${doc.filePath || doc.checklistId || Date.now()}`}
+                              className={`rounded-xl border p-4 transition-all ${doc.filePath ? "border-emerald-500/30 bg-emerald-900/10" : "border-white/10 bg-white/5"}`}
+                            >
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-orange-300 truncate">{doc.documentType || "-"}</p>
+                                  <p className="text-sm font-semibold text-white truncate">{FORM_NAME_MAP[doc.documentType] || doc.documentType || "-"}</p>
+                                </div>
+                                <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${doc.filePath ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"}`}>
+                                  {doc.status || "-"}
+                                </span>
+                              </div>
+                              {doc.filePath && (
+                                <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-orange-400 hover:text-orange-300 underline">
+                                  {downloadIcon}
+                                  View Document
+                                </a>
+                              )}
+                              {doc.uploadedAt && <p className="text-[11px] text-white/60 mt-1">Uploaded: {formatDate(doc.uploadedAt)}</p>}
+                              {doc.source && <p className="text-[11px] text-white/60">Source: {doc.source}</p>}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
+                    {otherDocs.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-white/80 mb-3">Other Documents</h4>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {otherDocs.map((doc) => (
+                            <div key={doc.path} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <p className="text-sm font-medium text-white mb-2">{doc.label}</p>
+                              <a href={doc.path} target="_blank" rel="noopener noreferrer" download className="inline-flex items-center gap-1.5 text-sm text-orange-400 hover:text-orange-300 underline">
+                                {downloadIcon}
+                                Download
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {/* Remarks */}
-              {op.remarks && (
-                <div className="border-t border-white/10 pt-6">
-                  <h3 className="text-lg font-semibold text-white mb-3">Remarks</h3>
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                    <p className="text-white whitespace-pre-wrap">{op.remarks}</p>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ═══════════ Linked Checklist / Form Status ═══════════ */}
               <div className="border-t border-white/10 pt-6">
@@ -634,32 +759,20 @@ export default function ViewOperationPage() {
                                   {f.filled ? `Filled (${f.count})` : "Pending"}
                                 </span>
                               </div>
-                              {f.filled && f.docs?.[0] && (
-                                <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                  <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "—"}</span></p>
-                                  <p>Status: <span className={
-                                    f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED"
-                                      ? "text-emerald-300" : "text-amber-300"
-                                  }>{f.docs[0].status}</span></p>
-                                  <p>Date: {f.docs[0].createdAt
-                                    ? new Date(f.docs[0].createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                                    : "—"}</p>
-                                  {/* Show download link if PDF exists */}
-                                  {(() => {
-                                    const pdfDoc = (op.documents || []).find(d => d.documentType === f.formCode && d.filePath);
-                                    return pdfDoc ? (
-                                      <a
-                                        href={pdfDoc.filePath}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 mt-1.5 text-orange-400 hover:text-orange-300 text-[11px] underline"
-                                      >
-                                        📄 View PDF
-                                      </a>
-                                    ) : null;
-                                  })()}
-                                </div>
-                              )}
+                              {f.filled && f.docs?.[0] && (() => {
+                                const hasPdf = (op.documents || []).some(d => d.documentType === f.formCode && d?.filePath);
+                                const dateStr = f.docs[0].createdAt
+                                  ? new Date(f.docs[0].createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                                  : "-";
+                                return (
+                                  <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+                                    <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "-"}</span></p>
+                                    <p>Status: <span className={f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{f.docs[0].status}</span></p>
+                                    <p>Date: {dateStr}</p>
+                                    <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                         </div>
@@ -691,29 +804,16 @@ export default function ViewOperationPage() {
                                   {f.filled ? `Filled (${f.count})` : "Pending"}
                                 </span>
                               </div>
-                              {f.filled && f.docs?.[0] && (
-                                <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                  <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "—"}</span></p>
-                                  <p>Status: <span className={
-                                    f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED"
-                                      ? "text-emerald-300" : "text-amber-300"
-                                  }>{f.docs[0].status}</span></p>
-                                  {/* Show download link if PDF exists */}
-                                  {(() => {
-                                    const pdfDoc = (op.documents || []).find(d => d.documentType === f.formCode && d.filePath);
-                                    return pdfDoc ? (
-                                      <a
-                                        href={pdfDoc.filePath}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 mt-1.5 text-orange-400 hover:text-orange-300 text-[11px] underline"
-                                      >
-                                        📄 View PDF
-                                      </a>
-                                    ) : null;
-                                  })()}
-                                </div>
-                              )}
+                              {f.filled && f.docs?.[0] && (() => {
+                                const hasPdf = (op.documents || []).some(d => d.documentType === f.formCode && d?.filePath);
+                                return (
+                                  <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+                                    <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "-"}</span></p>
+                                    <p>Status: <span className={f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{f.docs[0].status}</span></p>
+                                    <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                         </div>
@@ -745,29 +845,16 @@ export default function ViewOperationPage() {
                                   {f.filled ? `Filled (${f.count})` : "Pending"}
                                 </span>
                               </div>
-                              {f.filled && f.docs?.[0] && (
-                                <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                  <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "—"}</span></p>
-                                  <p>Status: <span className={
-                                    f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED"
-                                      ? "text-emerald-300" : "text-amber-300"
-                                  }>{f.docs[0].status}</span></p>
-                                  {/* Show download link if PDF exists */}
-                                  {(() => {
-                                    const pdfDoc = (op.documents || []).find(d => d.documentType === f.formCode && d.filePath);
-                                    return pdfDoc ? (
-                                      <a
-                                        href={pdfDoc.filePath}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 mt-1.5 text-orange-400 hover:text-orange-300 text-[11px] underline"
-                                      >
-                                        📄 View PDF
-                                      </a>
-                                    ) : null;
-                                  })()}
-                                </div>
-                              )}
+                              {f.filled && f.docs?.[0] && (() => {
+                                const hasPdf = (op.documents || []).some(d => d.documentType === f.formCode && d?.filePath);
+                                return (
+                                  <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+                                    <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "-"}</span></p>
+                                    <p>Status: <span className={f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{f.docs[0].status}</span></p>
+                                    <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                         </div>
@@ -779,141 +866,45 @@ export default function ViewOperationPage() {
                 )}
               </div>
 
-              {/* File Attachments Section */}
+              {/* Equipment & Remarks — same two-column layout as Operations form */}
               <div className="border-t border-white/10 pt-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Attached Documents</h3>
-
-                {(() => {
-                  // Get list of form codes that are already shown in "Linked Forms Status"
-                  const linkedFormCodes = new Set(linkedForms.map(f => f.formCode));
-                  
-                  // Filter out system docs that are already shown in Linked Forms Status
-                  const systemDocs = (op.documents || []).filter(doc => {
-                    // Only show documents that are NOT linked forms (e.g., manual uploads, other docs)
-                    return !linkedFormCodes.has(doc.documentType);
-                  });
-                  
-                  const legacyDocs = [
-                    { label: "Joint Plan Operation", path: op.jpo },
-                    { label: "Mooring Plan", path: op.mooringPlan },
-                    { label: "Risk Assessment", path: op.riskAssessment },
-                    { label: "Standing Order", path: op.standingOrder },
-                    { label: "Checklist 1", path: op.checklist1 },
-                    { label: "CHS SSQ", path: op.chsSSQ },
-                    { label: "MS SSQ", path: op.msSSQ },
-                    { label: "CHS Q88", path: op.chsQ88 },
-                    { label: "MS Q88", path: op.msQ88 },
-                    { label: "CHS Mooring Arrangement", path: op.chsMooringArrangement },
-                    { label: "MS Mooring Arrangement", path: op.msMooringArrangement },
-                    { label: "CHS GA Plan", path: op.chsGAPlan },
-                    { label: "MS GA Plan", path: op.msGAPlan },
-                    { label: "CHS MSDS", path: op.chsMSDS },
-                    { label: "MS MSDS", path: op.msMSDS },
-                    { label: "CHS Indemnity", path: op.chsIndemnity },
-                    { label: "MS Indemnity", path: op.msIndemnity },
-                  ].filter((doc) => doc.path);
-
-                  const hasDocuments = systemDocs.length > 0 || legacyDocs.length > 0;
-
-                  if (!hasDocuments) {
-                    return (
-                      <div className="text-center py-8 text-white/60">
-                        <p>No documents attached to this operation.</p>
-                      </div>
-                    );
-                  }
-
-                  const statusColors = {
-                    GENERATED: "bg-green-500/20 text-green-300",
-                    GENERATING: "bg-yellow-500/20 text-yellow-300",
-                    FAILED: "bg-red-500/20 text-red-300",
-                    PENDING: "bg-gray-500/20 text-gray-300",
-                  };
-
-                  return (
-                    <>
-                      {systemDocs.length > 0 && (
-                        <div className="mb-6">
-                          <h4 className="text-sm font-semibold text-white/80 mb-3">
-                            System Generated Documents
-                          </h4>
-                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {systemDocs.map((doc) => (
-                              <div
-                                key={`${doc.documentType}-${doc.filePath || doc.checklistId || Date.now()}`}
-                                className="rounded-lg border border-white/10 bg-white/5 p-3"
-                              >
-                                <div className="flex items-start justify-between mb-2">
-                                  <div className="flex-1">
-                                    <p className="text-xs font-bold text-orange-300 mb-0.5">
-                                      {doc.documentType || "—"}
-                                    </p>
-                                    <p className="text-sm font-medium text-white">
-                                      {FORM_NAME_MAP[doc.documentType] || doc.documentType || "—"}
-                                    </p>
-                                  </div>
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs font-medium ${
-                                      statusColors[doc.status] || statusColors.PENDING
-                                    }`}
-                                  >
-                                    {doc.status || "—"}
-                                  </span>
-                                </div>
-                                {doc.filePath && (
-                                  <a
-                                    href={doc.filePath}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-orange-400 hover:text-orange-300 underline block mt-2"
-                                  >
-                                    View Document
-                                  </a>
-                                )}
-                                {doc.uploadedAt && (
-                                  <p className="text-xs text-white/50 mt-2">
-                                    Uploaded: {formatDate(doc.uploadedAt)}
-                                  </p>
-                                )}
-                                {doc.source && (
-                                  <p className="text-xs text-white/50">Source: {doc.source}</p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                <h3 className="text-lg font-bold text-white mb-4">Equipment & Remarks</h3>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="min-w-0 space-y-2">
+                    <label className="block text-sm font-medium text-white">Equipment Used (available only)</label>
+                    <div className="rounded-xl border border-white/10 bg-slate-800/60 shadow min-h-[44px] p-3">
+                      {op.equipments && op.equipments.length > 0 ? (
+                        <ul className="space-y-2">
+                          {op.equipments.map((eq) => (
+                            <li
+                              key={eq.equipment?._id || eq.equipment?.id || `${eq.startTime}-${eq.equipment}`}
+                              className="text-sm"
+                            >
+                              <span className="font-medium text-white">
+                                {eq.equipment?.equipmentName || eq.equipment?.name || "Equipment"}
+                              </span>
+                              {(eq.startTime || eq.status) && (
+                                <span className="block text-white/60 text-xs mt-0.5">
+                                  {eq.startTime && `Start: ${formatDate(eq.startTime)}`}
+                                  {eq.startTime && eq.status && " · "}
+                                  {eq.status && `Status: ${eq.status}`}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-white/50 text-sm">No equipment selected</p>
                       )}
-
-                      {legacyDocs.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-white/80 mb-3">
-                            Uploaded Documents
-                          </h4>
-                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {legacyDocs.map((doc) => (
-                              <div
-                                key={doc.path}
-                                className="rounded-lg border border-white/10 bg-white/5 p-3"
-                              >
-                                <p className="text-xs text-white/60 mb-1">{doc.label}</p>
-                                <a
-                                  href={doc.path}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  download
-                                  className="inline-flex items-center gap-1.5 text-sm text-orange-400 hover:text-orange-300 underline"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                  Download
-                                </a>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                    </div>
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <label className="block text-sm font-medium text-white">Remarks</label>
+                    <div className="rounded-xl border border-white/10 bg-slate-800/60 shadow min-h-[120px] p-4">
+                      <p className="text-white whitespace-pre-wrap text-sm">{op.remarks || "-"}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -938,3 +929,5 @@ export default function ViewOperationPage() {
     </div>
   );
 }
+
+export default ViewOperationPage;

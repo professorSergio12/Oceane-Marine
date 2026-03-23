@@ -1,6 +1,11 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
+import {
+  ActionViewIcon,
+  ActionEditIcon,
+  ActionDownloadIcon,
+} from "@/app/components/RecordActionIcons";
 
 /* =========================
    Reusable Input
@@ -108,6 +113,63 @@ const LOCATIONS = [
   { value: "MOMBASA", label: "Mombasa" },
   { value: "YEOSU", label: "Yeosu" },
 ];
+
+function formatWarehouseDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Export columns for one Warehouse record, in the order they appear in the detail modal. */
+function getWarehouseRecordExportColumns() {
+  return [
+    { label: "Status", getValue: (r) => (r?.status === "COMPLETED" ? "Completed" : "Not Completed") },
+    { label: "Location", getValue: (r) => LOCATIONS.find((l) => l.value === r?.location)?.label || r?.location || "" },
+    { label: "Equipment Name", getValue: (r) => r?.equipment ?? "" },
+    { label: "Equipment Type", getValue: (r) => r?.equipmentType ?? "" },
+    { label: "Specification", getValue: (r) => r?.specification ?? "" },
+    { label: "Ownership", getValue: (r) => (r?.ownership === "THIRD_PARTY" ? "Third Party" : r?.ownership === "OWNED" ? "Owned" : r?.ownership ?? "") },
+    { label: "NOS", getValue: (r) => (r?.nos != null ? String(r.nos) : "") },
+    { label: "Primary Fenders", getValue: (r) => (r?.primaryFenders != null ? String(r.primaryFenders) : "0") },
+    { label: "Secondary Fenders", getValue: (r) => (r?.secondaryFenders != null ? String(r.secondaryFenders) : "0") },
+    { label: "Hoses", getValue: (r) => (r?.hoses != null ? String(r.hoses) : "0") },
+    { label: "From Location", getValue: (r) => r?.fromLocation ?? "" },
+    { label: "Stopover", getValue: (r) => r?.stopover ?? "" },
+    { label: "To Location", getValue: (r) => r?.toLocation ?? "" },
+    { label: "Start Date", getValue: (r) => formatWarehouseDate(r?.startDate) },
+    { label: "Estimated End Date", getValue: (r) => formatWarehouseDate(r?.estimatedEndDate) },
+    { label: "Remarks", getValue: (r) => r?.remarks ?? "" },
+  ];
+}
+
+function escapeCsvCell(value) {
+  if (value == null) return "";
+  const s = String(value).trim();
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+/** Download one warehouse record as CSV (opens in Excel). */
+function downloadWarehouseRecordExcel(record) {
+  if (!record) return;
+  const columns = getWarehouseRecordExportColumns();
+  const headers = columns.map((c) => c.label);
+  const values = columns.map((c) => c.getValue(record));
+  const headerLine = headers.map(escapeCsvCell).join(",");
+  const dataLine = values.map(escapeCsvCell).join(",");
+  const csv = "\uFEFF" + headerLine + "\r\n" + dataLine + "\r\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const code = (record.equipment || record.location || "warehouse").replace(/[^a-zA-Z0-9_-]/g, "_");
+  a.download = `Warehouse_Record_${code}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function WarehouseManagement({ view: controlledView, onViewChange }) {
   const [internalView, setInternalView] = useState("form");
@@ -634,31 +696,17 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                       </td>
                       <td className="text-center px-3 py-2">
                         <div className="inline-flex items-center gap-2">
-                          {/* View */}
-                          <button
-                            type="button"
-                            onClick={() => setViewRecord(r)}
-                            className="px-3 py-1 rounded-lg border border-sky-400/40 text-sky-300 text-xs font-medium hover:bg-sky-500/20 transition"
-                          >
-                            View
-                          </button>
-                          {/* Edit */}
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(r)}
-                            className="px-3 py-1 rounded-lg border border-orange-400/40 text-orange-300 text-xs font-medium hover:bg-orange-500/20 transition"
-                          >
-                            Edit
-                          </button>
-                          {/* Download */}
+                          <ActionViewIcon onClick={() => setViewRecord(r)} title="View record" />
+                          <ActionEditIcon onClick={() => handleEdit(r)} title="Edit record" />
+                          <ActionDownloadIcon
+                            onClick={() => downloadWarehouseRecordExcel(r)}
+                            title="Download as Excel"
+                          />
                           {r.attachments && r.attachments.length > 0 && (
-                            <button
-                              type="button"
+                            <ActionDownloadIcon
                               onClick={() => handleDownload(r._id, 0)}
-                              className="px-3 py-1 rounded-lg border border-emerald-400/40 text-emerald-300 text-xs font-medium hover:bg-emerald-500/20 transition"
-                            >
-                              Download
-                            </button>
+                              title="Download attachment"
+                            />
                           )}
                         </div>
                       </td>
@@ -815,16 +863,11 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                             </div>
                             <span className="text-sm text-white">{att.fileName || `File ${index + 1}`}</span>
                           </div>
-                          <button
-                            type="button"
+                          <ActionDownloadIcon
                             onClick={() => handleDownload(viewRecord._id, index)}
-                            className="px-3 py-1 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition flex items-center gap-1.5"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Download
-                          </button>
+                            title="Download attachment"
+                            className="!p-2"
+                          />
                         </div>
                       ))}
                     </div>

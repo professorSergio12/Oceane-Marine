@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import {
+  ActionDownloadIcon,
+  ActionEditIcon,
+  ActionDeleteIcon,
+} from "@/app/components/RecordActionIcons";
 
 const sidebarTabs = [
   {
@@ -509,26 +514,19 @@ export default function JpoListPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button
+                          <ActionDownloadIcon
                             onClick={() => handleDownload(record)}
                             disabled={downloading === record._id}
-                            className="px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-medium hover:bg-sky-500/30 transition disabled:opacity-50"
-                          >
-                            {downloading === record._id ? "Downloading..." : "Download"}
-                          </button>
-                          <button
-                            onClick={() => handleEdit(record)}
-                            className="px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-300 text-xs font-medium hover:bg-orange-500/30 transition"
-                          >
-                            Edit
-                          </button>
-                          <button
+                            loading={downloading === record._id}
+                            title="Download"
+                          />
+                          <ActionEditIcon onClick={() => handleEdit(record)} title="Edit" />
+                          <ActionDeleteIcon
                             onClick={() => handleDelete(record)}
                             disabled={deleting === record._id}
-                            className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {deleting === record._id ? "Deleting..." : "Delete"}
-                          </button>
+                            loading={deleting === record._id}
+                            title="Delete"
+                          />
                         </div>
                       </td>
                     </tr>

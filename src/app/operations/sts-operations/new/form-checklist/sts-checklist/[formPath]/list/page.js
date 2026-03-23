@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter, usePathname, useParams } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import {
+  ActionViewIcon,
+  ActionEditIcon,
+  ActionDeleteIcon,
+} from "@/app/components/RecordActionIcons";
 
 const sidebarTabs = [
   {
@@ -510,25 +515,14 @@ export default function FormListPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex gap-2 justify-center">
-                              <button
-                                onClick={() => handleView(form._id)}
-                                className="px-3 py-1.5 bg-blue-500/20 text-blue-300 text-xs font-medium hover:bg-blue-500/30 rounded-lg transition"
-                              >
-                                View
-                              </button>
-                              <button
-                                onClick={() => handleEdit(form._id)}
-                                className="px-3 py-1.5 bg-orange-500/20 text-orange-300 text-xs font-medium hover:bg-orange-500/30 rounded-lg transition"
-                              >
-                                Edit
-                              </button>
-                              <button
+                              <ActionViewIcon onClick={() => handleView(form._id)} title="View" />
+                              <ActionEditIcon onClick={() => handleEdit(form._id)} title="Edit" />
+                              <ActionDeleteIcon
                                 onClick={() => handleDelete(form._id)}
                                 disabled={deleting === form._id}
-                                className="px-3 py-1.5 bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {deleting === form._id ? "Deleting..." : "Delete"}
-                              </button>
+                                loading={deleting === form._id}
+                                title="Delete"
+                              />
                             </div>
                           </td>
                         </tr>

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { ActionViewIcon } from "@/app/components/RecordActionIcons";
 
 const sidebarTabs = [
   {
@@ -298,12 +299,12 @@ export default function StsChecklistListPage() {
                         <span className="text-sm text-white/90">{form.title}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => handleViewList(form.apiPath)}
-                          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg text-sm font-medium transition-colors text-white"
-                        >
-                          View List
-                        </button>
+                        <div className="flex justify-center">
+                          <ActionViewIcon
+                            onClick={() => handleViewList(form.apiPath)}
+                            title="View list"
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

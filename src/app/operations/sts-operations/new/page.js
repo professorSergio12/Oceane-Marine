@@ -4,6 +4,13 @@ import Link from "next/link";
 import { useState, useEffect, useRef, forwardRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useOperationsSidebar } from "../../OperationsSidebarContext";
+import { getExportColumns, buildExportHeaders, buildExportRow } from "./sts-export-columns";
+import {
+  ActionViewIcon,
+  ActionEditIcon,
+  ActionDeleteIcon,
+  ActionDownloadIcon,
+} from "@/app/components/RecordActionIcons";
 
 const statusTone = {
   INPROGRESS: {
@@ -1018,9 +1025,17 @@ export default function NewOperationPage() {
                             <td className="py-2 pr-4 text-white/70">{ra.version || "—"}</td>
                             <td className="py-2 pr-4">
                               {ra.filePath ? (
-                                <a href={ra.filePath} target="_blank" rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 transition">
-                                  View / Download
+                                <a
+                                  href={ra.filePath}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open or download"
+                                  aria-label="Open or download file"
+                                  className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-1.5 transition"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
                                 </a>
                               ) : "—"}
                             </td>
@@ -1347,6 +1362,25 @@ function OperationsListComponent() {
     return (mt * 7.33).toFixed(2);
   };
 
+  const downloadExcel = () => {
+    const columns = getExportColumns();
+    const headers = buildExportHeaders(columns);
+    const escapeCsv = (val) => {
+      const s = val == null ? "" : String(val);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows = filteredOperations.map((op) => buildExportRow(op, columns));
+    const csv = [headers.map(escapeCsv).join(","), ...rows.map((r) => r.map(escapeCsv).join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `STS-Operations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Get unique years from all operations (not filtered ones)
   const availableYears = Array.from(
     new Set(
@@ -1361,9 +1395,9 @@ function OperationsListComponent() {
 
   return (
     <div className="space-y-6">
-      {/* Search Bar */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 relative">
+      {/* Search Bar + Download */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex-1 min-w-[200px] relative">
           <input
             type="text"
             placeholder="Search by Ref No, Type, Location, Client, CHS, MS..."
@@ -1416,6 +1450,13 @@ function OperationsListComponent() {
             ))}
           </select>
         </div>
+
+        <ActionDownloadIcon
+          onClick={downloadExcel}
+          disabled={filteredOperations.length === 0}
+          title="Download Excel"
+          className="!rounded-xl !p-2.5"
+        />
       </div>
 
       {/* Operations Table */}
@@ -1434,7 +1475,7 @@ function OperationsListComponent() {
       ) : (
         <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[700px]">
               <thead className="bg-white/5 border-b border-white/10">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
@@ -1502,30 +1543,21 @@ function OperationsListComponent() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-white/90">
-                        {calculateBarrels(op.quantity)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-white/90">
+                            {calculateBarrels(op.quantity)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex gap-2 justify-center">
-                        <button
+                        <ActionViewIcon
                           onClick={() => router.push(`/operations/sts-operations/new/view/${op._id}`)}
-                          className="px-3 py-1.5 bg-green-500/20 text-green-300 text-xs font-medium hover:bg-green-500/30 rounded-lg transition"
-                        >
-                          View
-                        </button>
-                        <button
+                          title="View operation"
+                        />
+                        <ActionEditIcon
                           onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
-                          className="px-3 py-1.5 bg-blue-500/20 text-blue-300 text-xs font-medium hover:bg-blue-500/30 rounded-lg transition"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(op._id)}
-                          className="px-3 py-1.5 bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 rounded-lg transition"
-                        >
-                          Delete
-                        </button>
+                          title="Edit operation"
+                        />
+                        <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
                       </div>
                     </td>
                   </tr>
@@ -1776,13 +1808,6 @@ function FileField({ name, resetKey }) {
     }
   }, [resetKey]);
 
-  const handleDownload = (e) => {
-    e.preventDefault();
-    if (fileUrl) {
-      window.open(fileUrl, '_blank');
-    }
-  };
-
   return (
     <div className="w-full text-sm text-white/80">
       <div className="flex items-center gap-2">
@@ -1796,13 +1821,11 @@ function FileField({ name, resetKey }) {
           className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
         />
         {fileUrl && (
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition whitespace-nowrap"
-          >
-            Download
-          </button>
+          <ActionDownloadIcon
+            onClick={() => fileUrl && window.open(fileUrl, "_blank")}
+            title="Open or download"
+            className="!rounded-xl !p-3"
+          />
         )}
       </div>
     </div>
@@ -1921,13 +1944,6 @@ function ActionUpload({ label, name, resetKey, externalValue }) {
     }
   }, [externalValue]);
 
-  const handleDownload = (e) => {
-    e.preventDefault();
-    if (fileUrl) {
-      window.open(fileUrl, '_blank');
-    }
-  };
-
   const handleClear = (e) => {
     e.preventDefault();
     setFileUrl("");
@@ -1946,13 +1962,11 @@ function ActionUpload({ label, name, resetKey, externalValue }) {
           <div className="flex-1 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3">
             <span className="text-emerald-300 text-sm">✓ File linked from location</span>
           </div>
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition"
-          >
-            Download
-          </button>
+          <ActionDownloadIcon
+            onClick={() => fileUrl && window.open(fileUrl, "_blank")}
+            title="Open or download"
+            className="!rounded-xl !p-3"
+          />
           <button
             type="button"
             onClick={handleClear}
@@ -1974,13 +1988,11 @@ function ActionUpload({ label, name, resetKey, externalValue }) {
             className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
           />
           {fileUrl && (
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition"
-            >
-              Download
-            </button>
+            <ActionDownloadIcon
+              onClick={() => fileUrl && window.open(fileUrl, "_blank")}
+              title="Open or download"
+              className="!rounded-xl !p-3"
+            />
           )}
         </div>
       )}

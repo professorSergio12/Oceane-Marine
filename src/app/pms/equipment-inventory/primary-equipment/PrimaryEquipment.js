@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ActionViewIcon, ActionDownloadIcon } from "@/app/components/RecordActionIcons";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -45,6 +46,70 @@ function calculateDaysRemaining(nextTestDate) {
   const diffTime = testDate - now;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
+}
+
+/** Export columns for one Primary Equipment record, in the order they appear in the detail view. */
+function getPrimaryEquipmentExportColumns() {
+  return [
+    { label: "Equipment Code", getValue: (eq) => eq?.equipmentCode ?? "" },
+    { label: "Equipment Name", getValue: (eq) => eq?.equipmentName ?? "" },
+    { label: "Equipment Type", getValue: (eq) => eq?.equipmentType ?? "" },
+    { label: "Status", getValue: (eq) => eq?.status ?? "" },
+    { label: "Ownership", getValue: (eq) => (eq?.ownershipType === "THIRD_PARTY" ? "Third Party" : eq?.ownershipType === "OWNED" ? "Owned" : eq?.ownershipType ?? "") },
+    { label: "In Operations", getValue: (eq) => (eq?.isInUse ? "Yes" : "No") },
+    { label: "Specification", getValue: (eq) => eq?.specification ?? "" },
+    { label: "Manufacturer", getValue: (eq) => eq?.manufacturer ?? "" },
+    { label: "Year of Manufacturing", getValue: (eq) => (eq?.yearOfManufacturing != null ? String(eq.yearOfManufacturing) : "") },
+    { label: "Quantity Transferred", getValue: (eq) => (eq?.quantityTransferred != null ? String(eq.quantityTransferred) : "0") },
+    { label: "Date of Purchase", getValue: (eq) => (eq?.dateOfPurchase ? formatDate(eq.dateOfPurchase) : "") },
+    { label: "First Use Date", getValue: (eq) => (eq?.firstUseDate ? formatDate(eq.firstUseDate) : "") },
+    { label: "Last Test Date", getValue: (eq) => (eq?.lastTestDate ? formatDate(eq.lastTestDate) : "") },
+    { label: "Next Test Date", getValue: (eq) => (eq?.nextTestDate ? formatDate(eq.nextTestDate) : "") },
+    { label: "Retirement Period", getValue: (eq) => (eq?.retirementPeriodYears != null ? `${eq.retirementPeriodYears} years` : "") },
+    { label: "Date to be Retired", getValue: (eq) => (eq?.dateToBeRetired ? formatDate(eq.dateToBeRetired) : "") },
+    {
+      label: "Age (years)",
+      getValue: (eq) => {
+        const age = calculateAge(eq?.firstUseDate, eq?.dateOfPurchase);
+        return age != null ? `${age} years` : "";
+      },
+    },
+    {
+      label: "Days Remaining (Next Test)",
+      getValue: (eq) => {
+        const days = calculateDaysRemaining(eq?.nextTestDate);
+        return days != null ? `${days} days` : "";
+      },
+    },
+    { label: "Remarks", getValue: (eq) => eq?.remarks ?? "" },
+  ];
+}
+
+function escapeCsvCell(value) {
+  if (value == null) return "";
+  const s = String(value).trim();
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+/** Download current equipment record as CSV (opens in Excel). One row of headers, one row of data. */
+function downloadEquipmentExcel(equipment) {
+  if (!equipment) return;
+  const columns = getPrimaryEquipmentExportColumns();
+  const headers = columns.map((c) => c.label);
+  const values = columns.map((c) => c.getValue(equipment));
+  const headerLine = headers.map(escapeCsvCell).join(",");
+  const dataLine = values.map(escapeCsvCell).join(",");
+  const csv = "\uFEFF" + headerLine + "\r\n" + dataLine + "\r\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Primary_Equipment_${(equipment.equipmentCode || "export").replace(/[^a-zA-Z0-9_-]/g, "_")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function PrimaryEquipment({ activeTab: controlledActiveTab, onChangeTab }) {
@@ -402,13 +467,10 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                         )}
                       </td>
                       <td className="px-4 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedEquipmentDetail(eq)}
-                          className="text-xs px-3 py-1 rounded-lg border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 hover:border-sky-400/60 transition"
-                        >
-                          View More
-                        </button>
+                        <div className="inline-flex items-center gap-2 justify-end">
+                          <ActionViewIcon onClick={() => setSelectedEquipmentDetail(eq)} title="View equipment" />
+                          <ActionDownloadIcon onClick={() => downloadEquipmentExcel(eq)} title="Download as Excel" />
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -657,22 +719,13 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                                 href={selectedEquipmentDetail.manufacturingCertificate.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-1.5 text-[11px] font-semibold text-yellow-100 border border-yellow-400/50 hover:bg-yellow-500/30 transition"
+                                title="Open or download"
+                                aria-label="Open or download"
+                                className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-1.5 transition"
                               >
-                                <svg
-                                  className="h-4 w-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                  />
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
-                                View / Download
                               </a>
                             </div>
                           )}
@@ -692,22 +745,13 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                                 href={selectedEquipmentDetail.testCertificate.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-1.5 text-[11px] font-semibold text-yellow-100 border border-yellow-400/50 hover:bg-yellow-500/30 transition"
+                                title="Open or download"
+                                aria-label="Open or download"
+                                className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-1.5 transition"
                               >
-                                <svg
-                                  className="h-4 w-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                  />
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
-                                View / Download
                               </a>
                             </div>
                           )}
