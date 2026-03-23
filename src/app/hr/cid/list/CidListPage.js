@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
+import { DownloadIconButton } from "../../../qhse/components/ActionIcons";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -87,6 +88,7 @@ export default function CidListPage({ onRefresh }) {
   const [actionMessage, setActionMessage] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
 
   // Filters
   const [filterLocation, setFilterLocation] = useState("");
@@ -130,6 +132,31 @@ export default function CidListPage({ onRefresh }) {
 
   const handleEdit = (record) => {
     router.push(`/hr/cid?tab=form&edit=${record._id}`);
+  };
+
+  const handleDownloadPdf = async (record) => {
+    if (!record._id) return;
+    setDownloadingPdfId(record._id);
+    try {
+      const res = await fetch(`/api/hr/cid/${record._id}/download/pdf`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `CID-${record._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdfId(null);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -254,6 +281,13 @@ export default function CidListPage({ onRefresh }) {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <DownloadIconButton
+                              onClick={() => handleDownloadPdf(record)}
+                              disabled={downloadingPdfId === record._id}
+                              loading={downloadingPdfId === record._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
+                            />
                             <ViewIconButton onClick={() => handleView(record)} />
                             <EditIconButton onClick={() => handleEdit(record)} />
                             <DeleteIconButton
@@ -286,16 +320,27 @@ export default function CidListPage({ onRefresh }) {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between">
+              <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between gap-3 flex-wrap">
                 <h3 className="text-xl font-bold text-white">CID Details</h3>
-                <button
-                  onClick={closeModal}
-                  className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition"
-                >
+                <div className="flex items-center gap-2">
+                  <DownloadIconButton
+                    onClick={() => handleDownloadPdf(selectedItem)}
+                    disabled={downloadingPdfId === selectedItem._id}
+                    loading={downloadingPdfId === selectedItem._id}
+                    title="Download as PDF"
+                    tooltipPlacement="below"
+                    className="!text-rose-400 hover:!text-rose-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition"
+                  >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+                </div>
               </div>
 
               {/* Modal Body */}

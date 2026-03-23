@@ -4,21 +4,23 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
+import { DownloadIconButton as QhseDownloadIconButton } from "../../../qhse/components/ActionIcons";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
   "pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap";
 const iconClass = "w-5 h-5";
 
-function ViewIconButton({ onClick, title = "View" }) {
+function ViewIconButton({ onClick, title = "View", disabled = false }) {
   return (
     <span className="relative group inline-flex">
       <button
         type="button"
         onClick={onClick}
+        disabled={disabled}
         title={title}
         aria-label={title}
-        className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex"
+        className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 disabled:opacity-50 transition inline-flex"
       >
         <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -30,48 +32,22 @@ function ViewIconButton({ onClick, title = "View" }) {
   );
 }
 
-function EditIconButton({ onClick, title = "Edit" }) {
-  return (
-    <span className="relative group inline-flex">
-      <button
-        type="button"
-        onClick={onClick}
-        title={title}
-        aria-label={title}
-        className="p-1.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition inline-flex"
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-      </button>
-      <span className={tooltipClass}>{title}</span>
-    </span>
-  );
-}
-
-function DownloadIconButton({ onClick, disabled, loading }) {
+function EditIconButton({ onClick, title = "Edit", disabled = false }) {
   return (
     <span className="relative group inline-flex">
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        title="Download"
-        aria-label="Download"
-        className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 disabled:opacity-50 transition inline-flex"
+        title={title}
+        aria-label={title}
+        className="p-1.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 disabled:opacity-50 transition inline-flex"
       >
-        {loading ? (
-          <svg className={`${iconClass} animate-spin`} fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        ) : (
-          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        )}
+        <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
       </button>
-      <span className={tooltipClass}>Download</span>
+      <span className={tooltipClass}>{title}</span>
     </span>
   );
 }
@@ -114,7 +90,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
   const [actionMessage, setActionMessage] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
 
   // Filters
   const [filterYear, setFilterYear] = useState("");
@@ -179,16 +155,30 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
     }
   };
 
-  const handleDownload = (cert) => {
-    if (!cert.attachment?.fileUrl) return;
-    setDownloadingId(cert._id);
-    const link = document.createElement("a");
-    link.href = cert.attachment.fileUrl;
-    link.download = cert.attachment.originalFileName || "certificate";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => setDownloadingId(null), 1000);
+  const handleDownloadPdf = async (cert) => {
+    if (!cert._id) return;
+    setDownloadingPdfId(cert._id);
+    setError("");
+    try {
+      const res = await fetch(`/api/hr/statutory-certificates/${cert._id}/download/pdf`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download PDF");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Statutory-Certificate-${cert.year || "cert"}-${cert._id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setDownloadingPdfId(null);
+    }
   };
 
   if (loading) {
@@ -270,7 +260,6 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                       <th className="px-6 py-4 font-semibold">Type of Document</th>
                       <th className="px-6 py-4 font-semibold">Year</th>
                       <th className="px-6 py-4 font-semibold">Validity</th>
-                      <th className="px-6 py-4 font-semibold text-center">File</th>
                       <th className="px-6 py-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
@@ -283,24 +272,30 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                         <td className="px-6 py-4 text-slate-200">
                           {cert.validity ? new Date(cert.validity).toLocaleDateString("en-GB") : "—"}
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          {cert.attachment?.fileUrl ? (
-                            <DownloadIconButton
-                              onClick={() => handleDownload(cert)}
-                              disabled={downloadingId === cert._id}
-                              loading={downloadingId === cert._id}
-                            />
-                          ) : (
-                            <span className="text-slate-500 text-xs">—</span>
-                          )}
-                        </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <ViewIconButton onClick={() => handleView(cert)} />
-                            <EditIconButton onClick={() => handleEdit(cert)} />
+                            <QhseDownloadIconButton
+                              onClick={() => handleDownloadPdf(cert)}
+                              disabled={
+                                downloadingPdfId === cert._id || deletingId === cert._id
+                              }
+                              loading={downloadingPdfId === cert._id}
+                              title="Download as PDF"
+                              className="!text-rose-400 hover:!text-rose-300"
+                            />
+                            <ViewIconButton
+                              onClick={() => handleView(cert)}
+                              disabled={downloadingPdfId === cert._id}
+                            />
+                            <EditIconButton
+                              onClick={() => handleEdit(cert)}
+                              disabled={downloadingPdfId === cert._id}
+                            />
                             <DeleteIconButton
                               onClick={() => handleDelete(cert._id)}
-                              disabled={deletingId === cert._id}
+                              disabled={
+                                deletingId === cert._id || downloadingPdfId === cert._id
+                              }
                               loading={deletingId === cert._id}
                             />
                           </div>
@@ -328,9 +323,19 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between">
+              <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between gap-3 flex-wrap">
                 <h3 className="text-xl font-bold text-white">Certificate Details</h3>
-                <button
+                <div className="flex items-center gap-2">
+                  <QhseDownloadIconButton
+                    onClick={() => handleDownloadPdf(selectedItem)}
+                    disabled={downloadingPdfId === selectedItem._id}
+                    loading={downloadingPdfId === selectedItem._id}
+                    title="Download as PDF"
+                    tooltipPlacement="below"
+                    className="!text-rose-400 hover:!text-rose-300"
+                  />
+                  <button
+                  type="button"
                   onClick={closeModal}
                   className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition"
                 >
@@ -338,6 +343,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+                </div>
               </div>
 
               {/* Modal Body */}

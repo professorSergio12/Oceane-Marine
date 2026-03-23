@@ -150,42 +150,36 @@ export default function PMSCharts() {
           value={stats.totalEquipment}
           gradient="from-cyan-900/40 via-cyan-800/30 to-sky-900/40"
           accent="text-cyan-300"
-          icon="🔧"
         />
         <StatCard
           label="Active"
           value={stats.activeEquipment}
           gradient="from-emerald-900/40 via-emerald-800/30 to-teal-900/40"
           accent="text-emerald-300"
-          icon="✅"
         />
         <StatCard
           label="In Use"
           value={stats.inUseEquipment}
           gradient="from-orange-900/40 via-orange-800/30 to-red-900/40"
           accent="text-orange-300"
-          icon="⚙️"
         />
         <StatCard
           label="Certifications"
           value={stats.totalCertificates}
           gradient="from-violet-900/40 via-violet-800/30 to-purple-900/40"
           accent="text-violet-300"
-          icon="📜"
         />
         <StatCard
           label="Upcoming Tests"
           value={stats.upcomingTestDue}
           gradient="from-blue-900/40 via-blue-800/30 to-indigo-900/40"
           accent="text-blue-300"
-          icon="🧪"
         />
         <StatCard
           label="Overdue"
           value={stats.overdue}
           gradient="from-red-900/40 via-red-800/30 to-rose-900/40"
           accent="text-red-300"
-          icon="⚠️"
         />
       </div>
 
@@ -456,19 +450,16 @@ function SectionHeader() {
   );
 }
 
-function StatCard({ label, value, gradient, accent, icon }) {
+function StatCard({ label, value, gradient, accent }) {
   return (
     <div
       className={`rounded-xl md:rounded-2xl border border-white/15 bg-gradient-to-br ${gradient} backdrop-blur-md shadow-2xl p-3 md:p-5 hover:shadow-lg transition-all hover:scale-[1.02] md:hover:scale-[1.03] cursor-default`}
     >
-      <div className="mb-1 md:mb-2 flex items-center justify-between">
-        <h3
-          className={`text-[10px] md:text-xs font-semibold ${accent} uppercase tracking-wider`}
-        >
-          {label}
-        </h3>
-        <span className="text-sm md:text-lg">{icon}</span>
-      </div>
+      <h3
+        className={`text-[10px] md:text-xs font-semibold ${accent} uppercase tracking-wider mb-1 md:mb-2`}
+      >
+        {label}
+      </h3>
       <p className="text-2xl md:text-3xl font-bold text-white">{value ?? 0}</p>
     </div>
   );

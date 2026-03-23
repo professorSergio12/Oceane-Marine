@@ -5,7 +5,12 @@
  * Use as button or anchor; pass title for tooltip and aria-label.
  */
 
-const tooltipClass = "pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap";
+/** Tooltip above the control (default for table rows). */
+const tooltipAboveClass =
+  "pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-50 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap";
+/** Tooltip below — use in sticky modal headers so it is not clipped. */
+const tooltipBelowClass =
+  "pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap";
 const iconClass = "w-5 h-5";
 
 export function ArchiveIconButton({ onClick, disabled, loading, className = "" }) {
@@ -30,13 +35,26 @@ export function ArchiveIconButton({ onClick, disabled, loading, className = "" }
           </svg>
         )}
       </button>
-      <span className={tooltipClass}>Archive</span>
+      <span className={tooltipAboveClass}>Archive</span>
     </span>
   );
 }
 
-export function DownloadIconButton({ href, onClick, disabled, loading, title: titleProp = "Download", className = "" }) {
+/**
+ * @param {{ tooltipPlacement?: "above" | "below" }} props – below = show tooltip under icon (modals / sticky headers)
+ */
+export function DownloadIconButton({
+  href,
+  onClick,
+  disabled,
+  loading,
+  title: titleProp = "Download",
+  className = "",
+  tooltipPlacement = "above",
+}) {
   const title = titleProp || "Download";
+  const tooltipClass =
+    tooltipPlacement === "below" ? tooltipBelowClass : tooltipAboveClass;
   const content = (
     <>
       {loading ? (
@@ -82,7 +100,7 @@ export function DeleteIconButton({ onClick, disabled, loading, className = "" })
           </svg>
         )}
       </button>
-      <span className={tooltipClass}>Delete</span>
+      <span className={tooltipAboveClass}>Delete</span>
     </span>
   );
 }
@@ -105,7 +123,7 @@ export function ViewIconButton({ href, onClick, title = "View", className = "" }
           {icon}
         </button>
       )}
-      <span className={tooltipClass}>{title}</span>
+      <span className={tooltipAboveClass}>{title}</span>
     </span>
   );
 }
@@ -127,7 +145,7 @@ export function EditIconButton({ href, onClick, title = "Edit", className = "" }
           {icon}
         </button>
       )}
-      <span className={tooltipClass}>{title}</span>
+      <span className={tooltipAboveClass}>{title}</span>
     </span>
   );
 }
@@ -147,7 +165,7 @@ export function ApproveIconButton({ onClick, disabled, loading, approved, classN
           </svg>
         )}
       </button>
-      <span className={tooltipClass}>Approve</span>
+      <span className={tooltipAboveClass}>Approve</span>
     </span>
   );
 }
@@ -167,7 +185,7 @@ export function RejectIconButton({ onClick, disabled, loading, className = "" })
           </svg>
         )}
       </button>
-      <span className={tooltipClass}>Reject</span>
+      <span className={tooltipAboveClass}>Reject</span>
     </span>
   );
 }
