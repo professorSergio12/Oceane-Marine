@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -162,6 +164,7 @@ function createInitialCategories() {
 }
 
 export default function EquipmentBaseStockFormPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -187,6 +190,7 @@ export default function EquipmentBaseStockFormPage() {
 
     const fetchRecord = async () => {
       setLoading(true);
+      setPageLoading(true);
       setError("");
       try {
         const res = await fetch(
@@ -221,6 +225,7 @@ export default function EquipmentBaseStockFormPage() {
         setError(err.message || "Failed to load existing form");
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
 
@@ -321,13 +326,7 @@ export default function EquipmentBaseStockFormPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading form...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

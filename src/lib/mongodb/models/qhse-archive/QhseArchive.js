@@ -16,5 +16,8 @@ const QhseArchiveSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+QhseArchiveSchema.index({ year: 1, archivedAt: -1 });
+QhseArchiveSchema.index({ year: 1, module: 1, archivedAt: -1 });
+
 export default mongoose.models.QhseArchive ||
   mongoose.model("QhseArchive", QhseArchiveSchema);

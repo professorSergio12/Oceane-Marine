@@ -3,6 +3,7 @@ import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 import VendorSupplyAdminPage from "./VendorSupplyAdminPage";
 
+import QhseSuspenseFallback from "@/app/qhse/components/QhseSuspenseFallback";
 export default function VendorSupplyAdminPageWrapper() {
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -13,13 +14,7 @@ export default function VendorSupplyAdminPageWrapper() {
 
       {/* Main content */}
       <Suspense
-        fallback={
-          <div className="flex-1 min-w-0 flex items-center justify-center">
-            <p className="text-white/60">
-              Loading vendor supply admin page…
-            </p>
-          </div>
-        }
+        fallback={<QhseSuspenseFallback />}
       >
         <VendorSupplyAdminPage />
       </Suspense>

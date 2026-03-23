@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -8,6 +10,7 @@ import { ArchiveIconButton, DeleteIconButton, EditIconButton, ViewIconButton, Do
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 
 export default function AuditInspectionPlannerListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +68,7 @@ export default function AuditInspectionPlannerListPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
@@ -83,6 +87,7 @@ export default function AuditInspectionPlannerListPage() {
       setError(err.message || "Failed to load planners");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -180,13 +185,7 @@ export default function AuditInspectionPlannerListPage() {
     fetchYears();
   }, []);
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

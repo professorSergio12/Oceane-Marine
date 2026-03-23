@@ -3,6 +3,7 @@ import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 import TrainingRecordPage from "./TrainingRecordPage";
 
+import QhseSuspenseFallback from "@/app/qhse/components/QhseSuspenseFallback";
 export default function TrainingRecordPageWrapper() {
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -13,13 +14,7 @@ export default function TrainingRecordPageWrapper() {
 
       {/* Main content */}
       <Suspense
-        fallback={
-          <div className="flex-1 min-w-0 flex items-center justify-center">
-            <p className="text-white/60">
-              Loading Training Matrix Records page…
-            </p>
-          </div>
-        }
+        fallback={<QhseSuspenseFallback />}
       >
         <TrainingRecordPage />
       </Suspense>

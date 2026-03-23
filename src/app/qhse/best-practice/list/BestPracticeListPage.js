@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { saveAs } from "file-saver";
@@ -29,6 +31,7 @@ function getYears() {
 }
 
 export default function BestPracticeListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const initialYears = getYears();
   
@@ -67,6 +70,7 @@ export default function BestPracticeListPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const url = year !== "" && year != null
@@ -80,6 +84,7 @@ export default function BestPracticeListPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

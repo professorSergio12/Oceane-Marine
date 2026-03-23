@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -7,6 +9,7 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../uti
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 
 export default function RiskAssessmentListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,6 +43,7 @@ export default function RiskAssessmentListPage() {
     const load = async () => {
       try {
         setLoading(true);
+        setPageLoading(true);
         const params = new URLSearchParams();
         if (locationFilter) params.set("location", locationFilter);
         if (yearFilter) params.set("year", yearFilter);
@@ -54,6 +58,7 @@ export default function RiskAssessmentListPage() {
         setError(err.message);
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
     load();

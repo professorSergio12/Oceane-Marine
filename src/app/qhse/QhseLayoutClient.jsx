@@ -1,11 +1,17 @@
 "use client";
 
-import { QhseSidebarProvider, useQhseSidebar } from "./QhseSidebarContext";
+import { QhseSidebarProvider } from "./QhseSidebarContext";
+import { QhseLoadingProvider, useQhseLoading } from "./QhseLoadingContext";
+import QhseLoadingOverlay from "./components/QhseLoadingOverlay";
 
 function QhseLayoutInner({ children }) {
-  const { isSidebarOpen } = useQhseSidebar();
+  const { pageLoading } = useQhseLoading();
   return (
-    <div className="relative min-h-screen bg-transparent text-white pt-6">
+    <div
+      className={`relative min-h-screen bg-transparent text-white pt-6 transition-all duration-300 ${
+        pageLoading ? "blur-sm pointer-events-none" : ""
+      }`}
+    >
       {children}
     </div>
   );
@@ -13,8 +19,11 @@ function QhseLayoutInner({ children }) {
 
 export default function QhseLayoutClient({ children }) {
   return (
-    <QhseSidebarProvider>
-      <QhseLayoutInner>{children}</QhseLayoutInner>
-    </QhseSidebarProvider>
+    <QhseLoadingProvider>
+      <QhseSidebarProvider>
+        <QhseLayoutInner>{children}</QhseLayoutInner>
+        <QhseLoadingOverlay />
+      </QhseSidebarProvider>
+    </QhseLoadingProvider>
   );
 }

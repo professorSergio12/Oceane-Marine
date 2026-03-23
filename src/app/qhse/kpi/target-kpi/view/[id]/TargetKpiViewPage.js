@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -7,6 +9,7 @@ import { TemplateDownloadLink } from "../../../../components/TemplateDownloadLin
 import { useParams } from "next/navigation";
 
 export default function TargetKpiViewPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const params = useParams();
   const id = params?.id;
@@ -21,6 +24,7 @@ export default function TargetKpiViewPage() {
     if (!id) return;
     const fetchData = async () => {
       setLoading(true);
+      setPageLoading(true);
       setError("");
       try {
         const res = await fetch(`/api/qhse/kpi/target/${id}`);
@@ -40,18 +44,13 @@ export default function TargetKpiViewPage() {
         setError(err.message || "Failed to load");
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
     fetchData();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} pr-4 flex items-center justify-center py-20`}>
-        <p className="text-slate-300">Loading…</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   if (error || !data) {
     return (

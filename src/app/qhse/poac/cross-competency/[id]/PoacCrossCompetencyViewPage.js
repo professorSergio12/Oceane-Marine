@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -123,6 +125,7 @@ const evaluationCategories = [
 ];
 
 export default function PoacCrossCompetencyViewPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const params = useParams();
   const router = useRouter();
@@ -143,6 +146,7 @@ export default function PoacCrossCompetencyViewPage() {
       if (!formId) return;
 
       setLoading(true);
+      setPageLoading(true);
       setError(null);
 
       try {
@@ -158,6 +162,7 @@ export default function PoacCrossCompetencyViewPage() {
         setError(err.message || "Failed to load form");
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
 
@@ -339,13 +344,7 @@ export default function PoacCrossCompetencyViewPage() {
     );
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-slate-300">Loading form...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   if (error || !form) {
     return (

@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQhseSidebar } from "../QhseSidebarContext";
@@ -23,6 +25,7 @@ const YEAR_OPTIONS = [
 ];
 
 export default function ControlledDocumentRegisterPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const [items, setItems] = useState([]);
@@ -32,6 +35,7 @@ export default function ControlledDocumentRegisterPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError("");
     try {
       const url = year
@@ -45,6 +49,7 @@ export default function ControlledDocumentRegisterPage() {
       setError(err.message || "Failed to load");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

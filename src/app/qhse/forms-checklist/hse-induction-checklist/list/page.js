@@ -3,6 +3,7 @@ import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 import HseInductionChecklistListPage from "./HseInductionChecklistListPage";
 
+import QhseSuspenseFallback from "@/app/qhse/components/QhseSuspenseFallback";
 export default function HseInductionChecklistListPageWrapper() {
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -13,13 +14,7 @@ export default function HseInductionChecklistListPageWrapper() {
 
       {/* Main content */}
       <Suspense
-        fallback={
-          <div className="flex-1 ml-0 md:ml-0 md:ml-[300px] flex items-center justify-center">
-            <p className="text-white/60">
-              Loading hse induction checklist list page…
-            </p>
-          </div>
-        }
+        fallback={<QhseSuspenseFallback />}
       >
         <HseInductionChecklistListPage />
       </Suspense>

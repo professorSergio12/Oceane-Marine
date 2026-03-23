@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton, DownloadIconButton } from "../../../components/ActionIcons";
@@ -60,6 +62,7 @@ function getYears() {
 }
 
 export default function EquipmentBaseStockAdminPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const initialYears = getYears();
   const [forms, setForms] = useState([]);
@@ -78,6 +81,7 @@ export default function EquipmentBaseStockAdminPage() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError("");
     try {
       const url =
@@ -100,6 +104,7 @@ export default function EquipmentBaseStockAdminPage() {
       setError(err.message || "Failed to load forms");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -256,13 +261,7 @@ export default function EquipmentBaseStockAdminPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading forms for review...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

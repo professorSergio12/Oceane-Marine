@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useEffect, useState } from "react";
 import { useQhseSidebar } from "../QhseSidebarContext";
 import Link from "next/link";
@@ -12,6 +14,7 @@ function getYearOptions() {
 }
 
 export default function ArchivePage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +49,7 @@ export default function ArchivePage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setPageLoading(true);
     setError("");
     const params = new URLSearchParams({ year: String(year) });
     if (moduleFilter) params.set("module", moduleFilter);
@@ -66,7 +70,10 @@ export default function ArchivePage() {
         if (!cancelled) setError(err.message || "Failed to load");
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setPageLoading(false);
+        }
       });
     return () => { cancelled = true; };
   }, [year, moduleFilter]);

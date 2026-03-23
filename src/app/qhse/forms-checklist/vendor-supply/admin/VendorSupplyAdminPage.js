@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton, DownloadIconButton } from "../../../components/ActionIcons";
@@ -58,6 +60,7 @@ function getYears() {
 }
 
 export default function VendorSupplyAdminPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +80,7 @@ export default function VendorSupplyAdminPage() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError("");
     try {
       const url =
@@ -93,6 +97,7 @@ export default function VendorSupplyAdminPage() {
       setError(err.message || "Failed to load vendor approvals");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -260,13 +265,7 @@ export default function VendorSupplyAdminPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading vendor approvals...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

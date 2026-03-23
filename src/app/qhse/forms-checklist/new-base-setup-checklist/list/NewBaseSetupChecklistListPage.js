@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
@@ -42,6 +44,7 @@ function getYears() {
 }
 
 export default function NewBaseSetupChecklistListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const currentYear = new Date().getFullYear();
@@ -82,6 +85,7 @@ export default function NewBaseSetupChecklistListPage() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const url = year !== "" && year != null
@@ -97,6 +101,7 @@ export default function NewBaseSetupChecklistListPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -243,13 +248,7 @@ export default function NewBaseSetupChecklistListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,6 +11,7 @@ import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../c
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 
 export default function KpiListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,7 @@ export default function KpiListPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setPageLoading(true);
       setError("");
       try {
         const url = year ? `/api/qhse/kpi/list?year=${year}` : "/api/qhse/kpi/list";
@@ -35,6 +39,7 @@ export default function KpiListPage() {
         setError(err.message || "Failed to load files");
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
     fetchData();

@@ -3,6 +3,7 @@ import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 import DefectPlanPage from "./DefectPlanPage";
 
+import QhseSuspenseFallback from "@/app/qhse/components/QhseSuspenseFallback";
 export default function DefectPlanPageWrapper() {
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -13,13 +14,7 @@ export default function DefectPlanPageWrapper() {
 
       {/* Main content */}
       <Suspense
-        fallback={
-          <div className="flex-1 min-w-0 flex items-center justify-center">
-            <p className="text-white/60">
-              Loading defect plan page…
-            </p>
-          </div>
-        }
+        fallback={<QhseSuspenseFallback />}
       >
         <DefectPlanPage />
       </Suspense>

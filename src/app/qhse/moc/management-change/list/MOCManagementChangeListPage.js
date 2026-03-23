@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -22,6 +24,7 @@ function formatDate(value) {
 }
 
 export default function MOCManagementChangeListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const [mocs, setMocs] = useState([]);
@@ -57,6 +60,7 @@ export default function MOCManagementChangeListPage() {
 
   const fetchMocs = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
@@ -83,6 +87,7 @@ export default function MOCManagementChangeListPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -470,13 +475,7 @@ export default function MOCManagementChangeListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

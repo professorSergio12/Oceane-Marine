@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -7,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 export default function BaseAuditFormPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -52,6 +55,7 @@ export default function BaseAuditFormPage() {
     if (editId) {
       const fetchReport = async () => {
         setLoading(true);
+        setPageLoading(true);
         try {
           const res = await fetch(`/api/qhse/form-checklist/base-audit/list`);
           const data = await res.json();
@@ -78,6 +82,7 @@ export default function BaseAuditFormPage() {
           setError(err.message || "Failed to load report data");
         } finally {
           setLoading(false);
+          setPageLoading(false);
         }
       };
       fetchReport();

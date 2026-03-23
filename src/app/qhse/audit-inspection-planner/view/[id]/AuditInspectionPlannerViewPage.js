@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -7,6 +9,7 @@ import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 export default function AuditInspectionPlannerViewPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const { id } = useParams();
   const router = useRouter();
@@ -18,6 +21,7 @@ export default function AuditInspectionPlannerViewPage() {
   useEffect(() => {
     const fetchOne = async () => {
       setLoading(true);
+      setPageLoading(true);
       setError("");
       try {
         // Reuse list endpoint, then filter client-side (no single-get endpoint yet)
@@ -31,6 +35,7 @@ export default function AuditInspectionPlannerViewPage() {
         setError(err.message || "Failed to load planner");
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
     if (id) fetchOne();
@@ -57,13 +62,7 @@ export default function AuditInspectionPlannerViewPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   if (error || !item) {
     return (

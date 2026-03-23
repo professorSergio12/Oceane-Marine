@@ -3,6 +3,7 @@ import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 import QuestionnaireListAdminPage from "./QuestionnaireListAdminPage";
 
+import QhseSuspenseFallback from "@/app/qhse/components/QhseSuspenseFallback";
 export default function QuestionnaireListAdminPageWrapper() {
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -13,13 +14,7 @@ export default function QuestionnaireListAdminPageWrapper() {
 
       {/* Main content */}
       <Suspense
-        fallback={
-          <div className="flex-1 ml-0 md:ml-0 md:ml-[300px] flex items-center justify-center">
-            <p className="text-white/60">
-              Loading questionnaire list admin page…
-            </p>
-          </div>
-        }
+        fallback={<QhseSuspenseFallback />}
       >
         <QuestionnaireListAdminPage />
       </Suspense>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
@@ -20,6 +22,7 @@ function formatDate(value) {
 }
 
 export default function PoacCrossCompetencyListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +49,7 @@ export default function PoacCrossCompetencyListPage() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({
@@ -85,6 +89,7 @@ export default function PoacCrossCompetencyListPage() {
       setError(err.message || "Failed to load forms");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

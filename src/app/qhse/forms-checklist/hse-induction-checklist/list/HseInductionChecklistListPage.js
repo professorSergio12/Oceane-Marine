@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import QhseSidebar from "../../../components/QhseSidebar";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
@@ -124,6 +126,7 @@ function getYears() {
 }
 
 export default function HseInductionChecklistListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
@@ -171,6 +174,7 @@ export default function HseInductionChecklistListPage() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const url = year !== "" && year != null
@@ -195,6 +199,7 @@ export default function HseInductionChecklistListPage() {
       setError(err.message || "Failed to load forms");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -413,16 +418,7 @@ export default function HseInductionChecklistListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-transparent text-white flex">
-        <QhseSidebar />
-        <div className={`${contentClassName} flex items-center justify-center`}>
-          <p className="text-white/60">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <>

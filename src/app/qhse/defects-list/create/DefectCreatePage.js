@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -7,6 +9,7 @@ import { TemplateDownloadLink } from "../../components/TemplateDownloadLink";
 import { useSearchParams } from "next/navigation";
 
 export default function DefectCreatePage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
@@ -43,6 +46,7 @@ export default function DefectCreatePage() {
     if (!editId) return;
     let cancelled = false;
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     fetch(`/api/qhse/defects-list/${editId}`)
       .then((res) => res.json())
@@ -62,7 +66,7 @@ export default function DefectCreatePage() {
         setDisplaySerialNumber(d.serialNumber || null);
       })
       .catch(() => setError("Failed to load defect"))
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); setPageLoading(false); });
     return () => { cancelled = true; };
   }, [editId]);
 

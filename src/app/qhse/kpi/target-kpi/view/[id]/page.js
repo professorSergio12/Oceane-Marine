@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import QhseSidebar from "@/app/qhse/components/QhseSidebar";
 import SideBarSkeleton from "@/app/qhse/components/SideBarSkeleton";
 
+import QhseSuspenseFallback from "@/app/qhse/components/QhseSuspenseFallback";
 export default function TargetKpiViewRoute({ params }) {
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -10,11 +11,7 @@ export default function TargetKpiViewRoute({ params }) {
         <QhseSidebar />
       </Suspense>
       <Suspense
-        fallback={
-          <div className="flex-1 ml-0 md:ml-0 md:ml-[300px] flex items-center justify-center">
-            <p className="text-white/60">Loading…</p>
-          </div>
-        }
+        fallback={<QhseSuspenseFallback />}
       >
         <TargetKpiViewPage />
       </Suspense>

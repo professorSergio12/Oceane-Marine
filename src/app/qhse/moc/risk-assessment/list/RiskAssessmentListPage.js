@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -40,6 +42,7 @@ function titleWithoutDate(title) {
 }
 
 export default function RiskAssessmentListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const searchParams = useSearchParams();
   const yearFromUrl = searchParams.get("year");
@@ -68,6 +71,7 @@ export default function RiskAssessmentListPage() {
 
   const fetchUploads = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
@@ -86,6 +90,7 @@ export default function RiskAssessmentListPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -161,13 +166,7 @@ export default function RiskAssessmentListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

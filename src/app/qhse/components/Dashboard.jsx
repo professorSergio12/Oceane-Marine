@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
@@ -29,6 +31,7 @@ const MONTHS = [
 ];
 
 export default function QhseDashboard() {
+  const { setPageLoading } = useQhseLoading();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -45,6 +48,7 @@ export default function QhseDashboard() {
 
   const fetchStats = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
@@ -67,6 +71,7 @@ export default function QhseDashboard() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

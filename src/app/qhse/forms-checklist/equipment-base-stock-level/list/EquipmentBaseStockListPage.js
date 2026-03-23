@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -62,6 +64,7 @@ function getYears() {
 }
 
 export default function EquipmentBaseStockListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const currentYear = new Date().getFullYear();
@@ -106,6 +109,7 @@ export default function EquipmentBaseStockListPage() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError("");
     try {
       const url = year !== "" && year != null
@@ -125,6 +129,7 @@ export default function EquipmentBaseStockListPage() {
       setError(err.message || "Failed to load forms");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -266,13 +271,7 @@ export default function EquipmentBaseStockListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

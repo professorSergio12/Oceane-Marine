@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -29,6 +31,7 @@ function getYears() {
 }
 
 export default function DefectListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
@@ -70,6 +73,7 @@ export default function DefectListPage() {
 
   const fetchDefects = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const url = year !== "" && year != null
@@ -85,6 +89,7 @@ export default function DefectListPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

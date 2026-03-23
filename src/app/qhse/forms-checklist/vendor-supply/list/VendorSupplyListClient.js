@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -57,6 +59,7 @@ function getStatusBadge(status) {
 /* ---------------- component ---------------- */
 
 export default function VendorSupplyListClient() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
 
@@ -79,6 +82,7 @@ export default function VendorSupplyListClient() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError("");
     try {
       const url = year !== "" && year != null
@@ -99,6 +103,7 @@ export default function VendorSupplyListClient() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -264,13 +269,7 @@ export default function VendorSupplyListClient() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   /* ---------------- UI ---------------- */
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import QhseSidebarWrapper from "./components/QhseSidebarWrapper";
+import QhseSuspenseFallback from "./components/QhseSuspenseFallback";
 import { useQhseSidebar } from "./QhseSidebarContext";
 
 const TrainingPlanForm = dynamic(() => import("./training/create/plan/page"), {
@@ -70,11 +71,7 @@ function QhsePageContent() {
 
 export default function QhsePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-      </div>
-    }>
+    <Suspense fallback={<QhseSuspenseFallback />}>
       <QhsePageContent />
     </Suspense>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -31,6 +33,7 @@ function getSignatureSrc(value) {
 }
 
 export default function AuditSubContractorListAdminPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [allAudits, setAllAudits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +52,7 @@ export default function AuditSubContractorListAdminPage() {
 
   const fetchAudits = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const res = await fetch(
@@ -70,6 +74,7 @@ export default function AuditSubContractorListAdminPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

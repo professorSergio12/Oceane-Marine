@@ -1,11 +1,14 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function RiskAssessmentFormPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const [locations, setLocations] = useState([]);
@@ -51,6 +54,7 @@ export default function RiskAssessmentFormPage() {
 
     try {
       setLoading(true);
+      setPageLoading(true);
       const formData = new FormData();
       formData.append("locationName", locationName.trim());
       formData.append("assessmentDate", assessmentDate || "");
@@ -74,6 +78,7 @@ export default function RiskAssessmentFormPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

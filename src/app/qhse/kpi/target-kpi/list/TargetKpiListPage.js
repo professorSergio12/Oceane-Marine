@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -15,6 +17,7 @@ function getYears() {
 }
 
 export default function TargetKpiListPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +113,7 @@ export default function TargetKpiListPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setPageLoading(true);
       setError("");
       try {
         const url = year ? `/api/qhse/kpi/target/list?year=${year}` : "/api/qhse/kpi/target/list";
@@ -126,6 +130,7 @@ export default function TargetKpiListPage() {
         setError(err.message || "Failed to load");
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
     fetchData();

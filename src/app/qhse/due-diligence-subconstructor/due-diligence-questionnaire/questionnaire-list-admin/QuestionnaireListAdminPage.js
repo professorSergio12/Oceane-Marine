@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -32,6 +34,7 @@ function getSignatureSrc(value) {
 }
 
 export default function QuestionnaireListAdminPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const [allForms, setAllForms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +53,7 @@ export default function QuestionnaireListAdminPage() {
 
   const fetchForms = async () => {
     setLoading(true);
+    setPageLoading(true);
     setError(null);
     try {
       const res = await fetch(
@@ -71,6 +75,7 @@ export default function QuestionnaireListAdminPage() {
       setError(err.message || "Failed to load forms. Please try again.");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
 

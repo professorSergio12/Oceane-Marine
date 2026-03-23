@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
@@ -121,6 +123,7 @@ function VendorSupplyFormContent() {
 
     const fetchDraft = async () => {
       setLoading(true);
+      setPageLoading(true);
       setError("");
       setSuccess("");
 
@@ -183,6 +186,7 @@ function VendorSupplyFormContent() {
         setError(err.message || "Failed to load draft form");
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
 
@@ -392,13 +396,7 @@ function VendorSupplyFormContent() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} pr-4 flex items-center justify-center min-h-[40vh]`}>
-        <p className="text-white/60">Loading draft form...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>
@@ -876,5 +874,6 @@ function VendorSupplyFormContent() {
 }
 
 export default function VendorSupplyFormPage() {
+  const { setPageLoading } = useQhseLoading();
   return <VendorSupplyFormContent />;
 }

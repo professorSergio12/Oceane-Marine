@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -7,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import QhseSidebar from "../../../components/QhseSidebar";
 
 export default function TransferLocationQuestFormPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +32,7 @@ export default function TransferLocationQuestFormPage() {
     if (editId) {
       const fetchRecord = async () => {
         setLoading(true);
+        setPageLoading(true);
         try {
           const res = await fetch(
             `/api/qhse/form-checklist/transfer-location-quest/list`
@@ -55,6 +59,7 @@ export default function TransferLocationQuestFormPage() {
           setError(err.message || "Failed to load record data");
         } finally {
           setLoading(false);
+          setPageLoading(false);
         }
       };
       fetchRecord();
@@ -205,16 +210,7 @@ export default function TransferLocationQuestFormPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-transparent text-white flex">
-        <QhseSidebar />
-        <div className={`${contentClassName} flex items-center justify-center`}>
-          <p className="text-white/60">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">

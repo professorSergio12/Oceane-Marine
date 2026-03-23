@@ -1,5 +1,7 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useQhseSidebar } from "../../QhseSidebarContext";
@@ -14,6 +16,7 @@ function getYears() {
 }
 
 export default function DrillsListPage() {
+  const { setPageLoading } = useQhseLoading();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rows, setRows] = useState([]);
@@ -28,6 +31,7 @@ export default function DrillsListPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setPageLoading(true);
     setError("");
     try {
       const url =
@@ -55,6 +59,7 @@ export default function DrillsListPage() {
       setError(err.message || "Failed to load drill data");
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   }, [year]);
 

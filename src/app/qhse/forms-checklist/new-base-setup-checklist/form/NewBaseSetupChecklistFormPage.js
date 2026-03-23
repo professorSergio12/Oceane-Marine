@@ -1,11 +1,14 @@
 "use client";
 
+import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function NewBaseSetupChecklistFormPage() {
+  const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,6 +31,7 @@ export default function NewBaseSetupChecklistFormPage() {
     if (editId) {
       const fetchRecord = async () => {
         setLoading(true);
+        setPageLoading(true);
         try {
           const res = await fetch(
             `/api/qhse/form-checklist/new-base-setup-checklist/list`
@@ -54,6 +58,7 @@ export default function NewBaseSetupChecklistFormPage() {
           setError(err.message || "Failed to load record data");
         } finally {
           setLoading(false);
+          setPageLoading(false);
         }
       };
       fetchRecord();
@@ -202,13 +207,7 @@ export default function NewBaseSetupChecklistFormPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${contentClassName} flex items-center justify-center`}>
-        <p className="text-white/60">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>

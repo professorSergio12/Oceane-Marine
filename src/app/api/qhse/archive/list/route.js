@@ -10,15 +10,15 @@ export async function GET(req) {
     const year = searchParams.get("year");
     const moduleFilter = searchParams.get("module");
 
-    const all = await QhseArchive.find().select("year module").lean();
-    const years = [
-      ...new Set(
-        all
-          .map((i) => i.year)
-          .filter((y) => typeof y === "number" && !Number.isNaN(y))
-      ),
-    ].sort((a, b) => b - a);
-    const modules = [...new Set(all.map((i) => i.module).filter(Boolean))].sort();
+    // Use distinct() instead of loading every row — scales when archive is large
+    const [rawYears, rawModules] = await Promise.all([
+      QhseArchive.distinct("year"),
+      QhseArchive.distinct("module"),
+    ]);
+    const years = rawYears
+      .filter((y) => typeof y === "number" && !Number.isNaN(y))
+      .sort((a, b) => b - a);
+    const modules = rawModules.filter(Boolean).sort((a, b) => String(a).localeCompare(String(b)));
 
     const query = {};
     if (year) {
