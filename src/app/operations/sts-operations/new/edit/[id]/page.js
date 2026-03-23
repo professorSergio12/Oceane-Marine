@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef, forwardRef } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { ActionDownloadIcon } from "@/app/components/RecordActionIcons";
 
 const statusTone = {
   INPROGRESS: {
@@ -1058,9 +1059,17 @@ export default function EditOperationPage() {
                             <td className="py-2 pr-4 text-white/70">{ra.version || "—"}</td>
                             <td className="py-2 pr-4">
                               {ra.filePath ? (
-                                <a href={ra.filePath} target="_blank" rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 transition">
-                                  View / Download
+                                <a
+                                  href={ra.filePath}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open or download"
+                                  aria-label="Open or download file"
+                                  className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-1.5 transition"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
                                 </a>
                               ) : "—"}
                             </td>
@@ -1493,13 +1502,6 @@ function FileField({ name, resetKey, defaultValue }) {
     }
   }, [resetKey, defaultValue]);
 
-  const handleDownload = (e) => {
-    e.preventDefault();
-    if (fileUrl) {
-      window.open(fileUrl, '_blank');
-    }
-  };
-
   return (
     <div className="w-full text-sm text-white/80">
       <div className="flex items-center gap-2">
@@ -1513,13 +1515,11 @@ function FileField({ name, resetKey, defaultValue }) {
           className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
         />
         {fileUrl && (
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition whitespace-nowrap"
-          >
-            Download
-          </button>
+          <ActionDownloadIcon
+            onClick={() => fileUrl && window.open(fileUrl, "_blank")}
+            title="Open or download"
+            className="!rounded-xl !p-3"
+          />
         )}
       </div>
     </div>
@@ -1567,14 +1567,6 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
     }
   };
 
-  const handleDownload = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (existing) {
-      window.open(existing, "_blank");
-    }
-  };
-
   const borderColor =
     accent === "orange"
       ? "border-orange-400/40"
@@ -1614,13 +1606,15 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
           <span className="flex-1 text-sm text-white/70 truncate">
             {existing.split("/").pop() || "Uploaded file"}
           </span>
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 transition"
-          >
-            Download
-          </button>
+          <ActionDownloadIcon
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (existing) window.open(existing, "_blank");
+            }}
+            title="Open or download"
+            className="!p-1.5"
+          />
           <label className={`cursor-pointer rounded-lg px-2 py-1 text-xs font-semibold transition ${btnBg}`}>
             Replace
             <input
@@ -1706,13 +1700,6 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue }) {
     }
   }, [externalValue]);
 
-  const handleDownload = (e) => {
-    e.preventDefault();
-    if (fileUrl) {
-      window.open(fileUrl, '_blank');
-    }
-  };
-
   const handleClear = (e) => {
     e.preventDefault();
     setFileUrl("");
@@ -1731,13 +1718,11 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue }) {
           <div className="flex-1 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3">
             <span className="text-emerald-300 text-sm">✓ File linked from location</span>
           </div>
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition"
-          >
-            Download
-          </button>
+          <ActionDownloadIcon
+            onClick={() => fileUrl && window.open(fileUrl, "_blank")}
+            title="Open or download"
+            className="!rounded-xl !p-3"
+          />
           <button
             type="button"
             onClick={handleClear}
@@ -1759,13 +1744,11 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue }) {
             className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
           />
           {fileUrl && (
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition"
-            >
-              Download
-            </button>
+            <ActionDownloadIcon
+              onClick={() => fileUrl && window.open(fileUrl, "_blank")}
+              title="Open or download"
+              className="!rounded-xl !p-3"
+            />
           )}
         </div>
       )}

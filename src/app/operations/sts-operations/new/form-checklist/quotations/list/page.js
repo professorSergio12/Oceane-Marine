@@ -6,6 +6,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { buildDocumentHtml030, buildDocumentHtml030B, buildDocumentHtmlPOAC, getFormNoLineForPdf } from "../sts-form/documentTemplate";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import {
+  ActionDownloadIcon,
+  ActionEditIcon,
+  ActionDeleteIcon,
+} from "@/app/components/RecordActionIcons";
 
 const sidebarTabs = [
   {
@@ -507,29 +512,19 @@ export default function QuotationListPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
+                            <ActionDownloadIcon
                               onClick={() => handleDownloadSts(row)}
                               disabled={downloadingId === row._id}
-                              className="px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-medium hover:bg-sky-500/30 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              {downloadingId === row._id ? "Generating…" : "Download PDF"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleEditSts(row)}
-                              className="px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-300 text-xs font-medium hover:bg-orange-500/30 transition"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
+                              loading={downloadingId === row._id}
+                              title="Download PDF"
+                            />
+                            <ActionEditIcon onClick={() => handleEditSts(row)} title="Edit" />
+                            <ActionDeleteIcon
                               onClick={() => handleDeleteSts(row)}
                               disabled={deleting === row._id}
-                              className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {deleting === row._id ? "Deleting..." : "Delete"}
-                            </button>
+                              loading={deleting === row._id}
+                              title="Delete"
+                            />
                           </div>
                         </td>
                       </tr>

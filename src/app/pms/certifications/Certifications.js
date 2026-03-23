@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  ActionViewIcon,
+  ActionEditIcon,
+  ActionDeleteIcon,
+} from "@/app/components/RecordActionIcons";
 
 export default function Certifications({ view: controlledView, onViewChange }) {
   const [internalView, setInternalView] = useState("form");
@@ -430,37 +435,22 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                         : "-"}
                     </div>
                     <div className="text-right flex items-center justify-end gap-2">
-                      <button
+                      <ActionViewIcon
                         onClick={() => setSelectedItem(item)}
                         disabled={deletingId === item._id}
-                        className="px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500/50 text-sky-300 hover:bg-sky-500/30 hover:text-sky-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        View
-                      </button>
-                      <button
+                        title="View certificate"
+                      />
+                      <ActionEditIcon
                         onClick={() => handleEdit(item)}
                         disabled={deletingId === item._id}
-                        className="px-3 py-1.5 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-300 hover:bg-orange-500/30 hover:text-orange-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Edit
-                      </button>
-                      <button
+                        title="Edit certificate"
+                      />
+                      <ActionDeleteIcon
                         onClick={() => handleDelete(item._id)}
                         disabled={deletingId === item._id || !!deletingId}
-                        className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 hover:bg-red-500/30 hover:text-red-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 min-w-[80px] justify-center"
-                      >
-                        {deletingId === item._id ? (
-                          <>
-                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Deleting...
-                          </>
-                        ) : (
-                          "Delete"
-                        )}
-                      </button>
+                        loading={deletingId === item._id}
+                        title="Delete certificate"
+                      />
                     </div>
                   </div>
                 ))}
@@ -599,12 +589,13 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                           href={`/api/pms/certifications/${selectedItem._id}/download?type=manufacturing`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 text-sm font-semibold transition shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 flex items-center gap-2 flex-shrink-0"
+                          title="Download"
+                          aria-label="Download manufacturing certificate"
+                          className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-2 transition flex-shrink-0"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
-                          Download
                         </a>
                       </div>
                     </div>
@@ -629,12 +620,13 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                           href={`/api/pms/certifications/${selectedItem._id}/download?type=test`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 text-sm font-semibold transition shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 flex items-center gap-2 flex-shrink-0"
+                          title="Download"
+                          aria-label="Download test certificate"
+                          className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-2 transition flex-shrink-0"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
-                          Download
                         </a>
                       </div>
                     </div>

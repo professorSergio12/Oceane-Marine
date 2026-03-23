@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { getExportColumns, buildExportHeaders, buildExportRow } from "../sts-export-columns";
+import {
+  ActionViewIcon,
+  ActionEditIcon,
+  ActionDeleteIcon,
+  ActionDownloadIcon,
+} from "@/app/components/RecordActionIcons";
 
 const statusTone = {
   INPROGRESS: {
@@ -205,6 +212,25 @@ export default function STSListPage() {
     return (mt * 7.33).toFixed(2);
   };
 
+  const downloadExcel = () => {
+    const columns = getExportColumns();
+    const headers = buildExportHeaders(columns);
+    const escapeCsv = (val) => {
+      const s = val == null ? "" : String(val);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows = filteredOperations.map((op) => buildExportRow(op, columns));
+    const csv = [headers.map(escapeCsv).join(","), ...rows.map((r) => r.map(escapeCsv).join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `STS-Operations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-transparent text-white flex">
       {/* Left Sidebar */}
@@ -369,9 +395,9 @@ export default function STSListPage() {
             </div>
           </header>
 
-          {/* Search Bar */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="flex-1 relative">
+          {/* Search Bar + Download */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <div className="flex-1 min-w-[200px] relative">
               <input
                 type="text"
                 placeholder="Search by Ref No, Type, Location, Client..."
@@ -393,6 +419,12 @@ export default function STSListPage() {
                 />
               </svg>
             </div>
+            <ActionDownloadIcon
+              onClick={downloadExcel}
+              disabled={filteredOperations.length === 0}
+              title="Download Excel"
+              className="!rounded-lg sm:!rounded-xl !p-2.5"
+            />
           </div>
 
           {/* Operations Table */}
@@ -483,24 +515,15 @@ export default function STSListPage() {
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex gap-1.5 sm:gap-2 justify-center">
-                            <button
+                            <ActionViewIcon
                               onClick={() => router.push(`/operations/sts-operations/new/view/${op._id}`)}
-                              className="px-3 py-1.5 bg-green-500/20 text-green-300 text-xs font-medium hover:bg-green-500/30 rounded-lg transition"
-                            >
-                              View
-                            </button>
-                            <button
+                              title="View operation"
+                            />
+                            <ActionEditIcon
                               onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
-                              className="px-3 py-1.5 bg-blue-500/20 text-blue-300 text-xs font-medium hover:bg-blue-500/30 rounded-lg transition"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(op._id)}
-                              className="px-3 py-1.5 bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 rounded-lg transition"
-                            >
-                              Delete
-                            </button>
+                              title="Edit operation"
+                            />
+                            <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
                           </div>
                         </td>
                       </tr>
