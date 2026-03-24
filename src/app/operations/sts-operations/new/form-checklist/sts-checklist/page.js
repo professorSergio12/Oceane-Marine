@@ -185,14 +185,24 @@ export default function StsChecklistPage() {
     }
 
     const cleanOperationRef = selectedOperationRef.trim();
-    const links = overallCopyFormNos.map(formNo => {
+    const rows = overallCopyFormNos.map(formNo => {
       const form = FORMS.find(f => f.formNo === formNo);
       if (!form) return null;
       const baseUrl = form.link.split('?')[0];
-      return `${formNo}: ${baseUrl}?operationRef=${cleanOperationRef}`;
+      const url = `${baseUrl}?operationRef=${cleanOperationRef}`;
+      return { code: formNo, name: form.title, url };
     }).filter(Boolean);
 
-    const textToCopy = links.join('\n');
+    const maxCodeLen = Math.max(...rows.map(r => r.code.length));
+    const maxNameLen = Math.max(...rows.map(r => r.name.length));
+
+    const header = `${"Form Code".padEnd(maxCodeLen + 4)}${"Form Name".padEnd(maxNameLen + 4)}Link`;
+    const separator = `${"-".repeat(maxCodeLen + 4)}${"-".repeat(maxNameLen + 4)}${"-".repeat(4)}`;
+    const lines = rows.map(r =>
+      `${r.code.padEnd(maxCodeLen + 4)}${r.name.padEnd(maxNameLen + 4)}${r.url}`
+    );
+
+    const textToCopy = [header, separator, ...lines].join('\n');
 
     try {
       await navigator.clipboard.writeText(textToCopy);
