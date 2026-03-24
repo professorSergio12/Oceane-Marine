@@ -5,12 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 
-const MANUAL_FORM_OPTIONS = [
-  { code: "BCP-OFD-03", name: "Business Continuity Plan- Manual" },
-  { code: "MYM-OFD-04", name: "Maintenance and Yards Operations Manual" },
-  { code: "OPM-OFD-01", name: "Operations Procedure Manual" },
-  { code: "QHSE-OFD-02", name: "QHSE Management System Manual" },
-];
+/* Form codes are now fetched dynamically from the API */
 
 const sidebarTabs = [
   {
@@ -93,6 +88,22 @@ export default function ManualFormPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [formCodeOptions, setFormCodeOptions] = useState([]);
+
+  useEffect(() => {
+    const fetchFormCodes = async () => {
+      try {
+        const res = await fetch("/api/operations/form-checklist/manual/form-codes");
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setFormCodeOptions(data.data || []);
+        }
+      } catch {
+        /* form codes will fall back to empty */
+      }
+    };
+    fetchFormCodes();
+  }, []);
 
   useEffect(() => {
     if (editId) {
@@ -132,7 +143,7 @@ export default function ManualFormPage() {
     setForm((prev) => {
       const next = { ...prev, [name]: value };
       if (name === "formCode" && value) {
-        const opt = MANUAL_FORM_OPTIONS.find((o) => o.code === value);
+        const opt = formCodeOptions.find((o) => o.code === value);
         if (opt) next.name = opt.name;
       }
       return next;
@@ -452,6 +463,12 @@ export default function ManualFormPage() {
                 >
                   Manual List
                 </Link>
+                <Link
+                  href="/operations/sts-operations/new/form-checklist/manual/admin"
+                  className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                >
+                  Admin
+                </Link>
               </div>
             </div>
           </header>
@@ -533,7 +550,7 @@ export default function ManualFormPage() {
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-all backdrop-blur-sm"
                     >
                       <option value="">Select form code</option>
-                      {MANUAL_FORM_OPTIONS.map((opt) => (
+                      {formCodeOptions.map((opt) => (
                         <option key={opt.code} value={opt.code}>
                           {opt.code}
                         </option>
@@ -547,8 +564,8 @@ export default function ManualFormPage() {
                   <label className="block text-sm font-medium text-white/90 mb-2">Form Code</label>
                   <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white">
                     {existingRecord.formCode || "—"}
-                    {existingRecord.formCode && MANUAL_FORM_OPTIONS.find((o) => o.code === existingRecord.formCode)?.name && (
-                      <span className="text-white/70"> — {MANUAL_FORM_OPTIONS.find((o) => o.code === existingRecord.formCode).name}</span>
+                    {existingRecord.formCode && formCodeOptions.find((o) => o.code === existingRecord.formCode)?.name && (
+                      <span className="text-white/70"> — {formCodeOptions.find((o) => o.code === existingRecord.formCode).name}</span>
                     )}
                   </p>
                 </div>

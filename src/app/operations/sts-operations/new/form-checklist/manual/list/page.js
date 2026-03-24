@@ -89,13 +89,6 @@ function getYears() {
   return years;
 }
 
-const FORM_CODE_OPTIONS = [
-  { code: "BCP-OFD-03", name: "Business Continuity Plan- Manual" },
-  { code: "MYM-OFD-04", name: "Maintenance and Yards Operations Manual" },
-  { code: "OPM-OFD-01", name: "Operations Procedure Manual" },
-  { code: "QHSE-OFD-02", name: "QHSE Management System Manual" },
-];
-
 export default function ManualListPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -116,6 +109,22 @@ export default function ManualListPage() {
   const [page, setPage] = useState(1);
   const ROWS_PER_PAGE = 8;
   const { setPageLoading } = useOperationsLoading();
+  const [formCodeOptions, setFormCodeOptions] = useState([]);
+
+  useEffect(() => {
+    const fetchFormCodes = async () => {
+      try {
+        const res = await fetch("/api/operations/form-checklist/manual/form-codes");
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setFormCodeOptions(data.data || []);
+        }
+      } catch {
+        /* fall back to empty */
+      }
+    };
+    fetchFormCodes();
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(records.length / ROWS_PER_PAGE));
   const paginatedRecords = records.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
@@ -407,7 +416,7 @@ export default function ManualListPage() {
                 onChange={(e) => setFormCode(e.target.value)}
               >
                 <option value="">All forms</option>
-                {FORM_CODE_OPTIONS.map((opt) => (
+                {formCodeOptions.map((opt) => (
                   <option key={opt.code} value={opt.code}>
                     {opt.code}
                   </option>
@@ -426,6 +435,12 @@ export default function ManualListPage() {
                 className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
               >
                 Manual List
+              </Link>
+              <Link
+                href="/operations/sts-operations/new/form-checklist/manual/admin"
+                className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+              >
+                Admin
               </Link>
             </div>
           </div>
