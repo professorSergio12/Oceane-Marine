@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
   EVALUATION_CATEGORIES,
@@ -110,14 +110,10 @@ export async function generatePoacCrossCompetencyPdf(record) {
 
   const formCode = record.formCode || FORM_CODE_DEFAULT;
   const statusLine = poacCrossStatusForHeader(record);
+  const meta = buildStandardMeta(record, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form No", cellText(formCode)],
-      ["Rev No", cellText(record.revNo || "1.0")],
-      ["Rev Date", cellText(formatDate(record.revDate || record.updatedAt) || "-")],
-      ["Status", cellText(statusLine)],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -416,5 +412,6 @@ export async function generatePoacCrossCompetencyPdf(record) {
     },
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

@@ -42,15 +42,28 @@ import STSEquipmentChecklist from "@/lib/mongodb/models/operation-sts-checklist/
 import STSHourlyQuantityLog from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-015";
 import STSTimesheet from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-018";
 import MooringMasterExpenseSheet from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-029";
+import MasterFeedbackForm from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-020";
+import RecordOfWorkHours from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-023";
 import StsQuotationForm from "@/lib/mongodb/models/operations-form-checklist/StsQuotationForm";
 import Manual from "@/lib/mongodb/models/operations-form-checklist/Manual";
 import InspectionChecklist from "@/lib/mongodb/models/operations-form-checklist/InspectionChecklist";
 import Jpo from "@/lib/mongodb/models/operations-form-checklist/Jpo";
+import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
 
 import Certificate from "@/lib/mongodb/models/pms/Certificate";
+import Equipment from "@/lib/mongodb/models/pms/Equipment";
+import Accessories from "@/lib/mongodb/models/pms/Accessories";
+import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
+import EquipmentTest from "@/lib/mongodb/models/pms/EquipmentTest";
+
+import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
+import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
+import Cid from "@/lib/mongodb/models/hr/Cid";
+import StatutoryCertificate from "@/lib/mongodb/models/hr/StatutoryCertificate";
 
 /**
- * Each entry: formCode, title, model, href, department (QHSE | Operations | PMS), optional revno.
+ * Each entry: formCode, title, model, href, department (QHSE | Operations | PMS | HR), optional revno.
  */
 const REGISTER_ENTRIES = [
   // QHSE
@@ -66,6 +79,7 @@ const REGISTER_ENTRIES = [
   { formCode: "QAF-OFD-038", title: "Training Plan", model: TrainingPlan, href: "/qhse/training/create/plan", department: "QHSE", revno: "1.1" },
   { formCode: "QAF-OFD-039", title: "Training Record", model: TrainingRecord, href: "/qhse/training/create/plan", department: "QHSE", revno: "1.2" },
   { formCode: "QAF-OFD-040", title: "Drill Plan", model: DrillPlan, href: "/qhse/drills/create/plan", department: "QHSE", revno: "1.1" },
+  { formCode: "QAF-OFD-040", title: "Drill Report", model: DrillReport, href: "/qhse/drills/list", department: "QHSE", revno: "1.0" },
   { formCode: "QAF-OFD-043", title: "Supplier Due Diligence Questionnaire", model: SupplierDueDiligence, href: "/qhse/due-diligence-subconstructor/due-diligence-questionnaire/questionnaire-list-admin", department: "QHSE", revno: "1.1" },
   { formCode: "QAF-OFD-048", title: "Audit & Inspection Plan", model: AuditInspectionPlanner, href: "/qhse/audit-inspection-planner/list", department: "QHSE", revno: "2.1" },
   { formCode: "QAF-OFD-049", title: "STS Transfer Location Questionnaire", model: STSTransferLocationQuest, href: "/qhse/forms-checklist/transfer-location-quest/list", department: "QHSE", revno: "1.1" },
@@ -96,10 +110,23 @@ const REGISTER_ENTRIES = [
   { formCode: "OPS-OFD-029", title: "Mooring Master Expense Sheet", model: MooringMasterExpenseSheet, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-029/list", department: "Operations" },
   { formCode: "OPS-OFD-030", title: "STS Job / Advisor Quotation", model: StsQuotationForm, href: "/operations/sts-operations/new/form-checklist/quotations/list", department: "Operations" },
   { formCode: "OPS-OFD-006A", title: "Joint Plan of Operation", model: Jpo, href: "/operations/sts-operations/new/form-checklist/jpo/list", department: "Operations" },
+  { formCode: "OPS-OFD-020", title: "Master's Feedback Form", model: MasterFeedbackForm, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-020/list", department: "Operations" },
+  { formCode: "OPS-OFD-023", title: "Record of Work Hours", model: RecordOfWorkHours, href: "/operations/sts-operations/new/form-checklist/sts-checklist/ops-ofd-023/list", department: "Operations" },
   { formCode: "—", title: "Manuals", model: Manual, href: "/operations/sts-operations/new/form-checklist/manual/list", department: "Operations" },
   { formCode: "—", title: "Inspection Checklist", model: InspectionChecklist, href: "/operations/sts-operations/new/form-checklist/inspection-checklist/list", department: "Operations" },
+  { formCode: "—", title: "STS Operations", model: StsOperation, href: "/operations/sts-operations/new/list", department: "Operations" },
+  { formCode: "—", title: "Ship Compatibility Assessment", model: Compatibility, href: "/operations/sts-operations/new/compatibility/list", department: "Operations" },
   // PMS
   { formCode: "PMS-CERT", title: "Certifications", model: Certificate, href: "/pms/certifications/list", department: "PMS" },
+  { formCode: "—", title: "Primary Equipment Register", model: Equipment, href: "/pms", department: "PMS" },
+  { formCode: "—", title: "Accessories Register", model: Accessories, href: "/pms", department: "PMS" },
+  { formCode: "—", title: "Warehouse Management", model: WarehouseManagement, href: "/pms", department: "PMS" },
+  { formCode: "—", title: "Equipment Testing", model: EquipmentTest, href: "/pms/equipment-testing/form", department: "PMS" },
+  // HR
+  { formCode: "QAF-OFD-046", title: "POAC Certification Matrix", model: PoacMatrix, href: "/hr/poac-matrix", department: "HR" },
+  { formCode: "—", title: "Oil Major Approvals", model: OilMajor, href: "/hr/oil-majors", department: "HR" },
+  { formCode: "—", title: "CID Register", model: Cid, href: "/hr/cid", department: "HR" },
+  { formCode: "—", title: "Statutory Certificates", model: StatutoryCertificate, href: "/hr/statutory-certificates", department: "HR" },
 ];
 
 /** Template filename in public/templates/controlled-register/ for download. Omit entry if no template. */
@@ -142,6 +169,8 @@ const REGISTER_TEMPLATES = {
   "OPS-OFD-015": "OPS-OFD-015.xlsx",
   "OPS-OFD-018": "OPS-OFD-018.docx",
   "OPS-OFD-029": "OPS-OFD-029.xlsx",
+  "OPS-OFD-020": "OPS-OFD-020.docx",
+  "OPS-OFD-023": "OPS-OFD-023.docx",
   "OPS-OFD-030": "OPS-OFD-030.docx",
 };
 

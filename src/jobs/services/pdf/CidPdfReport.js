@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "CID Record";
@@ -49,10 +49,7 @@ export async function generateCidPdf(record) {
 
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Module", "HR / CID"],
-      ["Status", cellText(record.status || "ACTIVE")],
-    ],
+    meta: buildStandardMeta(record, "HR-CID"),
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -104,5 +101,6 @@ export async function generateCidPdf(record) {
     columnStyles: fourCol,
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

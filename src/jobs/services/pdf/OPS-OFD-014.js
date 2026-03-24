@@ -29,7 +29,7 @@ export async function generateOpsOfd014Doc(checklist, fullPath) {
 
     try {
         logoImage = fs.readFileSync(
-            path.join(process.cwd(), "public/image/oceane-marine-docs.png")
+            path.join(process.cwd(), "public/image/pdf_logo.png")
         );
     } catch { }
 
@@ -83,7 +83,7 @@ export async function generateOpsOfd014Doc(checklist, fullPath) {
                                     children: [
                                         new ImageRun({
                                             data: logoImage,
-                                            transformation: { width: 130, height: 65 }
+                                            transformation: { width: 200, height: 100 }
                                         })
                                     ]
                                 })

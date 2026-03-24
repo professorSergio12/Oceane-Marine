@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "SUB-CONTRACTOR AUDIT";
@@ -50,18 +50,10 @@ export async function generateSubContractorAuditPdf(record) {
   const pageH = doc.internal.pageSize.getHeight();
 
   const formCode = record.formCode || FORM_CODE_DEFAULT;
-  const reportDate =
-    record.revisionDate ||
-    record.auditCompletedBy?.signedAt ||
-    record.updatedAt;
+  const meta = buildStandardMeta(record, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form Number", cellText(formCode)],
-      ["Serial Number", cellText(record.serialNumber)],
-      ["Revision No", cellText(record.revisionNo)],
-      ["Date", cellText(formatDate(reportDate) || "-")],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -153,5 +145,6 @@ export async function generateSubContractorAuditPdf(record) {
     ["Signature (text)", cellText(approvedBy.signatureText)],
   ]);
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

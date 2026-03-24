@@ -1,115 +1,149 @@
 import fs from "fs";
 import path from "path";
 
-/** Side margins (mm) */
 export const QHSE_PDF_SIDE_MARGIN_MM = 12;
-
-/**
- * Y position where autoTable body continues on new pages (below logo/title/meta).
- * Must clear header art (~12–48 mm); extra room for a one-line section label on page 1 only.
- */
 export const QHSE_PDF_TABLE_TOP_MM = 58;
 
-function drawPdfMetaLine(doc, x, y, label, value, maxWidth, lineStepMm = 4.8) {
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  const labelPart = `${label}: `;
-  const lw = doc.getTextWidth(labelPart);
-  doc.text(labelPart, x, y);
-  doc.setFont("helvetica", "normal");
-  const restW = Math.max(10, maxWidth - lw);
-  const str = String(value ?? "");
-  const lines = str.trim() === "" ? [""] : doc.splitTextToSize(str, restW);
-  if (lines.length === 0) {
-    return y + lineStepMm;
+const META_ROW_H = 4.25;
+const META_VALUE_GREY = [237, 237, 237];
+const FALLBACK_APPROVED_BY = "JS";
+
+function formatMetaDate(date) {
+  if (!date) return "";
+  try {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  } catch {
+    return "";
   }
-  doc.text(lines[0], x + lw, y);
-  let lastBaseline = y;
-  for (let i = 1; i < lines.length; i++) {
-    lastBaseline += lineStepMm;
-    doc.text(lines[i], x, lastBaseline);
-  }
-  return lastBaseline + lineStepMm + 0.4;
 }
 
 /**
- * Draws logo | form title | meta with outer border + column separators (same as Word).
- * @param {*} doc - jsPDF instance
- * @param {{ formTitle: string, metaPairs: [string, string][] }} params
+ * Build the standard 5-row meta block from a record.
+ * @param {object} record - DB document (formCode, revNo, issueDate, approvedByName, updatedAt, createdAt …)
+ * @param {string} formCodeDefault - Fallback form code for this module
  */
-export function paintQhseFormHeader(doc, { formTitle, metaPairs }) {
+export function buildStandardMeta(record, formCodeDefault) {
+  return {
+    formNo: record.formCode || formCodeDefault || "-",
+    revNo: record.revNo || record.revisionNo || "1.0",
+    issueDate: formatMetaDate(record.issueDate || record.revisionDate || record.updatedAt || record.createdAt),
+    approvedBy: record.approvedByName || FALLBACK_APPROVED_BY,
+  };
+}
+
+/**
+ * Draw logo | form title | 5-row bordered metadata grid.
+ * Stores `doc.__qhsePageRect` so `overlayQhsePageNumbers` can fill in page counts.
+ */
+export function paintQhseFormHeader(doc, { formTitle, meta }) {
   const margin = QHSE_PDF_SIDE_MARGIN_MM;
   const pageW = doc.internal.pageSize.getWidth();
   const contentW = pageW - 2 * margin;
-  const col1 = contentW * 0.3;
-  const col2 = contentW * 0.4;
-  const col3 = contentW * 0.3;
+  const col1 = contentW * 0.25;
+  const col2 = contentW * 0.5;
+  const col3 = contentW * 0.25;
   const rowTop = margin;
 
   let logoBottom = rowTop;
   try {
-    const logoPath = path.join(process.cwd(), "public/image/oceane-marine-docs.png");
-    const buf = fs.readFileSync(logoPath);
-    const logoW = Math.min(48, col1 - 4);
-    const logoH = logoW * 0.5;
-    doc.addImage(
-      buf.toString("base64"),
-      "PNG",
-      margin + (col1 - logoW) / 2,
-      rowTop,
-      logoW,
-      logoH
-    );
-    logoBottom = rowTop + logoH;
+    const buf = fs.readFileSync(path.join(process.cwd(), "public/image/pdf_logo.png"));
+    const logoW = Math.min(40, col1 - 4);
+    const logoH = logoW * 0.55;
+    doc.addImage(buf.toString("base64"), "PNG", margin + (col1 - logoW) / 2, rowTop + 2, logoW, logoH);
+    logoBottom = rowTop + 2 + logoH;
   } catch {
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text("OCEANE", margin + col1 / 2, rowTop + 8, { align: "center" });
-    logoBottom = rowTop + 12;
+    doc.text("OCEANE", margin + col1 / 2, rowTop + 10, { align: "center" });
+    logoBottom = rowTop + 14;
   }
 
   const titleX = margin + col1 + col2 / 2;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  const titleLines = doc.splitTextToSize(formTitle, col2 - 4);
-  let titleY = rowTop + 6;
+  doc.setFontSize(12);
+  doc.setTextColor(0, 0, 0);
+  const titleLines = doc.splitTextToSize(String(formTitle || ""), col2 - 6);
+  let ty = rowTop + 12;
   titleLines.forEach((line) => {
-    doc.text(line, titleX, titleY, { align: "center" });
-    titleY += 5;
+    doc.text(line, titleX, ty, { align: "center" });
+    ty += 5;
   });
-  const titleBottom = titleY;
+  const titleBottom = ty;
 
-  const metaX = margin + col1 + col2 + 2;
-  const metaMaxW = col3 - 4;
-  let metaY = rowTop + 4;
-  const metaLineStepMm = 4.8;
-  for (const [label, val] of metaPairs) {
-    metaY = drawPdfMetaLine(doc, metaX, metaY, label, val, metaMaxW, metaLineStepMm);
-  }
-  const metaBottom = metaY;
+  const metaX = margin + col1 + col2 + 1.5;
+  const metaW = col3 - 3;
+  const labelW = metaW * 0.45;
+  const valW = metaW - labelW;
+  const metaTop = rowTop + 1;
 
-  const headerInnerPaddingBottom = 3;
-  const headerBoxTop = rowTop - 2;
-  const headerBoxBottom =
-    Math.max(logoBottom, titleBottom, metaBottom) + headerInnerPaddingBottom;
-  const headerBoxH = headerBoxBottom - headerBoxTop;
-  const xLeft = margin;
+  const rows = [
+    ["Form No:", meta.formNo],
+    ["Rev.No.", meta.revNo],
+    ["Issue Date:", meta.issueDate],
+    ["Approved by:", meta.approvedBy],
+    ["Page:", null],
+  ];
 
+  doc.setLineWidth(0.2);
   doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.35);
-  doc.rect(xLeft, headerBoxTop, contentW, headerBoxH, "S");
-  const sep1 = xLeft + col1;
-  const sep2 = xLeft + col1 + col2;
-  doc.line(sep1, headerBoxTop, sep1, headerBoxBottom);
-  doc.line(sep2, headerBoxTop, sep2, headerBoxBottom);
+  for (let i = 0; i < 5; i++) {
+    const y = metaTop + i * META_ROW_H;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(metaX, y, labelW, META_ROW_H, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0);
+    doc.text(rows[i][0], metaX + 0.8, y + 2.9);
+    const vx = metaX + labelW;
+    doc.setFillColor(...META_VALUE_GREY);
+    doc.rect(vx, y, valW, META_ROW_H, "FD");
+    doc.setFont("helvetica", "normal");
+    if (rows[i][1] != null) {
+      doc.text(String(rows[i][1]), vx + 0.8, y + 2.9);
+    }
+  }
+  const metaBottom = metaTop + 5 * META_ROW_H;
 
-  return headerBoxBottom;
+  doc.__qhsePageRect = { valX: metaX + labelW, y: metaTop + 4 * META_ROW_H, w: valW, h: META_ROW_H };
+
+  const boxTop = rowTop - 1;
+  const boxBottom = Math.max(logoBottom, titleBottom, metaBottom) + 3;
+  doc.setLineWidth(0.45);
+  doc.setDrawColor(0, 0, 0);
+  doc.rect(margin, boxTop, contentW, boxBottom - boxTop, "S");
+  doc.line(margin + col1, boxTop, margin + col1, boxBottom);
+  doc.line(margin + col1 + col2, boxTop, margin + col1 + col2, boxBottom);
+
+  return boxBottom;
 }
 
 /**
- * Repeats the QHSE header on every physical PDF page (Word-style), without duplicating
+ * Call after all content is rendered to stamp "X of Y" on every page's Page row.
+ */
+export function overlayQhsePageNumbers(doc) {
+  const r = doc.__qhsePageRect;
+  if (!r) return;
+  const total = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    doc.setFillColor(...META_VALUE_GREY);
+    doc.rect(r.valX, r.y, r.w, r.h, "F");
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
+    doc.rect(r.valX, r.y, r.w, r.h, "S");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${p} of ${total}`, r.valX + 0.8, r.y + 2.9);
+  }
+}
+
+/**
+ * Repeats the QHSE header on every physical PDF page, without duplicating
  * on the same page when multiple autoTable() runs.
- * @param {{ formTitle: string, metaPairs: [string, string][] }} params
+ * @param {{ formTitle: string, meta: { formNo, revNo, issueDate, approvedBy } }} params
  */
 export function createQhsePdfHeaderController(params) {
   let lastPhysicalPage = null;
@@ -122,7 +156,6 @@ export function createQhsePdfHeaderController(params) {
     paintQhseFormHeader(doc, params);
   }
 
-  /** After doc.addPage() — paint header on the new page and sync dedupe state */
   function notifyManualNewPage(doc) {
     paintQhseFormHeader(doc, params);
     lastPhysicalPage = doc.getCurrentPageInfo().pageNumber;

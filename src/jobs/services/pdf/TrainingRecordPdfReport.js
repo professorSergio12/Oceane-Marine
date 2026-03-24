@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "Training Record";
@@ -51,13 +51,10 @@ export async function generateTrainingRecordPdf(record) {
   const pageW = doc.internal.pageSize.getWidth();
 
   const formCode = record.formCode || FORM_CODE_DEFAULT;
+  const meta = buildStandardMeta(record, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form No", cellText(formCode)],
-      ["Serial", cellText(record.serialNumber)],
-      ["Status", cellText(record.status || "Draft")],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -148,5 +145,6 @@ export async function generateTrainingRecordPdf(record) {
     columnStyles: attColStyles,
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

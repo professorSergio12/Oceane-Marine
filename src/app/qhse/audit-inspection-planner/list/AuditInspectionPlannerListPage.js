@@ -24,6 +24,7 @@ export default function AuditInspectionPlannerListPage() {
   const [downloadingDocxId, setDownloadingDocxId] = useState(null);
   const [downloadingPdfId, setDownloadingPdfId] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
+  const [bulkDownloading, setBulkDownloading] = useState(false);
 
   const handleArchive = async (item) => {
     if (!confirm("Archive this planner? It will be stored in QHSE Archive (Audit & Inspection Planner).")) return;
@@ -165,6 +166,33 @@ export default function AuditInspectionPlannerListPage() {
     }
   };
 
+  const handleBulkDownloadPdf = async () => {
+    setBulkDownloading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ module: "audit-inspection" });
+      if (year && String(year).trim()) params.append("year", String(year).trim());
+      const res = await fetch(`/api/qhse/bulk-download-pdf?${params.toString()}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to generate PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Audit-Inspection-Planner${year ? `-${year}` : "-All"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchYears = async () => {
       setLoadingYears(true);
@@ -256,6 +284,17 @@ export default function AuditInspectionPlannerListPage() {
                     ))}
                   </select>
                 </div>
+                <button
+                  onClick={handleBulkDownloadPdf}
+                  disabled={bulkDownloading}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50"
+                  title="Download all records as a single PDF"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                  </svg>
+                  {bulkDownloading ? "Generating..." : "Download All PDF"}
+                </button>
               </>
             }
           >

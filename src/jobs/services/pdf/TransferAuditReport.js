@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import {
   Document,
   Packer,
@@ -11,75 +11,16 @@ import {
   TableCell,
   WidthType,
   AlignmentType,
-  VerticalAlign,
   ImageRun,
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 export async function generateTransferAuditReportDoc(report, fullPath) {
-  /* ================= LOAD IMAGES ================= */
-  let logoImage = null;
-  try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
-  } catch {}
+  /* ================= HEADER TABLE ================= */
+  const meta = buildDocxMeta(report, "QAF-OFD-003");
+  const headerTable = buildQhseDocxHeaderTable({ formTitle: "STS TRANSFER AUDIT REPORT", meta });
 
   const reportDate = report.header?.date || report.revisionDate || report.createdAt;
-
-  /* ================= HEADER TABLE (same structure as Base Audit) ================= */
-  const headerTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              logoImage
-                ? new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new ImageRun({
-                        data: logoImage,
-                        transformation: { width: 120, height: 60 },
-                      }),
-                    ],
-                  })
-                : new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [new TextRun("OCEANE")],
-                  }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 40, type: WidthType.PERCENTAGE },
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({
-                    text: "STS TRANSFER AUDIT REPORT",
-                    bold: true,
-                    size: 28,
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            children: [
-              infoLine("Form Number", report.formCode || "QAF-OFD-003"),
-              infoLine("Serial Number", report.serialNumber || ""),
-              infoLine("Version", report.version || ""),
-              infoLine("Date", formatDate(reportDate)),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
 
   /* ================= BASIC INFORMATION TABLE (metadata same style as Base Audit) ================= */
   const basicInfoRows = [
@@ -265,15 +206,6 @@ export async function generateTransferAuditReportDoc(report, fullPath) {
   fs.writeFileSync(fullPath, buffer);
 }
 
-function infoLine(label, value) {
-  return new Paragraph({
-    children: [
-      new TextRun({ text: `${label}: `, bold: true }),
-      new TextRun(value || ""),
-    ],
-  });
-}
-
 function tableCell(text, bold = false) {
   const textValue = text !== null && text !== undefined ? String(text) : "";
   return new TableCell({
@@ -335,16 +267,10 @@ export async function generateTransferAuditReportPdf(report) {
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
 
-  const reportDate = report.header?.date || report.revisionDate || report.createdAt;
-  const metaPairs = [
-    ["Form Number", report.formCode || PDF_FORM_CODE_DEFAULT],
-    ["Serial Number", report.serialNumber || ""],
-    ["Version", report.version || ""],
-    ["Date", formatDate(reportDate)],
-  ];
+  const meta = buildStandardMeta(report, PDF_FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: PDF_FORM_TITLE,
-    metaPairs,
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -531,6 +457,7 @@ export async function generateTransferAuditReportPdf(report) {
     }
   }
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }
 

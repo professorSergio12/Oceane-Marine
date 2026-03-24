@@ -97,7 +97,6 @@ export async function POST(req) {
     for (const field of FILE_UPLOAD_FIELDS) {
       const file = formData.get(field);
       if (file && typeof file !== "string" && file.name && file.size > 0) {
-        // Determine subfolder based on field name
         let subfolder = "chs";
         if (field.startsWith("ms")) subfolder = "ms";
         else if (field === "mooringPlan") subfolder = "mooring-plan";
@@ -105,8 +104,17 @@ export async function POST(req) {
       }
     }
 
-    // Extract text-based file URLs
+    // Handle replacement file uploads for URL-based fields (e.g. jpoFile → jpo)
     for (const field of FILE_URL_FIELDS) {
+      const replacementFile = formData.get(`${field}File`);
+      if (replacementFile && typeof replacementFile !== "string" && replacementFile.name && replacementFile.size > 0) {
+        uploadedFiles[field] = await saveUploadedFile(replacementFile, field);
+      }
+    }
+
+    // Extract text-based file URLs (skip if already set by file upload)
+    for (const field of FILE_URL_FIELDS) {
+      if (uploadedFiles[field]) continue;
       if (body[field] && typeof body[field] === "string" && body[field].trim() !== "") {
         uploadedFiles[field] = body[field].trim();
       }

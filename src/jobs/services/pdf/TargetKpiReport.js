@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 import {
   Document,
   Packer,
@@ -11,8 +10,8 @@ import {
   WidthType,
   AlignmentType,
   VerticalAlign,
-  ImageRun,
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 const FORM_TITLE = "Target KPI";
 const FORM_CODE_DEFAULT = "HSE-001A";
@@ -40,81 +39,9 @@ function cell(text, opts = {}) {
  * @param {string} fullPath - Absolute path to write the .docx file
  */
 export async function generateTargetKpiDoc(record, fullPath) {
-  let logoImage = null;
-  try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
-  } catch {
-    // no logo
-  }
-
-  const formCode = record.formCode || FORM_CODE_DEFAULT;
-  const serialNumber = record.serialNumber ?? "";
+  const meta = buildDocxMeta(record, FORM_CODE_DEFAULT);
+  const headerTable = buildQhseDocxHeaderTable({ formTitle: FORM_TITLE, meta });
   const year = record.year == null ? "" : String(record.year);
-
-  const headerRow = new TableRow({
-    children: [
-      new TableCell({
-        width: { size: 28, type: WidthType.PERCENTAGE },
-        verticalAlign: VerticalAlign.CENTER,
-        children: [
-          logoImage
-            ? new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new ImageRun({
-                    data: logoImage,
-                    transformation: { width: 120, height: 60 },
-                  }),
-                ],
-              })
-            : new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [new TextRun("OCEANE GROUP")],
-              }),
-        ],
-      }),
-      new TableCell({
-        width: { size: 44, type: WidthType.PERCENTAGE },
-        children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: FORM_TITLE,
-                bold: true,
-                size: 24,
-              }),
-            ],
-          }),
-        ],
-      }),
-      new TableCell({
-        width: { size: 28, type: WidthType.PERCENTAGE },
-        children: [
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Form No: ", bold: true }),
-              new TextRun(formCode),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Serial: ", bold: true }),
-              new TextRun(serialNumber),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Year: ", bold: true }),
-              new TextRun(year),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
 
   const rows = Array.isArray(record.rows) ? record.rows : [];
   const tableHeaderRow = new TableRow({
@@ -156,10 +83,7 @@ export async function generateTargetKpiDoc(record, fullPath) {
         },
       },
       children: [
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: [headerRow],
-        }),
+        headerTable,
         new Paragraph({ spacing: { before: 300 } }),
         new Paragraph({
           children: [

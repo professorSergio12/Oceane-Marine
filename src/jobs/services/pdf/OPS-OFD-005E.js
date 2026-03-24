@@ -26,7 +26,7 @@ export async function generateDeclarationOfSeaDoc(declaration, fullPath) {
 
     try {
         logoImage = fs.readFileSync(
-            path.join(process.cwd(), "public/image/oceane-marine-docs.png")
+            path.join(process.cwd(), "public/image/pdf_logo.png")
         );
     } catch { }
 
@@ -97,7 +97,7 @@ export async function generateDeclarationOfSeaDoc(declaration, fullPath) {
                                     children: [
                                         new ImageRun({
                                             data: logoImage,
-                                            transformation: { width: 120, height: 60 },
+                                            transformation: { width: 200, height: 100 },
                                         }),
                                     ],
                                 })
@@ -283,7 +283,7 @@ export async function generateDeclarationOfSeaDoc(declaration, fullPath) {
                                     children: [
                                         new ImageRun({
                                             data: constantHeadingShipSignatureImage,
-                                            transformation: { width: 120, height: 60 },
+                                            transformation: { width: 200, height: 100 },
                                         }),
                                     ],
                                 })
@@ -297,7 +297,7 @@ export async function generateDeclarationOfSeaDoc(declaration, fullPath) {
                                     children: [
                                         new ImageRun({
                                             data: manoeuvringShipSignatureImage,
-                                            transformation: { width: 120, height: 60 },
+                                            transformation: { width: 200, height: 100 },
                                         }),
                                     ],
                                 })

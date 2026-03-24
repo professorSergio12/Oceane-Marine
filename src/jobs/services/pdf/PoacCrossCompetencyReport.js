@@ -1,5 +1,4 @@
 import fs from "fs";
-import path from "path";
 import {
   Document,
   Packer,
@@ -9,15 +8,13 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  AlignmentType,
-  VerticalAlign,
   ImageRun,
 } from "docx";
 import {
   EVALUATION_CATEGORIES,
   POAC_CROSS_DEFAULT_AREAS as DEFAULT_AREAS,
-  poacCrossStatusForHeader,
 } from "./poacCrossCompetencyEvaluationData.js";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 const FORM_TITLE = "POAC Cross Competency Evaluation";
 const FORM_CODE_DEFAULT = "QAF-OFD-009";
@@ -26,71 +23,9 @@ const ROWS_PER_PAGE = 32; // one section ≈ one page so header repeats; first s
 const PAGE_MARGINS = { top: 500, right: 600, bottom: 500, left: 600 };
 const CHECKLIST_CHUNK_SIZE = 22; // rows per checklist table chunk (header + 21 data rows)
 
-function buildHeaderTable(record, currentPage, totalPages, logoImage) {
-  const pageText = totalPages > 1 ? `${currentPage} of ${totalPages}` : "";
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 28, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              logoImage
-                ? new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new ImageRun({
-                        data: logoImage,
-                        transformation: { width: 120, height: 60 },
-                      }),
-                    ],
-                  })
-                : new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [new TextRun("OCEANE GROUP")],
-                  }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 44, type: WidthType.PERCENTAGE },
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({
-                    text: FORM_TITLE,
-                    bold: true,
-                    size: 24,
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 28, type: WidthType.PERCENTAGE },
-            children: [
-              infoLine("Form No", record.formCode || FORM_CODE_DEFAULT),
-              infoLine("Rev No", record.revNo || "1.0"),
-              infoLine("Rev Date", formatDate(record.revDate || record.updatedAt)),
-              infoLine("Status", poacCrossStatusForHeader(record)),
-              ...(pageText ? [infoLine("Page", pageText)] : []),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
-}
-
-function infoLine(label, value) {
-  return new Paragraph({
-    children: [
-      new TextRun({ text: `${label}: `, bold: true }),
-      new TextRun(value ?? ""),
-    ],
-  });
+function buildHeaderTable(record) {
+  const meta = buildDocxMeta(record, FORM_CODE_DEFAULT);
+  return buildQhseDocxHeaderTable({ formTitle: FORM_TITLE, meta });
 }
 
 function cell(text, opts = {}) {
@@ -141,15 +76,6 @@ function getSignatureBuffer(value) {
 }
 
 export async function generatePoacCrossCompetencyDoc(record, fullPath) {
-  let logoImage = null;
-  try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
-  } catch {
-    // no logo
-  }
-
   const blocks = [];
   const firstPageChildren = [];
 
@@ -485,7 +411,7 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
 
   const sections = [];
   let sectionChildren = [
-    buildHeaderTable(record, 1, totalPages, logoImage),
+    buildHeaderTable(record),
     new Paragraph({ spacing: { before: 200 } }),
   ];
   let rowsUsed = 0;
@@ -499,7 +425,7 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
       });
       pageNum++;
       sectionChildren = [
-        buildHeaderTable(record, pageNum, totalPages, logoImage),
+        buildHeaderTable(record),
         new Paragraph({ spacing: { before: 200 } }),
       ];
       rowsUsed = 0;
@@ -522,7 +448,7 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
           {
             properties: { page: { margin: PAGE_MARGINS } },
             children: [
-              buildHeaderTable(record, 1, 1, logoImage),
+              buildHeaderTable(record),
               new Paragraph({ spacing: { before: 200 } }),
             ],
           },

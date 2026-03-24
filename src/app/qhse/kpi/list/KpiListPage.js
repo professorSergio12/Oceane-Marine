@@ -22,6 +22,7 @@ export default function KpiListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [archivingId, setArchivingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [bulkDownloading, setBulkDownloading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,6 +66,33 @@ export default function KpiListPage() {
       setError(err.message || "Failed to archive");
     } finally {
       setArchivingId(null);
+    }
+  };
+
+  const handleBulkDownloadPdf = async () => {
+    setBulkDownloading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ module: "target-kpi" });
+      if (year) params.append("year", String(year));
+      const res = await fetch(`/api/qhse/bulk-download-pdf?${params.toString()}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to generate PDF");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Target-KPI${year ? `-${year}` : "-All"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setBulkDownloading(false);
     }
   };
 
@@ -141,19 +169,32 @@ export default function KpiListPage() {
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           filterChildren={
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                <select
+                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                >
+                  <option value="">All years</option>
+                  {years.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleBulkDownloadPdf}
+                disabled={bulkDownloading}
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50"
+                title="Download all Target KPI records as a single PDF"
               >
-                <option value="">All years</option>
-                {years.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                </svg>
+                {bulkDownloading ? "Generating..." : "Download All PDF"}
+              </button>
+            </>
           }
         >
           {error && (
@@ -183,7 +224,7 @@ export default function KpiListPage() {
                   <thead className="text-xs uppercase tracking-wide text-slate-300 border-b border-white/10">
                     <tr>
                       <th className="px-4 py-3">Form code</th>
-                      <th className="px-4 py-3">Serial</th>
+                      <th cexlassName="px-4 py-3">Serial</th>
                       <th className="px-4 py-3">File name</th>
                       <th className="px-4 py-3 text-right">Actions</th>
                     </tr>

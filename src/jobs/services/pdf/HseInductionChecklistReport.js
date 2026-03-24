@@ -1,6 +1,5 @@
 import fs from "fs";
-import path from "path";
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import {
   Document,
   Packer,
@@ -10,10 +9,9 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  AlignmentType,
-  VerticalAlign,
   ImageRun,
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 // Same question labels as list page (HSE Checklist)
 const hseChecklistLabels = {
@@ -71,68 +69,8 @@ function getSignatureBuffer(value) {
 }
 
 export async function generateHseInductionChecklistDoc(report, fullPath) {
-  let logoImage = null;
-  try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
-  } catch {}
-
-  const reportDate = report.revisionDate || report.dateOfInduction || report.createdAt;
-
-  const headerTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              logoImage
-                ? new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new ImageRun({
-                        data: logoImage,
-                        transformation: { width: 120, height: 60 },
-                      }),
-                    ],
-                  })
-                : new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [new TextRun("OCEANE")],
-                  }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 40, type: WidthType.PERCENTAGE },
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({
-                    text: "HSE INDUCTION CHECKLIST",
-                    bold: true,
-                    size: 28,
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            children: [
-              infoLine("Form Number", report.formNo || report.formCode || "QAF-OFD-008"),
-              infoLine("Serial Number", report.serialNumber || ""),
-              infoLine("Version", report.revisionNo || report.version || ""),
-              infoLine("Date", formatDate(reportDate)),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
+  const meta = buildDocxMeta(report, "QAF-OFD-008");
+  const headerTable = buildQhseDocxHeaderTable({ formTitle: "HSE INDUCTION CHECKLIST", meta });
 
   const basicInfoRows = [
     ["Employee / Contractor Name", report.employeeOrContractorName || ""],
@@ -355,15 +293,6 @@ export async function generateHseInductionChecklistDoc(report, fullPath) {
   fs.writeFileSync(fullPath, buffer);
 }
 
-function infoLine(label, value) {
-  return new Paragraph({
-    children: [
-      new TextRun({ text: `${label}: `, bold: true }),
-      new TextRun(value || ""),
-    ],
-  });
-}
-
 function tableCell(text, bold = false) {
   const textValue = text !== null && text !== undefined ? String(text) : "";
   return new TableCell({
@@ -422,16 +351,10 @@ export async function generateHseInductionChecklistPdf(report) {
   const pageH = doc.internal.pageSize.getHeight();
   const pageW = doc.internal.pageSize.getWidth();
 
-  const reportDate =
-    report.revisionDate || report.dateOfInduction || report.createdAt;
+  const meta = buildStandardMeta(report, PDF_FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: "HSE INDUCTION CHECKLIST",
-    metaPairs: [
-      ["Form Number", report.formNo || report.formCode || PDF_FORM_CODE_DEFAULT],
-      ["Serial Number", report.serialNumber || ""],
-      ["Version", String(report.revisionNo || report.version || "")],
-      ["Date", formatDate(reportDate)],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -695,5 +618,6 @@ export async function generateHseInductionChecklistPdf(report) {
     });
   }
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

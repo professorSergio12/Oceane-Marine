@@ -1010,6 +1010,7 @@ export default function EditOperationPage() {
                 resetKey={formResetKey}
                 defaultValue={operationData?.jpo}
                 externalValue={preStsDocs.jpo}
+                onClear={() => setPreStsDocs((prev) => ({ ...prev, jpo: "" }))}
               />
               <ActionUpload
                 label="Risk Assessment"
@@ -1017,6 +1018,7 @@ export default function EditOperationPage() {
                 resetKey={formResetKey}
                 defaultValue={operationData?.riskAssessment}
                 externalValue={preStsDocs.riskAssessment}
+                onClear={() => setPreStsDocs((prev) => ({ ...prev, riskAssessment: "" }))}
               />
               <UploadPill
                 label="Mooring Plan"
@@ -1670,28 +1672,31 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
   );
 }
 
-function ActionUpload({ label, name, resetKey, defaultValue, externalValue }) {
+function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onClear }) {
   const [fileUrl, setFileUrl] = useState(defaultValue || "");
   const [isAutoFetched, setIsAutoFetched] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState("");
   const inputRef = useRef(null);
-  
+  const fileInputRef = useRef(null);
+
   useEffect(() => {
     if (resetKey === 0 && defaultValue) {
       setFileUrl(defaultValue);
     } else if (resetKey > 0) {
       setFileUrl("");
       setIsAutoFetched(false);
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
+      setUploadedFileName("");
+      if (inputRef.current) inputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, [resetKey, defaultValue]);
 
-  // Update from external auto-fetch (e.g. location-based JPO/Risk Assessment)
   useEffect(() => {
     if (externalValue !== undefined && externalValue !== null && externalValue !== "") {
       setFileUrl(externalValue);
       setIsAutoFetched(true);
+      setUploadedFileName("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } else if (externalValue === "") {
       if (isAutoFetched) {
         setFileUrl(defaultValue || "");
@@ -1704,25 +1709,80 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue }) {
     e.preventDefault();
     setFileUrl("");
     setIsAutoFetched(false);
+    setUploadedFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    onClear?.();
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setUploadedFileName(file.name);
+  };
+
+  const handleClearUpload = (e) => {
+    e.preventDefault();
+    setUploadedFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
     <div className="flex flex-col gap-2">
       <label className="block text-sm font-medium text-white/90">{label}</label>
-      {/* Hidden input to keep value in form */}
-      <input type="hidden" name={name} value={fileUrl} />
 
-      {isAutoFetched && fileUrl ? (
-        /* Auto-fetched: show clean download button only */
+      {!uploadedFileName && (
+        <input type="hidden" name={name} value={fileUrl} />
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        name={`${name}File`}
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+        onChange={handleFileUpload}
+      />
+
+      {uploadedFileName ? (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3">
+            <span className="text-sky-300 text-sm truncate">📄 {uploadedFileName}</span>
+          </div>
+          {fileUrl && (
+            <ActionDownloadIcon
+              onClick={() => window.open(fileUrl, "_blank")}
+              title="Download original"
+              className="!rounded-xl !p-3"
+            />
+          )}
+          <button
+            type="button"
+            onClick={handleClearUpload}
+            className="px-3 py-3 rounded-xl bg-red-500/20 text-red-300 text-sm font-semibold hover:bg-red-500/30 transition"
+            title="Remove uploaded file"
+          >
+            ✕
+          </button>
+        </div>
+      ) : (isAutoFetched || defaultValue) && fileUrl ? (
         <div className="flex items-center gap-2">
           <div className="flex-1 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3">
-            <span className="text-emerald-300 text-sm">✓ File linked from location</span>
+            <span className="text-emerald-300 text-sm">
+              {isAutoFetched ? "✓ File linked from location" : "✓ Existing file"}
+            </span>
           </div>
           <ActionDownloadIcon
             onClick={() => fileUrl && window.open(fileUrl, "_blank")}
             title="Open or download"
             className="!rounded-xl !p-3"
           />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-3 rounded-xl bg-sky-500/20 text-sky-300 text-xs font-semibold hover:bg-sky-500/30 transition whitespace-nowrap"
+            title="Upload replacement file"
+          >
+            ↑ Replace
+          </button>
           <button
             type="button"
             onClick={handleClear}
@@ -1733,7 +1793,6 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue }) {
           </button>
         </div>
       ) : (
-        /* Manual entry */
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}

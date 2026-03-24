@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "AUDITS & INSPECTION PLANNER";
@@ -68,14 +68,10 @@ export async function generateAuditInspectionPlannerPdf(record) {
 
   const formCode = record.formCode || FORM_CODE_DEFAULT;
   const reportDate = record.issueDate || record.updatedAt;
+  const meta = buildStandardMeta(record, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form Number", cellText(formCode)],
-      ["Serial Number", cellText(record.serialNumber)],
-      ["Version", cellText(record.version)],
-      ["Issue Date", cellText(formatDate(reportDate) || "-")],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -129,6 +125,7 @@ export async function generateAuditInspectionPlannerPdf(record) {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(9);
     doc.text("No categories defined for this planner.", m, y);
+    overlayQhsePageNumbers(doc);
     return Buffer.from(doc.output("arraybuffer"));
   }
 
@@ -156,5 +153,6 @@ export async function generateAuditInspectionPlannerPdf(record) {
     y = doc.lastAutoTable.finalY + 10;
   }
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

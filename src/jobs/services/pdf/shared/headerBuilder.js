@@ -27,7 +27,7 @@ export function buildHeaderTable(formData, currentPage, totalPages, formTitle) {
     let logoImage = null;
     try {
         logoImage = fs.readFileSync(
-            path.join(process.cwd(), "public/image/oceane-marine-docs.png")
+            path.join(process.cwd(), "public/image/pdf_logo.png")
         );
     } catch (err) {
         console.error("Logo not found:", err.message);
@@ -93,7 +93,7 @@ export function buildHeaderTable(formData, currentPage, totalPages, formTitle) {
                                     children: [
                                         new ImageRun({
                                             data: logoImage,
-                                            transformation: { width: 110, height: 55 }
+                                            transformation: { width: 200, height: 100 }
                                         })
                                     ]
                                 })

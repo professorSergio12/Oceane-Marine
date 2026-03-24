@@ -47,6 +47,7 @@ export default function BestPracticeListPage() {
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [bulkDownloading, setBulkDownloading] = useState(false);
 
   // Fetch available years
   useEffect(() => {
@@ -156,6 +157,26 @@ export default function BestPracticeListPage() {
     }
   };
 
+  const handleBulkDownloadPdf = async () => {
+    setBulkDownloading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ module: "best-practice" });
+      if (year !== "" && year != null) params.append("year", String(year));
+      const res = await fetch(`/api/qhse/bulk-download-pdf?${params.toString()}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to generate PDF");
+      }
+      const blob = await res.blob();
+      saveAs(blob, `Best-Practices${year ? `-${year}` : "-All"}.pdf`);
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this best practice entry? This cannot be undone.")) return;
     setDeletingId(id);
@@ -214,27 +235,40 @@ export default function BestPracticeListPage() {
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             filterChildren={
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year === null || year === undefined ? "" : year}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setYear(v === "" ? "" : Number(v));
-                  }}
-                  disabled={loadingYears}
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                  <select
+                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                    value={year === null || year === undefined ? "" : year}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setYear(v === "" ? "" : Number(v));
+                    }}
+                    disabled={loadingYears}
+                  >
+                    <option value="">All years</option>
+                    {loadingYears ? (
+                      <option disabled>Loading…</option>
+                    ) : (
+                      availableYears.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <button
+                  onClick={handleBulkDownloadPdf}
+                  disabled={bulkDownloading}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50"
+                  title="Download all records as a single PDF"
                 >
-                  <option value="">All years</option>
-                  {loadingYears ? (
-                    <option disabled>Loading…</option>
-                  ) : (
-                    availableYears.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))
-                  )}
-                </select>
-              </div>
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                  </svg>
+                  {bulkDownloading ? "Generating..." : "Download All PDF"}
+                </button>
+              </>
             }
           >
             {error && (

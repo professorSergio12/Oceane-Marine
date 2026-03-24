@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "MANAGEMENT OF CHANGE";
@@ -69,14 +69,10 @@ export async function generateMOCManagementChangePdf(moc) {
   const pageH = doc.internal.pageSize.getHeight();
 
   const formCode = moc.formCode || FORM_CODE_DEFAULT;
+  const meta = buildStandardMeta(moc, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form Number", cellText(formCode)],
-      ["Serial Number", cellText(moc.serialNumber)],
-      ["Date", cellText(formatDate(moc.initiationDate || moc.createdAt) || "-")],
-      ["Status", cellText(moc.status)],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -282,5 +278,6 @@ export async function generateMOCManagementChangePdf(moc) {
     });
   }
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

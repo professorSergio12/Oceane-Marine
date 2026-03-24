@@ -114,22 +114,28 @@ export async function PUT(req, { params }) {
     for (const field of FILE_UPLOAD_FIELDS) {
       const file = formData.get(field);
       if (file && typeof file !== "string" && file.name && file.size > 0) {
-        // New file uploaded — determine subfolder
         let subfolder = "chs";
         if (field.startsWith("ms")) subfolder = "ms";
         else if (field === "mooringPlan") subfolder = "mooring-plan";
         uploadedFiles[field] = await saveUploadedFile(file, subfolder);
       } else if (body[`${field}_existing`] && body[`${field}_existing`].trim() !== "") {
-        // Keep existing file path from hidden input
         uploadedFiles[field] = body[`${field}_existing`].trim();
       } else if (existing[field]) {
-        // Fallback: keep whatever was in the DB
         uploadedFiles[field] = existing[field];
       }
     }
 
-    // Extract text-based file URLs
+    // Handle replacement file uploads for URL-based fields (e.g. jpoFile → jpo)
     for (const field of FILE_URL_FIELDS) {
+      const replacementFile = formData.get(`${field}File`);
+      if (replacementFile && typeof replacementFile !== "string" && replacementFile.name && replacementFile.size > 0) {
+        uploadedFiles[field] = await saveUploadedFile(replacementFile, field);
+      }
+    }
+
+    // Extract text-based file URLs (skip if already set by file upload)
+    for (const field of FILE_URL_FIELDS) {
+      if (uploadedFiles[field]) continue;
       if (body[field] && typeof body[field] === "string" && body[field].trim() !== "") {
         uploadedFiles[field] = body[field].trim();
       }

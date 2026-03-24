@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import {
   Document,
@@ -11,16 +9,15 @@ import {
   TableCell,
   WidthType,
   AlignmentType,
-  VerticalAlign,
   BorderStyle,
-  ImageRun,
 } from "docx";
 import { connectDB } from "@/lib/config/connection";
 import BestPractice from "@/lib/mongodb/models/qhse-best-practices/BestPractice";
 import { getQhseFormCode } from "@/lib/constants/qhse-form-codes";
-
-const REV_NO = "1.0";
-const APPROVED_BY = "JS";
+import {
+  buildQhseDocxHeaderTable,
+  buildDocxMeta,
+} from "@/jobs/services/pdf/shared/qhseDocxHeader.js";
 
 function formatDate(date) {
   if (!date) return "—";
@@ -95,214 +92,12 @@ export async function GET(req, { params }) {
       );
     }
 
-    let logoImage = null;
-    try {
-      logoImage = fs.readFileSync(
-        path.join(process.cwd(), "public/image/image.png")
-      );
-    } catch (err) {
-      try {
-        logoImage = fs.readFileSync(
-          path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-        );
-      } catch (e) {
-        console.error("Logo not found:", e.message);
-      }
-    }
-
     const formCode = practice.formCode || getQhseFormCode("BEST_PRACTICE") || "QAF-BP";
-    const revDate = formatDate(practice.eventDate || practice.createdAt);
 
-    const formDetailsTable = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: {
-        top: makeBorder(),
-        bottom: makeBorder(),
-        left: makeBorder(),
-        right: makeBorder(),
-        insideHorizontal: makeBorder(),
-        insideVertical: makeBorder(),
-      },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 60, right: 24 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: "Form No:", size: 18 })],
-                }),
-              ],
-            }),
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 24, right: 60 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: formCode, size: 20 })],
-                }),
-              ],
-            }),
-          ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 60, right: 24 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: "Rev. No.:", size: 18 })],
-                }),
-              ],
-            }),
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 24, right: 60 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: REV_NO, size: 18 })],
-                }),
-              ],
-            }),
-          ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 60, right: 24 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: "Rev Date:", size: 18 })],
-                }),
-              ],
-            }),
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 24, right: 60 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: revDate, size: 20 })],
-                }),
-              ],
-            }),
-          ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 60, right: 24 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: "Approved by:", size: 18 })],
-                }),
-              ],
-            }),
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 24, right: 60 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: APPROVED_BY, size: 18 })],
-                }),
-              ],
-            }),
-          ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 60, right: 24 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: "Page:", size: 18 })],
-                }),
-              ],
-            }),
-            new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              margins: { top: 24, bottom: 24, left: 24, right: 60 },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: "1 of 1", size: 18 })],
-                }),
-              ],
-            }),
-          ],
-        }),
-      ],
-    });
-
-    const headerTable = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: {
-        top: makeBorder(),
-        bottom: makeBorder(),
-        left: makeBorder(),
-        right: makeBorder(),
-        insideHorizontal: makeBorder(),
-        insideVertical: makeBorder(),
-      },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 25, type: WidthType.PERCENTAGE },
-              verticalAlign: VerticalAlign.CENTER,
-              margins: { top: 48, bottom: 48, left: 80, right: 40 },
-              children: [
-                logoImage
-                  ? new Paragraph({
-                      alignment: AlignmentType.CENTER,
-                      children: [
-                        new ImageRun({
-                          data: logoImage,
-                          transformation: { width: 120, height: 52 },
-                        }),
-                      ],
-                    })
-                  : new Paragraph({
-                      alignment: AlignmentType.CENTER,
-                      children: [
-                        new TextRun({
-                          text: "OCEANE GROUP SHIP-TO-SHIP TRANSFER",
-                          bold: true,
-                          size: 14,
-                        }),
-                      ],
-                    }),
-              ],
-            }),
-            new TableCell({
-              width: { size: 45, type: WidthType.PERCENTAGE },
-              verticalAlign: VerticalAlign.CENTER,
-              margins: { top: 48, bottom: 48, left: 40, right: 40 },
-              children: [
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  children: [
-                    new TextRun({
-                      text: "BEST PRACTICES",
-                      bold: true,
-                      size: 22,
-                    }),
-                  ],
-                }),
-              ],
-            }),
-            new TableCell({
-              width: { size: 30, type: WidthType.PERCENTAGE },
-              verticalAlign: VerticalAlign.CENTER,
-              margins: { top: 0, bottom: 0, left: 0, right: 0 },
-              children: [formDetailsTable],
-            }),
-          ],
-        }),
-      ],
+    const meta = buildDocxMeta(practice, "QAF-BP");
+    const headerTable = buildQhseDocxHeaderTable({
+      formTitle: "BEST PRACTICES",
+      meta,
     });
 
     const recordDetailsTable = new Table({

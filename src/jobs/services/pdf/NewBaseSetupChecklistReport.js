@@ -1,6 +1,5 @@
 import fs from "fs";
-import path from "path";
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
   Document,
@@ -11,80 +10,15 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  AlignmentType,
-  VerticalAlign,
-  ImageRun,
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 const FORM_TITLE = "NEW BASE SETUP CHECKLIST";
 const FORM_CODE_DEFAULT = "QAF-OFD-051";
 
-function buildNewBaseSetupHeaderTable(record, currentPage, totalPages, logoImage) {
-  const reportDate = record.date || record.uploadedAt;
-  const pageText = totalPages > 1 ? `${currentPage} of ${totalPages}` : "";
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              logoImage
-                ? new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new ImageRun({
-                        data: logoImage,
-                        transformation: { width: 120, height: 60 },
-                      }),
-                    ],
-                  })
-                : new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [new TextRun("OCEANE")],
-                  }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 40, type: WidthType.PERCENTAGE },
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({
-                    text: FORM_TITLE,
-                    bold: true,
-                    size: 28,
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            children: [
-              infoLine("Form Number", record.formCode || FORM_CODE_DEFAULT),
-              infoLine("Serial Number", record.serialNumber || ""),
-              infoLine("Version", record.version || ""),
-              infoLine("Date", formatDate(reportDate)),
-              ...(pageText ? [infoLine("Page", pageText)] : []),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
-}
-
-function infoLine(label, value) {
-  return new Paragraph({
-    children: [
-      new TextRun({ text: `${label}: `, bold: true }),
-      new TextRun(value ?? ""),
-    ],
-  });
+function buildNewBaseSetupHeaderTable(record) {
+  const meta = buildDocxMeta(record, FORM_CODE_DEFAULT);
+  return buildQhseDocxHeaderTable({ formTitle: FORM_TITLE, meta });
 }
 
 function tableCell(text, bold = false) {
@@ -120,13 +54,6 @@ function formatDate(date) {
  * @param {string} fullPath - Output file path
  */
 export async function generateNewBaseSetupChecklistDoc(record, fullPath) {
-  let logoImage = null;
-  try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
-  } catch {}
-
   const basicInfoRows = [
     ["Base Name", record.baseName ?? ""],
     ["Date", formatDate(record.date)],
@@ -152,7 +79,7 @@ export async function generateNewBaseSetupChecklistDoc(record, fullPath) {
   const pageMargins = { top: 500, right: 600, bottom: 500, left: 600 };
 
   const sectionChildren = [
-    buildNewBaseSetupHeaderTable(record, 1, totalPages, logoImage),
+    buildNewBaseSetupHeaderTable(record),
     new Paragraph({ spacing: { before: 200 } }),
     new Paragraph({
       children: [new TextRun({ text: "BASIC INFORMATION", bold: true, size: 24 })],
@@ -190,15 +117,10 @@ export async function generateNewBaseSetupChecklistPdf(record) {
 
   const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
 
-  const reportDate = record.date || record.uploadedAt;
+  const meta = buildStandardMeta(record, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form Number", record.formCode || FORM_CODE_DEFAULT],
-      ["Serial Number", record.serialNumber || ""],
-      ["Version", String(record.version || "")],
-      ["Date", formatDate(reportDate)],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -258,5 +180,6 @@ export async function generateNewBaseSetupChecklistPdf(record) {
     },
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

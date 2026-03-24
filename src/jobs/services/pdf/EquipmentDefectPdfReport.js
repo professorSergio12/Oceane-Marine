@@ -1,8 +1,6 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
-const REV_NO = "1.0";
-const APPROVED_BY = "JS";
 const FORM_TITLE = "DEFECTS LIST";
 const FORM_CODE_DEFAULT = "QAF-OFD-025";
 
@@ -46,17 +44,10 @@ export async function generateEquipmentDefectPdf(defect) {
   const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
 
   const formCode = defect.formCode || FORM_CODE_DEFAULT;
-  const revDate =
-    formatDate(defect.targetDate || defect.createdAt) || "-";
-
+  const meta = buildStandardMeta(defect, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form No", cellText(formCode)],
-      ["Rev. No.", REV_NO],
-      ["Rev Date", cellText(revDate)],
-      ["Approved by", APPROVED_BY],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -99,5 +90,6 @@ export async function generateEquipmentDefectPdf(defect) {
     },
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

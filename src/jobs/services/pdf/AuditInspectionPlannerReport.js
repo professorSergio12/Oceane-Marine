@@ -1,5 +1,4 @@
 import fs from "fs";
-import path from "path";
 import {
   Document,
   Packer,
@@ -9,82 +8,17 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  AlignmentType,
-  VerticalAlign,
-  ImageRun,
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 const FORM_TITLE = "AUDITS & INSPECTION PLANNER";
 const FORM_CODE_DEFAULT = "QAF-OFD-048";
 const MAX_PAGES = 3;
 const PAGE_MARGINS = { top: 500, right: 600, bottom: 500, left: 600 };
 
-function buildHeaderTable(record, currentPage, totalPages, logoImage) {
-  const reportDate = record.issueDate || record.updatedAt;
-  const pageText = totalPages > 1 ? `${currentPage} of ${totalPages}` : "";
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              logoImage
-                ? new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new ImageRun({
-                        data: logoImage,
-                        transformation: { width: 120, height: 60 },
-                      }),
-                    ],
-                  })
-                : new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [new TextRun("OCEANE")],
-                  }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 40, type: WidthType.PERCENTAGE },
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({
-                    text: FORM_TITLE,
-                    bold: true,
-                    size: 24,
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            children: [
-              infoLine("Form Number", record.formCode || FORM_CODE_DEFAULT),
-              infoLine("Serial Number", record.serialNumber || ""),
-              infoLine("Version", record.version || ""),
-              infoLine("Issue Date", formatDate(reportDate)),
-              ...(pageText ? [infoLine("Page", pageText)] : []),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
-}
-
-function infoLine(label, value) {
-  return new Paragraph({
-    children: [
-      new TextRun({ text: `${label}: `, bold: true }),
-      new TextRun(value ?? ""),
-    ],
-  });
+function buildHeaderTable(record) {
+  const meta = buildDocxMeta(record, FORM_CODE_DEFAULT);
+  return buildQhseDocxHeaderTable({ formTitle: FORM_TITLE, meta });
 }
 
 function tableCell(text, bold = false) {
@@ -121,13 +55,6 @@ function sectionTitle(text) {
 }
 
 export async function generateAuditInspectionPlannerDoc(record, fullPath) {
-  let logoImage = null;
-  try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
-  } catch {}
-
   const categories = record.categories || [];
   const blocks = [];
 
@@ -177,7 +104,7 @@ export async function generateAuditInspectionPlannerDoc(record, fullPath) {
 
   const sections = [];
   let sectionChildren = [
-    buildHeaderTable(record, 1, totalPages, logoImage),
+    buildHeaderTable(record),
     new Paragraph({ spacing: { before: 200 } }),
   ];
   let rowsUsed = 0;
@@ -191,7 +118,7 @@ export async function generateAuditInspectionPlannerDoc(record, fullPath) {
       });
       pageNum++;
       sectionChildren = [
-        buildHeaderTable(record, pageNum, totalPages, logoImage),
+        buildHeaderTable(record),
         new Paragraph({ spacing: { before: 200 } }),
       ];
       rowsUsed = 0;
@@ -211,7 +138,7 @@ export async function generateAuditInspectionPlannerDoc(record, fullPath) {
     sections: sections.length ? sections : [{
       properties: { page: { margin: PAGE_MARGINS } },
       children: [
-        buildHeaderTable(record, 1, 1, logoImage),
+        buildHeaderTable(record),
         new Paragraph({ spacing: { before: 200 } }),
       ],
     }],

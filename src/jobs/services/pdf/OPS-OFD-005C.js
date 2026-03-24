@@ -27,7 +27,7 @@ export async function generateOpsOfd005CDoc(checklist, fullPath) {
 
     try {
         logoImage = fs.readFileSync(
-            path.join(process.cwd(), "public/image/oceane-marine-docs.png")
+            path.join(process.cwd(), "public/image/pdf_logo.png")
         );
     } catch { }
 
@@ -51,7 +51,7 @@ export async function generateOpsOfd005CDoc(checklist, fullPath) {
                                     children: [
                                         new ImageRun({
                                             data: logoImage,
-                                            transformation: { width: 120, height: 60 }
+                                            transformation: { width: 200, height: 100 }
                                         })
                                     ]
                                 })

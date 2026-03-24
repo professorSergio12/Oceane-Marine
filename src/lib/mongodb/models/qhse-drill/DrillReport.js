@@ -91,6 +91,15 @@ const DrillReportSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
+    /** Revision: 1.0 = new; 1.1, 1.2, ... on update. */
+    revNo: { type: String, default: "1.0" },
+
+    /** Date the form was issued / last revised */
+    issueDate: { type: Date },
+
+    /** Display name / initials of approver (for PDF/Word header) */
+    approvedByName: { type: String, trim: true },
   },
   { timestamps: true }
 );
@@ -102,6 +111,12 @@ DrillReportSchema.pre("save", async function () {
     }
     if (!this.serialNumber) {
       this.serialNumber = await getNextYearwiseSerial("DRILL_REPORT");
+    }
+    if (!this.revNo) {
+      this.revNo = "1.0";
+    }
+    if (!this.issueDate) {
+      this.issueDate = new Date();
     }
   }
 });

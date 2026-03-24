@@ -1,6 +1,5 @@
 import fs from "fs";
-import path from "path";
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
     Document,
@@ -11,80 +10,16 @@ import {
     TableRow,
     TableCell,
     WidthType,
-    AlignmentType,
-    VerticalAlign,
-    ImageRun
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 const PDF_FORM_CODE_DEFAULT = "QAF-OFD-049";
 const PDF_FORM_TITLE = "TRANSFER LOCATION QUESTIONNAIRE";
 
 export async function generateTransferLocationQuestDoc(quest, fullPath) {
-    /* ================= LOAD IMAGES ================= */
-    let logoImage = null;
-    try {
-        logoImage = fs.readFileSync(
-            path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-        );
-    } catch { }
-
     /* ================= HEADER TABLE ================= */
-    const headerTable = new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-            new TableRow({
-                children: [
-                    /* LOGO CELL */
-                    new TableCell({
-                        width: { size: 30, type: WidthType.PERCENTAGE },
-                        verticalAlign: VerticalAlign.CENTER,
-                        children: [
-                            logoImage
-                                ? new Paragraph({
-                                    alignment: AlignmentType.CENTER,
-                                    children: [
-                                        new ImageRun({
-                                            data: logoImage,
-                                            transformation: { width: 120, height: 60 }
-                                        })
-                                    ]
-                                })
-                                : new Paragraph({
-                                    alignment: AlignmentType.CENTER,
-                                    children: [new TextRun("OCEANE")]
-                                })
-                        ]
-                    }),
-                    /* TITLE CELL */
-                    new TableCell({
-                        width: { size: 40, type: WidthType.PERCENTAGE },
-                        children: [
-                            new Paragraph({
-                                alignment: AlignmentType.CENTER,
-                                children: [
-                                    new TextRun({
-                                        text: "TRANSFER LOCATION QUESTIONNAIRE",
-                                        bold: true,
-                                        size: 28
-                                    })
-                                ]
-                            })
-                        ]
-                    }),
-                    /* DOC INFO CELL */
-                    new TableCell({
-                        width: { size: 30, type: WidthType.PERCENTAGE },
-                        children: [
-                            infoLine("Form Number", quest.formCode || "QAF-OFD-049"),
-                            infoLine("Serial Number", quest.serialNumber || ""),
-                            infoLine("Version", quest.version || ""),
-                            infoLine("Date", formatDate(quest.date || quest.createdAt))
-                        ]
-                    })
-                ]
-            })
-        ]
-    });
+    const meta = buildDocxMeta(quest, "QAF-OFD-049");
+    const headerTable = buildQhseDocxHeaderTable({ formTitle: "TRANSFER LOCATION QUESTIONNAIRE", meta });
 
     /* ================= BASIC INFORMATION TABLE ================= */
     const basicInfoRows = [
@@ -156,15 +91,10 @@ export async function generateTransferLocationQuestPdf(quest) {
 
     const doc = new JsPDF({ orientation: "p", unit: "mm", format: "a4" });
 
-    const reportDate = quest.date || quest.createdAt;
+    const meta = buildStandardMeta(quest, PDF_FORM_CODE_DEFAULT);
     const headerCtl = createQhsePdfHeaderController({
         formTitle: PDF_FORM_TITLE,
-        metaPairs: [
-            ["Form Number", quest.formCode || PDF_FORM_CODE_DEFAULT],
-            ["Serial Number", quest.serialNumber || ""],
-            ["Version", String(quest.version || "")],
-            ["Date", formatDate(reportDate)],
-        ],
+        meta,
     });
     const tableMargins = headerCtl.getAutoTableMargins();
     const m = headerCtl.sideMarginMm;
@@ -211,19 +141,11 @@ export async function generateTransferLocationQuestPdf(quest) {
         },
     });
 
+    overlayQhsePageNumbers(doc);
     return Buffer.from(doc.output("arraybuffer"));
 }
 
 /* HELPERS */
-function infoLine(label, value) {
-    return new Paragraph({
-        children: [
-            new TextRun({ text: `${label}: `, bold: true }),
-            new TextRun(value || "")
-        ]
-    });
-}
-
 function tableCell(text, bold = false) {
     const textValue = text !== null && text !== undefined ? String(text) : "";
     return new TableCell({

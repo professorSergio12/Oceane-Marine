@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "Statutory Certificate";
@@ -49,11 +49,7 @@ export async function generateStatutoryCertificatePdf(record) {
 
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Module", "HR / Statutory Certificates"],
-      ["Status", cellText(record.status || "ACTIVE")],
-      ["Year", cellText(record.year)],
-    ],
+    meta: buildStandardMeta(record, "HR-STAT"),
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -110,5 +106,6 @@ export async function generateStatutoryCertificatePdf(record) {
     columnStyles: fourCol,
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

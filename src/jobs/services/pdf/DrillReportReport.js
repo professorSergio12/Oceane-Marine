@@ -12,11 +12,33 @@ import {
   AlignmentType,
   VerticalAlign,
   ImageRun,
+  BorderStyle,
+  SimpleField,
 } from "docx";
 
 const FORM_TITLE = "Drill Report";
-const FORM_CODE_DEFAULT = "";
-const BEIGE_FILL = "E8DCC4";
+const FORM_CODE_DEFAULT = "QAF-OFD-040";
+
+const FALLBACK_REV = "1.0";
+const FALLBACK_APPROVED_BY = "JS";
+
+const THIN_BORDER = {
+  top: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+  bottom: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+  left: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+  right: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+};
+
+const HEADER_BORDER = {
+  top: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+  bottom: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+  left: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+  right: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+};
+
+const META_GREY = "EDEDED";
+const FONT_SM = 18;
+const FONT_XS = 16;
 
 function formatDate(date) {
   if (!date) return "";
@@ -25,7 +47,7 @@ function formatDate(date) {
     if (Number.isNaN(d.getTime())) return "";
     return d.toLocaleDateString("en-GB", {
       day: "2-digit",
-      month: "short",
+      month: "long",
       year: "numeric",
     });
   } catch {
@@ -33,181 +55,308 @@ function formatDate(date) {
   }
 }
 
-function cell(text, opts = {}) {
-  const { bold = false, shading = null, columnSpan } = opts;
-  const textValue = text !== null && text !== undefined ? String(text) : "";
+function formatMetaDate(date) {
+  if (!date) return "";
+  try {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+function labelCell(text, opts = {}) {
+  const { rowSpan, columnSpan } = opts;
   return new TableCell({
-    shading: shading ? { fill: shading } : undefined,
+    borders: THIN_BORDER,
+    rowSpan,
     columnSpan,
+    verticalAlign: VerticalAlign.CENTER,
     children: [
       new Paragraph({
-        children: [new TextRun({ text: textValue, bold })],
+        children: [new TextRun({ text: String(text), bold: true, size: FONT_SM })],
       }),
     ],
   });
 }
 
+function valueCell(text, opts = {}) {
+  const { rowSpan, columnSpan } = opts;
+  const children = [];
+  const val = text !== null && text !== undefined ? String(text) : "";
+  if (val.includes("\n")) {
+    val.split("\n").forEach((line, i) => {
+      if (i > 0) children.push(new TextRun({ break: 1, size: FONT_SM }));
+      children.push(new TextRun({ text: line, size: FONT_SM }));
+    });
+  } else {
+    children.push(new TextRun({ text: val, size: FONT_SM }));
+  }
+  return new TableCell({
+    borders: THIN_BORDER,
+    rowSpan,
+    columnSpan,
+    verticalAlign: VerticalAlign.CENTER,
+    children: [new Paragraph({ children })],
+  });
+}
+
+function metaLabelCell(text) {
+  return new TableCell({
+    borders: THIN_BORDER,
+    shading: { fill: "FFFFFF" },
+    width: { size: 45, type: WidthType.PERCENTAGE },
+    children: [
+      new Paragraph({
+        children: [new TextRun({ text, bold: true, size: FONT_XS })],
+      }),
+    ],
+  });
+}
+
+function metaValueCell(text) {
+  return new TableCell({
+    borders: THIN_BORDER,
+    shading: { fill: META_GREY },
+    width: { size: 55, type: WidthType.PERCENTAGE },
+    children: [
+      new Paragraph({
+        children: [new TextRun({ text, size: FONT_XS })],
+      }),
+    ],
+  });
+}
+
+function metaPageCell() {
+  return new TableCell({
+    borders: THIN_BORDER,
+    shading: { fill: META_GREY },
+    width: { size: 55, type: WidthType.PERCENTAGE },
+    children: [
+      new Paragraph({
+        children: [
+          new SimpleField("PAGE", "1"),
+          new TextRun({ text: " of ", size: FONT_XS }),
+          new SimpleField("NUMPAGES", "1"),
+        ],
+      }),
+    ],
+  });
+}
+
+function sectionLabel(text) {
+  return new Paragraph({
+    spacing: { before: 250, after: 100 },
+    children: [new TextRun({ text, bold: true, size: 20, underline: { type: "single" } })],
+  });
+}
+
 /**
  * Generate Word document for a Drill Report.
- * @param {object} report - DrillReport document (formCode, serialNumber, drillNo, drillDate, location, drillScenario, participants, incidentProgression, status)
- * @param {string} fullPath - Absolute path to write the .docx file
  */
 export async function generateDrillReportDoc(report, fullPath) {
   let logoImage = null;
   try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
+    logoImage = fs.readFileSync(path.join(process.cwd(), "public/image/pdf_logo.png"));
   } catch {
-    // no logo
+    /* no logo */
   }
 
   const formCode = report.formCode || FORM_CODE_DEFAULT;
-  const serialNumber = report.serialNumber ?? "";
-  const status = report.status ?? "Draft";
+
+  const revNo = report.revNo || FALLBACK_REV;
+  const issueDateStr = formatMetaDate(report.issueDate || report.updatedAt || report.createdAt);
+  const approvedName = report.approvedByName || FALLBACK_APPROVED_BY;
+
+  const metaTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({ children: [metaLabelCell("Form No:"), metaValueCell(formCode)] }),
+      new TableRow({ children: [metaLabelCell("Rev.No."), metaValueCell(revNo)] }),
+      new TableRow({ children: [metaLabelCell("Issue Date:"), metaValueCell(issueDateStr)] }),
+      new TableRow({ children: [metaLabelCell("Approved by:"), metaValueCell(approvedName)] }),
+      new TableRow({ children: [metaLabelCell("Page:"), metaPageCell()] }),
+    ],
+  });
 
   const headerRow = new TableRow({
     children: [
       new TableCell({
-        width: { size: 28, type: WidthType.PERCENTAGE },
+        borders: HEADER_BORDER,
+        width: { size: 25, type: WidthType.PERCENTAGE },
         verticalAlign: VerticalAlign.CENTER,
         children: [
           logoImage
             ? new Paragraph({
                 alignment: AlignmentType.CENTER,
                 children: [
-                  new ImageRun({
-                    data: logoImage,
-                    transformation: { width: 120, height: 60 },
-                  }),
+                  new ImageRun({ data: logoImage, transformation: { width: 200, height: 100 } }),
                 ],
               })
             : new Paragraph({
                 alignment: AlignmentType.CENTER,
-                children: [new TextRun("OCEANE GROUP")],
+                children: [new TextRun({ text: "OCEANE GROUP", bold: true })],
               }),
         ],
       }),
       new TableCell({
-        width: { size: 44, type: WidthType.PERCENTAGE },
+        borders: HEADER_BORDER,
+        width: { size: 45, type: WidthType.PERCENTAGE },
+        verticalAlign: VerticalAlign.CENTER,
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: FORM_TITLE,
-                bold: true,
-                size: 24,
-              }),
-            ],
+            children: [new TextRun({ text: FORM_TITLE, bold: true, size: 32 })],
           }),
         ],
       }),
       new TableCell({
-        width: { size: 28, type: WidthType.PERCENTAGE },
+        borders: HEADER_BORDER,
+        width: { size: 30, type: WidthType.PERCENTAGE },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [metaTable],
+      }),
+    ],
+  });
+
+  const participants = Array.isArray(report.participants) ? report.participants : [];
+  const dateLocation = [formatDate(report.drillDate), report.location].filter(Boolean).join(" / ");
+
+  const generalRows = [
+    new TableRow({
+      children: [labelCell("Drill No."), valueCell(report.drillNo ?? "")],
+    }),
+    new TableRow({
+      children: [labelCell("Drill Date / Location"), valueCell(dateLocation)],
+    }),
+    new TableRow({
+      children: [labelCell("Drill Scenario"), valueCell(report.drillScenario ?? "")],
+    }),
+  ];
+
+  if (participants.length > 0) {
+    participants.forEach((p, idx) => {
+      const participantText = [p.name, p.role].filter(Boolean).join(" \u2013 ");
+      if (idx === 0) {
+        generalRows.push(
+          new TableRow({
+            children: [
+              labelCell("Participants", { rowSpan: participants.length }),
+              valueCell(participantText),
+            ],
+          })
+        );
+      } else {
+        generalRows.push(
+          new TableRow({ children: [valueCell(participantText)] })
+        );
+      }
+    });
+  } else {
+    generalRows.push(
+      new TableRow({ children: [labelCell("Participants"), valueCell("-")] })
+    );
+  }
+
+  const generalTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [3000, 7000],
+    rows: generalRows,
+  });
+
+  const incidentChildren = [];
+  const progText = report.incidentProgression ?? "";
+  if (progText) {
+    const bullets = progText
+      .split(/\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    bullets.forEach((b) => {
+      const line = b.replace(/^[-•]\s*/, "");
+      incidentChildren.push(
+        new Paragraph({
+          bullet: { level: 0 },
+          children: [new TextRun({ text: line, size: FONT_SM })],
+        })
+      );
+    });
+  } else {
+    incidentChildren.push(new Paragraph({ children: [new TextRun({ text: "-", size: FONT_SM })] }));
+  }
+
+  const incidentTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [3000, 7000],
+    rows: [
+      new TableRow({
         children: [
-          new Paragraph({
+          new TableCell({
+            borders: THIN_BORDER,
+            verticalAlign: VerticalAlign.CENTER,
             children: [
-              new TextRun({ text: "Form No: ", bold: true }),
-              new TextRun(formCode || "-"),
+              new Paragraph({
+                children: [new TextRun({ text: "Sequence of events", bold: true, size: FONT_SM })],
+              }),
             ],
           }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Serial: ", bold: true }),
-              new TextRun(serialNumber),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Status: ", bold: true }),
-              new TextRun(status),
-            ],
+          new TableCell({
+            borders: THIN_BORDER,
+            children: incidentChildren,
           }),
         ],
       }),
     ],
   });
 
-  const infoRows = [
-    new TableRow({
-      children: [
-        cell("Drill No.", { shading: BEIGE_FILL }),
-        cell(report.drillNo ?? ""),
-        cell("Drill Date", { shading: BEIGE_FILL }),
-        cell(formatDate(report.drillDate)),
-      ],
-    }),
-    new TableRow({
-      children: [
-        cell("Location", { shading: BEIGE_FILL }),
-        cell(report.location ?? "", { columnSpan: 3 }),
-      ],
-    }),
-    new TableRow({
-      children: [
-        cell("Drill Scenario", { shading: BEIGE_FILL }),
-        cell(report.drillScenario ?? "", { columnSpan: 3 }),
-      ],
-    }),
-  ];
-
-  const participants = Array.isArray(report.participants) ? report.participants : [];
-  const participantsHeaderRow = new TableRow({
-    children: [
-      cell("Sl No.", { bold: true, shading: BEIGE_FILL }),
-      cell("Name", { bold: true, shading: BEIGE_FILL }),
-      cell("Role", { bold: true, shading: BEIGE_FILL }),
+  const obsTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [3000, 7000],
+    rows: [
+      new TableRow({
+        children: [labelCell("Sr. No."), valueCell("NA")],
+      }),
+      new TableRow({
+        children: [labelCell("Observations"), valueCell("NA")],
+      }),
+      new TableRow({
+        children: [labelCell("Root cause for the observations"), valueCell("NA")],
+      }),
     ],
   });
-  const participantsDataRows = participants.map((row, idx) =>
-    new TableRow({
-      children: [
-        cell(idx + 1),
-        cell(row.name ?? ""),
-        cell(row.role ?? ""),
-      ],
-    })
-  );
 
   const sections = [
     {
       properties: {
-        page: {
-          margin: { top: 500, right: 600, bottom: 500, left: 600 },
-        },
+        page: { margin: { top: 500, right: 600, bottom: 500, left: 600 } },
       },
       children: [
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: HEADER_BORDER.top,
+            bottom: HEADER_BORDER.bottom,
+            left: HEADER_BORDER.left,
+            right: HEADER_BORDER.right,
+            insideVertical: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+          },
           rows: [headerRow],
         }),
-        new Paragraph({ spacing: { before: 300 } }),
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: infoRows,
-        }),
-        new Paragraph({ spacing: { before: 200 } }),
+
+        sectionLabel("General details"),
+        generalTable,
+
+        sectionLabel("Incident Progression:"),
+        incidentTable,
+
         new Paragraph({
-          children: [new TextRun({ text: "Participants", bold: true })],
+          spacing: { before: 250, after: 100 },
+          children: [
+            new TextRun({ text: "Observations: ", bold: true, size: 20, underline: { type: "single" } }),
+            new TextRun({ text: "Nil", size: 20 }),
+          ],
         }),
-        new Paragraph({ spacing: { before: 100 } }),
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: [participantsHeaderRow, ...participantsDataRows],
-        }),
-        ...(report.incidentProgression
-          ? [
-              new Paragraph({ spacing: { before: 200 } }),
-              new Paragraph({
-                children: [new TextRun({ text: "Incident Progression", bold: true })],
-              }),
-              new Paragraph({ spacing: { before: 100 } }),
-              new Paragraph({
-                children: [new TextRun(report.incidentProgression)],
-              }),
-            ]
-          : []),
+        obsTable,
       ],
     },
   ];

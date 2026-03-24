@@ -32,7 +32,7 @@
  * Training Plan / Matrix                        | TRAINING_PLAN                | QAF-OFD-038
  * Training Record                               | TRAINING_RECORD              | QAF-OFD-039
  * Drill Plan                                    | DRILL_PLAN                   | QAF-OFD-040
- * Drill Report                                  | DRILL_REPORT                 | (missing)
+ * Drill Report                                  | DRILL_REPORT                 | QAF-OFD-040
  * Near-miss reporting                           | NEAR_MISS                    | QAF-OFD-015
  */
 export const QHSE_FORM_CODES = {
@@ -68,7 +68,7 @@ export const QHSE_FORM_CODES = {
   TRAINING_PLAN: "QAF-OFD-038",
   TRAINING_RECORD: "QAF-OFD-039",
   DRILL_PLAN: "QAF-OFD-040",
-  DRILL_REPORT: "",
+  DRILL_REPORT: "QAF-OFD-040",
   NEAR_MISS: "QAF-OFD-015",
 };
 

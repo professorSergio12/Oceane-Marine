@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "Target KPI";
@@ -30,13 +30,10 @@ export async function generateTargetKpiPdf(record) {
 
   const formCode = record.formCode || FORM_CODE_DEFAULT;
   const year = record.year == null ? "" : String(record.year);
+  const meta = buildStandardMeta(record, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form No", cellText(formCode)],
-      ["Serial", cellText(record.serialNumber)],
-      ["Year", cellText(year)],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -114,5 +111,6 @@ export async function generateTargetKpiPdf(record) {
     columnStyles: colStyles,
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "SUPPLIER DUE DILIGENCE QUESTIONNAIRE";
@@ -51,14 +51,10 @@ export async function generateSupplierDueDiligencePdf(record) {
 
   const formCode = record.formCode || FORM_CODE_DEFAULT;
   const reportDate = record.revisionDate || record.updatedAt;
+  const meta = buildStandardMeta(record, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form Number", cellText(formCode)],
-      ["Serial Number", cellText(record.serialNumber)],
-      ["Version", cellText(record.version)],
-      ["Date", cellText(formatDate(reportDate) || "-")],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -205,5 +201,6 @@ export async function generateSupplierDueDiligencePdf(record) {
     ],
   ]);
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }

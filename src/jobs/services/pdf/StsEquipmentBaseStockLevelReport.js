@@ -1,6 +1,5 @@
 import fs from "fs";
-import path from "path";
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 import {
   Document,
@@ -11,10 +10,8 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  AlignmentType,
-  VerticalAlign,
-  ImageRun,
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 const ROWS_PER_PAGE = 28;
 const BASIC_INFO_ROW_COUNT = 6;
@@ -22,73 +19,12 @@ const BASIC_INFO_ROW_COUNT = 6;
 const PDF_FORM_CODE_DEFAULT = "QAF-OFD-013";
 const PDF_FORM_TITLE = "STS EQUIPMENT BASE STOCK LEVEL";
 
-function buildStsHeaderTable(report, currentPage, totalPages, logoImage) {
-  const reportDate = report.revisionDate || report.createdAt;
-  const pageText = totalPages > 1 ? `${currentPage} of ${totalPages}` : "";
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              logoImage
-                ? new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new ImageRun({
-                        data: logoImage,
-                        transformation: { width: 120, height: 60 },
-                      }),
-                    ],
-                  })
-                : new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [new TextRun("OCEANE")],
-                  }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 40, type: WidthType.PERCENTAGE },
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({
-                    text: "STS EQUIPMENT BASE STOCK LEVEL",
-                    bold: true,
-                    size: 28,
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            children: [
-              infoLine("Form Number", report.formCode || "QAF-OFD-013"),
-              infoLine("Serial Number", report.serialNumber || ""),
-              infoLine("Version", report.version || ""),
-              infoLine("Date", formatDate(reportDate)),
-              ...(pageText ? [infoLine("Page", pageText)] : []),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
+function buildStsHeaderTable(report) {
+  const meta = buildDocxMeta(report, "QAF-OFD-013");
+  return buildQhseDocxHeaderTable({ formTitle: "STS EQUIPMENT BASE STOCK LEVEL", meta });
 }
 
 export async function generateStsEquipmentBaseStockLevelDoc(report, fullPath) {
-  let logoImage = null;
-  try {
-    logoImage = fs.readFileSync(
-      path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-    );
-  } catch {}
-
   const basicInfoRows = [
     ["Year", report.year != null ? String(report.year) : ""],
     ["Status", report.status || ""],
@@ -179,7 +115,7 @@ export async function generateStsEquipmentBaseStockLevelDoc(report, fullPath) {
   const firstPageCapacity = ROWS_PER_PAGE - BASIC_INFO_ROW_COUNT;
 
   let sectionChildren = [
-    buildStsHeaderTable(report, pageNum, totalPages, logoImage),
+    buildStsHeaderTable(report),
     ...basicInfoBlock,
   ];
   rowsUsedOnPage = BASIC_INFO_ROW_COUNT;
@@ -201,7 +137,7 @@ export async function generateStsEquipmentBaseStockLevelDoc(report, fullPath) {
       });
       pageNum++;
       sectionChildren = [
-        buildStsHeaderTable(report, pageNum, totalPages, logoImage),
+        buildStsHeaderTable(report),
         new Paragraph({ spacing: { before: 200 } }),
       ];
       rowsUsedOnPage = 0;
@@ -220,7 +156,7 @@ export async function generateStsEquipmentBaseStockLevelDoc(report, fullPath) {
       {
         properties: { page: { margin: pageMargins } },
         children: [
-          buildStsHeaderTable(report, 1, 1, logoImage),
+          buildStsHeaderTable(report),
           ...basicInfoBlock,
         ],
       },
@@ -252,15 +188,10 @@ export async function generateStsEquipmentBaseStockLevelPdf(report) {
   const pageH = doc.internal.pageSize.getHeight();
   const pageW = doc.internal.pageSize.getWidth();
 
-  const reportDate = report.revisionDate || report.createdAt;
+  const meta = buildStandardMeta(report, PDF_FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: PDF_FORM_TITLE,
-    metaPairs: [
-      ["Form Number", report.formCode || PDF_FORM_CODE_DEFAULT],
-      ["Serial Number", report.serialNumber || ""],
-      ["Version", String(report.version || "")],
-      ["Date", formatDate(reportDate)],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -379,16 +310,8 @@ export async function generateStsEquipmentBaseStockLevelPdf(report) {
     y = doc.lastAutoTable.finalY + 10;
   }
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
-}
-
-function infoLine(label, value) {
-  return new Paragraph({
-    children: [
-      new TextRun({ text: `${label}: `, bold: true }),
-      new TextRun(value || ""),
-    ],
-  });
 }
 
 function tableCell(text, bold = false) {

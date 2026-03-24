@@ -75,7 +75,7 @@ export default function ControlledDocumentRegisterPage() {
             </p>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Controlled Document Register</h1>
             <p className="text-xs sm:text-sm text-slate-200 mt-1">
-              Live index of all controlled forms and documents (QHSE, Operations, PMS). Click a row to go to the module.
+              Live index of all controlled forms and documents (QHSE, Operations, PMS, HR). Click a row to go to the module.
             </p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
@@ -191,6 +191,8 @@ export default function ControlledDocumentRegisterPage() {
                             ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                             : row.department === "PMS"
                             ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                            : row.department === "HR"
+                            ? "bg-violet-500/20 text-violet-300 border border-violet-500/40"
                             : "bg-slate-500/20 text-slate-300 border border-slate-500/40"
                         }`}>
                           {row.department || "—"}

@@ -50,6 +50,7 @@ export default function DefectListPage() {
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [bulkDownloading, setBulkDownloading] = useState(false);
 
   // Fetch available years
   useEffect(() => {
@@ -228,6 +229,26 @@ export default function DefectListPage() {
     }
   };
 
+  const handleBulkDownloadPdf = async () => {
+    setBulkDownloading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ module: "defects-list" });
+      if (year !== "" && year != null) params.append("year", String(year));
+      const res = await fetch(`/api/qhse/bulk-download-pdf?${params.toString()}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to generate PDF");
+      }
+      const blob = await res.blob();
+      saveAs(blob, `Defects-List${year ? `-${year}` : "-All"}.pdf`);
+    } catch (err) {
+      setError(err.message || "Failed to download PDF");
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
+
   const statusOptions = ["Open", "In Progress", "Closed"];
 
   return (
@@ -305,6 +326,17 @@ export default function DefectListPage() {
                   ))
                 )}
               </select>
+              <button
+                onClick={handleBulkDownloadPdf}
+                disabled={bulkDownloading}
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50"
+                title="Download all records as a single PDF"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                </svg>
+                {bulkDownloading ? "Generating..." : "Download All PDF"}
+              </button>
             </>
           }
         >

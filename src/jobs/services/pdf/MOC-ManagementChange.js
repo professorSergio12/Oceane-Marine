@@ -1,5 +1,4 @@
 import fs from "fs";
-import path from "path";
 import {
     Document,
     Packer,
@@ -9,77 +8,13 @@ import {
     TableRow,
     TableCell,
     WidthType,
-    AlignmentType,
-    VerticalAlign,
-    ImageRun
 } from "docx";
+import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
 
 export async function generateMOCManagementChangeDoc(moc, fullPath) {
-    /* ================= LOAD IMAGES ================= */
-    let logoImage = null;
-    try {
-        logoImage = fs.readFileSync(
-            path.join(process.cwd(), "public/image/oceane-marine-docs.png")
-        );
-    } catch { }
-
     /* ================= HEADER TABLE ================= */
-    const headerTable = new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-            new TableRow({
-                children: [
-                    /* LOGO CELL */
-                    new TableCell({
-                        width: { size: 30, type: WidthType.PERCENTAGE },
-                        verticalAlign: VerticalAlign.CENTER,
-                        children: [
-                            logoImage
-                                ? new Paragraph({
-                                    alignment: AlignmentType.CENTER,
-                                    children: [
-                                        new ImageRun({
-                                            data: logoImage,
-                                            transformation: { width: 120, height: 60 }
-                                        })
-                                    ]
-                                })
-                                : new Paragraph({
-                                    alignment: AlignmentType.CENTER,
-                                    children: [new TextRun("OCEANE")]
-                                })
-                        ]
-                    }),
-                    /* TITLE CELL */
-                    new TableCell({
-                        width: { size: 40, type: WidthType.PERCENTAGE },
-                        children: [
-                            new Paragraph({
-                                alignment: AlignmentType.CENTER,
-                                children: [
-                                    new TextRun({
-                                        text: "MANAGEMENT OF CHANGE",
-                                        bold: true,
-                                        size: 28
-                                    })
-                                ]
-                            })
-                        ]
-                    }),
-                    /* DOC INFO CELL */
-                    new TableCell({
-                        width: { size: 30, type: WidthType.PERCENTAGE },
-                        children: [
-                            infoLine("Form Number", moc.formCode || "QAF-OFD-058"),
-                            infoLine("Serial Number", moc.serialNumber || ""),
-                            infoLine("Date", formatDate(moc.initiationDate || moc.createdAt)),
-                            infoLine("Status", moc.status || "")
-                        ]
-                    })
-                ]
-            })
-        ]
-    });
+    const meta = buildDocxMeta(moc, "QAF-OFD-058");
+    const headerTable = buildQhseDocxHeaderTable({ formTitle: "MANAGEMENT OF CHANGE", meta });
 
     /* ================= BASIC INFORMATION TABLE ================= */
     const basicInfoRows = [
@@ -314,15 +249,6 @@ export async function generateMOCManagementChangeDoc(moc, fullPath) {
 }
 
 /* HELPERS */
-function infoLine(label, value) {
-    return new Paragraph({
-        children: [
-            new TextRun({ text: `${label}: `, bold: true }),
-            new TextRun(value || "")
-        ]
-    });
-}
-
 function tableCell(text, bold = false) {
     const textValue = text !== null && text !== undefined ? String(text) : "";
     return new TableCell({

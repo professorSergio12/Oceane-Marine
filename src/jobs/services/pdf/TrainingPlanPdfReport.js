@@ -1,4 +1,4 @@
-import { createQhsePdfHeaderController } from "./shared/qhseRepeatingHeaderPdf.js";
+import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
 
 const FORM_TITLE = "Annual Training Matrix";
@@ -67,14 +67,10 @@ export async function generateTrainingPlanPdf(plan) {
   const pageH = doc.internal.pageSize.getHeight();
 
   const formCode = plan.formCode || FORM_CODE_DEFAULT;
+  const meta = buildStandardMeta(plan, FORM_CODE_DEFAULT);
   const headerCtl = createQhsePdfHeaderController({
     formTitle: FORM_TITLE,
-    metaPairs: [
-      ["Form No", cellText(formCode)],
-      ["Serial", cellText(plan.serialNumber)],
-      ["Year", cellText(plan.year != null ? String(plan.year) : "")],
-      ["Status", cellText(plan.status || "Approved")],
-    ],
+    meta,
   });
   const tableMargins = headerCtl.getAutoTableMargins();
   const m = headerCtl.sideMarginMm;
@@ -150,5 +146,6 @@ export async function generateTrainingPlanPdf(plan) {
     columnStyles: colStyles,
   });
 
+  overlayQhsePageNumbers(doc);
   return Buffer.from(doc.output("arraybuffer"));
 }
