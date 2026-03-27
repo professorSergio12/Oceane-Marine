@@ -50,12 +50,17 @@ export default function PoacMatrixFormPage({ onSuccess }) {
   const [loadingData, setLoadingData] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  // Store existing file info per row index for edit mode (option-level files only)
   const [existingFiles, setExistingFiles] = useState([]);
-  // Refs for hidden file inputs (one per row)
   const fileInputRefs = useRef({});
+  const [locations, setLocations] = useState([]);
 
-  // Load data if editing
+  useEffect(() => {
+    fetch("/api/master/locations/list")
+      .then((res) => res.json())
+      .then((data) => setLocations(data.locations || []))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (editId) {
       const loadData = async () => {
@@ -424,13 +429,18 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                     <label className="block text-sm font-semibold text-white/90">
                       Visa – Location
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={row.visaLocation}
                       onChange={(e) => updateRow(rowIndex, "visaLocation", e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                      placeholder="e.g., UAE, Singapore, etc."
-                    />
+                      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+                    >
+                      <option value="" className="bg-slate-900">Select Location</option>
+                      {locations.map((loc) => (
+                        <option key={loc._id} value={loc.name} className="bg-slate-900">
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-white/90">
