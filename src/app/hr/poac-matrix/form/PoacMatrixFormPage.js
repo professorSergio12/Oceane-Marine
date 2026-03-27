@@ -19,14 +19,29 @@ const YES_NO_OPTIONS = [
   { key: "validMedicals", label: "Valid Medicals", required: false },
 ];
 
+/** Migrate legacy visaLocation + visaValidity into per-location entries */
+function normalizeVisaEntriesFromRow(row) {
+  if (Array.isArray(row.visaEntries) && row.visaEntries.length > 0) {
+    return row.visaEntries.map((e) => ({
+      location: e.location || "",
+      validity: e.validity || "",
+    }));
+  }
+  const locs = Array.isArray(row.visaLocation) ? row.visaLocation : row.visaLocation ? [row.visaLocation] : [];
+  const legacyValidity = row.visaValidity || "";
+  return locs.map((location) => ({
+    location,
+    validity: locs.length === 1 ? legacyValidity : "",
+  }));
+}
+
 /* ── Default row factory ── */
 const createEmptyRow = (stsServiceProvider = "") => {
   const row = {
     stsServiceProvider,
     poacName: "",
     experienceWithOceane: "",
-    visaLocation: [],
-    visaValidity: "",
+    visaEntries: [],
     remarks: "",
     newFiles: [],
     existingAttachments: [],
@@ -84,8 +99,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                 stsServiceProvider: row.stsServiceProvider || "",
                 poacName: row.poacName || "",
                 experienceWithOceane: row.experienceWithOceane || "",
-                visaLocation: Array.isArray(row.visaLocation) ? row.visaLocation : (row.visaLocation ? [row.visaLocation] : []),
-                visaValidity: row.visaValidity || "",
+                visaEntries: normalizeVisaEntriesFromRow(row),
                 remarks: row.remarks || "",
                 newFiles: [],
                 existingAttachments: existingAtts,
@@ -165,8 +179,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
         formData.append(`row_${i}_stsServiceProvider`, (row.stsServiceProvider || "").trim());
         formData.append(`row_${i}_poacName`, (row.poacName || "").trim());
         formData.append(`row_${i}_experienceWithOceane`, (row.experienceWithOceane || "").trim());
-        formData.append(`row_${i}_visaLocation`, JSON.stringify(row.visaLocation || []));
-        formData.append(`row_${i}_visaValidity`, (row.visaValidity || "").trim());
+        formData.append(`row_${i}_visaEntries`, JSON.stringify(row.visaEntries || []));
         formData.append(`row_${i}_remarks`, (row.remarks || "").trim());
 
         YES_NO_OPTIONS.forEach(({ key }) => {
@@ -423,63 +436,72 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                   />
                 </div>
 
-                {/* Visa – Location & Validity (same row) */}
-                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-white/90">
-                      Visa – Location
-                    </label>
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val && !(row.visaLocation || []).includes(val)) {
-                          updateRow(rowIndex, "visaLocation", [...(row.visaLocation || []), val]);
-                        }
-                        e.target.value = "";
-                      }}
-                      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                    >
-                      <option value="" className="bg-slate-900">Add location...</option>
-                      {locations
-                        .filter((loc) => !(row.visaLocation || []).includes(loc.name))
-                        .map((loc) => (
-                          <option key={loc._id} value={loc.name} className="bg-slate-900">
-                            {loc.name}
-                          </option>
-                        ))}
-                    </select>
-                    {(row.visaLocation || []).length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {row.visaLocation.map((loc) => (
-                          <span
-                            key={loc}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/20 border border-orange-500/30 text-xs font-medium text-orange-200"
+                {/* Visa – each location has its own expiry */}
+                <div className="md:col-span-2 space-y-3">
+                  <label className="block text-sm font-semibold text-white/90">
+                    Visa – Location &amp; validity (per location)
+                  </label>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val && !(row.visaEntries || []).some((en) => en.location === val)) {
+                        updateRow(rowIndex, "visaEntries", [...(row.visaEntries || []), { location: val, validity: "" }]);
+                      }
+                      e.target.value = "";
+                    }}
+                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all max-w-md"
+                  >
+                    <option value="" className="bg-slate-900">Add location...</option>
+                    {locations
+                      .filter((loc) => !(row.visaEntries || []).some((en) => en.location === loc.name))
+                      .map((loc) => (
+                        <option key={loc._id} value={loc.name} className="bg-slate-900">
+                          {loc.name}
+                        </option>
+                      ))}
+                  </select>
+                  {(row.visaEntries || []).length > 0 && (
+                    <div className="space-y-2">
+                      {(row.visaEntries || []).map((entry, vi) => (
+                        <div
+                          key={`${entry.location}-${vi}`}
+                          className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs text-white/50 block mb-1">Location</span>
+                            <span className="text-sm font-medium text-orange-200">{entry.location}</span>
+                          </div>
+                          <div className="flex-1 sm:max-w-[220px]">
+                            <label className="text-xs text-white/50 block mb-1">Date of expiry</label>
+                            <input
+                              type="date"
+                              value={entry.validity || ""}
+                              onChange={(e) => {
+                                const next = [...(row.visaEntries || [])];
+                                next[vi] = { ...next[vi], validity: e.target.value };
+                                updateRow(rowIndex, "visaEntries", next);
+                              }}
+                              className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 [color-scheme:dark]"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateRow(
+                                rowIndex,
+                                "visaEntries",
+                                (row.visaEntries || []).filter((_, idx) => idx !== vi)
+                              )
+                            }
+                            className="shrink-0 px-3 py-2 rounded-lg text-red-300 hover:bg-red-500/15 text-sm font-medium"
                           >
-                            {loc}
-                            <button
-                              type="button"
-                              onClick={() => updateRow(rowIndex, "visaLocation", row.visaLocation.filter((l) => l !== loc))}
-                              className="ml-0.5 text-orange-400 hover:text-red-300 transition"
-                            >
-                              &times;
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-white/90">
-                      Visa – Validity
-                    </label>
-                    <input
-                      type="date"
-                      value={row.visaValidity}
-                      onChange={(e) => updateRow(rowIndex, "visaValidity", e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all [color-scheme:dark]"
-                    />
-                  </div>
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Remarks */}

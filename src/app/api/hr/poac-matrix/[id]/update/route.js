@@ -20,6 +20,41 @@ const OPTION_FILE_FIELDS = [
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
+function parseVisaEntries(formData, rowIndex) {
+  const raw = formData.get(`row_${rowIndex}_visaEntries`);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((e) => ({
+            location: String(e?.location || "").trim(),
+            validity: String(e?.validity || "").trim(),
+          }))
+          .filter((e) => e.location);
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  const legacyLocRaw = formData.get(`row_${rowIndex}_visaLocation`) || "[]";
+  let locs = [];
+  try {
+    locs = JSON.parse(legacyLocRaw);
+    if (!Array.isArray(locs)) locs = legacyLocRaw ? [legacyLocRaw] : [];
+  } catch {
+    locs = legacyLocRaw ? [String(legacyLocRaw)] : [];
+  }
+  const legacyValidity = String(formData.get(`row_${rowIndex}_visaValidity`) || "").trim();
+  return locs
+    .map((location) => String(location || "").trim())
+    .filter(Boolean)
+    .map((location) => ({
+      location,
+      validity: legacyValidity,
+    }));
+}
+
 async function deleteFileIfExists(fileUrl) {
   if (!fileUrl) return;
   try {
@@ -88,10 +123,7 @@ export async function PUT(req, { params }) {
       const underwayOperations = formData.get(`row_${rowIndex}_underwayOperations`) || "No";
       const validMedicals = formData.get(`row_${rowIndex}_validMedicals`) || "No";
       const experienceWithOceane = formData.get(`row_${rowIndex}_experienceWithOceane`);
-      const visaLocationRaw = formData.get(`row_${rowIndex}_visaLocation`) || "[]";
-      let visaLocation = [];
-      try { visaLocation = JSON.parse(visaLocationRaw); } catch { visaLocation = visaLocationRaw ? [visaLocationRaw] : []; }
-      const visaValidity = formData.get(`row_${rowIndex}_visaValidity`) || "";
+      const visaEntries = parseVisaEntries(formData, rowIndex);
       const remarks = formData.get(`row_${rowIndex}_remarks`) || "";
 
       // Validate required fields
@@ -194,8 +226,7 @@ export async function PUT(req, { params }) {
         ...optionExpiryData,
         ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
-        visaLocation,
-        visaValidity: visaValidity.trim(),
+        visaEntries,
         remarks: remarks ? remarks.trim() : "",
         attachments: mergedAttachments,
       });

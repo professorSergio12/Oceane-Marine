@@ -103,6 +103,32 @@ function DownloadIconButton({ onClick, disabled, loading }) {
   );
 }
 
+/** Display visa: new visaEntries[] or legacy visaLocation + visaValidity */
+function formatVisaForRow(row) {
+  if (Array.isArray(row.visaEntries) && row.visaEntries.length > 0) {
+    return row.visaEntries
+      .map((e) => {
+        const loc = e.location || "";
+        const v = e.validity || "";
+        return v ? `${loc} (${v})` : loc;
+      })
+      .filter(Boolean)
+      .join("; ");
+  }
+  const locs = Array.isArray(row.visaLocation) ? row.visaLocation : row.visaLocation ? [row.visaLocation] : [];
+  if (locs.length === 0) return "";
+  const v = row.visaValidity || "";
+  return locs
+    .map((loc) => (v ? `${loc} (${v})` : String(loc)))
+    .join("; ");
+}
+
+function pdfCellValue(row, k) {
+  if (k === "visaEntries") return formatVisaForRow(row) || "—";
+  const v = row[k];
+  return Array.isArray(v) ? (v.length ? v.join(", ") : "—") : (v || "—");
+}
+
 /* ── PDF Generator (client-side, landscape) ── */
 async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
   const { default: jsPDF } = await import("jspdf");
@@ -164,7 +190,7 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
 
   const body = allRows.map((row, idx) => [
     idx + 1,
-    ...pdfKeys.map((k) => { const v = row[k]; return Array.isArray(v) ? (v.length ? v.join(", ") : "—") : (v || "—"); }),
+    ...pdfKeys.map((k) => pdfCellValue(row, k)),
   ]);
 
   const tableStartY = 4 + headerHeight + 2;
@@ -263,8 +289,7 @@ const DETAIL_COLUMNS = [
   { key: "validMedicals", label: "Valid Medicals", fileKey: "validMedicalsFile" },
   { key: "validMedicalsExpiry", label: "Medicals Expiry" },
   { key: "experienceWithOceane", label: "Experience with Oceane" },
-  { key: "visaLocation", label: "Visa – Location" },
-  { key: "visaValidity", label: "Visa – Validity" },
+  { key: "visaEntries", label: "Visa (location / expiry)" },
   { key: "remarks", label: "Remarks: Locations / etc" },
 ];
 
@@ -324,7 +349,7 @@ async function generateOverallPoacPDF(allRows) {
 
   const body = allRows.map((row, idx) => [
     idx + 1,
-    ...pdfKeys.map((k) => { const v = row[k]; return Array.isArray(v) ? (v.length ? v.join(", ") : "—") : (v || "—"); }),
+    ...pdfKeys.map((k) => pdfCellValue(row, k)),
   ]);
 
   const tableStartY = 4 + headerHeight + 2;
@@ -864,7 +889,14 @@ export default function PoacMatrixListPage({ onRefresh }) {
                         </td>
                         {DETAIL_COLUMNS.map((col) => {
                           const rawVal = row[col.key];
-                          const val = Array.isArray(rawVal) ? (rawVal.length > 0 ? rawVal.join(", ") : "—") : (rawVal || "—");
+                          const val =
+                            col.key === "visaEntries"
+                              ? formatVisaForRow(row) || "—"
+                              : Array.isArray(rawVal)
+                                ? rawVal.length > 0
+                                  ? rawVal.join(", ")
+                                  : "—"
+                                : rawVal || "—";
                           const isYesNo = ["Yes", "No"].includes(val);
                           const optionFile = col.fileKey ? row[col.fileKey] : null;
                           const hasFile = optionFile?.fileUrl;

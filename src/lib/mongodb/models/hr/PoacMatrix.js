@@ -89,13 +89,15 @@ const poacMatrixRowSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  visaLocation: {
-    type: [String],
+  visaEntries: {
+    type: [
+      {
+        _id: false,
+        location: { type: String, required: true },
+        validity: { type: String, default: "" },
+      },
+    ],
     default: [],
-  },
-  visaValidity: {
-    type: String,
-    default: "",
   },
   remarks: {
     type: String,
