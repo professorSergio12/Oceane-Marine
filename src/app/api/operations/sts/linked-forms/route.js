@@ -149,6 +149,8 @@ async function buildFeedbackEntries(operationRef, chsName, msName) {
  * Returns the fill-status of every OPS-OFD form linked to a given
  * operation reference number. For each form it returns:
  *   formCode, label, category, filled (boolean), count, docs (array of { _id, sequenceNumber, status, createdAt })
+ *
+ * Also returns `documents`: STS operation.documents (for linked-form download links on create/edit).
  */
 export async function GET(req) {
   await connectDB();
@@ -167,11 +169,12 @@ export async function GET(req) {
     // Fetch the STS Operation to get CHS / MS vessel names for OPS-OFD-020 matching
     const operation = await StsOperation
       .findOne({ Operation_Ref_No: operationRef, isLatest: true })
-      .select("chs ms")
+      .select("chs ms documents")
       .lean();
 
     const chsName = operation?.chs || "";
     const msName  = operation?.ms  || "";
+    const operationDocuments = Array.isArray(operation?.documents) ? operation.documents : [];
 
     // Run all standard queries + OPS-OFD-020 split query in parallel
     const [standardResults, feedbackEntries] = await Promise.all([
@@ -211,7 +214,11 @@ export async function GET(req) {
     // Merge: insert OPS-OFD-020 entries into the results
     const results = [...standardResults, ...feedbackEntries];
 
-    return NextResponse.json({ success: true, data: results });
+    return NextResponse.json({
+      success: true,
+      data: results,
+      documents: operationDocuments,
+    });
   } catch (error) {
     console.error("Linked forms fetch error:", error);
     return NextResponse.json(

@@ -95,8 +95,18 @@ const FORM_TITLES = {
 const API_BASE_URL = '/api/operations/sts-checklist';
 
 const SKIP_FIELDS = ['_id', '__v', 'createdAt', 'updatedAt', 'createdBy'];
-const SKIP_HEADER_FIELDS = ['formNo', 'revisionNo', 'revisionDate', 'issueDate', 'approvedBy', 'page', 'status'];
+const SKIP_HEADER_FIELDS = ['formNo', 'revisionNo', 'revisionDate', 'issueDate', 'approvedBy', 'page', 'status', 'sequenceNumber', 'operationRef'];
 const SIGNATURE_KEYS = ['signature', 'signatureImage', 'signatureBlock', 'constantHeadingShip', 'manoeuvringShip'];
+
+const STATUS_OPTIONS = ['DRAFT', 'SUBMITTED', 'APPROVED', 'SIGNED', 'ARCHIVED', 'FINALIZED'];
+const STATUS_COLORS = {
+  DRAFT: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+  SUBMITTED: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+  APPROVED: 'bg-green-500/20 text-green-300 border-green-500/40',
+  SIGNED: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  ARCHIVED: 'bg-gray-500/20 text-gray-300 border-gray-500/40',
+  FINALIZED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+};
 
 function isImageValue(value) {
   if (typeof value !== 'string' || !value) return false;
@@ -230,7 +240,7 @@ export default function EditFormPage() {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, overrideStatus) => {
     e.preventDefault();
     
     try {
@@ -246,6 +256,10 @@ export default function EditFormPage() {
       delete cleanData.createdAt;
       delete cleanData.updatedAt;
       delete cleanData.createdBy;
+
+      if (overrideStatus) {
+        cleanData.status = overrideStatus;
+      }
 
       formDataToSend.append('data', JSON.stringify(cleanData));
 
@@ -265,6 +279,10 @@ export default function EditFormPage() {
       const result = await response.json();
       setSuccess(true);
       
+      if (overrideStatus) {
+        setFormData((prev) => ({ ...prev, status: overrideStatus }));
+      }
+
       setTimeout(() => {
         router.push(`/operations/sts-operations/new/form-checklist/sts-checklist/${formPath}/view/${id}`);
       }, 1500);
@@ -1285,7 +1303,29 @@ export default function EditFormPage() {
           )}
 
           {/* Form card - same style as view page (external form layout) */}
-          <form onSubmit={handleSubmit} className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 text-white">
+          <form onSubmit={(e) => handleSubmit(e)} className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 text-white">
+            {/* Status bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-gray-700/50 border border-gray-600/50">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-400">Status:</span>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[formData?.status] || STATUS_COLORS.DRAFT}`}>
+                  {formData?.status || 'DRAFT'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-400">Change to:</label>
+                <select
+                  value={formData?.status || 'DRAFT'}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  className="bg-gray-700 border border-gray-500 rounded-lg px-3 py-1.5 text-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             {/* Header row: logo area, title, form meta (Form No, Issue Date, Approved by) */}
             <div className="flex flex-col lg:flex-row justify-between items-start gap-4 mb-6 sm:mb-8 border-b border-gray-700 pb-4 sm:pb-6">
               <div className="w-full lg:w-48 flex items-center justify-start">
@@ -1311,21 +1351,43 @@ export default function EditFormPage() {
               {formPath === 'ops-ofd-014' ? renderOPSOFD014EditBody() : formPath === 'ops-ofd-018' ? renderOPSOFD018EditBody() : formPath === 'ops-ofd-005b' ? renderOPSOFD005BEditBody() : renderEditableObject(formData, '', true)}
             </div>
 
-            {/* Action buttons - same style as view page */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-700">
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-700">
               <Link
                 href={`/operations/sts-operations/new/form-checklist/sts-checklist/${formPath}/view/${id}`}
-                className="px-4 sm:px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition text-sm font-medium text-center"
+                className="px-4 sm:px-6 py-2.5 bg-gray-600 hover:bg-gray-500 rounded-lg transition text-sm font-medium text-center"
               >
                 Cancel
               </Link>
-              <button
-                type="submit"
-                className="px-4 sm:px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : 'Update Form'}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                {formData?.status !== 'DRAFT' && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, 'DRAFT')}
+                    className="px-4 sm:px-6 py-2.5 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving...' : 'Revert to Draft'}
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="px-4 sm:px-6 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : 'Update Form'}
+                </button>
+                {formData?.status !== 'SUBMITTED' && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, 'SUBMITTED')}
+                    className="px-4 sm:px-6 py-2.5 bg-green-600 hover:bg-green-700 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    disabled={saving}
+                  >
+                    {saving ? 'Submitting...' : 'Submit Form'}
+                  </button>
+                )}
+              </div>
             </div>
           </form>
         </div>

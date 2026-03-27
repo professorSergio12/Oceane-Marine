@@ -90,8 +90,17 @@ const FORM_TITLES = {
 const API_BASE_URL = '/api/operations/sts-checklist';
 
 const SKIP_FIELDS = ['_id', '__v', 'createdAt', 'updatedAt', 'createdBy'];
-const SKIP_HEADER_FIELDS = ['formNo', 'revisionNo', 'revisionDate', 'issueDate', 'approvedBy', 'page', 'status'];
+const SKIP_HEADER_FIELDS = ['formNo', 'revisionNo', 'revisionDate', 'issueDate', 'approvedBy', 'page', 'status', 'sequenceNumber', 'operationRef'];
 const SIGNATURE_KEYS = ['signature', 'signatureImage', 'signatureBlock', 'constantHeadingShip', 'manoeuvringShip'];
+
+const STATUS_COLORS = {
+  DRAFT: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+  SUBMITTED: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+  APPROVED: 'bg-green-500/20 text-green-300 border-green-500/40',
+  SIGNED: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  ARCHIVED: 'bg-gray-500/20 text-gray-300 border-gray-500/40',
+  FINALIZED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+};
 
 function isImageValue(value) {
   if (typeof value !== 'string' || !value) return false;
@@ -1017,6 +1026,14 @@ export default function ViewFormPage() {
                 <div><strong>Issue Date:</strong> {getFormHeaderMeta().issueDate ? formatDateOnly(getFormHeaderMeta().issueDate) : 'N/A'}</div>
                 <div><strong>Approved by:</strong> {getFormHeaderMeta().approvedBy}</div>
               </div>
+            </div>
+
+            {/* Status bar */}
+            <div className="flex items-center gap-3 mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-gray-700/50 border border-gray-600/50">
+              <span className="text-sm font-medium text-gray-400">Status:</span>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[formData?.status] || STATUS_COLORS.DRAFT}`}>
+                {formData?.status || 'DRAFT'}
+              </span>
             </div>
 
             {/* Form body: OPS-OFD-014 / OPS-OFD-018 / OPS-OFD-005B use external-form layout; others use generic render */}

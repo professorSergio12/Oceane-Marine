@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, forwardRef } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { ActionDownloadIcon } from "@/app/components/RecordActionIcons";
+import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
 
 const statusTone = {
   INPROGRESS: {
@@ -165,15 +166,23 @@ export default function EditOperationPage() {
   }, [quantityMT]);
 
   const [linkedForms, setLinkedForms] = useState([]);
+  const [linkedOperationDocuments, setLinkedOperationDocuments] = useState([]);
   const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
 
   const fetchLinkedForms = async (opRef) => {
-    if (!opRef) { setLinkedForms([]); return; }
+    if (!opRef) {
+      setLinkedForms([]);
+      setLinkedOperationDocuments([]);
+      return;
+    }
     try {
       setLinkedFormsLoading(true);
       const res = await fetch(`/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(opRef)}`);
       const json = await res.json();
-      if (json.success) setLinkedForms(json.data || []);
+      if (json.success) {
+        setLinkedForms(json.data || []);
+        setLinkedOperationDocuments(json.documents || []);
+      }
     } catch (err) {
       console.error("Failed to fetch linked forms:", err);
     } finally {
@@ -241,20 +250,15 @@ export default function EditOperationPage() {
           setFlowDir(op.flowDirection || "left");
           setQuantityMT(op.quantity?.toString() || "");
           
-          // Check if operation is submitted
-          if (op.isSubmitted) {
-            alert("This operation has been submitted and cannot be edited.");
-            router.push("/operations/sts-operations/new/list");
-            return;
-          }
+          // Allow editing even after submission
         } else {
           alert("Operation not found");
-          router.push("/operations/sts-operations/new/list");
+          router.push("/operations/sts-operations/new?tab=list");
         }
       } catch (error) {
         console.error("Error fetching operation:", error);
         alert("Failed to load operation");
-        router.push("/operations/sts-operations/new/list");
+        router.push("/operations/sts-operations/new?tab=list");
       } finally {
         setLoading(false);
       }
@@ -402,12 +406,6 @@ export default function EditOperationPage() {
     setSubmitting(true);
 
     try {
-      // Check if operation is already submitted
-      if (operationData?.isSubmitted) {
-        alert("This operation has been submitted and cannot be updated.");
-        return;
-      }
-
       const formData = new FormData(formRef.current);
 
       // Add status - always INPROGRESS for draft, keep selected status for submit
@@ -474,7 +472,7 @@ export default function EditOperationPage() {
 
       // Show success and redirect
       alert("STS Operation updated successfully!");
-      router.push("/operations/sts-operations/new/list");
+      router.push("/operations/sts-operations/new?tab=list");
     } catch (error) {
       console.error("Submission error:", error);
       alert(`Error: ${error.message}`);
@@ -658,7 +656,7 @@ export default function EditOperationPage() {
             {/* Right: Action Buttons */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
-                onClick={() => router.push("/operations/sts-operations/new/list")}
+                onClick={() => router.push("/operations/sts-operations/new?tab=list")}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/20 hover:bg-white/20 transition hover:scale-110"
                 aria-label="Close"
                 title="Close without saving"
@@ -1155,7 +1153,7 @@ export default function EditOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "checklist").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} />
+                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
                 ))}
               </div>
             )}
@@ -1170,7 +1168,7 @@ export default function EditOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "equipment").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} />
+                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
                 ))}
               </div>
             )}
@@ -1185,7 +1183,7 @@ export default function EditOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "feedback").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} />
+                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
                 ))}
                 {/* Incident Reporting — no linked form, manual entry */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -1233,7 +1231,7 @@ export default function EditOperationPage() {
               <button
                 type="button"
                 onClick={() => {
-                  router.push("/operations/sts-operations/new/list");
+                  router.push("/operations/sts-operations/new?tab=list");
                 }}
                 className="px-6 py-3 rounded-xl border border-white/20 bg-white/5 text-white hover:bg-white/10 transition"
               >
@@ -1242,7 +1240,7 @@ export default function EditOperationPage() {
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, false)}
-                disabled={submitting || operationData?.isSubmitted}
+                disabled={submitting}
                 className="px-6 py-3 rounded-xl border border-blue-400/30 bg-blue-500/20 text-blue-300 font-semibold hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Saving..." : "Save as Draft"}
@@ -1250,7 +1248,7 @@ export default function EditOperationPage() {
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, true)}
-                disabled={submitting || operationData?.isSubmitted}
+                disabled={submitting}
                 className="px-6 py-3 rounded-xl bg-orange-500 text-white font-semibold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Submitting..." : "Submit"}
@@ -1815,9 +1813,13 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
   );
 }
 
-function LinkedFormCard({ form }) {
+function LinkedFormCard({ form, operationDocuments = [] }) {
   const { formCode, label, filled, count, docs } = form;
   const latestDoc = docs?.[0];
+  const filePath =
+    filled && latestDoc
+      ? resolveLinkedFormFilePath(operationDocuments, formCode, latestDoc._id)
+      : null;
 
   return (
     <div
@@ -1853,6 +1855,25 @@ function LinkedFormCard({ form }) {
           <p>Date: {latestDoc.createdAt
             ? new Date(latestDoc.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
             : "—"}</p>
+          <p className="mt-1">
+            File:{" "}
+            <span className={filePath ? "text-emerald-400 font-medium" : "text-white/50"}>
+              {filePath ? "Yes" : "No"}
+            </span>
+          </p>
+          {filePath && (
+            <a
+              href={filePath}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+            >
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download
+            </a>
+          )}
         </div>
       )}
     </div>

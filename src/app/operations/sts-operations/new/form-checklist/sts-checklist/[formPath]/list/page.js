@@ -93,6 +93,15 @@ const FORM_TITLES = {
 
 const API_BASE_URL = '/api/operations/sts-checklist';
 
+const STATUS_COLORS = {
+  DRAFT: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+  SUBMITTED: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+  APPROVED: 'bg-green-500/20 text-green-300 border-green-500/40',
+  SIGNED: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  ARCHIVED: 'bg-gray-500/20 text-gray-300 border-gray-500/40',
+  FINALIZED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+};
+
 function formatDate(value) {
   if (!value) return "—";
   const d = new Date(value);
@@ -473,6 +482,9 @@ export default function FormListPage() {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Location
                       </th>
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-white/90 uppercase tracking-wider">
+                        Status
+                      </th>
                       <th className="px-6 py-4 text-center text-xs font-semibold text-white/90 uppercase tracking-wider w-48">
                         Actions
                       </th>
@@ -511,6 +523,11 @@ export default function FormListPage() {
                           <td className="px-6 py-4">
                             <span className="text-sm text-white/90">
                               {fields.location || '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${STATUS_COLORS[form.status] || STATUS_COLORS.DRAFT}`}>
+                              {form.status || 'DRAFT'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">

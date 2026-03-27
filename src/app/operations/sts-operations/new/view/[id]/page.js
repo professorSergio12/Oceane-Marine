@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
 
 /** Map every OPS-OFD code to a human-readable form name */
 const FORM_NAME_MAP = {
@@ -223,7 +224,7 @@ function ViewOperationPage() {
         <div className="text-center space-y-4">
           <p className="text-red-300">{error || "Operation not found"}</p>
           <Link
-            href="/operations/sts-operations/new/list"
+            href="/operations/sts-operations/new?tab=list"
             className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-xl text-white font-medium transition"
           >
             Back to List
@@ -401,7 +402,7 @@ function ViewOperationPage() {
                 Edit Operation
               </button>
               <button
-                onClick={() => router.push("/operations/sts-operations/new/list")}
+                onClick={() => router.push("/operations/sts-operations/new?tab=list")}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/20 hover:bg-white/20 transition hover:scale-110"
                 aria-label="Close"
                 title="Close"
@@ -760,16 +761,31 @@ function ViewOperationPage() {
                                 </span>
                               </div>
                               {f.filled && f.docs?.[0] && (() => {
-                                const hasPdf = (op.documents || []).some(d => d.documentType === f.formCode && d?.filePath);
-                                const dateStr = f.docs[0].createdAt
-                                  ? new Date(f.docs[0].createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                                const latest = f.docs[0];
+                                const filePath = resolveLinkedFormFilePath(op.documents, f.formCode, latest._id);
+                                const hasPdf = Boolean(filePath);
+                                const dateStr = latest.createdAt
+                                  ? new Date(latest.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
                                   : "-";
                                 return (
                                   <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                    <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "-"}</span></p>
-                                    <p>Status: <span className={f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{f.docs[0].status}</span></p>
+                                    <p>Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "-"}</span></p>
+                                    <p>Status: <span className={latest.status === "SUBMITTED" || latest.status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{latest.status}</span></p>
                                     <p>Date: {dateStr}</p>
                                     <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
+                                    {filePath && (
+                                      <a
+                                        href={filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+                                      >
+                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                      </a>
+                                    )}
                                   </div>
                                 );
                               })()}
@@ -805,12 +821,27 @@ function ViewOperationPage() {
                                 </span>
                               </div>
                               {f.filled && f.docs?.[0] && (() => {
-                                const hasPdf = (op.documents || []).some(d => d.documentType === f.formCode && d?.filePath);
+                                const latest = f.docs[0];
+                                const filePath = resolveLinkedFormFilePath(op.documents, f.formCode, latest._id);
+                                const hasPdf = Boolean(filePath);
                                 return (
                                   <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                    <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "-"}</span></p>
-                                    <p>Status: <span className={f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{f.docs[0].status}</span></p>
+                                    <p>Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "-"}</span></p>
+                                    <p>Status: <span className={latest.status === "SUBMITTED" || latest.status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{latest.status}</span></p>
                                     <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
+                                    {filePath && (
+                                      <a
+                                        href={filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+                                      >
+                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                      </a>
+                                    )}
                                   </div>
                                 );
                               })()}
@@ -846,12 +877,27 @@ function ViewOperationPage() {
                                 </span>
                               </div>
                               {f.filled && f.docs?.[0] && (() => {
-                                const hasPdf = (op.documents || []).some(d => d.documentType === f.formCode && d?.filePath);
+                                const latest = f.docs[0];
+                                const filePath = resolveLinkedFormFilePath(op.documents, f.formCode, latest._id);
+                                const hasPdf = Boolean(filePath);
                                 return (
                                   <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                    <p>Seq: <span className="text-sky-300 font-mono">{f.docs[0].sequenceNumber || "-"}</span></p>
-                                    <p>Status: <span className={f.docs[0].status === "SUBMITTED" || f.docs[0].status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{f.docs[0].status}</span></p>
+                                    <p>Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "-"}</span></p>
+                                    <p>Status: <span className={latest.status === "SUBMITTED" || latest.status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{latest.status}</span></p>
                                     <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
+                                    {filePath && (
+                                      <a
+                                        href={filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+                                      >
+                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download
+                                      </a>
+                                    )}
                                   </div>
                                 );
                               })()}
@@ -910,7 +956,7 @@ function ViewOperationPage() {
               {/* Action Buttons */}
               <div className="flex justify-end gap-4 pt-6 border-t border-white/10">
                 <Link
-                  href="/operations/sts-operations/new/list"
+                  href="/operations/sts-operations/new?tab=list"
                   className="px-6 py-3 rounded-xl border border-white/20 bg-white/5 text-white hover:bg-white/10 transition"
                 >
                   Back to List

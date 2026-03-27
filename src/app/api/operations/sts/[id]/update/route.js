@@ -91,14 +91,6 @@ export async function PUT(req, { params }) {
       );
     }
 
-    // Check if operation is submitted - if yes, lock it from updates
-    if (existing.isSubmitted) {
-      return NextResponse.json(
-        { error: "Operation has been submitted and cannot be updated" },
-        { status: 403 }
-      );
-    }
-
     const formData = await req.formData();
 
     const body = {};

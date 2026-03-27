@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef, forwardRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOperationsSidebar } from "../../OperationsSidebarContext";
 import { getExportColumns, buildExportHeaders, buildExportRow } from "./sts-export-columns";
 import {
@@ -11,6 +11,7 @@ import {
   ActionDeleteIcon,
   ActionDownloadIcon,
 } from "@/app/components/RecordActionIcons";
+import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
 
 const statusTone = {
   INPROGRESS: {
@@ -115,7 +116,16 @@ export default function NewOperationPage() {
   const [formResetKey, setFormResetKey] = useState(0);
   const [showSuccessPage, setShowSuccessPage] = useState(false);
   const [createdOperationId, setCreatedOperationId] = useState(null);
-  const [activeViewTab, setActiveViewTab] = useState("create");
+  const searchParams = useSearchParams();
+  const [activeViewTab, setActiveViewTab] = useState(() => {
+    return searchParams.get("tab") === "list" ? "list" : "create";
+  });
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "list") setActiveViewTab("list");
+  }, [searchParams]);
+
   const cycleFlowDir = () =>
     setFlowDir((d) => {
       if (d === "left") return "right";
@@ -172,16 +182,24 @@ export default function NewOperationPage() {
   }, [quantityMT]);
 
   const [linkedForms, setLinkedForms] = useState([]);
+  const [linkedOperationDocuments, setLinkedOperationDocuments] = useState([]);
   const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
 
   // Fetch linked form statuses whenever the operation ref changes
   const fetchLinkedForms = async (opRef) => {
-    if (!opRef) { setLinkedForms([]); return; }
+    if (!opRef) {
+      setLinkedForms([]);
+      setLinkedOperationDocuments([]);
+      return;
+    }
     try {
       setLinkedFormsLoading(true);
       const res = await fetch(`/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(opRef)}`);
       const json = await res.json();
-      if (json.success) setLinkedForms(json.data || []);
+      if (json.success) {
+        setLinkedForms(json.data || []);
+        setLinkedOperationDocuments(json.documents || []);
+      }
     } catch (err) {
       console.error("Failed to fetch linked forms:", err);
     } finally {
@@ -426,7 +444,7 @@ export default function NewOperationPage() {
               Create Another
             </button>
             <Link
-              href="/operations/sts-operations/new/list"
+              href="/operations/sts-operations/new?tab=list"
               className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-xl text-white font-medium transition shadow-lg shadow-orange-500/30"
             >
               View All Operations
@@ -621,19 +639,7 @@ export default function NewOperationPage() {
                   List
                 </button>
               </div>
-              <div
-                className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide md:flex ${
-                  statusTone[status]?.pill ||
-                  "bg-white/10 border-white/10 text-white"
-                }`}
-              >
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    statusTone[status]?.dot || "bg-white"
-                  }`}
-                />
-                {statuses.find((s) => s.key === status)?.label || status}
-              </div>
+            
             </div>
           </header>
 
@@ -1121,7 +1127,7 @@ export default function NewOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "checklist").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} />
+                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
                 ))}
               </div>
             )}
@@ -1136,7 +1142,7 @@ export default function NewOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "equipment").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} />
+                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
                 ))}
               </div>
             )}
@@ -1151,7 +1157,7 @@ export default function NewOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "feedback").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} />
+                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
                 ))}
                 {/* Incident Reporting — no linked form, manual entry */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -2178,9 +2184,13 @@ function MultiSelectDropdown({
   );
 }
 
-function LinkedFormCard({ form }) {
+function LinkedFormCard({ form, operationDocuments = [] }) {
   const { formCode, label, filled, count, docs } = form;
   const latestDoc = docs?.[0];
+  const filePath =
+    filled && latestDoc
+      ? resolveLinkedFormFilePath(operationDocuments, formCode, latestDoc._id)
+      : null;
 
   return (
     <div
@@ -2216,6 +2226,25 @@ function LinkedFormCard({ form }) {
           <p>Date: {latestDoc.createdAt
             ? new Date(latestDoc.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
             : "—"}</p>
+          <p className="mt-1">
+            File:{" "}
+            <span className={filePath ? "text-emerald-400 font-medium" : "text-white/50"}>
+              {filePath ? "Yes" : "No"}
+            </span>
+          </p>
+          {filePath && (
+            <a
+              href={filePath}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+            >
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download
+            </a>
+          )}
         </div>
       )}
     </div>
