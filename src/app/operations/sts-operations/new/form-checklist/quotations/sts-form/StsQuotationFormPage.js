@@ -343,7 +343,7 @@ export default function StsQuotationFormPage() {
 
       <div className={`flex-1 min-w-0 pr-4 transition-all duration-300 ${sidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`w-full py-6 sm:py-10 space-y-4 sm:space-y-6 ${sidebarOpen ? "max-w-[95%] mx-auto pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-14"} flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4`}>
+          <header className={`${sidebarOpen ? "mt-0" : "mt-8"} flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"

@@ -368,7 +368,7 @@ export default function ManualListPage() {
       {/* Main Content - no scroll, fit on one screen */}
       <div className={`flex-1 min-h-0 min-w-0 flex flex-col transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`flex-1 min-h-0 flex flex-col overflow-hidden mx-auto py-4 space-y-3 ${isSidebarOpen ? "max-w-[95%] pl-4 pr-4" : "px-6"}`}>
-        <header className={`${isSidebarOpen ? "mt-0" : "mt-14"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
+        <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
