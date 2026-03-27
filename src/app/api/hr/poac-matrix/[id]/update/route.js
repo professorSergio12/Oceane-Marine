@@ -88,6 +88,8 @@ export async function PUT(req, { params }) {
       const underwayOperations = formData.get(`row_${rowIndex}_underwayOperations`) || "No";
       const validMedicals = formData.get(`row_${rowIndex}_validMedicals`) || "No";
       const experienceWithOceane = formData.get(`row_${rowIndex}_experienceWithOceane`);
+      const visaLocation = formData.get(`row_${rowIndex}_visaLocation`) || "";
+      const visaValidity = formData.get(`row_${rowIndex}_visaValidity`) || "";
       const remarks = formData.get(`row_${rowIndex}_remarks`) || "";
 
       // Validate required fields
@@ -158,25 +160,26 @@ export async function PUT(req, { params }) {
         validMedicals,
       };
 
-      // Handle per-option file uploads
       const optionFileData = {};
+      const optionExpiryData = {};
       for (const field of OPTION_FILE_FIELDS) {
         const fileKey = `${field}File`;
+        const expiryKey = `${field}Expiry`;
         const existingFileData = existingRow?.[fileKey] || { fileUrl: "", originalFileName: "" };
+        optionExpiryData[expiryKey] = "";
 
         if (optionValues[field] === "Yes") {
-          // Option is Yes — check for new file upload
+          const expiryVal = formData.get(`row_${rowIndex}_${expiryKey}`) || "";
+          optionExpiryData[expiryKey] = expiryVal.trim();
+
           const optionFile = formData.get(`row_${rowIndex}_${fileKey}`);
           if (optionFile && typeof optionFile !== "string" && optionFile.name && optionFile.size > 0) {
-            // New file uploaded — delete old and save new
             await deleteFileIfExists(existingFileData?.fileUrl);
             optionFileData[fileKey] = await saveFile(optionFile, stsServiceProvider, poacName, field);
           } else {
-            // No new file — preserve existing
             optionFileData[fileKey] = existingFileData;
           }
         } else {
-          // Option changed to "No" — delete existing file if any
           await deleteFileIfExists(existingFileData?.fileUrl);
           optionFileData[fileKey] = { fileUrl: "", originalFileName: "" };
         }
@@ -186,8 +189,11 @@ export async function PUT(req, { params }) {
         stsServiceProvider: stsServiceProvider.trim(),
         poacName: poacName.trim(),
         ...optionValues,
+        ...optionExpiryData,
         ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
+        visaLocation: visaLocation.trim(),
+        visaValidity: visaValidity.trim(),
         remarks: remarks ? remarks.trim() : "",
         attachments: mergedAttachments,
       });

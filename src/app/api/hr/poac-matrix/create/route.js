@@ -72,6 +72,8 @@ export async function POST(req) {
       const underwayOperations = formData.get(`row_${rowIndex}_underwayOperations`) || "No";
       const validMedicals = formData.get(`row_${rowIndex}_validMedicals`) || "No";
       const experienceWithOceane = formData.get(`row_${rowIndex}_experienceWithOceane`);
+      const visaLocation = formData.get(`row_${rowIndex}_visaLocation`) || "";
+      const visaValidity = formData.get(`row_${rowIndex}_visaValidity`) || "";
       const remarks = formData.get(`row_${rowIndex}_remarks`) || "";
 
       // Validate required fields
@@ -115,13 +117,18 @@ export async function POST(req) {
         validMedicals,
       };
 
-      // Handle per-option file uploads (only when option is "Yes")
       const optionFileData = {};
+      const optionExpiryData = {};
       for (const field of OPTION_FILE_FIELDS) {
         const fileKey = `${field}File`;
+        const expiryKey = `${field}Expiry`;
         optionFileData[fileKey] = { fileUrl: "", originalFileName: "" };
+        optionExpiryData[expiryKey] = "";
 
         if (optionValues[field] === "Yes") {
+          const expiryVal = formData.get(`row_${rowIndex}_${expiryKey}`) || "";
+          optionExpiryData[expiryKey] = expiryVal.trim();
+
           const optionFile = formData.get(`row_${rowIndex}_${fileKey}`);
           if (optionFile && typeof optionFile !== "string" && optionFile.name && optionFile.size > 0) {
             optionFileData[fileKey] = await saveFile(optionFile, stsServiceProvider, poacName, field);
@@ -133,8 +140,11 @@ export async function POST(req) {
         stsServiceProvider: stsServiceProvider.trim(),
         poacName: poacName.trim(),
         ...optionValues,
+        ...optionExpiryData,
         ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
+        visaLocation: visaLocation.trim(),
+        visaValidity: visaValidity.trim(),
         remarks: remarks ? remarks.trim() : "",
         attachments: attachmentsData,
       });

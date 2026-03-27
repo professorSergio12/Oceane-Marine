@@ -598,7 +598,7 @@ export default function NewOperationPage() {
       {/* Main Content - fixed left margin so content stays in place when sidebar collapses */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
          <div className={`mx-auto py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-7xl px-3 sm:px-4 md:px-6" : "px-3 sm:px-4 md:px-6"}`}>
-           <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+           <header className={`${isSidebarOpen ? 'mt-0' : 'mt-14'} mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"

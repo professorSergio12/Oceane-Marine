@@ -157,43 +157,11 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
   doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
   doc.setFontSize(20);
 
-  // ── Table columns ──
-  const pdfColumns = [
-    "S.N",
-    "STS Service\nProvider",
-    "POAC's Name",
-    "Valid\nPassport",
-    "Valid\nMaster's\nCOC",
-    "Dangerous\ncargo\nendorsement\n(Oil)",
-    "Dangerous\ncargo\nendorsement(Ch\nem)",
-    "Dangerous\ncargo\nendorsements\n(Gas)",
-    "Oil spill\nresponse\ntraining",
-    "STS\nSimulator\ntraining",
-    "Vessel\nSize\nLimitation",
-    "Underway\noperations",
-    "Valid\nMedicals",
-    "Experience\nwith Oceane",
-    "Remarks:\nLocations / etc",
-  ];
+  const pdfColumns = DETAIL_COLUMNS.map((col) => col.label.replace(/ /g, "\n"));
+  pdfColumns.unshift("S.N");
 
-  const pdfKeys = [
-    "stsServiceProvider",
-    "poacName",
-    "validPassport",
-    "validMastersCOC",
-    "dangerousCargoEndorsementOil",
-    "dangerousCargoEndorsementChem",
-    "dangerousCargoEndorsementGas",
-    "oilSpillResponseTraining",
-    "stsSimulatorTraining",
-    "vesselSizeLimitations",
-    "underwayOperations",
-    "validMedicals",
-    "experienceWithOceane",
-    "remarks",
-  ];
+  const pdfKeys = DETAIL_COLUMNS.map((col) => col.key);
 
-  // Build body rows (serial numbered)
   const body = allRows.map((row, idx) => [
     idx + 1,
     ...pdfKeys.map((k) => row[k] || "—"),
@@ -210,16 +178,16 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
       fillColor: [230, 126, 34],
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: 6,
-      cellPadding: 2,
+      fontSize: 4.5,
+      cellPadding: 1,
       halign: "center",
       valign: "middle",
       lineColor: [200, 100, 20],
       lineWidth: 0.4,
     },
     bodyStyles: {
-      fontSize: 6,
-      cellPadding: 2,
+      fontSize: 4.5,
+      cellPadding: 1,
       textColor: [30, 30, 30],
       valign: "middle",
       lineColor: [80, 80, 80],
@@ -227,26 +195,11 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
     },
     alternateRowStyles: { fillColor: [252, 235, 215] },
     columnStyles: {
-      0: { cellWidth: 8, halign: "center", fontStyle: "bold" },
-      1: { cellWidth: 22 },
-      2: { cellWidth: 28 },
-      3: { cellWidth: 14, halign: "center" },
-      4: { cellWidth: 16, halign: "center" },
-      5: { cellWidth: 20, halign: "center" },
-      6: { cellWidth: 22, halign: "center" },
-      7: { cellWidth: 22, halign: "center" },
-      8: { cellWidth: 18, halign: "center" },
-      9: { cellWidth: 16, halign: "center" },
-      10: { cellWidth: 16, halign: "center" },
-      11: { cellWidth: 16, halign: "center" },
-      12: { cellWidth: 14, halign: "center" },
-      13: { cellWidth: 20 },
-      14: { cellWidth: "auto" },
+      0: { cellWidth: 6, halign: "center", fontStyle: "bold" },
     },
     theme: "grid",
     styles: { lineColor: [80, 80, 80], lineWidth: 0.3, overflow: "linebreak" },
     didDrawPage: (data) => {
-      // Re-draw header on subsequent pages
       if (data.pageNumber > 1) {
         doc.setFillColor(0, 51, 102);
         doc.setDrawColor(0, 51, 102);
@@ -264,7 +217,6 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
         doc.setFontSize(20);
       }
 
-      // Footer on every page
       const footerY = pageHeight - 8;
       doc.setDrawColor(230, 126, 34);
       doc.setLineWidth(0.8);
@@ -291,16 +243,28 @@ const DETAIL_COLUMNS = [
   { key: "stsServiceProvider", label: "STS Service Provider" },
   { key: "poacName", label: "POAC's Name" },
   { key: "validPassport", label: "Valid Passport", fileKey: "validPassportFile" },
+  { key: "validPassportExpiry", label: "Passport Expiry" },
   { key: "validMastersCOC", label: "Valid Master's COC", fileKey: "validMastersCOCFile" },
+  { key: "validMastersCOCExpiry", label: "COC Expiry" },
   { key: "dangerousCargoEndorsementOil", label: "Dangerous cargo endorsement(Oil)", fileKey: "dangerousCargoEndorsementOilFile" },
+  { key: "dangerousCargoEndorsementOilExpiry", label: "DCE Oil Expiry" },
   { key: "dangerousCargoEndorsementChem", label: "Dangerous cargo endorsement(Chem)", fileKey: "dangerousCargoEndorsementChemFile" },
+  { key: "dangerousCargoEndorsementChemExpiry", label: "DCE Chem Expiry" },
   { key: "dangerousCargoEndorsementGas", label: "Dangerous cargo endorsements(Gas)", fileKey: "dangerousCargoEndorsementGasFile" },
+  { key: "dangerousCargoEndorsementGasExpiry", label: "DCE Gas Expiry" },
   { key: "oilSpillResponseTraining", label: "Oil spill response training", fileKey: "oilSpillResponseTrainingFile" },
+  { key: "oilSpillResponseTrainingExpiry", label: "Oil Spill Trg Expiry" },
   { key: "stsSimulatorTraining", label: "STS Simulator training", fileKey: "stsSimulatorTrainingFile" },
+  { key: "stsSimulatorTrainingExpiry", label: "STS Trg Expiry" },
   { key: "vesselSizeLimitations", label: "Vessel Size Limitations", fileKey: "vesselSizeLimitationsFile" },
+  { key: "vesselSizeLimitationsExpiry", label: "Vessel Size Expiry" },
   { key: "underwayOperations", label: "Underway operations", fileKey: "underwayOperationsFile" },
+  { key: "underwayOperationsExpiry", label: "Underway Expiry" },
   { key: "validMedicals", label: "Valid Medicals", fileKey: "validMedicalsFile" },
+  { key: "validMedicalsExpiry", label: "Medicals Expiry" },
   { key: "experienceWithOceane", label: "Experience with Oceane" },
+  { key: "visaLocation", label: "Visa – Location" },
+  { key: "visaValidity", label: "Visa – Validity" },
   { key: "remarks", label: "Remarks: Locations / etc" },
 ];
 
@@ -353,41 +317,10 @@ async function generateOverallPoacPDF(allRows) {
   doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
   doc.setFontSize(20);
 
-  // ── Table columns ──
-  const pdfColumns = [
-    "S.N",
-    "STS Service\nProvider",
-    "POAC's Name",
-    "Valid\nPassport",
-    "Valid\nMaster's\nCOC",
-    "Dangerous\ncargo\nendorsement\n(Oil)",
-    "Dangerous\ncargo\nendorsement(Ch\nem)",
-    "Dangerous\ncargo\nendorsements\n(Gas)",
-    "Oil spill\nresponse\ntraining",
-    "STS\nSimulator\ntraining",
-    "Vessel\nSize\nLimitation",
-    "Underway\noperations",
-    "Valid\nMedicals",
-    "Experience\nwith Oceane",
-    "Remarks:\nLocations / etc",
-  ];
+  const pdfColumns = DETAIL_COLUMNS.map((col) => col.label.replace(/ /g, "\n"));
+  pdfColumns.unshift("S.N");
 
-  const pdfKeys = [
-    "stsServiceProvider",
-    "poacName",
-    "validPassport",
-    "validMastersCOC",
-    "dangerousCargoEndorsementOil",
-    "dangerousCargoEndorsementChem",
-    "dangerousCargoEndorsementGas",
-    "oilSpillResponseTraining",
-    "stsSimulatorTraining",
-    "vesselSizeLimitations",
-    "underwayOperations",
-    "validMedicals",
-    "experienceWithOceane",
-    "remarks",
-  ];
+  const pdfKeys = DETAIL_COLUMNS.map((col) => col.key);
 
   const body = allRows.map((row, idx) => [
     idx + 1,
@@ -405,16 +338,16 @@ async function generateOverallPoacPDF(allRows) {
       fillColor: [230, 126, 34],
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: 6,
-      cellPadding: 2,
+      fontSize: 4.5,
+      cellPadding: 1,
       halign: "center",
       valign: "middle",
       lineColor: [200, 100, 20],
       lineWidth: 0.4,
     },
     bodyStyles: {
-      fontSize: 6,
-      cellPadding: 2,
+      fontSize: 4.5,
+      cellPadding: 1,
       textColor: [30, 30, 30],
       valign: "middle",
       lineColor: [80, 80, 80],
@@ -422,21 +355,7 @@ async function generateOverallPoacPDF(allRows) {
     },
     alternateRowStyles: { fillColor: [252, 235, 215] },
     columnStyles: {
-      0: { cellWidth: 8, halign: "center", fontStyle: "bold" },
-      1: { cellWidth: 22 },
-      2: { cellWidth: 28 },
-      3: { cellWidth: 14, halign: "center" },
-      4: { cellWidth: 16, halign: "center" },
-      5: { cellWidth: 20, halign: "center" },
-      6: { cellWidth: 22, halign: "center" },
-      7: { cellWidth: 22, halign: "center" },
-      8: { cellWidth: 18, halign: "center" },
-      9: { cellWidth: 16, halign: "center" },
-      10: { cellWidth: 16, halign: "center" },
-      11: { cellWidth: 16, halign: "center" },
-      12: { cellWidth: 14, halign: "center" },
-      13: { cellWidth: 20 },
-      14: { cellWidth: "auto" },
+      0: { cellWidth: 6, halign: "center", fontStyle: "bold" },
     },
     theme: "grid",
     styles: { lineColor: [80, 80, 80], lineWidth: 0.3, overflow: "linebreak" },

@@ -25,13 +25,16 @@ const createEmptyRow = (stsServiceProvider = "") => {
     stsServiceProvider,
     poacName: "",
     experienceWithOceane: "",
+    visaLocation: "",
+    visaValidity: "",
     remarks: "",
-    newFiles: [],              // new File objects to upload
-    existingAttachments: [],   // { fileUrl, originalFileName } from server
+    newFiles: [],
+    existingAttachments: [],
   };
   YES_NO_OPTIONS.forEach(({ key }) => {
     row[key] = "No";
-    row[`${key}File`] = null; // new file to upload
+    row[`${key}Expiry`] = "";
+    row[`${key}File`] = null;
   });
   return row;
 };
@@ -76,13 +79,16 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                 stsServiceProvider: row.stsServiceProvider || "",
                 poacName: row.poacName || "",
                 experienceWithOceane: row.experienceWithOceane || "",
+                visaLocation: row.visaLocation || "",
+                visaValidity: row.visaValidity || "",
                 remarks: row.remarks || "",
                 newFiles: [],
                 existingAttachments: existingAtts,
               };
               YES_NO_OPTIONS.forEach(({ key }) => {
                 r[key] = row[key] || "No";
-                r[`${key}File`] = null; // no new file yet
+                r[`${key}Expiry`] = row[`${key}Expiry`] || "";
+                r[`${key}File`] = null;
               });
               return r;
             });
@@ -125,9 +131,9 @@ export default function PoacMatrixFormPage({ onSuccess }) {
     const newRows = [...rows];
     newRows[index] = { ...newRows[index], [field]: value };
 
-    // If a Yes/No field is changed to "No", clear its file
     if (YES_NO_OPTIONS.some((o) => o.key === field) && value === "No") {
       newRows[index][`${field}File`] = null;
+      newRows[index][`${field}Expiry`] = "";
     }
     setRows(newRows);
   };
@@ -154,11 +160,13 @@ export default function PoacMatrixFormPage({ onSuccess }) {
         formData.append(`row_${i}_stsServiceProvider`, (row.stsServiceProvider || "").trim());
         formData.append(`row_${i}_poacName`, (row.poacName || "").trim());
         formData.append(`row_${i}_experienceWithOceane`, (row.experienceWithOceane || "").trim());
+        formData.append(`row_${i}_visaLocation`, (row.visaLocation || "").trim());
+        formData.append(`row_${i}_visaValidity`, (row.visaValidity || "").trim());
         formData.append(`row_${i}_remarks`, (row.remarks || "").trim());
 
-        // Append Yes/No values + their conditional files
         YES_NO_OPTIONS.forEach(({ key }) => {
           formData.append(`row_${i}_${key}`, row[key] || "No");
+          formData.append(`row_${i}_${key}Expiry`, (row[`${key}Expiry`] || "").trim());
           const file = row[`${key}File`];
           if (file) formData.append(`row_${i}_${key}File`, file);
         });
@@ -256,9 +264,22 @@ export default function PoacMatrixFormPage({ onSuccess }) {
           <option value="No" className="bg-slate-900">No</option>
         </select>
 
-        {/* Conditional file upload when Yes */}
         {value === "Yes" && (
           <div className="mt-2 pl-3 border-l-2 border-orange-500/30 space-y-2">
+            {/* Expiry date */}
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-orange-300/80">
+                Date of Expiry
+              </label>
+              <input
+                type="date"
+                value={row[`${key}Expiry`] || ""}
+                onChange={(e) => updateRow(rowIndex, `${key}Expiry`, e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all [color-scheme:dark]"
+              />
+            </div>
+
+            {/* Attachment */}
             <label className="block text-xs font-medium text-orange-300/80">
               Upload certificate / document for {label}
             </label>
@@ -268,10 +289,9 @@ export default function PoacMatrixFormPage({ onSuccess }) {
               onChange={(e) => updateRow(rowIndex, fileKey, e.target.files[0])}
               className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/15 text-white text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-orange-500/80 file:text-white hover:file:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition-all"
             />
-            {/* Show existing file in edit mode */}
             {editId && existingFileInfo?.fileUrl && !newFile && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="text-xs text-emerald-300">
@@ -280,10 +300,9 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                 </p>
               </div>
             )}
-            {/* Show new file selected */}
             {newFile && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                <svg className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-orange-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p className="text-xs text-orange-300">
@@ -397,6 +416,33 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                     className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
                     placeholder="e.g., > 1year, < 1 year"
                   />
+                </div>
+
+                {/* Visa – Location & Validity (same row) */}
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-white/90">
+                      Visa – Location
+                    </label>
+                    <input
+                      type="text"
+                      value={row.visaLocation}
+                      onChange={(e) => updateRow(rowIndex, "visaLocation", e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+                      placeholder="e.g., UAE, Singapore, etc."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-white/90">
+                      Visa – Validity
+                    </label>
+                    <input
+                      type="date"
+                      value={row.visaValidity}
+                      onChange={(e) => updateRow(rowIndex, "visaValidity", e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all [color-scheme:dark]"
+                    />
+                  </div>
                 </div>
 
                 {/* Remarks */}

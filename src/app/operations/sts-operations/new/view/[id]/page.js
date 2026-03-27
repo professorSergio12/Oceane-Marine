@@ -373,7 +373,7 @@ function ViewOperationPage() {
       {/* Main Content */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`mx-auto py-8 space-y-6 ${isSidebarOpen ? "max-w-7xl px-6" : "px-6"}`}>
-          <header className="mt-12 md:mt-0 mb-6 flex items-center gap-4">
+          <header className={`${isSidebarOpen ? "mt-0" : "mt-14"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
