@@ -88,7 +88,9 @@ export async function PUT(req, { params }) {
       const underwayOperations = formData.get(`row_${rowIndex}_underwayOperations`) || "No";
       const validMedicals = formData.get(`row_${rowIndex}_validMedicals`) || "No";
       const experienceWithOceane = formData.get(`row_${rowIndex}_experienceWithOceane`);
-      const visaLocation = formData.get(`row_${rowIndex}_visaLocation`) || "";
+      const visaLocationRaw = formData.get(`row_${rowIndex}_visaLocation`) || "[]";
+      let visaLocation = [];
+      try { visaLocation = JSON.parse(visaLocationRaw); } catch { visaLocation = visaLocationRaw ? [visaLocationRaw] : []; }
       const visaValidity = formData.get(`row_${rowIndex}_visaValidity`) || "";
       const remarks = formData.get(`row_${rowIndex}_remarks`) || "";
 
@@ -192,7 +194,7 @@ export async function PUT(req, { params }) {
         ...optionExpiryData,
         ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
-        visaLocation: visaLocation.trim(),
+        visaLocation,
         visaValidity: visaValidity.trim(),
         remarks: remarks ? remarks.trim() : "",
         attachments: mergedAttachments,

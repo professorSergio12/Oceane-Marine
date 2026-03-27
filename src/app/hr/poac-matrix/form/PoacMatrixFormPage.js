@@ -25,7 +25,7 @@ const createEmptyRow = (stsServiceProvider = "") => {
     stsServiceProvider,
     poacName: "",
     experienceWithOceane: "",
-    visaLocation: "",
+    visaLocation: [],
     visaValidity: "",
     remarks: "",
     newFiles: [],
@@ -84,7 +84,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                 stsServiceProvider: row.stsServiceProvider || "",
                 poacName: row.poacName || "",
                 experienceWithOceane: row.experienceWithOceane || "",
-                visaLocation: row.visaLocation || "",
+                visaLocation: Array.isArray(row.visaLocation) ? row.visaLocation : (row.visaLocation ? [row.visaLocation] : []),
                 visaValidity: row.visaValidity || "",
                 remarks: row.remarks || "",
                 newFiles: [],
@@ -165,7 +165,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
         formData.append(`row_${i}_stsServiceProvider`, (row.stsServiceProvider || "").trim());
         formData.append(`row_${i}_poacName`, (row.poacName || "").trim());
         formData.append(`row_${i}_experienceWithOceane`, (row.experienceWithOceane || "").trim());
-        formData.append(`row_${i}_visaLocation`, (row.visaLocation || "").trim());
+        formData.append(`row_${i}_visaLocation`, JSON.stringify(row.visaLocation || []));
         formData.append(`row_${i}_visaValidity`, (row.visaValidity || "").trim());
         formData.append(`row_${i}_remarks`, (row.remarks || "").trim());
 
@@ -430,17 +430,44 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                       Visa – Location
                     </label>
                     <select
-                      value={row.visaLocation}
-                      onChange={(e) => updateRow(rowIndex, "visaLocation", e.target.value)}
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val && !(row.visaLocation || []).includes(val)) {
+                          updateRow(rowIndex, "visaLocation", [...(row.visaLocation || []), val]);
+                        }
+                        e.target.value = "";
+                      }}
                       className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
                     >
-                      <option value="" className="bg-slate-900">Select Location</option>
-                      {locations.map((loc) => (
-                        <option key={loc._id} value={loc.name} className="bg-slate-900">
-                          {loc.name}
-                        </option>
-                      ))}
+                      <option value="" className="bg-slate-900">Add location...</option>
+                      {locations
+                        .filter((loc) => !(row.visaLocation || []).includes(loc.name))
+                        .map((loc) => (
+                          <option key={loc._id} value={loc.name} className="bg-slate-900">
+                            {loc.name}
+                          </option>
+                        ))}
                     </select>
+                    {(row.visaLocation || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {row.visaLocation.map((loc) => (
+                          <span
+                            key={loc}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/20 border border-orange-500/30 text-xs font-medium text-orange-200"
+                          >
+                            {loc}
+                            <button
+                              type="button"
+                              onClick={() => updateRow(rowIndex, "visaLocation", row.visaLocation.filter((l) => l !== loc))}
+                              className="ml-0.5 text-orange-400 hover:text-red-300 transition"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-white/90">

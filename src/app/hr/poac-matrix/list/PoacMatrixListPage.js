@@ -164,7 +164,7 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
 
   const body = allRows.map((row, idx) => [
     idx + 1,
-    ...pdfKeys.map((k) => row[k] || "—"),
+    ...pdfKeys.map((k) => { const v = row[k]; return Array.isArray(v) ? (v.length ? v.join(", ") : "—") : (v || "—"); }),
   ]);
 
   const tableStartY = 4 + headerHeight + 2;
@@ -324,7 +324,7 @@ async function generateOverallPoacPDF(allRows) {
 
   const body = allRows.map((row, idx) => [
     idx + 1,
-    ...pdfKeys.map((k) => row[k] || "—"),
+    ...pdfKeys.map((k) => { const v = row[k]; return Array.isArray(v) ? (v.length ? v.join(", ") : "—") : (v || "—"); }),
   ]);
 
   const tableStartY = 4 + headerHeight + 2;
@@ -863,7 +863,8 @@ export default function PoacMatrixListPage({ onRefresh }) {
                           {rowIndex + 1}
                         </td>
                         {DETAIL_COLUMNS.map((col) => {
-                          const val = row[col.key] || "—";
+                          const rawVal = row[col.key];
+                          const val = Array.isArray(rawVal) ? (rawVal.length > 0 ? rawVal.join(", ") : "—") : (rawVal || "—");
                           const isYesNo = ["Yes", "No"].includes(val);
                           const optionFile = col.fileKey ? row[col.fileKey] : null;
                           const hasFile = optionFile?.fileUrl;
