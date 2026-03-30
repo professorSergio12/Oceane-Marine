@@ -458,9 +458,8 @@ export default function OilMajorsListPage({ onRefresh }) {
               {/* Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-3">
                 {loadingLatest ? (
-                  <div className="text-center py-8">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-2"></div>
-                    <p className="text-white/60 text-sm">Loading companies...</p>
+                  <div className="flex items-center justify-center py-16">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
                   </div>
                 ) : latestCompanies.length === 0 ? (
                   <p className="text-white/50 text-center py-8 text-sm">No companies found</p>

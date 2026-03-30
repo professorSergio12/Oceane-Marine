@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef, forwardRef } from "react";
+import { useState, useEffect, useRef, forwardRef, useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOperationsSidebar } from "../../OperationsSidebarContext";
 import { getExportColumns, buildExportHeaders, buildExportRow } from "./sts-export-columns";
@@ -12,6 +12,98 @@ import {
   ActionDownloadIcon,
 } from "@/app/components/RecordActionIcons";
 import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
+
+const STS_NEW_OP_DRAFT_STORAGE_KEY = "sts-operation-new-documentation-draft-v2";
+
+function clearStsNewOpDraft(snapshotRef) {
+  try {
+    sessionStorage.removeItem(STS_NEW_OP_DRAFT_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  if (snapshotRef) snapshotRef.current = null;
+}
+
+function readStsNewOpDraft() {
+  try {
+    const raw = sessionStorage.getItem(STS_NEW_OP_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.v !== 1) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeStsNewOpDraft(payload) {
+  try {
+    sessionStorage.setItem(STS_NEW_OP_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function collectFormFieldSnapshot(form) {
+  const fields = {};
+  const equipments = [];
+  if (!form) return { fields, equipments };
+  for (const el of form.elements) {
+    if (!el.name || el.disabled) continue;
+    if (el.type === "file") continue;
+    if (el.type === "radio" && !el.checked) continue;
+    if (el.type === "checkbox") continue;
+    if (el.name === "equipments" && el.type === "hidden") {
+      equipments.push(String(el.value));
+      continue;
+    }
+    fields[el.name] = el.value;
+  }
+  return { fields, equipments };
+}
+
+const nativeInputValueSetter = typeof window !== "undefined"
+  ? Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set
+  : null;
+const nativeSelectValueSetter = typeof window !== "undefined"
+  ? Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set
+  : null;
+const nativeTextareaValueSetter = typeof window !== "undefined"
+  ? Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set
+  : null;
+
+function applyFieldsToForm(form, fields, skipNames) {
+  if (!form || !fields) return;
+  const skip = skipNames || new Set();
+  for (const [name, value] of Object.entries(fields)) {
+    if (skip.has(name)) continue;
+    if (value === undefined || value === null) continue;
+    const str = String(value);
+    let els;
+    try {
+      els = form.querySelectorAll(`[name="${CSS.escape(name)}"]`);
+    } catch {
+      continue;
+    }
+    els.forEach((el) => {
+      if (el.disabled || el.type === "file") return;
+      if (el.type === "checkbox") return;
+      if (el.name === "equipments" && el.type === "hidden") return;
+      if (!("value" in el)) return;
+      const setter =
+        el instanceof HTMLSelectElement ? nativeSelectValueSetter :
+        el instanceof HTMLTextAreaElement ? nativeTextareaValueSetter :
+        nativeInputValueSetter;
+      if (setter) {
+        setter.call(el, str);
+      } else {
+        el.value = str;
+      }
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+}
 
 const statusTone = {
   INPROGRESS: {
@@ -109,11 +201,23 @@ export default function NewOperationPage() {
   const [locations, setLocations] = useState([]);
   const [mooringMasters, setMooringMasters] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
-  const [loadingMasters, setLoadingMasters] = useState(false);
+  const [loadingMasters, setLoadingMasters] = useState(true);
   const [flowDir, setFlowDir] = useState("left");
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef(null);
   const [formResetKey, setFormResetKey] = useState(0);
+  const draftRestoreDoneRef = useRef(false);
+  const allowClientDraftPersistRef = useRef(false);
+  const saveDraftTimerRef = useRef(null);
+  const autosaveUiHideTimerRef = useRef(null);
+  const lastDraftSnapshotRef = useRef(null);
+  const persistDraftFnRef = useRef(null);
+  const actionUploadDraftUrlsRef = useRef({ jpo: "", riskAssessment: "" });
+  /** hidden | saving | saved — local draft autosave indicator (Create tab) */
+  const [draftAutosaveUi, setDraftAutosaveUi] = useState("hidden");
+  const [equipmentDraftEpoch, setEquipmentDraftEpoch] = useState(0);
+  const [restoredEquipmentIds, setRestoredEquipmentIds] = useState([]);
+  const [actionUploadDraftEpoch, setActionUploadDraftEpoch] = useState(0);
   const [showSuccessPage, setShowSuccessPage] = useState(false);
   const [createdOperationId, setCreatedOperationId] = useState(null);
   const searchParams = useSearchParams();
@@ -143,14 +247,13 @@ export default function NewOperationPage() {
   const [nearMissReports, setNearMissReports] = useState([]);
 
   /* Auto-fetch Pre-STS docs (JPO, Risk Assessment, Near Miss) when location changes */
-  const handleLocationChange = async (locationId) => {
+  const handleLocationChange = useCallback(async (locationId) => {
     if (!locationId || locationId === "Select") {
       setPreStsDocs({ jpo: "", riskAssessment: "" });
       setRiskAssessments([]);
       setNearMissReports([]);
       return;
     }
-    // Find the location name for Risk Assessment lookup
     const loc = locations.find((l) => String(l._id) === String(locationId));
     const locName = loc?.name || "";
     try {
@@ -170,7 +273,7 @@ export default function NewOperationPage() {
     } catch (err) {
       console.error("Failed to fetch pre-STS docs:", err);
     }
-  };
+  }, [locations]);
 
   useEffect(() => {
     if (quantityMT && !isNaN(parseFloat(quantityMT)) && parseFloat(quantityMT) > 0) {
@@ -314,6 +417,254 @@ export default function NewOperationPage() {
     fetchMasters();
   }, []);
 
+  const persistStsNewOpDraftNow = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!allowClientDraftPersistRef.current) return;
+    if (!formRef.current || activeViewTab !== "create" || showSuccessPage) return;
+
+    const { fields: rawFields, equipments } = collectFormFieldSnapshot(
+      formRef.current
+    );
+    const fields = {
+      ...rawFields,
+      Operation_Ref_No: operationRef,
+      quantity: quantityMT,
+    };
+    const hasData =
+      (quantityMT && String(quantityMT).trim() !== "") ||
+      (operationRef && String(operationRef).trim() !== "") ||
+      equipments.length > 0 ||
+      Object.keys(fields).some((k) => String(fields[k] ?? "").trim() !== "");
+
+    if (!hasData) {
+      clearStsNewOpDraft(lastDraftSnapshotRef);
+      if (autosaveUiHideTimerRef.current) {
+        clearTimeout(autosaveUiHideTimerRef.current);
+        autosaveUiHideTimerRef.current = null;
+      }
+      setDraftAutosaveUi("hidden");
+      return;
+    }
+
+    const payload = {
+      v: 1,
+      ts: Date.now(),
+      status,
+      flowDir,
+      quantityMT,
+      operationRef,
+      preStsDocs,
+      fields,
+      equipments,
+    };
+    lastDraftSnapshotRef.current = payload;
+    writeStsNewOpDraft(payload);
+    setDraftAutosaveUi("saved");
+    if (autosaveUiHideTimerRef.current) {
+      clearTimeout(autosaveUiHideTimerRef.current);
+    }
+    autosaveUiHideTimerRef.current = setTimeout(() => {
+      autosaveUiHideTimerRef.current = null;
+      setDraftAutosaveUi("hidden");
+    }, 2800);
+  }, [
+    activeViewTab,
+    showSuccessPage,
+    status,
+    flowDir,
+    quantityMT,
+    operationRef,
+    preStsDocs,
+  ]);
+
+  useEffect(() => {
+    persistDraftFnRef.current = persistStsNewOpDraftNow;
+  }, [persistStsNewOpDraftNow]);
+
+  useEffect(() => {
+    return () => {
+      if (saveDraftTimerRef.current) {
+        clearTimeout(saveDraftTimerRef.current);
+        saveDraftTimerRef.current = null;
+      }
+      try {
+        persistDraftFnRef.current?.();
+      } catch {
+        if (lastDraftSnapshotRef.current) {
+          writeStsNewOpDraft(lastDraftSnapshotRef.current);
+        }
+      }
+    };
+  }, []);
+
+  const scheduleStsNewOpDraftPersist = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!allowClientDraftPersistRef.current) return;
+    if (saveDraftTimerRef.current) clearTimeout(saveDraftTimerRef.current);
+    saveDraftTimerRef.current = setTimeout(() => {
+      saveDraftTimerRef.current = null;
+      persistStsNewOpDraftNow();
+    }, 650);
+  }, [persistStsNewOpDraftNow]);
+
+  useEffect(() => {
+    if (loadingMasters || activeViewTab !== "create" || showSuccessPage) return;
+    if (draftRestoreDoneRef.current) return;
+    draftRestoreDoneRef.current = true;
+    allowClientDraftPersistRef.current = false;
+
+    const draft = readStsNewOpDraft();
+    if (!draft) {
+      allowClientDraftPersistRef.current = true;
+      return;
+    }
+
+    const skipNames = new Set([
+      "Operation_Ref_No",
+      "quantity",
+      "equipments",
+      "jpo",
+      "riskAssessment",
+    ]);
+
+    (async () => {
+      try {
+        if (draft.status) setStatus(draft.status);
+        if (
+          draft.flowDir === "left" ||
+          draft.flowDir === "right" ||
+          draft.flowDir === "both"
+        ) {
+          setFlowDir(draft.flowDir);
+        }
+        const fieldsSnapshot =
+          draft.fields && typeof draft.fields === "object" ? draft.fields : {};
+        const opResolved =
+          String(draft.operationRef ?? "").trim() !== ""
+            ? String(draft.operationRef).trim()
+            : String(fieldsSnapshot.Operation_Ref_No ?? "").trim();
+        const qtyResolved =
+          String(draft.quantityMT ?? "").trim() !== ""
+            ? String(draft.quantityMT).trim()
+            : String(fieldsSnapshot.quantity ?? "").trim();
+        setQuantityMT(qtyResolved);
+        setOperationRef(opResolved);
+        if (draft.preStsDocs && typeof draft.preStsDocs === "object") {
+          setPreStsDocs({
+            jpo: draft.preStsDocs.jpo || "",
+            riskAssessment: draft.preStsDocs.riskAssessment || "",
+          });
+        }
+
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const form = formRef.current;
+        if (!form) return;
+
+        const fields = fieldsSnapshot;
+        applyFieldsToForm(form, fields, skipNames);
+
+        const locId = fields.location;
+        if (locId && locId !== "Select" && String(locId).trim() !== "") {
+          await handleLocationChange(locId);
+        }
+
+        setPreStsDocs((prev) => ({
+          jpo:
+            fields.jpo !== undefined && String(fields.jpo).trim() !== ""
+              ? fields.jpo
+              : prev.jpo,
+          riskAssessment:
+            fields.riskAssessment !== undefined &&
+            String(fields.riskAssessment).trim() !== ""
+              ? fields.riskAssessment
+              : prev.riskAssessment,
+        }));
+
+        actionUploadDraftUrlsRef.current = {
+          jpo: fields.jpo != null ? String(fields.jpo) : "",
+          riskAssessment:
+            fields.riskAssessment != null ? String(fields.riskAssessment) : "",
+        };
+        setActionUploadDraftEpoch((e) => e + 1);
+
+        setRestoredEquipmentIds(
+          Array.isArray(draft.equipments) ? draft.equipments : []
+        );
+        setEquipmentDraftEpoch((e) => e + 1);
+      } finally {
+        allowClientDraftPersistRef.current = true;
+        // Do not call persistStsNewOpDraftNow here — React state/DOM for controlled
+        // Operation_Ref_No & quantity are not committed yet; persisting would overwrite
+        // sessionStorage with empty values.
+      }
+    })();
+  }, [loadingMasters, activeViewTab, showSuccessPage, handleLocationChange]);
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || activeViewTab !== "create" || showSuccessPage) return;
+    const onField = () => scheduleStsNewOpDraftPersist();
+    form.addEventListener("input", onField);
+    form.addEventListener("change", onField);
+    return () => {
+      form.removeEventListener("input", onField);
+      form.removeEventListener("change", onField);
+    };
+  }, [activeViewTab, showSuccessPage, scheduleStsNewOpDraftPersist]);
+
+  useEffect(() => {
+    scheduleStsNewOpDraftPersist();
+  }, [
+    status,
+    flowDir,
+    quantityMT,
+    operationRef,
+    preStsDocs,
+    scheduleStsNewOpDraftPersist,
+  ]);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== "hidden") return;
+      if (saveDraftTimerRef.current) {
+        clearTimeout(saveDraftTimerRef.current);
+        saveDraftTimerRef.current = null;
+      }
+      persistStsNewOpDraftNow();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [persistStsNewOpDraftNow]);
+
+  useEffect(() => {
+    const onPageHide = () => {
+      if (saveDraftTimerRef.current) {
+        clearTimeout(saveDraftTimerRef.current);
+        saveDraftTimerRef.current = null;
+      }
+      persistStsNewOpDraftNow();
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [persistStsNewOpDraftNow]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveUiHideTimerRef.current) {
+        clearTimeout(autosaveUiHideTimerRef.current);
+        autosaveUiHideTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const flushStsNewOpDraftBeforeLeaveCreate = useCallback(() => {
+    if (saveDraftTimerRef.current) {
+      clearTimeout(saveDraftTimerRef.current);
+      saveDraftTimerRef.current = null;
+    }
+    persistStsNewOpDraftNow();
+  }, [persistStsNewOpDraftNow]);
+
   const handleSubmit = async (e, isSubmit = false) => {
     e.preventDefault();
     setSubmitting(true);
@@ -383,7 +734,17 @@ export default function NewOperationPage() {
         throw new Error(data.error || "Failed to create operation");
       }
 
-      // Show success page instead of alert
+      clearStsNewOpDraft(lastDraftSnapshotRef);
+      if (saveDraftTimerRef.current) {
+        clearTimeout(saveDraftTimerRef.current);
+        saveDraftTimerRef.current = null;
+      }
+      if (autosaveUiHideTimerRef.current) {
+        clearTimeout(autosaveUiHideTimerRef.current);
+        autosaveUiHideTimerRef.current = null;
+      }
+      setDraftAutosaveUi("hidden");
+
       setCreatedOperationId(data.data?._id || data.data?.id);
       setShowSuccessPage(true);
     } catch (error) {
@@ -433,6 +794,16 @@ export default function NewOperationPage() {
           <div className="flex items-center justify-center gap-4 pt-4">
             <button
               onClick={() => {
+                clearStsNewOpDraft(lastDraftSnapshotRef);
+                if (saveDraftTimerRef.current) {
+                  clearTimeout(saveDraftTimerRef.current);
+                  saveDraftTimerRef.current = null;
+                }
+                if (autosaveUiHideTimerRef.current) {
+                  clearTimeout(autosaveUiHideTimerRef.current);
+                  autosaveUiHideTimerRef.current = null;
+                }
+                setDraftAutosaveUi("hidden");
                 setShowSuccessPage(false);
                 formRef.current?.reset();
                 setStatus("INPROGRESS");
@@ -616,9 +987,36 @@ export default function NewOperationPage() {
             </div>
             
             {/* Right: Action Buttons */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
+              {activeViewTab === "create" && !showSuccessPage && draftAutosaveUi !== "hidden" && (
+                <div
+                  className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-slate-900/60 px-2.5 py-1.5 text-[11px] sm:text-xs text-slate-200 shadow-sm backdrop-blur-sm"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {draftAutosaveUi === "saving" ? (
+                    <>
+                      <span
+                        className="inline-block h-3 w-3 shrink-0 rounded-full border-2 border-orange-400/30 border-t-orange-400 animate-spin"
+                        aria-hidden
+                      />
+                      <span className="whitespace-nowrap">Saving draft…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-emerald-400" aria-hidden>
+                        ✓
+                      </span>
+                      <span className="whitespace-nowrap max-w-[200px] sm:max-w-none">
+                        All changes saved (this browser)
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <button
+                  type="button"
                   onClick={() => setActiveViewTab("create")}
                   className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                     activeViewTab === "create"
@@ -629,7 +1027,11 @@ export default function NewOperationPage() {
                   Create
                 </button>
                 <button
-                  onClick={() => setActiveViewTab("list")}
+                  type="button"
+                  onClick={() => {
+                    flushStsNewOpDraftBeforeLeaveCreate();
+                    setActiveViewTab("list");
+                  }}
                   className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
                     activeViewTab === "list"
                       ? "bg-orange-500 text-white"
@@ -985,6 +1387,8 @@ export default function NewOperationPage() {
                 resetKey={formResetKey}
                 externalValue={preStsDocs.jpo}
                 onClear={() => setPreStsDocs((prev) => ({ ...prev, jpo: "" }))}
+                draftRestoreEpoch={actionUploadDraftEpoch}
+                draftInitialUrl={actionUploadDraftUrlsRef.current.jpo}
               />
               <ActionUpload
                 label="Risk Assessment"
@@ -992,6 +1396,8 @@ export default function NewOperationPage() {
                 resetKey={formResetKey}
                 externalValue={preStsDocs.riskAssessment}
                 onClear={() => setPreStsDocs((prev) => ({ ...prev, riskAssessment: "" }))}
+                draftRestoreEpoch={actionUploadDraftEpoch}
+                draftInitialUrl={actionUploadDraftUrlsRef.current.riskAssessment}
               />
               <UploadPill
                 label="Mooring Plan"
@@ -1194,6 +1600,8 @@ export default function NewOperationPage() {
                   )
                   .map((e) => ({ label: e.equipmentName, value: e._id }))}
                 resetKey={formResetKey}
+                equipmentDraftEpoch={equipmentDraftEpoch}
+                restoredEquipmentIds={restoredEquipmentIds}
               />
               <TextAreaField
                 label="Remarks"
@@ -1207,6 +1615,16 @@ export default function NewOperationPage() {
               <button
                 type="button"
                 onClick={() => {
+                  clearStsNewOpDraft(lastDraftSnapshotRef);
+                  if (saveDraftTimerRef.current) {
+                    clearTimeout(saveDraftTimerRef.current);
+                    saveDraftTimerRef.current = null;
+                  }
+                  if (autosaveUiHideTimerRef.current) {
+                    clearTimeout(autosaveUiHideTimerRef.current);
+                    autosaveUiHideTimerRef.current = null;
+                  }
+                  setDraftAutosaveUi("hidden");
                   formRef.current?.reset();
                   setStatus("INPROGRESS");
                   setFlowDir("left");
@@ -1925,10 +2343,20 @@ function UploadPill({ label, description, name, accent = "sky", resetKey }) {
   );
 }
 
-function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
+function ActionUpload({
+  label,
+  name,
+  resetKey,
+  externalValue,
+  onClear,
+  draftRestoreEpoch = 0,
+  draftInitialUrl = "",
+}) {
   const [fileUrl, setFileUrl] = useState("");
   const [isAutoFetched, setIsAutoFetched] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [userDismissed, setUserDismissed] = useState(false);
+  const lastExternalRef = useRef("");
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -1936,17 +2364,25 @@ function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
     setFileUrl("");
     setIsAutoFetched(false);
     setUploadedFileName("");
+    setUserDismissed(false);
+    lastExternalRef.current = "";
     if (inputRef.current) inputRef.current.value = "";
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [resetKey]);
 
   useEffect(() => {
     if (externalValue !== undefined && externalValue !== null && externalValue !== "") {
-      setFileUrl(externalValue);
-      setIsAutoFetched(true);
-      setUploadedFileName("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      const changed = externalValue !== lastExternalRef.current;
+      lastExternalRef.current = externalValue;
+      if (changed) setUserDismissed(false);
+      if (!userDismissed || changed) {
+        setFileUrl(externalValue);
+        setIsAutoFetched(true);
+        setUploadedFileName("");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     } else if (externalValue === "") {
+      lastExternalRef.current = "";
       if (isAutoFetched) {
         setFileUrl("");
         setIsAutoFetched(false);
@@ -1954,18 +2390,42 @@ function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
     }
   }, [externalValue]);
 
-  const handleClear = (e) => {
+  useEffect(() => {
+    if (draftRestoreEpoch <= 0) return;
+    const next = draftInitialUrl ?? "";
+    setFileUrl(next);
+    setIsAutoFetched(false);
+    setUploadedFileName("");
+    setUserDismissed(false);
+    if (inputRef.current) inputRef.current.value = next;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [draftRestoreEpoch, draftInitialUrl]);
+
+  const handleDismiss = (e) => {
     e.preventDefault();
+    setUserDismissed(true);
     setFileUrl("");
     setIsAutoFetched(false);
     setUploadedFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
-    onClear?.();
+  };
+
+  const handleRestore = () => {
+    const val = lastExternalRef.current || externalValue;
+    if (!val) return;
+    setUserDismissed(false);
+    setFileUrl(val);
+    setIsAutoFetched(true);
+    setUploadedFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
-    if (file) setUploadedFileName(file.name);
+    if (file) {
+      setUploadedFileName(file.name);
+      setUserDismissed(false);
+    }
   };
 
   const handleClearUpload = (e) => {
@@ -1974,16 +2434,17 @@ function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const linkedFileAvailable =
+    !!(lastExternalRef.current || (externalValue && externalValue !== ""));
+
   return (
     <div className="flex flex-col gap-2">
       <label className="block text-sm font-medium text-white/90">{label}</label>
 
-      {/* Hidden URL input — only included when no file is being uploaded */}
       {!uploadedFileName && (
         <input type="hidden" name={name} value={fileUrl} />
       )}
 
-      {/* File input always in DOM so FormData picks it up on submit */}
       <input
         ref={fileInputRef}
         type="file"
@@ -1994,12 +2455,11 @@ function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
       />
 
       {uploadedFileName ? (
-        /* User uploaded a replacement file */
         <div className="flex items-center gap-2">
           <div className="flex-1 flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3">
             <span className="text-sky-300 text-sm truncate">📄 {uploadedFileName}</span>
           </div>
-          {isAutoFetched && fileUrl && (
+          {fileUrl && (
             <ActionDownloadIcon
               onClick={() => window.open(fileUrl, "_blank")}
               title="Download original"
@@ -2015,11 +2475,18 @@ function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
             ✕
           </button>
         </div>
-      ) : isAutoFetched && fileUrl ? (
-        /* Auto-fetched: download + upload-replace + clear */
+      ) : fileUrl ? (
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3">
-            <span className="text-emerald-300 text-sm">✓ File linked from location</span>
+          <div
+            className={`flex-1 flex items-center gap-2 rounded-xl border px-4 py-3 ${
+              isAutoFetched
+                ? "border-emerald-400/30 bg-emerald-500/10"
+                : "border-white/10 bg-white/5"
+            }`}
+          >
+            <span className={`text-sm font-medium ${isAutoFetched ? "text-emerald-300" : "text-white/80"}`}>
+              ✓ File attached
+            </span>
           </div>
           <ActionDownloadIcon
             onClick={() => fileUrl && window.open(fileUrl, "_blank")}
@@ -2036,7 +2503,7 @@ function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
           </button>
           <button
             type="button"
-            onClick={handleClear}
+            onClick={handleDismiss}
             className="px-3 py-3 rounded-xl bg-red-500/20 text-red-300 text-sm font-semibold hover:bg-red-500/30 transition"
             title="Remove"
           >
@@ -2044,22 +2511,28 @@ function ActionUpload({ label, name, resetKey, externalValue, onClear }) {
           </button>
         </div>
       ) : (
-        /* Manual entry */
-        <div className="flex items-center gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={fileUrl}
-            onChange={(e) => setFileUrl(e.target.value)}
-            placeholder="Enter file URL/path"
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
-          />
-          {fileUrl && (
-            <ActionDownloadIcon
-              onClick={() => fileUrl && window.open(fileUrl, "_blank")}
-              title="Open or download"
-              className="!rounded-xl !p-3"
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={fileUrl}
+              onChange={(e) => setFileUrl(e.target.value)}
+              placeholder="Enter file URL/path"
+              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
             />
+          </div>
+          {userDismissed && linkedFileAvailable && (
+            <button
+              type="button"
+              onClick={handleRestore}
+              className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Restore linked file
+            </button>
           )}
         </div>
       )}
@@ -2096,6 +2569,8 @@ function MultiSelectDropdown({
   loading = false,
   name,
   resetKey,
+  equipmentDraftEpoch = 0,
+  restoredEquipmentIds = [],
 }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState([]);
@@ -2120,6 +2595,12 @@ function MultiSelectDropdown({
   useEffect(() => {
     setSelected([]);
   }, [resetKey]);
+
+  useEffect(() => {
+    if (equipmentDraftEpoch > 0) {
+      setSelected([...restoredEquipmentIds]);
+    }
+  }, [equipmentDraftEpoch, restoredEquipmentIds]);
 
   return (
     <div className="space-y-2 relative">

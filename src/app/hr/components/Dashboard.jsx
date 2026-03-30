@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useHrLoading } from "../HrLoadingContext";
 
 export default function HrDashboard() {
   const [stats, setStats] = useState({
@@ -11,10 +12,12 @@ export default function HrDashboard() {
     totalCid: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { setPageLoading } = useHrLoading();
 
   useEffect(() => {
-    // Fetch dashboard stats
     const fetchStats = async () => {
+      setLoading(true);
+      setPageLoading(true);
       try {
         // TODO: Replace with actual API calls
         setStats({
@@ -27,11 +30,12 @@ export default function HrDashboard() {
         console.error("Failed to fetch HR stats:", err);
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+  }, [setPageLoading]);
 
   const modules = [
     {
@@ -65,11 +69,7 @@ export default function HrDashboard() {
   ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-      </div>
-    );
+    return <div className="min-h-[400px]" aria-hidden />;
   }
 
   return (

@@ -636,13 +636,6 @@ export default function PoacMatrixFormPage({ onSuccess }) {
               Cancel
             </Link>
           </div>
-
-          {loadingData && (
-            <div className="text-center py-4">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
-              <p className="text-white/60 text-sm mt-2">Loading record data...</p>
-            </div>
-          )}
         </form>
       </div>
     </div>

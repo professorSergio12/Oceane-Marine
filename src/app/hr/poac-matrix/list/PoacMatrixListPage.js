@@ -633,9 +633,8 @@ export default function PoacMatrixListPage({ onRefresh }) {
         {/* Table — one row per record */}
         <main>
           {loading ? (
-            <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-2"></div>
-              <p className="text-white/60">Loading records...</p>
+            <div className="flex items-center justify-center min-h-[280px] rounded-2xl border border-white/10 bg-white/5">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
             </div>
           ) : records.length === 0 ? (
             <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">

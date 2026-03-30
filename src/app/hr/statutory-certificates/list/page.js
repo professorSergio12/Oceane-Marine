@@ -14,10 +14,8 @@ export default function StatutoryCertificatesListPageWrapper() {
       {/* Main content */}
       <Suspense
         fallback={
-          <div className="flex-1 min-w-0 flex items-center justify-center">
-            <p className="text-white/60">
-              Loading statutory certificates list page…
-            </p>
+          <div className="flex-1 min-w-0 flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
           </div>
         }
       >

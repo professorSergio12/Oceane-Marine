@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import OrangeFullPageLoader from "@/app/components/OrangeFullPageLoader";
 
 export default function HrCharts() {
   const router = useRouter();
@@ -45,18 +46,8 @@ export default function HrCharts() {
   }
 
   if (loading || !stats) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold text-white">HR</h2>
-          <p className="text-sm text-slate-300">Human Resources Overview</p>
-      </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-      </div>
-    </div>
-  );
-}
+    return <OrangeFullPageLoader />;
+  }
 
   /* ── Chart helpers ── */
   const certLocationData = Object.entries(stats.certsByLocation || {})
