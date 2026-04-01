@@ -5,7 +5,10 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
-import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
 
 /** Map every OPS-OFD code to a human-readable form name */

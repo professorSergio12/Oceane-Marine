@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
-import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 
 const FORMS = [
   { formNo: 'OPS-OFD-001', title: 'Checklist 1 - Before Operation Commence', apiPath: 'ops-ofd-001', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-001' },
