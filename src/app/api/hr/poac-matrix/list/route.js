@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 export async function GET(req) {
+  const guard = await assertHrPermission("canView");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

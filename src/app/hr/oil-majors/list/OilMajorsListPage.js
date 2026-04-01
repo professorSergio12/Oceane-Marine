@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
+import { useHrRole } from "@/hooks/useHrRole";
 
 /* ── Shared icon button components ── */
 const tooltipClass =
@@ -159,6 +160,7 @@ async function generatePDF(selectedRecords) {
 export default function OilMajorsListPage({ onRefresh }) {
   const router = useRouter();
   const { setPageLoading } = useHrLoading();
+  const { canEdit, canDelete, canDownload } = useHrRole();
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -322,10 +324,10 @@ export default function OilMajorsListPage({ onRefresh }) {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
         {/* Filters Row + Download Button */}
-        <div className="flex items-end gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Company</span>
             <select className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
               <option value="">All companies</option>
@@ -333,34 +335,35 @@ export default function OilMajorsListPage({ onRefresh }) {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Status</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-slate-200 ml-2">Status</span>
             <select className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
               <option value="">All statuses</option>
               {statuses.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            {(filterCompany || filterStatus) && (
+              <button onClick={() => { setFilterCompany(""); setFilterStatus(""); }} className="text-xs text-slate-400 hover:text-white transition underline underline-offset-2 ml-2">
+                Clear filters
+              </button>
+            )}
           </div>
-          {(filterCompany || filterStatus) && (
-            <button onClick={() => { setFilterCompany(""); setFilterStatus(""); }} className="text-xs text-slate-400 hover:text-white transition underline underline-offset-2">
-              Clear filters
-            </button>
-          )}
 
           {/* Extract PDF button */}
-          <div className="ml-auto">
-            <button
-              onClick={openPdfPanel}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-orange-500/30 transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
-              </svg>
-              Extract PDF
-            </button>
-          </div>
+          {canDownload && (
+            <div className="flex-shrink-0">
+              <button
+                type="button"
+                onClick={openPdfPanel}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-orange-500/30 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
+                </svg>
+                Extract PDF
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Messages */}
@@ -376,15 +379,14 @@ export default function OilMajorsListPage({ onRefresh }) {
         )}
 
         {/* Table */}
-        <main>
-          {filteredRecords.length === 0 ? (
-            <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
-              <p className="text-white/60 mb-2">
-                {records.length === 0 ? "No Oil Major records found" : "No records match the selected filters"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+        {filteredRecords.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-white/60 mb-2">
+              {records.length === 0 ? "No Oil Major records found" : "No records match the selected filters"}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -407,9 +409,13 @@ export default function OilMajorsListPage({ onRefresh }) {
                           <td className="px-6 py-4">
                             {attachments.length > 0 ? (
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                {attachments.map((att, i) => (
-                                  <DownloadIconButton key={i} onClick={() => handleDownloadFile(att)} title={att.originalFileName || `File ${i + 1}`} />
-                                ))}
+                                {canDownload &&
+                                  attachments.map((att, i) => (
+                                    <DownloadIconButton key={i} onClick={() => handleDownloadFile(att)} title={att.originalFileName || `File ${i + 1}`} />
+                                  ))}
+                                {!canDownload && (
+                                  <span className="text-xs text-white/40">{attachments.length} file(s)</span>
+                                )}
                                 {attachments.length > 1 && (
                                   <span className="text-[10px] text-white/40 font-medium">{attachments.length} files</span>
                                 )}
@@ -421,8 +427,10 @@ export default function OilMajorsListPage({ onRefresh }) {
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <ViewIconButton onClick={() => handleView(record)} />
-                              <EditIconButton onClick={() => handleEdit(record)} />
-                              <DeleteIconButton onClick={() => handleDelete(record._id)} disabled={deletingId === record._id} loading={deletingId === record._id} />
+                              {canEdit && <EditIconButton onClick={() => handleEdit(record)} />}
+                              {canDelete && (
+                                <DeleteIconButton onClick={() => handleDelete(record._id)} disabled={deletingId === record._id} loading={deletingId === record._id} />
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -433,7 +441,6 @@ export default function OilMajorsListPage({ onRefresh }) {
               </div>
             </div>
           )}
-        </main>
       </div>
 
       {/* ── PDF Selection Modal ── */}
@@ -591,19 +598,28 @@ export default function OilMajorsListPage({ onRefresh }) {
                         Attachments ({attachments.length})
                       </label>
                       <div className="space-y-2 mt-1">
-                        {attachments.map((att, i) => (
-                          <a
-                            key={i}
-                            href={att.fileUrl}
-                            download={att.originalFileName || "download"}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-medium hover:bg-emerald-500/20 transition"
-                          >
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="truncate flex-1">{att.originalFileName || `File ${i + 1}`}</span>
-                          </a>
-                        ))}
+                        {attachments.map((att, i) =>
+                          canDownload ? (
+                            <a
+                              key={i}
+                              href={att.fileUrl}
+                              download={att.originalFileName || "download"}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-medium hover:bg-emerald-500/20 transition"
+                            >
+                              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <span className="truncate flex-1">{att.originalFileName || `File ${i + 1}`}</span>
+                            </a>
+                          ) : (
+                            <div
+                              key={i}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/50 text-sm"
+                            >
+                              <span className="truncate flex-1">{att.originalFileName || `File ${i + 1}`}</span>
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   );

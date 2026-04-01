@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
 import { DownloadIconButton } from "../../../qhse/components/ActionIcons";
+import { useHrRole } from "@/hooks/useHrRole";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -81,6 +82,7 @@ function DeleteIconButton({ onClick, disabled, loading }) {
 export default function CidListPage({ onRefresh }) {
   const router = useRouter();
   const { setPageLoading } = useHrLoading();
+  const { canEdit, canDelete, canDownload } = useHrRole();
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -188,10 +190,10 @@ export default function CidListPage({ onRefresh }) {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
         {/* Filters Row */}
-        <div className="flex items-end gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Title</span>
             <select
               className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
@@ -203,9 +205,7 @@ export default function CidListPage({ onRefresh }) {
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-slate-200 ml-2">Location</span>
             <select
               className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
               value={filterLocation}
@@ -216,18 +216,18 @@ export default function CidListPage({ onRefresh }) {
                 <option key={loc} value={loc}>{loc}</option>
               ))}
             </select>
+            {(filterTitle || filterLocation) && (
+              <button
+                onClick={() => {
+                  setFilterTitle("");
+                  setFilterLocation("");
+                }}
+                className="text-xs text-slate-400 hover:text-white transition underline underline-offset-2 ml-2"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
-          {(filterTitle || filterLocation) && (
-            <button
-              onClick={() => {
-                setFilterTitle("");
-                setFilterLocation("");
-              }}
-              className="text-xs text-slate-400 hover:text-white transition underline underline-offset-2"
-            >
-              Clear filters
-            </button>
-          )}
         </div>
 
         {/* Messages */}
@@ -243,17 +243,16 @@ export default function CidListPage({ onRefresh }) {
         )}
 
         {/* Table */}
-        <main>
-          {filteredRecords.length === 0 ? (
-            <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
-              <p className="text-white/60 mb-2">
-                {records.length === 0
-                  ? "No CID records found"
-                  : "No records match the selected filters"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+        {filteredRecords.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-white/60 mb-2">
+              {records.length === 0
+                ? "No CID records found"
+                : "No records match the selected filters"}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -281,20 +280,24 @@ export default function CidListPage({ onRefresh }) {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <DownloadIconButton
-                              onClick={() => handleDownloadPdf(record)}
-                              disabled={downloadingPdfId === record._id}
-                              loading={downloadingPdfId === record._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(record)}
+                                disabled={downloadingPdfId === record._id}
+                                loading={downloadingPdfId === record._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
                             <ViewIconButton onClick={() => handleView(record)} />
-                            <EditIconButton onClick={() => handleEdit(record)} />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(record._id)}
-                              disabled={deletingId === record._id}
-                              loading={deletingId === record._id}
-                            />
+                            {canEdit && <EditIconButton onClick={() => handleEdit(record)} />}
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(record._id)}
+                                disabled={deletingId === record._id}
+                                loading={deletingId === record._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -304,7 +307,6 @@ export default function CidListPage({ onRefresh }) {
               </div>
             </div>
           )}
-        </main>
       </div>
 
       {/* View Modal */}
@@ -323,14 +325,16 @@ export default function CidListPage({ onRefresh }) {
               <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between gap-3 flex-wrap">
                 <h3 className="text-xl font-bold text-white">CID Details</h3>
                 <div className="flex items-center gap-2">
-                  <DownloadIconButton
-                    onClick={() => handleDownloadPdf(selectedItem)}
-                    disabled={downloadingPdfId === selectedItem._id}
-                    loading={downloadingPdfId === selectedItem._id}
-                    title="Download as PDF"
-                    tooltipPlacement="below"
-                    className="!text-rose-400 hover:!text-rose-300"
-                  />
+                  {canDownload && (
+                    <DownloadIconButton
+                      onClick={() => handleDownloadPdf(selectedItem)}
+                      disabled={downloadingPdfId === selectedItem._id}
+                      loading={downloadingPdfId === selectedItem._id}
+                      title="Download as PDF"
+                      tooltipPlacement="below"
+                      className="!text-rose-400 hover:!text-rose-300"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={closeModal}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import OrangeFullPageLoader from "@/app/components/OrangeFullPageLoader";
 
 export default function HrCharts() {
   const router = useRouter();
@@ -46,7 +45,15 @@ export default function HrCharts() {
   }
 
   if (loading || !stats) {
-    return <OrangeFullPageLoader />;
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <div>
+          <h2 className="text-base sm:text-xl font-semibold text-white">HR</h2>
+          <p className="text-xs sm:text-sm text-slate-300">Human Resources Overview</p>
+        </div>
+        <HrDashboardSkeleton />
+      </div>
+    );
   }
 
   /* ── Chart helpers ── */
@@ -478,6 +485,34 @@ export default function HrCharts() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function HrDashboardSkeleton() {
+  return (
+    <div className="space-y-4 md:space-y-6 animate-pulse" aria-busy="true" aria-label="Loading HR dashboard">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl md:rounded-2xl border border-white/10 bg-white/5 h-20 sm:h-24 md:h-28"
+          />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl md:rounded-2xl border border-white/10 bg-white/5 h-48 sm:h-56 md:h-64"
+          />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+        <div className="rounded-xl md:rounded-2xl border border-white/10 bg-white/5 h-48" />
+        <div className="rounded-xl md:rounded-2xl border border-white/10 bg-white/5 h-48" />
+      </div>
+      <div className="rounded-xl md:rounded-2xl border border-white/10 bg-white/5 h-36 md:h-40" />
     </div>
   );
 }

@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useHrLoading } from "../../HrLoadingContext";
+import { useHrRole } from "@/hooks/useHrRole";
 
 export default function CidFormPage({ onSuccess }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { setPageLoading } = useHrLoading();
+  const { canCreate, canEdit } = useHrRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const [title, setTitle] = useState("");
   const [name, setName] = useState("");
@@ -55,6 +58,7 @@ export default function CidFormPage({ onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setMessage("");
     setLoading(true);
@@ -137,6 +141,12 @@ export default function CidFormPage({ onSuccess }) {
           </div>
         )}
 
+        {!canSubmit && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} CID records.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div className="space-y-2">
@@ -152,7 +162,8 @@ export default function CidFormPage({ onSuccess }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              readOnly={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all read-only:opacity-70"
               placeholder="Enter title"
             />
           </div>
@@ -171,7 +182,8 @@ export default function CidFormPage({ onSuccess }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              readOnly={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all read-only:opacity-70"
               placeholder="Enter name"
             />
           </div>
@@ -190,7 +202,8 @@ export default function CidFormPage({ onSuccess }) {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              readOnly={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all read-only:opacity-70"
               placeholder="Enter location"
             />
           </div>
@@ -209,7 +222,8 @@ export default function CidFormPage({ onSuccess }) {
               value={validity}
               onChange={(e) => setValidity(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              readOnly={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all read-only:opacity-70"
             />
           </div>
 
@@ -217,7 +231,7 @@ export default function CidFormPage({ onSuccess }) {
           <div className="flex gap-4">
             <button
               type="submit"
-              disabled={loading || loadingData}
+              disabled={!canSubmit || loading || loadingData}
               className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading

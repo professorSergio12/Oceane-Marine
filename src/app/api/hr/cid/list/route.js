@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Cid from "@/lib/mongodb/models/hr/Cid";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 export async function GET() {
+  const guard = await assertHrPermission("canView");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

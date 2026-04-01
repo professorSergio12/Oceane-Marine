@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import User from "@/lib/mongodb/models/User";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
+import { VALID_HR_ROLES } from "@/lib/permissions/hr";
 
 const VALID_OPS_ROLES = ["admin", "editor", "approver", "viewer"];
 
@@ -51,6 +52,9 @@ export async function PUT(req, { params }) {
     if (body.employeeId) updates.employeeId = body.employeeId;
     if (VALID_OPS_ROLES.includes(body.operationsRole)) {
       updates.operationsRole = body.operationsRole;
+    }
+    if (VALID_HR_ROLES.includes(body.hrRole)) {
+      updates.hrRole = body.hrRole;
     }
     if (typeof body.isActive === "boolean") {
       updates.isActive = body.isActive;

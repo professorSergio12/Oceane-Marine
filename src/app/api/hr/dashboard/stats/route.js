@@ -4,8 +4,12 @@ import StatutoryCertificate from "@/lib/mongodb/models/hr/StatutoryCertificate";
 import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
 import Cid from "@/lib/mongodb/models/hr/Cid";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 export async function GET() {
+  const guard = await assertHrPermission("canView");
+  if (!guard.ok) return guard.response;
+
   try {
     await connectDB();
 

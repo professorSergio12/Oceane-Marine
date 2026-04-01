@@ -29,6 +29,12 @@ const userSchema = new mongoose.Schema(
       default: "viewer",
     },
 
+    hrRole: {
+      type: String,
+      enum: ["admin", "editor", "approver", "viewer"],
+      default: "viewer",
+    },
+
     permissions: {
       operations: {
         reviewer: { type: Boolean, default: false },

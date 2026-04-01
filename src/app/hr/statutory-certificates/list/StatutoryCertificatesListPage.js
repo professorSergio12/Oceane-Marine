@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
 import { DownloadIconButton as QhseDownloadIconButton } from "../../../qhse/components/ActionIcons";
+import { useHrRole } from "@/hooks/useHrRole";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -83,6 +84,7 @@ function DeleteIconButton({ onClick, disabled, loading }) {
 export default function StatutoryCertificatesListPage({ onRefresh }) {
   const router = useRouter();
   const { setPageLoading } = useHrLoading();
+  const { canEdit, canDelete, canDownload } = useHrRole();
   const [certificates, setCertificates] = useState([]);
   const [filteredCertificates, setFilteredCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -191,10 +193,10 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
         {/* Filters Row */}
-        <div className="flex items-end gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
             <select
               className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
@@ -206,9 +208,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-slate-200 ml-2">Location</span>
             <select
               className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
               value={filterLocation}
@@ -219,15 +219,15 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                 <option key={loc} value={loc}>{loc}</option>
               ))}
             </select>
+            {(filterYear || filterLocation) && (
+              <button
+                onClick={() => { setFilterYear(""); setFilterLocation(""); }}
+                className="text-xs text-slate-400 hover:text-white transition underline underline-offset-2 ml-2"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
-          {(filterYear || filterLocation) && (
-            <button
-              onClick={() => { setFilterYear(""); setFilterLocation(""); }}
-              className="text-xs text-slate-400 hover:text-white transition underline underline-offset-2"
-            >
-              Clear filters
-            </button>
-          )}
         </div>
 
         {/* Messages */}
@@ -243,15 +243,14 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
         )}
 
         {/* Table */}
-        <main>
-          {filteredCertificates.length === 0 ? (
-            <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
-              <p className="text-white/60 mb-2">
-                {certificates.length === 0 ? "No certificates found" : "No certificates match the selected filters"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+        {filteredCertificates.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-white/60 mb-2">
+              {certificates.length === 0 ? "No certificates found" : "No certificates match the selected filters"}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -274,30 +273,36 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <QhseDownloadIconButton
-                              onClick={() => handleDownloadPdf(cert)}
-                              disabled={
-                                downloadingPdfId === cert._id || deletingId === cert._id
-                              }
-                              loading={downloadingPdfId === cert._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
+                            {canDownload && (
+                              <QhseDownloadIconButton
+                                onClick={() => handleDownloadPdf(cert)}
+                                disabled={
+                                  downloadingPdfId === cert._id || deletingId === cert._id
+                                }
+                                loading={downloadingPdfId === cert._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
                             <ViewIconButton
                               onClick={() => handleView(cert)}
                               disabled={downloadingPdfId === cert._id}
                             />
-                            <EditIconButton
-                              onClick={() => handleEdit(cert)}
-                              disabled={downloadingPdfId === cert._id}
-                            />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(cert._id)}
-                              disabled={
-                                deletingId === cert._id || downloadingPdfId === cert._id
-                              }
-                              loading={deletingId === cert._id}
-                            />
+                            {canEdit && (
+                              <EditIconButton
+                                onClick={() => handleEdit(cert)}
+                                disabled={downloadingPdfId === cert._id}
+                              />
+                            )}
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(cert._id)}
+                                disabled={
+                                  deletingId === cert._id || downloadingPdfId === cert._id
+                                }
+                                loading={deletingId === cert._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -307,7 +312,6 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
               </div>
             </div>
           )}
-        </main>
       </div>
 
       {/* View Modal */}
@@ -326,14 +330,16 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
               <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-5 flex items-center justify-between gap-3 flex-wrap">
                 <h3 className="text-xl font-bold text-white">Certificate Details</h3>
                 <div className="flex items-center gap-2">
-                  <QhseDownloadIconButton
-                    onClick={() => handleDownloadPdf(selectedItem)}
-                    disabled={downloadingPdfId === selectedItem._id}
-                    loading={downloadingPdfId === selectedItem._id}
-                    title="Download as PDF"
-                    tooltipPlacement="below"
-                    className="!text-rose-400 hover:!text-rose-300"
-                  />
+                  {canDownload && (
+                    <QhseDownloadIconButton
+                      onClick={() => handleDownloadPdf(selectedItem)}
+                      disabled={downloadingPdfId === selectedItem._id}
+                      loading={downloadingPdfId === selectedItem._id}
+                      title="Download as PDF"
+                      tooltipPlacement="below"
+                      className="!text-rose-400 hover:!text-rose-300"
+                    />
+                  )}
                   <button
                   type="button"
                   onClick={closeModal}
@@ -381,16 +387,20 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                           {selectedItem.attachment.originalFileName || "File"}
                         </p>
                       </div>
-                      <a
-                        href={selectedItem.attachment.fileUrl}
-                        download={selectedItem.attachment.originalFileName || "certificate"}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-300 bg-sky-500/10 border border-sky-400/30 hover:bg-sky-500/20 transition"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Download
-                      </a>
+                      {canDownload ? (
+                        <a
+                          href={selectedItem.attachment.fileUrl}
+                          download={selectedItem.attachment.originalFileName || "certificate"}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-300 bg-sky-500/10 border border-sky-400/30 hover:bg-sky-500/20 transition"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Download
+                        </a>
+                      ) : (
+                        <span className="text-xs text-white/40">Download restricted</span>
+                      )}
                     </div>
                   </div>
                 )}

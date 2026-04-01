@@ -3,10 +3,14 @@ import { connectDB } from "@/lib/config/connection";
 import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import path from "path";
 import fs from "fs/promises";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
 export async function POST(req) {
+  const guard = await assertHrPermission("canCreate");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

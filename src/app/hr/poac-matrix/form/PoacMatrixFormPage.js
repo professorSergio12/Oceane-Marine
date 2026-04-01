@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useHrLoading } from "../../HrLoadingContext";
+import { useHrRole } from "@/hooks/useHrRole";
 
 /* ── Yes/No option fields that can have conditional file upload ── */
 const YES_NO_OPTIONS = [
@@ -59,6 +60,8 @@ export default function PoacMatrixFormPage({ onSuccess }) {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { setPageLoading } = useHrLoading();
+  const { canCreate, canEdit } = useHrRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const [rows, setRows] = useState([createEmptyRow()]);
   const [loading, setLoading] = useState(false);
@@ -159,6 +162,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setMessage("");
     setLoading(true);
@@ -349,7 +353,8 @@ export default function PoacMatrixFormPage({ onSuccess }) {
           <button
             type="button"
             onClick={addRow}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200"
+            disabled={!canSubmit}
+            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Add Row
           </button>
@@ -367,7 +372,14 @@ export default function PoacMatrixFormPage({ onSuccess }) {
           </div>
         )}
 
+        {!canSubmit && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} POAC matrix records.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
+          <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.85]">
           {rows.map((row, rowIndex) => (
             <div key={rowIndex} className="border border-white/10 rounded-xl p-6 space-y-4 bg-white/5">
               <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/10">
@@ -619,12 +631,13 @@ export default function PoacMatrixFormPage({ onSuccess }) {
               </div>
             </div>
           ))}
+          </fieldset>
 
           {/* Submit Button */}
           <div className="flex gap-4">
             <button
               type="submit"
-              disabled={loading || loadingData}
+              disabled={!canSubmit || loading || loadingData}
               className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (editId ? "Updating..." : "Creating...") : (editId ? "Update Record" : "Create Records")}

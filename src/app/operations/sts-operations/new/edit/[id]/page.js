@@ -632,6 +632,11 @@ export default function EditOperationPage() {
             onSubmit={(e) => e.preventDefault()}
             className="rounded-3xl border border-white/10 bg-[#0b2740]/90 p-6 backdrop-blur shadow-2xl space-y-6 max-w-6xl mx-auto"
           >
+            {!canEditForm && (
+              <div className="mb-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+                You do not have permission to edit STS operation records.
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-3 border-b border-white/10 pb-4">
               <StatusDropdown
                 status={status}

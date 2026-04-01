@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
+import { useHrRole } from "@/hooks/useHrRole";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -425,6 +426,7 @@ async function generateOverallPoacPDF(allRows) {
 export default function PoacMatrixListPage({ onRefresh }) {
   const router = useRouter();
   const { setPageLoading } = useHrLoading();
+  const { canEdit, canDelete, canDownload } = useHrRole();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -602,7 +604,23 @@ export default function PoacMatrixListPage({ onRefresh }) {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
+        {/* Top Row: Extract PDF Button */}
+        {records.length > 0 && canDownload && (
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={openPdfPanel}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-orange-500/30 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
+              </svg>
+              Extract Overall PDF
+            </button>
+          </div>
+        )}
+
         {/* Messages */}
         {error && (
           <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
@@ -615,34 +633,17 @@ export default function PoacMatrixListPage({ onRefresh }) {
           </div>
         )}
 
-        {/* Overall Extract PDF Button */}
-        {records.length > 0 && (
-          <div className="flex items-end justify-end">
-            <button
-              onClick={openPdfPanel}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-orange-500/30 transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
-              </svg>
-              Extract Overall PDF
-            </button>
-          </div>
-        )}
-
         {/* Table — one row per record */}
-        <main>
-          {loading ? (
-            <div className="flex items-center justify-center min-h-[280px] rounded-2xl border border-white/10 bg-white/5">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
-            </div>
-          ) : records.length === 0 ? (
-            <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
-              <p className="text-white/60">No records found</p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="overflow-x-auto">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[280px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+          </div>
+        ) : records.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-white/60">No records found</p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
@@ -670,17 +671,21 @@ export default function PoacMatrixListPage({ onRefresh }) {
                           <td className="px-4 py-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <ViewIconButton onClick={() => handleView(record)} />
-                              <EditIconButton onClick={() => handleEdit(record)} />
-                              <DownloadIconButton
-                                onClick={() => handleRecordPDF(record)}
-                                disabled={pdfDownloadingId === record._id}
-                                loading={pdfDownloadingId === record._id}
-                              />
-                              <DeleteIconButton
-                                onClick={() => handleDelete(record._id)}
-                                disabled={deletingId === record._id}
-                                loading={deletingId === record._id}
-                              />
+                              {canEdit && <EditIconButton onClick={() => handleEdit(record)} />}
+                              {canDownload && (
+                                <DownloadIconButton
+                                  onClick={() => handleRecordPDF(record)}
+                                  disabled={pdfDownloadingId === record._id}
+                                  loading={pdfDownloadingId === record._id}
+                                />
+                              )}
+                              {canDelete && (
+                                <DeleteIconButton
+                                  onClick={() => handleDelete(record._id)}
+                                  disabled={deletingId === record._id}
+                                  loading={deletingId === record._id}
+                                />
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -688,10 +693,8 @@ export default function PoacMatrixListPage({ onRefresh }) {
                     })}
                   </tbody>
                 </table>
-              </div>
             </div>
           )}
-        </main>
       </div>
 
       {/* ── Overall PDF Selection Modal ── */}
@@ -912,7 +915,7 @@ export default function PoacMatrixListPage({ onRefresh }) {
                                   >
                                     {val}
                                   </span>
-                                  {val === "Yes" && hasFile && (
+                                  {val === "Yes" && hasFile && canDownload && (
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -945,20 +948,26 @@ export default function PoacMatrixListPage({ onRefresh }) {
                             if (atts.length === 0) return <span className="text-slate-500 text-xs">—</span>;
                             return (
                               <div className="flex flex-col gap-1 items-center">
-                                {atts.map((att, ai) => (
-                                  <button
-                                    key={ai}
-                                    type="button"
-                                    onClick={() => handleDownload(att.fileUrl, att.originalFileName)}
-                                    title={att.originalFileName || "Download"}
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-sky-300 hover:text-sky-200 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 transition truncate max-w-[160px]"
-                                  >
-                                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    <span className="truncate">{att.originalFileName || "File"}</span>
-                                  </button>
-                                ))}
+                                {atts.map((att, ai) =>
+                                  canDownload ? (
+                                    <button
+                                      key={ai}
+                                      type="button"
+                                      onClick={() => handleDownload(att.fileUrl, att.originalFileName)}
+                                      title={att.originalFileName || "Download"}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-sky-300 hover:text-sky-200 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 transition truncate max-w-[160px]"
+                                    >
+                                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                      <span className="truncate">{att.originalFileName || "File"}</span>
+                                    </button>
+                                  ) : (
+                                    <span key={ai} className="text-[10px] text-white/40 truncate max-w-[160px]">
+                                      {att.originalFileName || "File"}
+                                    </span>
+                                  )
+                                )}
                               </div>
                             );
                           })()}

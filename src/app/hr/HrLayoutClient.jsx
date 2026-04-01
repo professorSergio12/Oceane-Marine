@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { HrSidebarProvider } from "./HrSidebarContext";
 import { HrLoadingProvider, useHrLoading } from "./HrLoadingContext";
 import LoadingOverlay from "./components/LoadingOverlay";
+import { useAuthStore } from "@/store/authStore";
 
 function ContentWrapper({ children }) {
   const { pageLoading } = useHrLoading();
@@ -14,6 +16,11 @@ function ContentWrapper({ children }) {
 }
 
 export default function HrLayoutClient({ children }) {
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
   return (
     <HrLoadingProvider>
       <HrSidebarProvider>

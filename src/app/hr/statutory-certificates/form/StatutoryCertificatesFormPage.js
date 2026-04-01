@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useHrLoading } from "../../HrLoadingContext";
+import { useHrRole } from "@/hooks/useHrRole";
 
 export default function StatutoryCertificatesFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { setPageLoading } = useHrLoading();
+  const { canCreate, canEdit } = useHrRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const [location, setLocation] = useState("");
   const [typeOfDocs, setTypeOfDocs] = useState("");
@@ -62,6 +65,7 @@ export default function StatutoryCertificatesFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setMessage("");
     setLoading(true);
@@ -157,6 +161,12 @@ export default function StatutoryCertificatesFormPage() {
           </div>
         )}
 
+        {!canSubmit && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} statutory certificates.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Location */}
           <div className="space-y-2">
@@ -169,7 +179,8 @@ export default function StatutoryCertificatesFormPage() {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              readOnly={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all read-only:opacity-70"
               placeholder="Enter location"
             />
           </div>
@@ -200,7 +211,8 @@ export default function StatutoryCertificatesFormPage() {
               value={year}
               onChange={(e) => setYear(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              disabled={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all disabled:opacity-70"
             >
               {years.map((y) => (
                 <option key={y} value={y} className="bg-slate-900">
@@ -221,7 +233,8 @@ export default function StatutoryCertificatesFormPage() {
               value={validity}
               onChange={(e) => setValidity(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              readOnly={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all read-only:opacity-70"
             />
           </div>
 
@@ -235,8 +248,9 @@ export default function StatutoryCertificatesFormPage() {
               type="file"
               accept=".pdf,.doc,.docx,.xls,.xlsx"
               onChange={(e) => setAttachment(e.target.files[0])}
-              required={!editId}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              required={!editId && canSubmit}
+              disabled={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all disabled:opacity-50"
             />
             {editId && existingFile && !attachment && (
               <p className="text-sm text-white/60 mt-2">
@@ -257,7 +271,7 @@ export default function StatutoryCertificatesFormPage() {
           <div className="flex gap-4">
             <button
               type="submit"
-              disabled={loading || loadingData}
+              disabled={!canSubmit || loading || loadingData}
               className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (editId ? "Updating..." : "Creating...") : (editId ? "Update Certificate" : "Create Certificate")}

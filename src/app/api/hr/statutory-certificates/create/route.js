@@ -3,8 +3,12 @@ import { connectDB } from "@/lib/config/connection";
 import StatutoryCertificate from "@/lib/mongodb/models/hr/StatutoryCertificate";
 import path from "path";
 import fs from "fs/promises";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 export async function POST(req) {
+  const guard = await assertHrPermission("canCreate");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

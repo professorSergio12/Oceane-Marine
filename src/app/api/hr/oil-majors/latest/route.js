@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 /**
  * Returns the latest record for each unique company name.
  * This is used for the PDF download — showing the most recent status per company.
  */
 export async function GET() {
+  const guard = await assertHrPermission("canView");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

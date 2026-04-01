@@ -456,6 +456,11 @@ export default function ManualFormPage() {
             )}
 
             <form onSubmit={handleSubmit} className="w-full space-y-6">
+              {!(editId ? canEditForm : canCreateForm) && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+                  You do not have permission to {editId ? "edit" : "create"} manual records.
+                </div>
+              )}
               <section className="w-full space-y-4">
                 <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
                   Basic Information

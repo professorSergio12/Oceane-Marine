@@ -1000,6 +1000,11 @@ export default function NewOperationPage() {
             onSubmit={handleSubmit}
             className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-6xl mx-auto"
           >
+            {!canCreateForm && (
+              <div className="mb-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+                You do not have permission to create STS operation records.
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 border-b border-white/10 pb-3 sm:pb-4">
               <StatusDropdown
                 status={status}

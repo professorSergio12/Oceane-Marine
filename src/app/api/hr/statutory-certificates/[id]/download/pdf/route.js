@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StatutoryCertificate from "@/lib/mongodb/models/hr/StatutoryCertificate";
 import { generateStatutoryCertificatePdf } from "@/jobs/services/pdf/StatutoryCertificatePdfReport";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 export const runtime = "nodejs";
 
 export async function GET(_req, { params }) {
+  const guard = await assertHrPermission("canDownload");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

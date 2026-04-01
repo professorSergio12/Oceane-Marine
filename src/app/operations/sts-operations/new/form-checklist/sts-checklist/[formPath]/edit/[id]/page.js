@@ -1250,6 +1250,11 @@ export default function EditFormPage() {
 
           {/* Form card - same style as view page (external form layout) */}
           <form onSubmit={(e) => handleSubmit(e)} className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 text-white">
+            {!canEditForm && (
+              <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+                You do not have permission to edit this checklist form.
+              </div>
+            )}
             {/* Status bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-gray-700/50 border border-gray-600/50">
               <div className="flex items-center gap-3">

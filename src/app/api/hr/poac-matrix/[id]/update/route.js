@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
 import path from "path";
 import fs from "fs/promises";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 /* Fields that can have a conditional file upload when set to "Yes" */
 const OPTION_FILE_FIELDS = [
@@ -93,6 +94,9 @@ async function saveFile(file, stsServiceProvider, poacName, subfolder) {
 }
 
 export async function PUT(req, { params }) {
+  const guard = await assertHrPermission("canEdit");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

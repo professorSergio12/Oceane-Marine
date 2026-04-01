@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import User from "@/lib/mongodb/models/User";
 import bcrypt from "bcryptjs";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
+import { VALID_HR_ROLES } from "@/lib/permissions/hr";
 
 const VALID_OPS_ROLES = ["admin", "editor", "approver", "viewer"];
 
@@ -18,7 +19,7 @@ export async function POST(req) {
     }
 
     await connectDB();
-    const { employeeId, employeeName, email, password, operationsRole } = await req.json();
+    const { employeeId, employeeName, email, password, operationsRole, hrRole } = await req.json();
 
     if (!employeeId || !employeeName || !email || !password) {
       return NextResponse.json(
@@ -36,6 +37,7 @@ export async function POST(req) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const role = VALID_OPS_ROLES.includes(operationsRole) ? operationsRole : "viewer";
+    const hr = VALID_HR_ROLES.includes(hrRole) ? hrRole : "viewer";
 
     const newUser = await User.create({
       employeeId,
@@ -43,6 +45,7 @@ export async function POST(req) {
       email,
       password: hashedPassword,
       operationsRole: role,
+      hrRole: hr,
     });
 
     const userObj = newUser.toObject();

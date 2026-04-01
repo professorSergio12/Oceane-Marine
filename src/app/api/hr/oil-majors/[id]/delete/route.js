@@ -3,8 +3,12 @@ import { connectDB } from "@/lib/config/connection";
 import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import path from "path";
 import fs from "fs/promises";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 export async function DELETE(req, { params }) {
+  const guard = await assertHrPermission("canDelete");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

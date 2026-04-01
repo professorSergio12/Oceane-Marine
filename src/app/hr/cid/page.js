@@ -8,15 +8,28 @@ import CidListPage from "./list/CidListPage";
 import HrSidebarWrapper from "../components/HrSidebarWrapper";
 import { useHrSidebar } from "../HrSidebarContext";
 import { useHrLoading } from "../HrLoadingContext";
+import { useHrRole } from "@/hooks/useHrRole";
+import { useAuthStore } from "@/store/authStore";
 
 function CidContent() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState("form");
+  const { canCreate, canEdit, isHrAdmin } = useHrRole();
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+  const showFormTab = canCreate || canEdit || isHrAdmin;
+  const [activeTab, setActiveTab] = useState(() => (showFormTab ? "form" : "list"));
   const { contentClassName, isSidebarOpen } = useHrSidebar();
   const { setPageLoading } = useHrLoading();
 
-  // Check for tab and edit in URL
   useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  // Check for tab and edit in URL; list-only users stay on list
+  useEffect(() => {
+    if (!showFormTab) {
+      setActiveTab("list");
+      return;
+    }
     const tab = searchParams.get("tab");
     const edit = searchParams.get("edit");
     if (tab === "list") {
@@ -25,7 +38,7 @@ function CidContent() {
       setPageLoading(true);
       setActiveTab("form");
     }
-  }, [searchParams, setPageLoading]);
+  }, [searchParams, setPageLoading, showFormTab]);
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -38,39 +51,42 @@ function CidContent() {
         }`}
       >
         <div className="w-full mx-auto py-4 sm:py-6 md:py-10 space-y-4 sm:space-y-6 px-3 sm:px-4">
-          <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-            {/* Left: Dashboard Button */}
+          <header
+            className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4`}
+          >
             <Link
               href="/dashboard"
-              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
 
-            {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+            <div className="flex-1 min-w-0 flex flex-col items-center text-center w-full md:w-auto">
               <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
                 HR / CID
               </p>
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">CID</h1>
             </div>
 
-            {/* Right: Form/List Tabs */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
-              <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="flex justify-center md:justify-end shrink-0">
+              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+                {showFormTab && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("form")}
+                    className={`px-4 py-2 text-sm font-semibold transition ${
+                      activeTab === "form"
+                        ? "text-white bg-orange-500 hover:bg-orange-600"
+                        : "text-white/90 hover:bg-white/10"
+                    }`}
+                  >
+                    Form
+                  </button>
+                )}
                 <button
-                  onClick={() => setActiveTab("form")}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
-                    activeTab === "form"
-                      ? "text-white bg-orange-500 hover:bg-orange-600"
-                      : "text-white/90 hover:bg-white/10"
-                  }`}
-                >
-                  Form
-                </button>
-                <button
+                  type="button"
                   onClick={() => setActiveTab("list")}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition ${
+                  className={`px-4 py-2 text-sm font-semibold transition ${
                     activeTab === "list"
                       ? "text-white bg-orange-500 hover:bg-orange-600"
                       : "text-white/90 hover:bg-white/10"
@@ -83,7 +99,7 @@ function CidContent() {
           </header>
 
           {/* Content */}
-          {activeTab === "form" && (
+          {showFormTab && activeTab === "form" && (
             <CidFormPage
               onSuccess={() => {
                 setActiveTab("list");

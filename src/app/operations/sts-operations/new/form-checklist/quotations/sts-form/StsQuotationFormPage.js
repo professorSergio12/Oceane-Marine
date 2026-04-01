@@ -377,6 +377,11 @@ export default function StsQuotationFormPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
+            {!(editId ? canEditForm : canCreateForm) && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+                You do not have permission to {editId ? "edit" : "create"} STS quotation records.
+              </div>
+            )}
             {/* Form type (only when creating) */}
             {!editId && (
               <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">

@@ -10,6 +10,13 @@ const OPS_ROLE_OPTIONS = [
   { value: "admin", label: "Admin (Master Data + User Mgmt)" },
 ];
 
+const HR_ROLE_OPTIONS = [
+  { value: "viewer", label: "Viewer (read-only + download)" },
+  { value: "editor", label: "Editor (create / edit / delete)" },
+  { value: "approver", label: "Approver (read + download)" },
+  { value: "admin", label: "Admin (read-only oversight)" },
+];
+
 const ROLE_BADGE = {
   admin: "bg-red-500/20 text-red-300 border-red-500/40",
   editor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
@@ -20,6 +27,16 @@ const ROLE_BADGE = {
 function RoleBadge({ role }) {
   const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
   const label = OPS_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
+  return (
+    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function HrRoleBadge({ role }) {
+  const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
+  const label = HR_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
   return (
     <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
       {label}
@@ -77,8 +94,22 @@ export default function AdminPanel() {
   const [actionLoading, setActionLoading] = useState(false);
   const [search, setSearch] = useState("");
 
-  const [addForm, setAddForm] = useState({ employeeId: "", employeeName: "", email: "", password: "", operationsRole: "viewer" });
-  const [editForm, setEditForm] = useState({ employeeName: "", email: "", employeeId: "", operationsRole: "viewer", isActive: true });
+  const [addForm, setAddForm] = useState({
+    employeeId: "",
+    employeeName: "",
+    email: "",
+    password: "",
+    operationsRole: "viewer",
+    hrRole: "viewer",
+  });
+  const [editForm, setEditForm] = useState({
+    employeeName: "",
+    email: "",
+    employeeId: "",
+    operationsRole: "viewer",
+    hrRole: "viewer",
+    isActive: true,
+  });
   const [newPassword, setNewPassword] = useState("");
 
   const clearMessages = () => { setError(""); setSuccess(""); };
@@ -116,7 +147,14 @@ export default function AdminPanel() {
       if (!res.ok) throw new Error(data.error || "Failed to create user");
       setSuccess("User created successfully");
       setShowAddModal(false);
-      setAddForm({ employeeId: "", employeeName: "", email: "", password: "", operationsRole: "viewer" });
+      setAddForm({
+        employeeId: "",
+        employeeName: "",
+        email: "",
+        password: "",
+        operationsRole: "viewer",
+        hrRole: "viewer",
+      });
       fetchUsers();
     } catch (err) {
       setError(err.message);
@@ -132,6 +170,7 @@ export default function AdminPanel() {
       email: user.email || "",
       employeeId: user.employeeId || "",
       operationsRole: user.operationsRole || "viewer",
+      hrRole: user.hrRole || "viewer",
       isActive: user.isActive !== false,
     });
     setShowEditModal(true);
@@ -233,7 +272,8 @@ export default function AdminPanel() {
       u.employeeName?.toLowerCase().includes(q) ||
       u.email?.toLowerCase().includes(q) ||
       u.employeeId?.toLowerCase().includes(q) ||
-      u.operationsRole?.toLowerCase().includes(q)
+      u.operationsRole?.toLowerCase().includes(q) ||
+      u.hrRole?.toLowerCase().includes(q)
     );
   });
 
@@ -246,7 +286,9 @@ export default function AdminPanel() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-white">User Management</h2>
-          <p className="text-white/50 text-sm mt-1">Manage users, roles and permissions for the Operations module</p>
+          <p className="text-white/50 text-sm mt-1">
+            Manage users, Operations roles, and HR module roles (each module has its own permission matrix).
+          </p>
         </div>
         <button
           onClick={() => { setShowAddModal(true); clearMessages(); }}
@@ -297,13 +339,14 @@ export default function AdminPanel() {
                 <th className="px-4 py-3 text-left font-semibold text-white/80">Name</th>
                 <th className="px-4 py-3 text-left font-semibold text-white/80 hidden sm:table-cell">Email</th>
                 <th className="px-4 py-3 text-left font-semibold text-white/80">Ops Role</th>
+                <th className="px-4 py-3 text-left font-semibold text-white/80 hidden lg:table-cell">HR Role</th>
                 <th className="px-4 py-3 text-center font-semibold text-white/80">Status</th>
                 <th className="px-4 py-3 text-center font-semibold text-white/80">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-white/40">No users found</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-white/40">No users found</td></tr>
               ) : (
                 filtered.map((u) => (
                   <tr key={u._id} className="border-b border-white/5 hover:bg-white/5 transition">
@@ -311,6 +354,9 @@ export default function AdminPanel() {
                     <td className="px-4 py-3 text-white font-medium">{u.employeeName}</td>
                     <td className="px-4 py-3 text-white/60 hidden sm:table-cell">{u.email}</td>
                     <td className="px-4 py-3"><RoleBadge role={u.operationsRole || "viewer"} /></td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <RoleBadge role={u.hrRole || "viewer"} />
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${u.isActive !== false ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
                         {u.isActive !== false ? "Active" : "Inactive"}
@@ -368,6 +414,12 @@ export default function AdminPanel() {
               {OPS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
             </select>
           </div>
+          <div>
+            <label className={labelCls}>HR Role</label>
+            <select value={addForm.hrRole} onChange={(e) => setAddForm((f) => ({ ...f, hrRole: e.target.value }))} className={inputCls}>
+              {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            </select>
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowAddModal(false)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition">Cancel</button>
             <button type="submit" disabled={actionLoading} className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition">
@@ -396,6 +448,12 @@ export default function AdminPanel() {
             <label className={labelCls}>Operations Role</label>
             <select value={editForm.operationsRole} onChange={(e) => setEditForm((f) => ({ ...f, operationsRole: e.target.value }))} className={inputCls}>
               {OPS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>HR Role</label>
+            <select value={editForm.hrRole} onChange={(e) => setEditForm((f) => ({ ...f, hrRole: e.target.value }))} className={inputCls}>
+              {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
             </select>
           </div>
           <div className="flex items-center gap-3">

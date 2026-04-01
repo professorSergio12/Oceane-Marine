@@ -390,8 +390,14 @@ function CompatibilityPageContent() {
             </div>
           </header>
 
+          {!(editId ? canEditCompatibility : canCreateCompatibility) && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm mb-4">
+              You do not have permission to {editId ? "edit" : "create"} compatibility records.
+            </div>
+          )}
+
           {/* Message at top – user is scrolled here on save */}
-          <div ref={messageTopRef} className="min-h-[52px]">
+          <div ref={messageTopRef}>
             {error && (
               <div className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100 mb-4" role="alert">
                 {error}

@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import path from "path";
 import fs from "fs/promises";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
@@ -17,6 +18,9 @@ async function deleteFileIfExists(fileUrl) {
 }
 
 export async function PUT(req, { params }) {
+  const guard = await assertHrPermission("canEdit");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {

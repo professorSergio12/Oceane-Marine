@@ -4,12 +4,15 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useHrLoading } from "../../HrLoadingContext";
+import { useHrRole } from "@/hooks/useHrRole";
 
 export default function OilMajorsFormPage({ onSuccess }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { setPageLoading } = useHrLoading();
+  const { canCreate, canEdit } = useHrRole();
+  const canSubmit = editId ? canEdit : canCreate;
   const fileInputRef = useRef(null);
 
   const [companyName, setCompanyName] = useState("");
@@ -82,6 +85,7 @@ export default function OilMajorsFormPage({ onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setMessage("");
     setLoading(true);
@@ -155,6 +159,12 @@ export default function OilMajorsFormPage({ onSuccess }) {
           </div>
         )}
 
+        {!canSubmit && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} oil major records.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Company Name */}
           <div className="space-y-2">
@@ -167,7 +177,8 @@ export default function OilMajorsFormPage({ onSuccess }) {
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              readOnly={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all read-only:opacity-70"
               placeholder="e.g., CHEVRON, SHELL, BP"
             />
           </div>
@@ -182,7 +193,8 @@ export default function OilMajorsFormPage({ onSuccess }) {
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              disabled={!canSubmit}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all disabled:opacity-70"
             >
               {statusOptions.map((opt) => (
                 <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
@@ -204,7 +216,8 @@ export default function OilMajorsFormPage({ onSuccess }) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-xs font-semibold transition border border-orange-500/30"
+                disabled={!canSubmit}
+                className="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-xs font-semibold transition border border-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 + Add Files
               </button>
@@ -230,16 +243,18 @@ export default function OilMajorsFormPage({ onSuccess }) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="text-sm text-emerald-300 flex-1 truncate">{att.originalFileName || "File"}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeExistingFile(i)}
-                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
-                      title="Remove file"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {canSubmit && (
+                      <button
+                        type="button"
+                        onClick={() => removeExistingFile(i)}
+                        className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
+                        title="Remove file"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -256,16 +271,18 @@ export default function OilMajorsFormPage({ onSuccess }) {
                     </svg>
                     <span className="text-sm text-orange-300 flex-1 truncate">{file.name}</span>
                     <span className="text-xs text-orange-400/60">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                    <button
-                      type="button"
-                      onClick={() => removeNewFile(i)}
-                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
-                      title="Remove file"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {canSubmit && (
+                      <button
+                        type="button"
+                        onClick={() => removeNewFile(i)}
+                        className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/15 transition"
+                        title="Remove file"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -286,7 +303,7 @@ export default function OilMajorsFormPage({ onSuccess }) {
           <div className="flex gap-4">
             <button
               type="submit"
-              disabled={loading || loadingData}
+              disabled={!canSubmit || loading || loadingData}
               className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (editId ? "Updating..." : "Creating...") : (editId ? "Update Record" : "Create Record")}

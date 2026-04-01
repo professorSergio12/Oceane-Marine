@@ -3,8 +3,12 @@ import { connectDB } from "@/lib/config/connection";
 import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
 import path from "path";
 import fs from "fs/promises";
+import { assertHrPermission } from "@/lib/auth/hrGuard";
 
 export async function GET(req, { params }) {
+  const guard = await assertHrPermission("canDownload");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {
