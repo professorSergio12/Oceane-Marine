@@ -23,7 +23,7 @@ export async function POST(req) {
       employeeName,
       email,
       password: hashedPassword,
-      role,
+      roles: role ? [role] : ["REVIEWER"],
     });
     await newUser.save();
     return NextResponse.json(

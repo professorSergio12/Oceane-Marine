@@ -12,7 +12,7 @@ export const useAuthStore = create(
       error: null,
       success: false,
 
-      setUser: (user) => set({ user }),
+      setUser: (user) => set({ user, isAuthenticated: !!user }),
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
       setSuccess: (success) => set({ success }),
@@ -58,14 +58,14 @@ export const useAuthStore = create(
       },
 
   
-      login: async (employeeId, password) => {
+      login: async (email, password) => {
         set({ isLoading: true, error: null, success: false });
 
         try {
           const res = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ employeeId, password }),
+            body: JSON.stringify({ email, password }),
           });
 
           const data = await res.json();

@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { OperationsLoadingProvider, useOperationsLoading } from "./OperationsLoadingContext";
 import { OperationsSidebarProvider, useOperationsSidebar } from "./OperationsSidebarContext";
 import LoadingOverlay from "./components/LoadingOverlay";
+import { useAuthStore } from "@/store/authStore";
 
 function ContentWrapper({ children }) {
   const { pageLoading } = useOperationsLoading();
@@ -14,6 +16,12 @@ function ContentWrapper({ children }) {
 }
 
 export default function OperationsLayoutClient({ children }) {
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+
+  useEffect(() => {
+    fetchUser();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <OperationsLoadingProvider>
       <OperationsSidebarProvider>

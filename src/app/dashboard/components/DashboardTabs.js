@@ -6,6 +6,7 @@ import PMSCharts from "./PMSCharts";
 import QHSECharts from "./QHSECharts";
 import AccountCharts from "./AccountCharts";
 import HrCharts from "./HrCharts";
+import AdminPanel from "./AdminPanel";
 
 const DashboardTabs = ({ activeTab, onTabChange }) => {
   const tabs = [
@@ -18,7 +19,7 @@ const DashboardTabs = ({ activeTab, onTabChange }) => {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Mobile tab bar — horizontally scrollable to avoid cramming 5 tabs */}
+      {/* Mobile tab bar */}
       <div className="md:hidden overflow-x-auto -mx-1 px-1 scrollbar-none">
         <div className="flex gap-2 min-w-max">
           {tabs.map((tab) => (
@@ -43,6 +44,7 @@ const DashboardTabs = ({ activeTab, onTabChange }) => {
         {activeTab === "qhse" && <QHSECharts />}
         {activeTab === "accounts" && <AccountCharts />}
         {activeTab === "hr" && <HrCharts />}
+        {activeTab === "admin" && <AdminPanel />}
       </div>
     </div>
   );

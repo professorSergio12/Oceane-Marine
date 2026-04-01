@@ -4,25 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
-
-const sidebarTabs = [
-  { key: "documentation", label: "Documentation", href: "/operations/sts-operations/new" },
-  { key: "compatibility", label: "Compatibility", href: "/operations/sts-operations/new/compatibility" },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      { key: "sts-checklist", label: "STS Checklist", href: "/operations/sts-operations/new/form-checklist/sts-checklist" },
-      { key: "jpo", label: "JPO", href: "/operations/sts-operations/new/form-checklist/jpo/form" },
-      { key: "quotation", label: "Quotation", href: "/operations/sts-operations/new/form-checklist/quotations/form" },
-      { key: "inspection-checklist", label: "Inspection Checklist", href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form" },
-      { key: "manual", label: "Manual", href: "/operations/sts-operations/new/form-checklist/manual/form" },
-    ],
-  },
-  { key: "cargos", label: "Cargo types", href: "/operations/sts-operations/new/cargos" },
-  { key: "locations", label: "Locations", href: "/operations/sts-operations/new/locations" },
-  { key: "mooring", label: "Mooring masters", href: "/operations/sts-operations/new/mooringmaster" },
-];
+import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
+import { useOperationsRole } from "@/hooks/useOperationsRole";
 
 const labelClass = "block text-sm font-medium text-white/90 mb-1.5";
 const valueClass = "rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90";
@@ -36,6 +19,8 @@ export default function CompatibilityViewPage() {
   const id = params?.id;
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const { isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [activeTab, setActiveTab] = useState("compatibility");
   const [expandedModules, setExpandedModules] = useState(new Set());
   const sidebarRef = useRef(null);

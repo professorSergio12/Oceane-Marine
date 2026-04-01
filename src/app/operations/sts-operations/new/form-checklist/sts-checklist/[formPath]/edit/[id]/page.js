@@ -5,69 +5,15 @@ import Link from "next/link";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 // OPS-OFD-014 Equipment Checklist row defaults (external-form layout)
 const OPS014_FENDER_ROW = { fenderId: "", endPlates: "", bShackle: "", swivel: "", secondShackle: "", mooringShackle: "", fenderBody: "", tires: "", pressure: "" };
 const OPS014_HOSE_ROW = { hoseId: "", endFlanges: "", bodyCondition: "", nutsBolts: "", markings: "" };
 const OPS014_OTHER_ROW = { equipmentId: "", gaskets: "", ropes: "", wires: "", billyPugh: "", liftingStrops: "" };
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
 
 const FORM_TITLES = {
   'ops-ofd-001': 'OPS-OFD-001 - Before Operation Commence',
@@ -160,6 +106,8 @@ export default function EditFormPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const { setPageLoading } = useOperationsLoading();
+  const { isOpsAdmin, canEditForm, canApprove } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
 
   useEffect(() => {
     fetchFormData();
@@ -1186,12 +1134,10 @@ export default function EditFormPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -1360,7 +1306,7 @@ export default function EditFormPage() {
                 Cancel
               </Link>
               <div className="flex flex-col sm:flex-row gap-3">
-                {formData?.status !== 'DRAFT' && (
+                {canEditForm && formData?.status !== 'DRAFT' && (
                   <button
                     type="button"
                     onClick={(e) => handleSubmit(e, 'DRAFT')}
@@ -1370,14 +1316,16 @@ export default function EditFormPage() {
                     {saving ? 'Saving...' : 'Revert to Draft'}
                   </button>
                 )}
-                <button
-                  type="submit"
-                  className="px-4 sm:px-6 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Update Form'}
-                </button>
-                {formData?.status !== 'SUBMITTED' && (
+                {canEditForm && (
+                  <button
+                    type="submit"
+                    className="px-4 sm:px-6 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving...' : 'Update Form'}
+                  </button>
+                )}
+                {canEditForm && formData?.status !== 'SUBMITTED' && (
                   <button
                     type="button"
                     onClick={(e) => handleSubmit(e, 'SUBMITTED')}
@@ -1385,6 +1333,16 @@ export default function EditFormPage() {
                     disabled={saving}
                   >
                     {saving ? 'Submitting...' : 'Submit Form'}
+                  </button>
+                )}
+                {canApprove && formData?.status !== 'APPROVED' && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, 'APPROVED')}
+                    className="px-4 sm:px-6 py-2.5 bg-green-600 hover:bg-green-700 rounded-lg transition text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saving}
+                  >
+                    {saving ? 'Approving...' : 'Approve'}
                   </button>
                 )}
               </div>

@@ -5,65 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { ActionDeleteIcon } from "@/app/components/RecordActionIcons";
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 
 export default function MooringMasterPage() {
   const [items, setItems] = useState([]);
@@ -75,10 +21,28 @@ export default function MooringMasterPage() {
   const [expandedModules, setExpandedModules] = useState(new Set());
   const sidebarRef = useRef(null);
   const pathname = usePathname();
+  const { canManageMasterData, isOpsAdmin } = useOperationsRole();
 
   useEffect(() => {
-    load();
-  }, []);
+    if (canManageMasterData) load();
+  }, [canManageMasterData]);
+
+  if (!canManageMasterData) {
+    return (
+      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">&#128274;</div>
+          <h2 className="text-xl font-bold">Access Restricted</h2>
+          <p className="text-white/60">Only administrators can access master data management.</p>
+          <a href="/operations/sts-operations/new" className="inline-block mt-4 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition">
+            Go to Documentation
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
 
   const load = async () => {
     try {
@@ -215,9 +179,10 @@ export default function MooringMasterPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const isActiveSub =
-                              pathname.startsWith(submodule.href.split("/form")[0]) ||
-                              pathname.startsWith(submodule.href.split("/list")[0]);
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -330,6 +295,8 @@ export default function MooringMasterPage() {
             </div>
           </header>
 
+      {canManageMasterData && (
+        <>
       {/* Add Mooring Master Form */}
       <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 backdrop-blur-xl shadow-2xl">
         <div className="flex items-center gap-3 mb-6">
@@ -439,6 +406,8 @@ export default function MooringMasterPage() {
           </button>
         </form>
       </div>
+        </>
+      )}
 
       {/* Mooring Masters List Table */}
       <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl shadow-2xl overflow-hidden">
@@ -543,12 +512,14 @@ export default function MooringMasterPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <ActionDeleteIcon
-                      onClick={() => handleDelete(item._id)}
-                      disabled={!!actionLoading[item._id]}
-                      loading={!!actionLoading[item._id]}
-                      title="Delete"
-                    />
+                    {canManageMasterData && (
+                      <ActionDeleteIcon
+                        onClick={() => handleDelete(item._id)}
+                        disabled={!!actionLoading[item._id]}
+                        loading={!!actionLoading[item._id]}
+                        title="Delete"
+                      />
+                    )}
                   </td>
                 </tr>
               ))}

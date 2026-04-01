@@ -3,15 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useAuthStore } from "@/store/authStore";
 
 export default function LoginPage() {
-  const [employeeId, setEmployeeId] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const videoRef = useRef(null);
   const router = useRouter();
+  const setUser = useAuthStore((s) => s.setUser);
 
   useEffect(() => {
     // Ensure video plays when component mounts
@@ -30,11 +32,11 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, password }),
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      console.log(data);
       if (!res.ok) throw new Error(data.error || "Invalid credentials");
+      if (data.user) setUser(data.user);
       router.push("/dashboard");
     } catch (error) {
       setError(error.message);
@@ -101,19 +103,19 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Employee ID */}
+            {/* Email */}
             <div className="space-y-1.5 sm:space-y-2">
-              <label htmlFor="employeeId" className="block text-sm font-semibold text-white/90">
-                Employee ID
+              <label htmlFor="email" className="block text-sm font-semibold text-white/90">
+                Email
               </label>
               <input
-                id="employeeId"
-                type="text"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm sm:text-base placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-                placeholder="Enter your Employee ID (e.g., OFD-001)"
+                placeholder="Enter your email"
               />
             </div>
 

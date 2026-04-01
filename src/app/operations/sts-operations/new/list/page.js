@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
@@ -12,6 +12,11 @@ import {
   ActionDeleteIcon,
   ActionDownloadIcon,
 } from "@/app/components/RecordActionIcons";
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 
 const statusTone = {
   INPROGRESS: {
@@ -32,65 +37,6 @@ const statusTone = {
   },
 };
 
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
-
 export default function STSListPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -104,6 +50,8 @@ export default function STSListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredOperations, setFilteredOperations] = useState([]);
   const { setPageLoading } = useOperationsLoading();
+  const { canEditForm, canDeleteForm, isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
 
   useEffect(() => {
     if (pathname === "/operations/sts-operations/new/list") {
@@ -295,7 +243,10 @@ export default function STSListPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const isActiveSub = pathname.startsWith(submodule.href.split("/form")[0]);
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -519,11 +470,15 @@ export default function STSListPage() {
                               onClick={() => router.push(`/operations/sts-operations/new/view/${op._id}`)}
                               title="View operation"
                             />
-                            <ActionEditIcon
-                              onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
-                              title="Edit operation"
-                            />
-                            <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
+                            {canEditForm && (
+                              <ActionEditIcon
+                                onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
+                                title="Edit operation"
+                              />
+                            )}
+                            {canDeleteForm && (
+                              <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
+                            )}
                           </div>
                         </td>
                       </tr>

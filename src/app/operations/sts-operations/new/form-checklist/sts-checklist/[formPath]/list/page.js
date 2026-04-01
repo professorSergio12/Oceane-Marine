@@ -10,65 +10,12 @@ import {
   ActionEditIcon,
   ActionDeleteIcon,
 } from "@/app/components/RecordActionIcons";
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
+import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 
 const FORM_TITLES = {
   'ops-ofd-001': 'OPS-OFD-001 - Before Operation Commence',
@@ -113,22 +60,15 @@ function formatDate(value) {
   });
 }
 
-function getYears() {
-  const currentYear = new Date().getFullYear();
-  const years = [];
-  for (let i = currentYear - 2; i < currentYear; i++) years.push(i);
-  for (let i = currentYear; i <= currentYear + 5; i++) years.push(i);
-  return years;
-}
-
 export default function FormListPage() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
   const formPath = params.formPath;
-  
+  const { isOpsAdmin, canEditForm, canDeleteForm } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
+
   const currentYear = new Date().getFullYear();
-  const initialYears = getYears();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
   const [activeTab, setActiveTab] = useState("forms");
   const [expandedModules, setExpandedModules] = useState(new Set(["forms"]));
@@ -140,6 +80,7 @@ export default function FormListPage() {
   const [deleting, setDeleting] = useState(null);
   const [selectedYear, setSelectedYear] = useState(currentYear); // Default to current year, but can be cleared
   const [availableYears, setAvailableYears] = useState([currentYear]);
+  const [searchTerm, setSearchTerm] = useState("");
   const { setPageLoading } = useOperationsLoading();
 
   useEffect(() => {
@@ -250,6 +191,21 @@ export default function FormListPage() {
     };
   };
 
+  const searchFiltered = !searchTerm.trim()
+    ? forms
+    : forms.filter((form) => {
+        const s = searchTerm.toLowerCase();
+        const fields = getFormDisplayFields(form);
+        return (
+          String(form.sequenceNumber || "").toLowerCase().includes(s) ||
+          String(fields.formNo || "").toLowerCase().includes(s) ||
+          String(fields.revisionNo || "").toLowerCase().includes(s) ||
+          String(fields.vessel || "").toLowerCase().includes(s) ||
+          String(fields.location || "").toLowerCase().includes(s) ||
+          String(form.status || "").toLowerCase().includes(s)
+        );
+      });
+
   return (
     <div className="min-h-screen bg-transparent text-white flex">
       {/* Left Sidebar */}
@@ -318,12 +274,10 @@ export default function FormListPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -395,41 +349,44 @@ export default function FormListPage() {
       {/* Main Content */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
-            {/* Left: Dashboard */}
+          <header
+            className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4`}
+          >
             <Link
               href="/dashboard"
-              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
-
-            {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <div className="flex-1 min-w-0 flex flex-col items-center text-center w-full md:w-auto">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
                 Operations / Forms & Checklist / STS Checklist
               </p>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
                 {FORM_TITLES[formPath] || `Form ${formPath}`}
               </h1>
-              <p className="text-xs text-slate-200 mt-1">All submitted forms</p>
+              <p className="text-xs sm:text-sm text-slate-200 mt-1">All submitted forms</p>
             </div>
-            
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-4 flex-wrap flex-shrink-0">
+            <div className="flex justify-center md:justify-end shrink-0">
               <Link
                 href="/operations/sts-operations/new/form-checklist/sts-checklist"
-                className="px-4 py-2 rounded-lg border border-white/20 bg-white/5 text-white text-sm font-medium hover:bg-white/10 transition-colors"
+                className="px-3 sm:px-4 py-2 rounded-xl border border-white/20 bg-white/5 text-white text-xs sm:text-sm font-medium hover:bg-white/10 transition-colors whitespace-nowrap"
               >
                 ← Back to Forms
               </Link>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year
-                </span>
+            </div>
+          </header>
+
+          <QhseListPageContainer
+            searchPlaceholder="Search by sequence, form no., vessel, location, status..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterChildren={
+              <>
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
                 <select
-                  className="rounded-full px-3 py-1 text-xs bg-white/5 border border-white/10 text-white"
-                  value={selectedYear || ""}
+                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                  value={selectedYear ?? ""}
                   onChange={(e) => {
                     const value = e.target.value;
                     setSelectedYear(value ? Number(value) : null);
@@ -442,23 +399,26 @@ export default function FormListPage() {
                     </option>
                   ))}
                 </select>
+              </>
+            }
+          >
+            {error && (
+              <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+                {error}
               </div>
-            </div>
-          </header>
+            )}
 
-              {error && (
-            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-              {error}
-            </div>
-          )}
-
-          {forms.length === 0 ? (
-            <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
-              <p className="text-white/60">
-                {selectedYear ? `No forms found for ${selectedYear}.` : "No forms found."}
-              </p>
-            </div>
-          ) : (
+            {forms.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
+                <p className="text-white/60">
+                  {selectedYear ? `No forms found for ${selectedYear}.` : "No forms found."}
+                </p>
+              </div>
+            ) : searchFiltered.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
+                <p className="text-white/60">No rows match your search.</p>
+              </div>
+            ) : (
             <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -491,7 +451,7 @@ export default function FormListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {forms.map((form) => {
+                    {searchFiltered.map((form) => {
                       const fields = getFormDisplayFields(form);
                       return (
                         <tr key={form._id} className="hover:bg-white/5 transition">
@@ -533,13 +493,17 @@ export default function FormListPage() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex gap-2 justify-center">
                               <ActionViewIcon onClick={() => handleView(form._id)} title="View" />
-                              <ActionEditIcon onClick={() => handleEdit(form._id)} title="Edit" />
-                              <ActionDeleteIcon
-                                onClick={() => handleDelete(form._id)}
-                                disabled={deleting === form._id}
-                                loading={deleting === form._id}
-                                title="Delete"
-                              />
+                              {canEditForm && (
+                                <ActionEditIcon onClick={() => handleEdit(form._id)} title="Edit" />
+                              )}
+                              {canDeleteForm && (
+                                <ActionDeleteIcon
+                                  onClick={() => handleDelete(form._id)}
+                                  disabled={deleting === form._id}
+                                  loading={deleting === form._id}
+                                  title="Delete"
+                                />
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -549,7 +513,8 @@ export default function FormListPage() {
               </table>
             </div>
           </div>
-        )}
+            )}
+          </QhseListPageContainer>
         </div>
       </div>
     </div>

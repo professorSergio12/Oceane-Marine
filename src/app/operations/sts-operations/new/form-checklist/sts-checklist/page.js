@@ -4,65 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
 
 const FORMS = [
   { formNo: 'OPS-OFD-001', title: 'Checklist 1 - Before Operation Commence', apiPath: 'ops-ofd-001', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-001' },
@@ -90,6 +33,8 @@ export default function StsChecklistPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const { isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [activeTab] = useState("forms");
   const [expandedModules, setExpandedModules] = useState(new Set(["forms"]));
   const sidebarRef = useRef(null);
@@ -297,12 +242,10 @@ export default function StsChecklistPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}

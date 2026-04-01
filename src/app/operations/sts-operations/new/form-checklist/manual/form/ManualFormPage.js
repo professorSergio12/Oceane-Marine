@@ -4,67 +4,11 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
-
-/* Form codes are now fetched dynamically from the API */
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 
 export default function ManualFormPage() {
   const router = useRouter();
@@ -73,6 +17,8 @@ export default function ManualFormPage() {
   const editId = searchParams?.get("edit");
   const fileInputRef = useRef(null);
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const { isOpsAdmin, canCreateForm, canEditForm } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [activeTab, setActiveTab] = useState("forms");
   const [expandedModules, setExpandedModules] = useState(new Set(["forms"]));
   const sidebarRef = useRef(null);
@@ -352,12 +298,10 @@ export default function ManualFormPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -463,12 +407,14 @@ export default function ManualFormPage() {
                 >
                   Manual List
                 </Link>
-                <Link
-                  href="/operations/sts-operations/new/form-checklist/manual/admin"
-                  className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-                >
-                  Admin
-                </Link>
+                {isOpsAdmin && (
+                  <Link
+                    href="/operations/sts-operations/new/form-checklist/manual/admin"
+                    className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                  >
+                    Admin
+                  </Link>
+                )}
               </div>
             </div>
           </header>
@@ -733,19 +679,25 @@ export default function ManualFormPage() {
             >
               Cancel
             </Link>
-            <button
-              type="submit"
-              disabled={uploading || loading || !file || !form.name?.trim() || !form.uploadedBy?.trim() || !form.date}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {uploading
-                ? editId
-                  ? "Creating New Version..."
-                  : "Uploading..."
-                : editId
-                ? "Create New Version"
-                : "Upload File"}
-            </button>
+            {(editId ? canEditForm : canCreateForm) ? (
+              <button
+                type="submit"
+                disabled={uploading || loading || !file || !form.name?.trim() || !form.uploadedBy?.trim() || !form.date}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading
+                  ? editId
+                    ? "Creating New Version..."
+                    : "Uploading..."
+                  : editId
+                  ? "Create New Version"
+                  : "Upload File"}
+              </button>
+            ) : (
+              <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-6 py-3.5 text-sm font-semibold text-white/50">
+                View-only access
+              </span>
+            )}
           </div>
             </form>
           </div>

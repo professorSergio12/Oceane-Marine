@@ -1,69 +1,16 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { ActionViewIcon } from "@/app/components/RecordActionIcons";
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
+import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 
 const FORMS = [
   { formNo: 'OPS-OFD-001', title: 'Before Operation Commence', apiPath: 'ops-ofd-001' },
@@ -89,9 +36,22 @@ export default function StsChecklistListPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const { isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [activeTab, setActiveTab] = useState("forms");
   const [expandedModules, setExpandedModules] = useState(new Set(["forms"]));
   const sidebarRef = useRef(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const formsFiltered = FORMS.filter((f) => {
+    if (!searchTerm.trim()) return true;
+    const s = searchTerm.toLowerCase();
+    return (
+      f.formNo.toLowerCase().includes(s) ||
+      f.title.toLowerCase().includes(s) ||
+      f.apiPath.toLowerCase().includes(s)
+    );
+  });
 
   const handleViewList = (apiPath) => {
     router.push(`/operations/sts-operations/new/form-checklist/sts-checklist/${apiPath}/list`);
@@ -165,12 +125,10 @@ export default function StsChecklistListPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -242,32 +200,37 @@ export default function StsChecklistListPage() {
       {/* Main Content */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
-            {/* Left: Dashboard */}
+          <header
+            className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4`}
+          >
             <Link
               href="/dashboard"
-              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
             >
               ← Dashboard
             </Link>
-
-            {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+            <div className="flex-1 min-w-0 flex flex-col items-center text-center w-full md:w-auto">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
                 Operations / Forms & Checklist / STS Checklist
               </p>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">STS Checklist</h1>
-              <p className="text-xs text-slate-200 mt-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">STS Checklist</h1>
+              <p className="text-xs sm:text-sm text-slate-200 mt-1">
                 Select a form to view all submitted entries
               </p>
             </div>
-            
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-            </div>
+            <div className="shrink-0 md:w-[140px]" aria-hidden />
           </header>
 
-          {/* Forms Table */}
+          <QhseListPageContainer
+            searchPlaceholder="Search by form number or title..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+          >
+          {formsFiltered.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-white/60 text-sm">
+              No forms match your search.
+            </div>
+          ) : (
           <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -285,7 +248,7 @@ export default function StsChecklistListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {FORMS.map((form, index) => (
+                  {formsFiltered.map((form, index) => (
                     <tr
                       key={form.formNo}
                       className="hover:bg-white/5 transition"
@@ -312,6 +275,8 @@ export default function StsChecklistListPage() {
               </table>
             </div>
           </div>
+          )}
+          </QhseListPageContainer>
         </div>
       </div>
     </div>

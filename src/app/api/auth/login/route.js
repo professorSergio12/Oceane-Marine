@@ -8,8 +8,8 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    const { employeeId, password } = await req.json();
-    const user = await User.findOne({ employeeId });
+    const { email, password } = await req.json();
+    const user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

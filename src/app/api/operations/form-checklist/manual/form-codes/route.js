@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import ManualFormCode from "@/lib/mongodb/models/operations-form-checklist/ManualFormCode";
+import { getSessionUser } from "@/lib/auth/getSessionUser";
 
 const DEFAULT_CODES = [
   { code: "BCP-OFD-03", name: "Business Continuity Plan- Manual" },
@@ -31,6 +32,14 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || sessionUser.operationsRole !== "admin") {
+    return NextResponse.json(
+      { success: false, error: "Forbidden: Operations admin required" },
+      { status: 403 }
+    );
+  }
+
   await connectDB();
   try {
     const body = await req.json();

@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardTabs from "./components/DashboardTabs";
+import { useAuthStore } from "@/store/authStore";
 
-const tabs = [
+const baseTabs = [
   { key: "operations", label: "Operations" },
   { key: "pms", label: "PMS" },
   { key: "qhse", label: "QHSE" },
@@ -21,20 +22,29 @@ const menuItems = [
   { key: "hr", label: "HR", href: "/hr" },
 ];
 
-const VALID_TABS = ["operations", "pms", "qhse", "accounts", "hr"];
+const BASE_VALID_TABS = ["operations", "pms", "qhse", "accounts", "hr"];
 
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get("tab");
+  const currentUser = useAuthStore((s) => s.user);
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+  const isAdmin = currentUser?.operationsRole === "admin";
+
+  useEffect(() => {
+    fetchUser();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tabs = baseTabs;
+  const VALID_TABS = isAdmin ? [...BASE_VALID_TABS, "admin"] : BASE_VALID_TABS;
+
   const [activeTab, setActiveTab] = useState(() => {
-    // Initialize from URL if valid, otherwise default to "operations"
-    return tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : "operations";
+    return tabFromUrl && [...BASE_VALID_TABS, "admin"].includes(tabFromUrl) ? tabFromUrl : "operations";
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const menuRef = useRef(null);
 
-  // Sync state when URL ?tab= changes externally (e.g. browser back/forward)
   useEffect(() => {
     if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
@@ -78,8 +88,10 @@ export default function DashboardPage() {
     hr: { label: "Go to HR", href: "/hr" },
   }[activeTab];
 
+  const logout = useAuthStore((s) => s.logout);
+
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await logout();
     router.push("/login");
     router.refresh();
   };
@@ -104,18 +116,28 @@ export default function DashboardPage() {
           className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 md:gap-3 relative z-50"
           ref={menuRef}
         >
-          <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            <div className="h-8 w-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-semibold">
-              U
-            </div>
-            <span className="text-sm cursor-pointer text-white/80">
-              Profile
-            </span>
-          </div>
-          {/* Mobile-only compact profile icon */}
-          <div className="flex sm:hidden items-center justify-center h-8 w-8 rounded-full bg-orange-500 text-white text-xs font-semibold">
-            U
-          </div>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => handleTabChange("admin")}
+                className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/15 transition cursor-pointer"
+              >
+                <div className="h-8 w-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-semibold">
+                  A
+                </div>
+                <span className="text-sm text-white/80">
+                  Admin Panel
+                </span>
+              </button>
+              <button
+                onClick={() => handleTabChange("admin")}
+                className="flex sm:hidden items-center justify-center h-8 w-8 rounded-full bg-orange-500 text-white text-xs font-semibold cursor-pointer"
+                title="Admin Panel"
+              >
+                A
+              </button>
+            </>
+          )}
           <button
             onClick={handleLogout}
             className="rounded-full cursor-pointer bg-white/10 px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 border border-white/15 hover:bg-white/20 transition whitespace-nowrap"

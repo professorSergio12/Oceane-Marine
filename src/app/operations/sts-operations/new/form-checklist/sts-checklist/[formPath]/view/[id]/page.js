@@ -5,64 +5,11 @@ import Link from "next/link";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 
 const FORM_TITLES = {
   'ops-ofd-001': 'OPS-OFD-001 - Before Operation Commence',
@@ -163,6 +110,8 @@ export default function ViewFormPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { setPageLoading } = useOperationsLoading();
+  const { isOpsAdmin, canEditForm, canApprove } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
 
   useEffect(() => {
     fetchFormData();
@@ -902,12 +851,10 @@ export default function ViewFormPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -1049,12 +996,40 @@ export default function ViewFormPage() {
               >
                 Back to List
               </Link>
-              <Link
-                href={`/operations/sts-operations/new/form-checklist/sts-checklist/${formPath}/edit/${id}`}
-                className="px-4 sm:px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white text-center"
-              >
-                Edit Form
-              </Link>
+              {canApprove && formData?.status !== 'APPROVED' && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm('Are you sure you want to approve this form?')) return;
+                    try {
+                      const res = await fetch(`${API_BASE_URL}/${formPath}/${id}/update`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'APPROVED' }),
+                      });
+                      if (res.ok) {
+                        setFormData((prev) => ({ ...prev, status: 'APPROVED' }));
+                      } else {
+                        const data = await res.json();
+                        alert(data.error || 'Failed to approve');
+                      }
+                    } catch (err) {
+                      alert('Failed to approve: ' + err.message);
+                    }
+                  }}
+                  className="px-4 sm:px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition text-sm font-medium text-white text-center"
+                >
+                  Approve
+                </button>
+              )}
+              {canEditForm && (
+                <Link
+                  href={`/operations/sts-operations/new/form-checklist/sts-checklist/${formPath}/edit/${id}`}
+                  className="px-4 sm:px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition text-sm font-medium text-white text-center"
+                >
+                  Edit Form
+                </Link>
+              )}
             </div>
           </div>
         </div>

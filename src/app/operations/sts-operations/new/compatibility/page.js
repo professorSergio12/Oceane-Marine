@@ -5,25 +5,8 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { computeAll } from "./calculations";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
-
-const sidebarTabs = [
-  { key: "documentation", label: "Documentation", href: "/operations/sts-operations/new" },
-  { key: "compatibility", label: "Compatibility", href: "/operations/sts-operations/new/compatibility" },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      { key: "sts-checklist", label: "STS Checklist", href: "/operations/sts-operations/new/form-checklist/sts-checklist" },
-      { key: "jpo", label: "JPO", href: "/operations/sts-operations/new/form-checklist/jpo/form" },
-      { key: "quotation", label: "Quotation", href: "/operations/sts-operations/new/form-checklist/quotations/form" },
-      { key: "inspection-checklist", label: "Inspection Checklist", href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form" },
-      { key: "manual", label: "Manual", href: "/operations/sts-operations/new/form-checklist/manual/form" },
-    ],
-  },
-  { key: "cargos", label: "Cargo types", href: "/operations/sts-operations/new/cargos" },
-  { key: "locations", label: "Locations", href: "/operations/sts-operations/new/locations" },
-  { key: "mooring", label: "Mooring masters", href: "/operations/sts-operations/new/mooringmaster" },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
 
 const emptyShip = () => ({
   name: "",
@@ -43,6 +26,8 @@ function CompatibilityPageContent() {
   const sectionParam = searchParams?.get("section"); // "hose" | "fender"
   const [calcSection, setCalcSection] = useState(sectionParam === "fender" ? "fender" : "hose");
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const { canCreateCompatibility, canEditCompatibility, isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [activeTab, setActiveTab] = useState("compatibility");
   const [expandedModules, setExpandedModules] = useState(new Set());
   const sidebarRef = useRef(null);
@@ -710,6 +695,7 @@ function CompatibilityPageContent() {
                 </>
               )}
 
+              {(editId ? canEditCompatibility : canCreateCompatibility) && (
               <div className="flex flex-wrap gap-4">
                 <button
                   type="button"
@@ -720,6 +706,7 @@ function CompatibilityPageContent() {
                   {saving ? "Saving..." : editId ? "Update" : "Save"}
                 </button>
               </div>
+              )}
             </div>
           )}
         </div>

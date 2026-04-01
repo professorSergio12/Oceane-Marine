@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef, forwardRef } from "react";
+import { useState, useEffect, useRef, forwardRef, useMemo } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 import { ActionDownloadIcon } from "@/app/components/RecordActionIcons";
 import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
 
@@ -30,66 +35,6 @@ const statusTone = {
   },
 };
 
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
-
 export default function EditOperationPage() {
   const router = useRouter();
   const params = useParams();
@@ -97,6 +42,8 @@ export default function EditOperationPage() {
   const [status, setStatus] = useState("INPROGRESS");
   const [showStatusList, setShowStatusList] = useState(false);
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const { canEditForm, isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
   const [activeTab, setActiveTab] = useState("documentation");
   const [expandedModules, setExpandedModules] = useState(new Set());
   const statusRef = useRef(null);
@@ -562,9 +509,10 @@ export default function EditOperationPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const isActiveSub =
-                              pathname.startsWith(submodule.href.split("/form")[0]) ||
-                              pathname.startsWith(submodule.href.split("/list")[0]);
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -1237,22 +1185,26 @@ export default function EditOperationPage() {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, false)}
-                disabled={submitting}
-                className="px-6 py-3 rounded-xl border border-blue-400/30 bg-blue-500/20 text-blue-300 font-semibold hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? "Saving..." : "Save as Draft"}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
-                disabled={submitting}
-                className="px-6 py-3 rounded-xl bg-orange-500 text-white font-semibold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? "Submitting..." : "Submit"}
-              </button>
+              {canEditForm && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, false)}
+                    disabled={submitting}
+                    className="px-6 py-3 rounded-xl border border-blue-400/30 bg-blue-500/20 text-blue-300 font-semibold hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? "Saving..." : "Save as Draft"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, true)}
+                    disabled={submitting}
+                    className="px-6 py-3 rounded-xl bg-orange-500 text-white font-semibold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? "Submitting..." : "Submit"}
+                  </button>
+                </>
+              )}
             </div>
           </form>
         </div>

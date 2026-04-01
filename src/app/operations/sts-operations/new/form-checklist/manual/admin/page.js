@@ -4,69 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 
 export default function ManualAdminPage() {
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const { isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [expandedModules, setExpandedModules] = useState(new Set(["forms"]));
   const sidebarRef = useRef(null);
 
@@ -98,8 +46,8 @@ export default function ManualAdminPage() {
   };
 
   useEffect(() => {
-    fetchFormCodes();
-  }, []);
+    if (isOpsAdmin) fetchFormCodes();
+  }, [isOpsAdmin]);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -163,6 +111,28 @@ export default function ManualAdminPage() {
     }
   };
 
+  if (!isOpsAdmin) {
+    return (
+      <div className="min-h-screen bg-transparent text-white flex items-center justify-center px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="text-5xl" aria-hidden>
+            &#128274;
+          </div>
+          <h2 className="text-xl font-bold">Access Restricted</h2>
+          <p className="text-white/60">
+            Only operations administrators can manage manual form codes.
+          </p>
+          <Link
+            href="/operations/sts-operations/new/form-checklist/manual/form"
+            className="inline-block mt-4 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition"
+          >
+            Go to Manual
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full flex-1 min-w-0 bg-transparent text-white flex">
       {/* Left Sidebar */}
@@ -218,13 +188,10 @@ export default function ManualAdminPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list") ||
-                              pathNorm.startsWith(basePath + "/admin");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}

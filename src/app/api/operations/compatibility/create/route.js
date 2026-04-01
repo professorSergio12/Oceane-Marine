@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { connectDB } from "@/lib/config/connection";
 import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
 import { computeHose, computeFender } from "@/app/operations/sts-operations/new/compatibility/calculations";
@@ -6,6 +7,11 @@ import { computeHose, computeFender } from "@/app/operations/sts-operations/new/
 export async function POST(req) {
   await connectDB();
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || sessionUser.operationsRole !== "editor") {
+      return NextResponse.json({ error: "Forbidden: Editor role required" }, { status: 403 });
+    }
+
     const body = await req.json();
     const {
       operationRef,

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef, forwardRef, useCallback } from "react";
+import { useState, useEffect, useRef, forwardRef, useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOperationsSidebar } from "../../OperationsSidebarContext";
 import { getExportColumns, buildExportHeaders, buildExportRow } from "./sts-export-columns";
@@ -12,6 +12,11 @@ import {
   ActionDownloadIcon,
 } from "@/app/components/RecordActionIcons";
 import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
 
 const STS_NEW_OP_DRAFT_STORAGE_KEY = "sts-operation-new-documentation-draft-v2";
 
@@ -128,66 +133,6 @@ const statusTone = {
   },
 };
 
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
-
 export default function NewOperationPage() {
   const [status, setStatus] = useState("INPROGRESS");
   const [showStatusList, setShowStatusList] = useState(false);
@@ -197,6 +142,8 @@ export default function NewOperationPage() {
   const statusRef = useRef(null);
   const sidebarRef = useRef(null);
   const pathname = usePathname();
+  const { canCreateForm, canEditForm, canDeleteForm, isOpsAdmin } = useOperationsRole();
+  const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
   const [cargoTypes, setCargoTypes] = useState([]);
   const [locations, setLocations] = useState([]);
   const [mooringMasters, setMooringMasters] = useState([]);
@@ -895,9 +842,10 @@ export default function NewOperationPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const isActiveSub =
-                              pathname.startsWith(submodule.href.split("/form")[0]) ||
-                              pathname.startsWith(submodule.href.split("/list")[0]);
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -1024,7 +972,7 @@ export default function NewOperationPage() {
                       : "text-white/90 hover:bg-white/10"
                   }`}
                 >
-                  Create
+                  {canCreateForm ? "Create" : "View Form"}
                 </button>
                 <button
                   type="button"
@@ -1611,6 +1559,7 @@ export default function NewOperationPage() {
             </div>
 
             {/* Submit Buttons */}
+            {canCreateForm ? (
             <div className="flex justify-end gap-4 pt-6 border-t border-white/10">
               <button
                 type="button"
@@ -1652,6 +1601,11 @@ export default function NewOperationPage() {
                 {submitting ? "Submitting..." : "Submit"}
               </button>
             </div>
+            ) : (
+            <div className="pt-6 border-t border-white/10">
+              <p className="text-center text-white/50 text-sm">You have view-only access to this form.</p>
+            </div>
+            )}
           </form>
           )}
 
@@ -1672,6 +1626,7 @@ function OperationsListComponent() {
   const [statusFilter, setStatusFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
   const router = useRouter();
+  const { canEditForm, canDeleteForm } = useOperationsRole();
 
   // Fetch all operations once on mount to calculate available years
   useEffect(() => {
@@ -1979,11 +1934,15 @@ function OperationsListComponent() {
                           onClick={() => router.push(`/operations/sts-operations/new/view/${op._id}`)}
                           title="View operation"
                         />
-                        <ActionEditIcon
-                          onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
-                          title="Edit operation"
-                        />
-                        <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
+                        {canEditForm && (
+                          <ActionEditIcon
+                            onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
+                            title="Edit operation"
+                          />
+                        )}
+                        {canDeleteForm && (
+                          <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
+                        )}
                       </div>
                     </td>
                   </tr>

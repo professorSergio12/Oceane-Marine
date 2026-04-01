@@ -10,65 +10,12 @@ import {
   ActionEditIcon,
   ActionDeleteIcon,
 } from "@/app/components/RecordActionIcons";
-
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/sts-form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import {
+  getSidebarTabs,
+  isFormsSubmoduleSidebarActive,
+} from "@/app/operations/sts-operations/new/sidebarTabs";
+import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -92,7 +39,6 @@ function getYears() {
 export default function InspectionChecklistListPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
   const [activeTab, setActiveTab] = useState("forms");
@@ -105,12 +51,15 @@ export default function InspectionChecklistListPage() {
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [year, setYear] = useState(currentYear);
+  const [year, setYear] = useState(() => new Date().getFullYear());
   const [locationId, setLocationId] = useState("");
   const [formNumber, setFormNumber] = useState("");
   const [filterYear, setFilterYear] = useState(""); // For form 013 year filter
   const [boatName, setBoatName] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const { setPageLoading } = useOperationsLoading();
+  const { isOpsAdmin, canEditForm, canDeleteForm } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
 
   const FORM_NUMBERS = [
     { value: "", label: "All Forms" },
@@ -143,7 +92,7 @@ export default function InspectionChecklistListPage() {
     setPageLoading(true);
     try {
       const params = new URLSearchParams();
-      if (year) params.set("year", year);
+      if (year !== "" && year != null) params.set("year", String(year));
       if (locationId) params.set("locationId", locationId);
       if (formNumber) params.set("formNumber", formNumber);
       if (formNumber === "OPS-OFD-013") {
@@ -168,6 +117,20 @@ export default function InspectionChecklistListPage() {
   useEffect(() => {
     fetchRecords();
   }, [year, locationId, formNumber, filterYear, boatName]);
+
+  const searchFiltered = !searchTerm.trim()
+    ? records
+    : records.filter((r) => {
+        const s = searchTerm.toLowerCase();
+        return (
+          (r.formCode || "").toLowerCase().includes(s) ||
+          String(r.version || "").includes(s) ||
+          (r.location?.name || "").toLowerCase().includes(s) ||
+          (r.uploadedBy?.name || "").toLowerCase().includes(s) ||
+          (r.boatName || "").toLowerCase().includes(s) ||
+          String(r.year ?? "").includes(s)
+        );
+      });
 
   const handleDownload = async (record) => {
     setDownloading(record._id);
@@ -309,12 +272,10 @@ export default function InspectionChecklistListPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const basePath = submodule.href.replace(/\/form$|\/list$/, "") || submodule.href;
-                            const pathNorm = pathname.replace(/\/$/, "");
-                            const isActiveSub =
-                              pathNorm === basePath ||
-                              pathNorm.startsWith(basePath + "/form") ||
-                              pathNorm.startsWith(basePath + "/list");
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -386,38 +347,35 @@ export default function InspectionChecklistListPage() {
       {/* Main Content */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-        <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
-            {/* Left: Dashboard */}
-            <Link
-              href="/dashboard"
-              className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
-            >
-              ← Dashboard
-            </Link>
-
-            {/* Center: Heading */}
-          <div className="flex-1 flex flex-col items-center text-center">
-            <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
+        <header
+          className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4`}
+        >
+          <Link
+            href="/dashboard"
+            className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          >
+            ← Dashboard
+          </Link>
+          <div className="flex-1 min-w-0 flex flex-col items-center text-center w-full md:w-auto">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               Operations / Forms & Checklist / Inspection Checklist
             </p>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Inspection Checklist</h1>
-            <p className="text-xs text-slate-200 mt-1">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Inspection Checklist</h1>
+            <p className="text-xs sm:text-sm text-slate-200 mt-1">
               View and manage all Inspection Checklist records
             </p>
           </div>
-          
-          {/* Right: Action Buttons */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex justify-center md:justify-end shrink-0">
             <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/operations/sts-operations/new/form-checklist/inspection-checklist/form"
-                className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap"
               >
                 Inspection Checklist Form
               </Link>
               <Link
                 href="/operations/sts-operations/new/form-checklist/inspection-checklist/list"
-                className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition whitespace-nowrap"
               >
                 Inspection Checklist List
               </Link>
@@ -425,115 +383,107 @@ export default function InspectionChecklistListPage() {
           </div>
         </header>
 
-        {/* Filters Row */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-              Year
-            </span>
-            <select
-              className="rounded-full px-3 py-1 text-xs bg-white/5 border border-white/10 text-white"
-              value={year || ""}
-              onChange={(e) => setYear(Number(e.target.value))}
-            >
-              {initialYears.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-              Form Number
-            </span>
-            <select
-              className="rounded-full px-3 py-1 text-xs bg-white/5 border border-white/10 text-white min-w-[150px]"
-              value={formNumber || ""}
-              onChange={(e) => {
-                setFormNumber(e.target.value);
-                if (e.target.value !== "OPS-OFD-013") {
-                  setFilterYear("");
-                  setBoatName("");
-                }
-              }}
-            >
-              {FORM_NUMBERS.map((form) => (
-                <option key={form.value} value={form.value}>
-                  {form.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {formNumber === "OPS-OFD-013" && (
+        <QhseListPageContainer
+          searchPlaceholder="Search by form code, location, uploaded by, boat name, year..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterChildren={
             <>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year (Form 013)
-                </span>
-                <select
-                  className="rounded-full px-3 py-1 text-xs bg-white/5 border border-white/10 text-white"
-                  value={filterYear || ""}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                >
-                  <option value="">All Years</option>
-                  {initialYears.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Boat Name
-                </span>
-                <input
-                  type="text"
-                  placeholder="Filter by boat name"
-                  className="rounded-full px-3 py-1 text-xs bg-white/5 border border-white/10 text-white placeholder:text-white/40 min-w-[120px]"
-                  value={boatName}
-                  onChange={(e) => setBoatName(e.target.value)}
-                />
-              </div>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                value={year === "" || year === null ? "" : String(year)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setYear(v === "" ? "" : Number(v));
+                }}
+              >
+                <option value="">All years</option>
+                {initialYears.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Form</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase min-w-[120px]"
+                value={formNumber || ""}
+                onChange={(e) => {
+                  setFormNumber(e.target.value);
+                  if (e.target.value !== "OPS-OFD-013") {
+                    setFilterYear("");
+                    setBoatName("");
+                  }
+                }}
+              >
+                {FORM_NUMBERS.map((form) => (
+                  <option key={form.value || "all"} value={form.value}>
+                    {form.label}
+                  </option>
+                ))}
+              </select>
+              {formNumber === "OPS-OFD-013" && (
+                <>
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Yr (013)</span>
+                  <select
+                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                    value={filterYear || ""}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                  >
+                    <option value="">All</option>
+                    {initialYears.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Boat name"
+                    className="rounded-full px-3 py-1 text-xs bg-slate-900/40 border border-white/15 text-white placeholder:text-white/40 min-w-[100px]"
+                    value={boatName}
+                    onChange={(e) => setBoatName(e.target.value)}
+                  />
+                </>
+              )}
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
+              <select
+                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase min-w-[120px]"
+                value={locationId || ""}
+                onChange={(e) => setLocationId(e.target.value)}
+              >
+                <option value="">All Locations</option>
+                {locations.map((loc) => (
+                  <option key={loc._id} value={loc._id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
             </>
+          }
+        >
+          {error && (
+            <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
+              {error}
+            </div>
           )}
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-              Location
-            </span>
-            <select
-              className="rounded-full px-3 py-1 text-xs bg-white/5 border border-white/10 text-white min-w-[150px]"
-              value={locationId || ""}
-              onChange={(e) => setLocationId(e.target.value)}
-            >
-              <option value="">All Locations</option>
-              {locations.map((loc) => (
-                <option key={loc._id} value={loc._id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
-            {error}
-          </div>
-        )}
-
-        {records.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
-            <p className="text-white/60">No records found for the selected year.</p>
-            <Link
-              href="/operations/sts-operations/new/form-checklist/inspection-checklist/form"
-              className="mt-4 inline-block px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition"
-            >
-              Upload New Record
-            </Link>
-          </div>
-        ) : (
+          {records.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
+              <p className="text-white/60">No records found for the selected filters.</p>
+              <Link
+                href="/operations/sts-operations/new/form-checklist/inspection-checklist/form"
+                className="mt-4 inline-block px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition"
+              >
+                Upload New Record
+              </Link>
+            </div>
+          ) : searchFiltered.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
+              <p className="text-white/60">No rows match your search.</p>
+            </div>
+          ) : (
           <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -573,7 +523,7 @@ export default function InspectionChecklistListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {records.map((record) => (
+                  {searchFiltered.map((record) => (
                     <tr key={record._id} className="hover:bg-white/5 transition">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-mono text-orange-400">
@@ -625,13 +575,17 @@ export default function InspectionChecklistListPage() {
                             loading={downloading === record._id}
                             title="Download"
                           />
-                          <ActionEditIcon onClick={() => handleEdit(record)} title="Edit" />
-                          <ActionDeleteIcon
-                            onClick={() => handleDelete(record)}
-                            disabled={deleting === record._id}
-                            loading={deleting === record._id}
-                            title="Delete"
-                          />
+                          {canEditForm && (
+                            <ActionEditIcon onClick={() => handleEdit(record)} title="Edit" />
+                          )}
+                          {canDeleteForm && (
+                            <ActionDeleteIcon
+                              onClick={() => handleDelete(record)}
+                              disabled={deleting === record._id}
+                              loading={deleting === record._id}
+                              title="Delete"
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -640,7 +594,8 @@ export default function InspectionChecklistListPage() {
               </table>
             </div>
           </div>
-        )}
+          )}
+        </QhseListPageContainer>
         </div>
       </div>
     </div>

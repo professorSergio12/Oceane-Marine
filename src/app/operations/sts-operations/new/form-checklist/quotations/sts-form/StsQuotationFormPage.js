@@ -5,24 +5,8 @@ import Link from "next/link";
 import { useRouter, usePathname, useParams, useSearchParams } from "next/navigation";
 import { buildDocumentHtml030, buildDocumentHtml030B, buildDocumentHtmlPOAC, getFormNoLineForPdf } from "./documentTemplate";
 
-const sidebarTabs = [
-  { key: "documentation", label: "Documentation", href: "/operations/sts-operations/new" },
-  { key: "compatibility", label: "Compatibility", href: "/operations/sts-operations/new/compatibility" },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      { key: "sts-checklist", label: "STS Checklist", href: "/operations/sts-operations/new/form-checklist/sts-checklist" },
-      { key: "jpo", label: "JPO", href: "/operations/sts-operations/new/form-checklist/jpo/form" },
-      { key: "quotation", label: "Quotation", href: "/operations/sts-operations/new/form-checklist/quotations/sts-form" },
-      { key: "inspection-checklist", label: "Inspection Checklist", href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form" },
-      { key: "manual", label: "Manual", href: "/operations/sts-operations/new/form-checklist/manual/form" },
-    ],
-  },
-  { key: "cargos", label: "Cargo types", href: "/operations/sts-operations/new/cargos" },
-  { key: "locations", label: "Locations", href: "/operations/sts-operations/new/locations" },
-  { key: "mooring", label: "Mooring masters", href: "/operations/sts-operations/new/mooringmaster" },
-];
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
 
 const emptyForm = () => ({
   formType: "OPS-OFD-030",
@@ -139,6 +123,8 @@ export default function StsQuotationFormPage() {
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isOpsAdmin, canCreateForm, canEditForm } = useOperationsRole();
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [activeTab, setActiveTab] = useState("forms");
   const [expandedModules, setExpandedModules] = useState(new Set(["forms"]));
   const [form, setForm] = useState(emptyForm());
@@ -815,13 +801,19 @@ export default function StsQuotationFormPage() {
             )}
 
             <div className="flex flex-wrap gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold disabled:opacity-50"
-              >
-                {saving ? "Saving…" : editId ? "Update Quotation" : "Save Quotation"}
-              </button>
+              {(editId ? canEditForm : canCreateForm) ? (
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : editId ? "Update Quotation" : "Save Quotation"}
+                </button>
+              ) : (
+                <span className="px-6 py-2.5 rounded-xl bg-white/10 text-white/50 text-sm font-semibold">
+                  View-only access
+                </span>
+              )}
               <button
                 type="button"
                 onClick={handleDownload}

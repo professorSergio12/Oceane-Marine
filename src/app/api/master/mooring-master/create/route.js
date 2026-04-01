@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { connectDB } from "@/lib/config/connection";
 import MooringMaster from "@/lib/mongodb/models/MooringMaster";
 
 export async function POST(req) {
-  await connectDB();
-
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser || sessionUser.operationsRole !== "admin") {
+      return NextResponse.json(
+        { error: "Forbidden: Admin role required" },
+        { status: 403 }
+      );
+    }
+    await connectDB();
     const { name } = await req.json();
 
     if (!name || !name.trim()) {

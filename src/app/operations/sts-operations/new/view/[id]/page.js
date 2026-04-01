@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
+import { useOperationsRole } from "@/hooks/useOperationsRole";
+import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
 
 /** Map every OPS-OFD code to a human-readable form name */
@@ -52,65 +54,6 @@ const statusTone = {
   },
 };
 
-const sidebarTabs = [
-  {
-    key: "documentation",
-    label: "Documentation",
-    href: "/operations/sts-operations/new",
-  },
-  {
-    key: "compatibility",
-    label: "Compatibility",
-    href: "/operations/sts-operations/new/compatibility",
-  },
-  {
-    key: "forms",
-    label: "Forms and checklist",
-    submodules: [
-      {
-        key: "sts-checklist",
-        label: "STS Checklist",
-        href: "/operations/sts-operations/new/form-checklist/sts-checklist",
-      },
-      {
-        key: "jpo",
-        label: "JPO",
-        href: "/operations/sts-operations/new/form-checklist/jpo/form",
-      },
-      {
-        key: "quotation",
-        label: "Quotation",
-        href: "/operations/sts-operations/new/form-checklist/quotations/form",
-      },
-      {
-        key: "inspection-checklist",
-        label: "Inspection Checklist",
-        href: "/operations/sts-operations/new/form-checklist/inspection-checklist/form",
-      },
-      {
-        key: "manual",
-        label: "Manual",
-        href: "/operations/sts-operations/new/form-checklist/manual/form",
-      },
-    ],
-  },
-  {
-    key: "cargos",
-    label: "Cargo types",
-    href: "/operations/sts-operations/new/cargos",
-  },
-  {
-    key: "locations",
-    label: "Locations",
-    href: "/operations/sts-operations/new/locations",
-  },
-  {
-    key: "mooring",
-    label: "Mooring masters",
-    href: "/operations/sts-operations/new/mooringmaster",
-  },
-];
-
 function formatDate(date) {
   if (!date) return "-";
   return new Date(date).toLocaleString("en-GB", {
@@ -137,7 +80,9 @@ function ViewOperationPage() {
   const pathname = usePathname();
   const { id } = params;
 
+  const { canEditForm, isOpsAdmin } = useOperationsRole();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
+  const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
   const [activeTab, setActiveTab] = useState("documentation");
   const [expandedModules, setExpandedModules] = useState(new Set());
   const sidebarRef = useRef(null);
@@ -301,7 +246,10 @@ function ViewOperationPage() {
                       {expandedModules.has(tab.key) && (
                         <div className="ml-4 space-y-1 mt-1.5 pl-4 border-l-2 border-orange-500/30">
                           {tab.submodules.map((submodule) => {
-                            const isActiveSub = pathname.startsWith(submodule.href.split("/form")[0]);
+                            const isActiveSub = isFormsSubmoduleSidebarActive(
+                              pathname,
+                              submodule.href
+                            );
                             return (
                               <Link
                                 key={submodule.key}
@@ -395,12 +343,14 @@ function ViewOperationPage() {
             
             {/* Right: Action Buttons */}
             <div className="flex items-center gap-3 flex-shrink-0">
+              {canEditForm && (
               <button
                 onClick={() => router.push(`/operations/sts-operations/new/edit/${id}`)}
                 className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg text-white text-sm font-medium transition shadow-lg shadow-blue-500/30"
               >
                 Edit Operation
               </button>
+              )}
               <button
                 onClick={() => router.push("/operations/sts-operations/new?tab=list")}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/20 hover:bg-white/20 transition hover:scale-110"
@@ -961,12 +911,14 @@ function ViewOperationPage() {
                 >
                   Back to List
                 </Link>
+                {canEditForm && (
                 <button
                   onClick={() => router.push(`/operations/sts-operations/new/edit/${id}`)}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg shadow-blue-500/30 transition"
                 >
                   Edit Operation
                 </button>
+                )}
               </div>
             </div>
           </div>
