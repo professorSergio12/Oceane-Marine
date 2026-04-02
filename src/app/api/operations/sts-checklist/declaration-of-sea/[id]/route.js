@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import "@/jobs/definitions/declaration-of-sea.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -225,6 +226,7 @@ export async function PUT(req, { params }) {
 
     await triggerDocumentGeneration(updatedDeclaration._id, updatedDeclaration.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-005E", id);
     return NextResponse.json({
       success: true,
       message: "Declaration updated successfully & doc regeneration started",

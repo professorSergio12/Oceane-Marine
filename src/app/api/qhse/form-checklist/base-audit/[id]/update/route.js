@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsBaseAuditReport from "@/lib/mongodb/models/qhse-form-checklist/StsBaseAuditReport";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,7 @@ export async function POST(req) {
       uploadedBy: { name: uploadedBy },
     });
 
+    void notifyEdit("QHSE", "form-checklist · base-audit · update", record._id);
     return NextResponse.json({
       message: "Document updated successfully",
       version: nextVersion,

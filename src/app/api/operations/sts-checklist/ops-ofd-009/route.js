@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import MooringMastersJobReport from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-009";
 import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -175,6 +176,7 @@ export async function PUT(req) {
 
     await triggerDocumentGeneration(updatedReport._id, updatedReport.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-009", updatedReport._id);
     return NextResponse.json(
       {
         success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import TrainingPlan from "@/lib/mongodb/models/qhse-training/TrainingPlan";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -21,6 +22,10 @@ export async function PUT(req, { params }) {
     }
     existingPlan.status = "Approved";
     await existingPlan.save();
+
+    void notifyEdit("QHSE", "training · plan · admin-approve", existingPlan._id);
+
+    return NextResponse.json({ success: true, data: existingPlan });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

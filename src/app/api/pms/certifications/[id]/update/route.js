@@ -4,6 +4,7 @@ import Certificate from "@/lib/mongodb/models/pms/Certificate";
 import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, ctx) {
     const guard = await assertPmsPermission("canEdit");
@@ -129,6 +130,8 @@ export async function PUT(req, ctx) {
         }
 
         await existing.save();
+
+        void notifyEdit(NOTIFICATION_MODULES.PMS, "Certifications", existing._id);
 
         return NextResponse.json({ data: existing }, { status: 200 });
     } catch (err) {

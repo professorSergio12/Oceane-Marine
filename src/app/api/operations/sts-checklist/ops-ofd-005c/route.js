@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import STSChecklist5C from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-005C";
 import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -237,6 +238,7 @@ export async function PUT(req) {
     // Trigger background job for document regeneration
     await triggerDocumentGeneration(updatedChecklist._id, updatedChecklist.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-005C", updatedChecklist._id);
     return NextResponse.json(
       {
         success: true,

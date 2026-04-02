@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import { connectDB } from "@/lib/config/connection";
+import { notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export async function DELETE(req, { params }) {
   try {
@@ -25,6 +26,7 @@ export async function DELETE(req, { params }) {
       parentOperationId: userOperation.parentOperationId,
     });
 
+    void notifyOperationsDelete("STS Operations", id);
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json(

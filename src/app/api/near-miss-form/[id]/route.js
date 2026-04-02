@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import NearMiss from "@/lib/mongodb/models/qhse-near-miss/NearMiss";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await NearMiss.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "near-miss-form", id);
     return NextResponse.json(
       { success: true, message: "Report deleted" },
       { status: 200 }

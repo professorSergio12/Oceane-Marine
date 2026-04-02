@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import Jpo from "@/lib/mongodb/models/operations-form-checklist/Jpo";
 import fs from "fs";
 import path from "path";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export async function DELETE(req, { params }) {
   await connectDB();
@@ -36,6 +37,7 @@ export async function DELETE(req, { params }) {
     // Delete from database
     await Jpo.findByIdAndDelete(id);
 
+    void notifyOperationsDelete("JPO", id);
     return NextResponse.json({
       success: true,
       message: "Record deleted successfully",

@@ -4,6 +4,7 @@ import STSStandingOrder from "@/lib/mongodb/models/operation-sts-checklist/OPS-O
 import { incrementRevisionForUpdate } from "../../revision.js";
 import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import "@/jobs/definitions/ops-ofd-011.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -109,6 +110,7 @@ export async function PUT(req, { params }) {
       operationRef: updatedOrder.operationRef,
     });
 
+    void notifyOperationsEdit("OPS-OFD-011", id);
     return NextResponse.json(
       {
         success: true,

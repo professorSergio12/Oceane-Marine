@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import SupplierDueDiligence from "@/lib/mongodb/models/qhse-due-diligence/SupplierDueDiligence";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await SupplierDueDiligence.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "due-diligence · due-diligence-questionnaire", id);
     return NextResponse.json(
       { success: true, message: "Record deleted" },
       { status: 200 }

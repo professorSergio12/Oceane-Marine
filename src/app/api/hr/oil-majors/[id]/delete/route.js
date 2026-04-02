@@ -4,6 +4,7 @@ import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   const guard = await assertHrPermission("canDelete");
@@ -38,6 +39,7 @@ export async function DELETE(req, { params }) {
 
     await OilMajor.findByIdAndDelete(id);
 
+    void notifyDelete("HR", "oil-majors · delete", id);
     return NextResponse.json(
       { message: "Oil Major record deleted successfully" },
       { status: 200 }

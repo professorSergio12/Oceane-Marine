@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
 import { computeHose, computeFender } from "@/app/operations/sts-operations/new/compatibility/calculations";
+import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
 
 export async function GET(req, { params }) {
   await connectDB();
@@ -66,6 +67,7 @@ export async function PUT(req, { params }) {
       { new: true }
     ).lean();
 
+    void notifyOperationsEdit("Compatibility", id);
     return NextResponse.json({
       success: true,
       data: doc,

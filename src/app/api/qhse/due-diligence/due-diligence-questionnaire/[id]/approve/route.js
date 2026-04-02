@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import SupplierDueDiligence from "@/lib/mongodb/models/qhse-due-diligence/SupplierDueDiligence";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -37,6 +38,7 @@ export async function PUT(req, { params }) {
 
     await record.save();
 
+    void notifyEdit("QHSE", "due-diligence · due-diligence-questionnaire · approve", id);
     return NextResponse.json(
       {
         message: "Supplier Due Diligence status updated successfully",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import VendorSupplierApproval from "@/lib/mongodb/models/qhse-form-checklist/VendorSupplierApproval";
 import { saveBase64AsFile, isBase64DataUrl } from "@/lib/utils/qhse-file-storage";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 const isValidRating = (value) =>
   typeof value === "number" && value >= 1 && value <= 4;
@@ -142,6 +143,7 @@ export async function PUT(req, { params }) {
 
     await record.save();
 
+    void notifyEdit("QHSE", "form-checklist · vendor-supply-form · update", id);
     return NextResponse.json(
       {
         success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import EquipmentDefect from "@/lib/mongodb/models/qhse-defect/EquipmentDefect";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 const VALID_STATUSES = ["Open", "In Progress", "Closed"];
 
@@ -54,6 +55,7 @@ export async function PUT(req, { params }) {
     }
 
     await equipmentDefect.save();
+    void notifyEdit("QHSE", "defects-list · update", id);
     return NextResponse.json(
       { message: "Defect updated successfully", data: equipmentDefect },
       { status: 200 }

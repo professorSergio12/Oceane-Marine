@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import HseInductionChecklist from "@/lib/mongodb/models/qhse-form-checklist/HseInductionChecklist";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -21,6 +22,7 @@ export async function PUT(req, { params }) {
     body
     Object.assign(record, body);
     await record.save();
+    void notifyEdit("QHSE", "form-checklist · hse-induction-checklist · update", id);
     return NextResponse.json({ success: true, data: record }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import MOCManagementChange from "@/lib/mongodb/models/qhse-moc/mocs-managementChange";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await MOCManagementChange.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "moc · management-change", id);
     return NextResponse.json(
       { success: true, message: "MOC form deleted successfully" },
       { status: 200 }

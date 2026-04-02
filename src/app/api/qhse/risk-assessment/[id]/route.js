@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import RiskAssessment from "@/lib/mongodb/models/qhse-risk-assessment/RiskAssessment";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -33,6 +34,7 @@ export async function DELETE(req, { params }) {
         }
       }
     }
+    void notifyDelete("QHSE", "risk-assessment", id);
     return NextResponse.json(
       { success: true, message: "Risk assessment deleted successfully" },
       { status: 200 }

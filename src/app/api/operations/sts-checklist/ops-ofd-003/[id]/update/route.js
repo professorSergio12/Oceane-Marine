@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "../../../../../../../jobs/agenda/jobHelper
 import fs from "fs/promises";
 import path from "path";
 import "../../../../../../../jobs/definitions/ops-ofd-003.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -162,6 +163,7 @@ export async function POST(req, { params }) {
       console.error("Job queue error:", jobErr);
     }
 
+    void notifyOperationsEdit("OPS-OFD-003", updatedChecklist._id);
     return NextResponse.json(
       {
         success: true,

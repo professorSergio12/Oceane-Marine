@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import Jpo from "@/lib/mongodb/models/operations-form-checklist/Jpo";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export const runtime = "nodejs";
 
@@ -80,6 +81,7 @@ export async function POST(req, { params }) {
       uploadedBy: { name: uploadedBy || "" },
     });
 
+    void notifyOperationsEdit("JPO", record._id);
     return NextResponse.json({
       message: "Document updated successfully",
       version: nextVersion,

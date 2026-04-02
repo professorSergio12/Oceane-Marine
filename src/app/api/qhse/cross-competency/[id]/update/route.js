@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import PoacCrossCompetency from "@/lib/mongodb/models/qhse-poac/PoacCrossCompetency";
 import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
 import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -245,6 +246,7 @@ export async function PUT(req, { params }) {
       updatedBy: req.user?.id || null,
     });
 
+    void notifyEdit("QHSE", "cross-competency · update", id);
     return NextResponse.json(
       {
         success: true,

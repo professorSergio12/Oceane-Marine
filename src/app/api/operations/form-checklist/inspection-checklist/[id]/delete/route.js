@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import InspectionChecklist from "@/lib/mongodb/models/operations-form-checklist/InspectionChecklist";
 import fs from "fs";
 import path from "path";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export async function DELETE(req, { params }) {
   await connectDB();
@@ -36,6 +37,7 @@ export async function DELETE(req, { params }) {
     // Delete from database
     await InspectionChecklist.findByIdAndDelete(id);
 
+    void notifyOperationsDelete("Inspection Checklist", id);
     return NextResponse.json({
       success: true,
       message: "Record deleted successfully",

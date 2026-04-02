@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsQuotationForm from "@/lib/mongodb/models/operations-form-checklist/StsQuotationForm";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const DATE_FIELDS = [
   "proposalDate",
@@ -42,6 +43,7 @@ export async function PUT(req, { params }) {
         { status: 404 }
       );
     }
+    void notifyOperationsEdit("STS Quotation", id);
     return NextResponse.json({ success: true, data: doc });
   } catch (error) {
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import ManualFormCode from "@/lib/mongodb/models/operations-form-checklist/ManualFormCode";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export async function DELETE(req, { params }) {
   const sessionUser = await getSessionUser();
@@ -22,6 +23,7 @@ export async function DELETE(req, { params }) {
         { status: 404 }
       );
     }
+    void notifyOperationsDelete("Manual Form Codes", id);
     return NextResponse.json({ success: true, message: "Form code deleted" });
   } catch (error) {
     return NextResponse.json(

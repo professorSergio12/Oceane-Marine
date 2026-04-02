@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import MOCManagementChange from "@/lib/mongodb/models/qhse-moc/mocs-managementChange";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -28,6 +29,7 @@ export async function PUT(req, { params }) {
 
     const moc = await MOCManagementChange.findById(id);
 
+    void notifyEdit("QHSE", "moc · management-change · close", id);
     return NextResponse.json(
       {
         success: true,

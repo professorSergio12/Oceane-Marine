@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js
 import fs from "fs/promises";
 import path from "path";
 import "../../../../../../jobs/definitions/ops-ofd-001.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 // ==================== CONSTANTS ====================
 
 const CORS_HEADERS = {
@@ -261,6 +262,7 @@ export async function PUT(req, { params }) {
     // Trigger background job for document regeneration
     await triggerDocumentGeneration(updatedChecklist._id, updatedChecklist.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-001", id);
     return NextResponse.json(
       {
         success: true,

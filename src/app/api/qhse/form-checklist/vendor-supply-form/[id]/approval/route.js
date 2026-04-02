@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import VendorSupplierApproval from "@/lib/mongodb/models/qhse-form-checklist/VendorSupplierApproval";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -30,6 +31,7 @@ export async function PUT(req, { params }) {
       record.rejectionReason = body.rejectionReason;
     }
     await record.save();
+    void notifyEdit("QHSE", "form-checklist · vendor-supply-form · approval", id);
     return NextResponse.json({ success: true, data: record }, { status: 200 });
   } catch (error) {
     console.error("Vendor Supplier Approval Approval Error:", error);

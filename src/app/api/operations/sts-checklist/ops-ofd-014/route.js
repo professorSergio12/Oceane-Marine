@@ -5,6 +5,7 @@ import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -291,6 +292,7 @@ export async function PUT(req) {
 
     await triggerDocumentGeneration(updatedChecklist._id, updatedChecklist.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-014", updatedChecklist._id);
     return NextResponse.json(
       {
         success: true,

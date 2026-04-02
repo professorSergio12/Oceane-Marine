@@ -4,6 +4,7 @@ import Certificate from "@/lib/mongodb/models/pms/Certificate";
 import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, ctx) {
     const guard = await assertPmsPermission("canDelete");
@@ -48,6 +49,8 @@ export async function DELETE(req, ctx) {
 
         // Delete the certificate record
         await Certificate.findByIdAndDelete(id);
+
+        void notifyDelete(NOTIFICATION_MODULES.PMS, "Certifications", id);
 
         return NextResponse.json(
             { message: "Certificate deleted successfully" },

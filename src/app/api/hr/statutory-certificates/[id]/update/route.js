@@ -4,6 +4,7 @@ import StatutoryCertificate from "@/lib/mongodb/models/hr/StatutoryCertificate";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   const guard = await assertHrPermission("canEdit");
@@ -107,6 +108,7 @@ export async function PUT(req, { params }) {
 
     const updatedCert = await StatutoryCertificate.findByIdAndUpdate(id, updateData, { new: true });
 
+    void notifyEdit("HR", "statutory-certificates · update", id);
     return NextResponse.json({ data: updatedCert }, { status: 200 });
   } catch (err) {
     console.error("Statutory certificate update error:", err);

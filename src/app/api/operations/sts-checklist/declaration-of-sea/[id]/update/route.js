@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "../../../../../../../jobs/agenda/jobHelper
 import fs from "node:fs/promises";
 import path from "node:path";
 import "../../../../../../../jobs/definitions/declaration-of-sea.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -194,6 +195,7 @@ export async function POST(req, { params }) {
       console.error("Job queue error:", jobErr);
     }
 
+    void notifyOperationsEdit("OPS-OFD-005E", updatedDeclaration._id);
     return NextResponse.json(
       {
         success: true,

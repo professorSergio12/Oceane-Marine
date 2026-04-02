@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import TrainingRecord from "@/lib/mongodb/models/qhse-training/TrainingRecord";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -21,6 +22,7 @@ export async function PUT(req, { params }) {
     }
     existingRecord.status = "Completed";
     await existingRecord.save();
+    void notifyEdit("QHSE", "training · record · complete · admin-record", id);
     return NextResponse.json(
       {
         message: "Training record completed successfully",

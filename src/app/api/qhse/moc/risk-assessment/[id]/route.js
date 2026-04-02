@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import MOCRiskAssessment from "@/lib/mongodb/models/qhse-moc/mocs-riskAssessment";
 import fs from "fs";
 import path from "path";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   await connectDB();
@@ -36,6 +37,7 @@ export async function DELETE(req, { params }) {
 
     await MOCRiskAssessment.findByIdAndDelete(id);
 
+    void notifyDelete("QHSE", "moc · risk-assessment", id);
     return NextResponse.json(
       {
         success: true,

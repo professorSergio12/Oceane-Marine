@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import InspectionChecklist from "@/lib/mongodb/models/operations-form-checklist/InspectionChecklist";
+import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
 
 export const runtime = "nodejs";
 
@@ -121,6 +122,7 @@ export async function POST(req, { params }) {
 
     const record = await InspectionChecklist.create(recordData);
 
+    void notifyOperationsEdit("Inspection Checklist", record._id);
     return NextResponse.json({
       message: "Document updated successfully",
       version: nextVersion,

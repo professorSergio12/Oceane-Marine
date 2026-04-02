@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import StsBaseAuditReport from "@/lib/mongodb/models/qhse-form-checklist/StsBaseAuditReport";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -27,6 +28,7 @@ export async function DELETE(req, { params }) {
         }
       }
     }
+    void notifyDelete("QHSE", "form-checklist · base-audit", id);
     return NextResponse.json(
       { success: true, message: "Report deleted" },
       { status: 200 }

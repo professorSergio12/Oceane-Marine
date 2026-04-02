@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import fs from "fs/promises";
 import path from "path";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 /* =====================
    FILE UPLOAD FIELDS (CHS/MS vessel documents)
@@ -162,6 +163,7 @@ export async function PUT(req, { params }) {
       submittedAt: submittedAt || existing.submittedAt, // Preserve if already submitted
     });
 
+    void notifyOperationsEdit("STS Operations", id);
     return NextResponse.json({
       success: true,
       message: "New version created",

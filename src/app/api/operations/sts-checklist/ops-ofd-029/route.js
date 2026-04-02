@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import MooringMasterExpenseSheet from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-029";
 import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -159,6 +160,7 @@ export async function PUT(req) {
       console.error("Job queue error:", err);
     }
 
+    void notifyOperationsEdit("OPS-OFD-029", updatedExpenseSheet._id);
     return NextResponse.json(
       {
         message: "OPS-OFD-029 expense sheet updated successfully. Document regeneration queued.",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import { connectDB } from "@/lib/config/connection";
 import KpiUpload from "@/lib/mongodb/models/qhse-kpi/KpiUpload";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -23,6 +24,7 @@ export async function DELETE(req, { params }) {
         // ignore if file already missing
       }
     }
+    void notifyDelete("QHSE", "kpi", id);
     return NextResponse.json(
       { success: true, message: "KPI upload deleted successfully" },
       { status: 200 }

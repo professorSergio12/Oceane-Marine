@@ -4,6 +4,7 @@ import StatutoryCertificate from "@/lib/mongodb/models/hr/StatutoryCertificate";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 // Helper: remove empty parent directories up to the "hr" folder
 async function cleanEmptyDirs(dirPath) {
@@ -56,6 +57,7 @@ export async function DELETE(req, { params }) {
     // Delete certificate from database
     await StatutoryCertificate.findByIdAndDelete(id);
 
+    void notifyDelete("HR", "statutory-certificates · delete", id);
     return NextResponse.json({ message: "Certificate deleted successfully" }, { status: 200 });
   } catch (err) {
     console.error("Statutory certificate deletion error:", err);

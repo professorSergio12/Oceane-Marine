@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import STSTransferAudit from "@/lib/mongodb/models/qhse-form-checklist/StsTransferAudit";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -38,6 +39,7 @@ export async function PUT(req, { params }) {
       );
     }
 
+    void notifyEdit("QHSE", "form-checklist · transfer-audit · approve", id);
     return NextResponse.json(
       {
         success: true,

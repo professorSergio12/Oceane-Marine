@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import BestPractice from "@/lib/mongodb/models/qhse-best-practices/BestPractice";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await BestPractice.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "best-practice", id);
     return NextResponse.json(
       { success: true, message: "Best practice deleted successfully" },
       { status: 200 }

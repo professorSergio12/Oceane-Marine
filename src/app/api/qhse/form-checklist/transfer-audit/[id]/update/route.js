@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import STSTransferAudit from "@/lib/mongodb/models/qhse-form-checklist/StsTransferAudit";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export const runtime = "nodejs"; 
 
@@ -24,6 +25,7 @@ export async function PUT(req, { params }) {
     record.approvedBy = body.approvedBy;
     record.approvedAt = new Date();
     await record.save();
+    void notifyEdit("QHSE", "form-checklist · transfer-audit · update", id);
     return NextResponse.json({ success: true, data: record }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

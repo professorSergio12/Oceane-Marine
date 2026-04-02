@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import "../../../../../jobs/definitions/ops-ofd-005d.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -448,6 +449,7 @@ export async function PUT(req) {
     // Trigger background job for document regeneration
     await triggerDocumentGeneration(updatedChecklist._id, updatedChecklist.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-005D", updatedChecklist._id);
     return NextResponse.json(
       {
         success: true,

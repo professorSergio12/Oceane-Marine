@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "../../../../../../../jobs/agenda/jobHelper
 import fs from "node:fs/promises";
 import path from "node:path";
 import "../../../../../../../jobs/definitions/ops-ofd-005d.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -255,6 +256,7 @@ export async function POST(req, { params }) {
       console.error("Job queue error:", jobErr);
     }
 
+    void notifyOperationsEdit("OPS-OFD-005D", updatedChecklist._id);
     return NextResponse.json(
       {
         success: true,

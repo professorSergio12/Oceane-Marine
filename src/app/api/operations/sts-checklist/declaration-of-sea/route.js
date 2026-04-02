@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import "../../../../../jobs/definitions/declaration-of-sea.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -316,6 +317,7 @@ export async function PUT(req) {
       updatedDeclaration.operationRef
     );
 
+    void notifyOperationsEdit("OPS-OFD-005E", updatedDeclaration._id);
     return NextResponse.json(
       {
         success: true,

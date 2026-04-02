@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import STSHourlyQuantityLog from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-015";
 import { incrementRevisionForUpdate } from "../../../revision";
 import { createAndScheduleJob } from "../../../../../../../jobs/agenda/jobHelper.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +85,7 @@ export async function POST(req, { params }) {
       console.error("Job queue error:", err);
     }
 
+    void notifyOperationsEdit("OPS-OFD-015", updatedLog._id);
     return NextResponse.json(
       {
         success: true,

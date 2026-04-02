@@ -4,6 +4,7 @@ import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 /* Fields that can have a conditional file upload when set to "Yes" */
 const OPTION_FILE_FIELDS = [
@@ -260,6 +261,7 @@ export async function PUT(req, { params }) {
     }
 
     const updatedRecord = await PoacMatrix.findByIdAndUpdate(id, { rows: rowsData }, { new: true });
+    void notifyEdit("HR", "poac-matrix · update", id);
     return NextResponse.json({ data: updatedRecord }, { status: 200 });
   } catch (err) {
     console.error("POAC Certification Matrix update error:", err);

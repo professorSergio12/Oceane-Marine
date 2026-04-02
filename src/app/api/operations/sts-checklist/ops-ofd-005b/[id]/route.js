@@ -4,6 +4,7 @@ import STSChecklist6AB from "@/lib/mongodb/models/operation-sts-checklist/OPS-OF
 import { incrementRevisionForUpdate } from "../../revision.js";
 import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import "@/jobs/definitions/ops-ofd-005b.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -136,6 +137,7 @@ export async function PUT(req, { params }) {
       operationRef: updatedChecklist.operationRef,
     });
 
+    void notifyOperationsEdit("OPS-OFD-005B", id);
     return NextResponse.json(
       {
         success: true,

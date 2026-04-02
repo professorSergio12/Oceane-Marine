@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import NewBaseSetupChecklist from "@/lib/mongodb/models/qhse-form-checklist/NewBaseSetupChecklist";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export const runtime = "nodejs";
 
@@ -71,6 +72,7 @@ export async function POST(req) {
       },
     });
 
+    void notifyEdit("QHSE", "form-checklist · new-base-setup-checklist · update", record._id);
     return NextResponse.json({
       success: true,
       message: "New Base Setup Checklist uploaded successfully",

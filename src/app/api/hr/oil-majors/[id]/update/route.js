@@ -4,6 +4,7 @@ import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
@@ -94,6 +95,7 @@ export async function PUT(req, { params }) {
     existing.attachments = [...keptAttachments, ...newAttachments];
     await existing.save();
 
+    void notifyEdit("HR", "oil-majors · update", id);
     return NextResponse.json({ data: existing }, { status: 200 });
   } catch (err) {
     console.error("Oil Major update error:", err);

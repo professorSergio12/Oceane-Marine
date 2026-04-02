@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import Manual from "@/lib/mongodb/models/operations-form-checklist/Manual";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export const runtime = "nodejs";
 
@@ -82,6 +83,7 @@ export async function POST(req, { params }) {
       uploadedBy: { name: uploadedBy || "" },
     });
 
+    void notifyOperationsEdit("Manual Form", record._id);
     return NextResponse.json({
       message: "Document updated successfully",
       revNo: nextRevNo,

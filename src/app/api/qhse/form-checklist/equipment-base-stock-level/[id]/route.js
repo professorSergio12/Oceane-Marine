@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsEquipmentBaseStockLevel from "@/lib/mongodb/models/qhse-form-checklist/StsEquipmentBaseStockLevel";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await StsEquipmentBaseStockLevel.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "form-checklist · equipment-base-stock-level", id);
     return NextResponse.json(
       { success: true, message: "Record deleted" },
       { status: 200 }

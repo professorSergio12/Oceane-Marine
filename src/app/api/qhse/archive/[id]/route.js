@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import QhseArchive from "@/lib/mongodb/models/qhse-archive/QhseArchive";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await QhseArchive.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "archive", id);
     return NextResponse.json(
       { success: true, message: "Archived file removed successfully" },
       { status: 200 }

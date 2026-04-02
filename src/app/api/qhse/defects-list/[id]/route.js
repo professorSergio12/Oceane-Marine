@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import EquipmentDefect from "@/lib/mongodb/models/qhse-defect/EquipmentDefect";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function GET(req, { params }) {
   try {
@@ -34,6 +35,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await EquipmentDefect.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "defects-list", id);
     return NextResponse.json(
       { success: true, message: "Defect deleted successfully" },
       { status: 200 }

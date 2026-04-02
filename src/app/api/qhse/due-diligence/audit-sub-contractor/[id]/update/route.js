@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import SubContractorAudit from "@/lib/mongodb/models/qhse-due-diligence/SubContractorAudit";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   await connectDB();
@@ -43,6 +44,7 @@ export async function PUT(req, { params }) {
       });
     }
     await subContractorAudit.save();
+    void notifyEdit("QHSE", "due-diligence · audit-sub-contractor · update", id);
     return NextResponse.json(
       { success: true, data: subContractorAudit },
       { status: 200 }

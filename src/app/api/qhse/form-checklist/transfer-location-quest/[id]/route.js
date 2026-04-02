@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import STSTransferLocationQuest from "@/lib/mongodb/models/qhse-form-checklist/StsTransferLocationQuest";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -27,6 +28,7 @@ export async function DELETE(req, { params }) {
         }
       }
     }
+    void notifyDelete("QHSE", "form-checklist · transfer-location-quest", id);
     return NextResponse.json(
       { success: true, message: "Record deleted" },
       { status: 200 }

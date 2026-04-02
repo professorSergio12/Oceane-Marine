@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import VendorSupplierApproval from "@/lib/mongodb/models/qhse-form-checklist/VendorSupplierApproval";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function DELETE(req, { params }) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await VendorSupplierApproval.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "form-checklist · vendor-supply-form", id);
     return NextResponse.json(
       { success: true, message: "Record deleted" },
       { status: 200 }

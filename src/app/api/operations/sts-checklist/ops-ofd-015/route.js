@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import STSHourlyQuantityLog from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-015";
 import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -183,6 +184,7 @@ export async function PUT(req) {
 
     await triggerDocumentGeneration(updatedLog._id, updatedLog.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-015", updatedLog._id);
     return NextResponse.json(
       {
         success: true,

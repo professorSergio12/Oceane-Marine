@@ -4,6 +4,7 @@ import PoacMatrix from "@/lib/mongodb/models/hr/PoacMatrix";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 // Helper: remove empty parent directories up to the "poac-matrix" folder
 async function cleanEmptyDirs(dirPath) {
@@ -94,6 +95,7 @@ export async function DELETE(req, { params }) {
     // Delete record from database
     await PoacMatrix.findByIdAndDelete(id);
 
+    void notifyDelete("HR", "poac-matrix · delete", id);
     return NextResponse.json({ message: "POAC Certification Matrix record deleted successfully" }, { status: 200 });
   } catch (err) {
     console.error("POAC Certification Matrix deletion error:", err);

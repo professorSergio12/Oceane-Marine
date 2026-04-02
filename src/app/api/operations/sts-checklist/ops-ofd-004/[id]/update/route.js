@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
 import "@/jobs/definitions/ops-ofd-004.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,6 +113,7 @@ export async function POST(req, { params }) {
       operationRef: updatedChecklist.operationRef,
     });
 
+    void notifyOperationsEdit("OPS-OFD-004", updatedChecklist._id);
     return NextResponse.json(
       {
         message: "OPS-OFD-004 checklist updated successfully & doc regeneration started",

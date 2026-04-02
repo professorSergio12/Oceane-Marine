@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import TargetKpi from "@/lib/mongodb/models/qhse-kpi/TargetKpi";
 import mongoose from "mongoose";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function GET(req, { params }) {
   await connectDB();
@@ -109,6 +110,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
+    void notifyDelete("QHSE", "kpi · target", id);
     return NextResponse.json({
       success: true,
       message: "Target KPI deleted successfully",

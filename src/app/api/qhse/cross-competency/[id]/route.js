@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import PoacCrossCompetency from "@/lib/mongodb/models/qhse-poac/PoacCrossCompetency";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function GET(req, { params }) {
   await connectDB();
@@ -48,6 +49,7 @@ export async function DELETE(req, { params }) {
       );
     }
     await PoacCrossCompetency.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "cross-competency", id);
     return NextResponse.json(
       { success: true, message: "Record deleted" },
       { status: 200 }

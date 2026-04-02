@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Cid from "@/lib/mongodb/models/hr/Cid";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   const guard = await assertHrPermission("canEdit");
@@ -44,6 +45,7 @@ export async function PUT(req, { params }) {
       { new: true }
     );
 
+    void notifyEdit("HR", "cid · update", id);
     return NextResponse.json({ data: updated }, { status: 200 });
   } catch (err) {
     console.error("CID update error:", err);

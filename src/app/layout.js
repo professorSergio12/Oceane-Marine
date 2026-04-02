@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import GlobalNotificationBell from "./components/GlobalNotificationBell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
       >
         {children}
+        <GlobalNotificationBell />
       </body>
     </html>
   );

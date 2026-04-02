@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
 import "@/jobs/definitions/ops-ofd-020.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,6 +105,7 @@ export async function POST(req, { params }) {
       operationRef: updatedForm.operationRef,
     });
 
+    void notifyOperationsEdit("OPS-OFD-020", updatedForm._id);
     return NextResponse.json(
       {
         message: "OPS-OFD-020 Form updated successfully & doc regeneration started",

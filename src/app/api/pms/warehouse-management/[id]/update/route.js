@@ -4,6 +4,7 @@ import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
 import fs from "node:fs";
 import path from "node:path";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
   const guard = await assertPmsPermission("canEdit");
@@ -142,6 +143,8 @@ export async function PUT(req, { params }) {
     else existing.estimatedEndDate = undefined;
 
     await existing.save();
+
+    void notifyEdit(NOTIFICATION_MODULES.PMS, "Warehouse Management", existing._id);
 
     return NextResponse.json({ success: true, data: existing });
   } catch (error) {

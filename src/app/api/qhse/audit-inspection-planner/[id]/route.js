@@ -3,6 +3,7 @@ import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import AuditInspectionPlanner from "@/lib/mongodb/models/qhse-audit-inspection/AuditInspectionPlanner";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 const ALLOWED_EXT = new Set([
   ".pdf", ".xlsx", ".xls", ".csv", ".doc", ".docx", ".jpg", ".jpeg", ".png",
@@ -97,6 +98,8 @@ export async function PUT(req, { params }) {
     existing.version = `${major}.${minor + 1}`;
     await existing.save();
 
+    void notifyEdit("QHSE", "audit-inspection-planner", existing._id);
+
     return NextResponse.json({ success: true, data: existing });
   } catch (error) {
     console.error("Audit planner update error:", error);
@@ -115,6 +118,7 @@ export async function DELETE(req, { params }) {
     if (!doc) {
       return NextResponse.json({ error: "Planner not found" }, { status: 404 });
     }
+    void notifyDelete("QHSE", "audit-inspection-planner", id);
     return NextResponse.json({ success: true, message: "Planner deleted successfully" });
   } catch (error) {
     console.error("Audit planner delete error:", error);

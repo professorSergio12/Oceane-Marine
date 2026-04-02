@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import AuditInspectionPlanner from "@/lib/mongodb/models/qhse-audit-inspection/AuditInspectionPlanner";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -39,6 +40,7 @@ export async function PATCH(req) {
       );
     }
 
+    void notifyEdit("QHSE", "audit-inspection-planner · update", updated._id);
     return NextResponse.json(
       { success: true, data: updated },
       { status: 200, headers: { "Access-Control-Allow-Origin": "*" } }

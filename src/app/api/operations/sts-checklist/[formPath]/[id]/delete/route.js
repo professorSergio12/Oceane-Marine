@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import { FORM_CONFIGS } from "../../../_form-configs";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import { notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export async function DELETE(req, { params }) {
   await connectDB();
@@ -43,6 +44,7 @@ export async function DELETE(req, { params }) {
     // Delete the checklist record
     await Model.findByIdAndDelete(id);
 
+    void notifyOperationsDelete(config.formNo, id);
     return NextResponse.json({
       success: true,
       message: "Record deleted successfully",

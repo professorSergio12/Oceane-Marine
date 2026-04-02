@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import TrainingPlan from "@/lib/mongodb/models/qhse-training/TrainingPlan";
 import TrainingRecord from "@/lib/mongodb/models/qhse-training/TrainingRecord";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function GET(req, { params } ) {
   try {
@@ -43,6 +44,7 @@ export async function DELETE(req, { params }) {
       trainingPlanId: id,
     });
     await TrainingPlan.findByIdAndDelete(id);
+    void notifyDelete("QHSE", "training · plan", id);
     return NextResponse.json(
       {
         success: true,
@@ -59,53 +61,4 @@ export async function DELETE(req, { params }) {
     );
   }
 }
-
-export async function PUT(req, { params }) {
-  try {
-    await connectDB();
-    const { id } = await params;
-    const existingPlan = await TrainingPlan.findById(id);
-
-    if (!existingPlan) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Training plan not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    // Check if all planItems are already approved
-    const allApproved = existingPlan.planItems.every(
-      (item) => item.status === "Approved"
-    );
-
-    if (allApproved) {
-      return NextResponse.json(
-        { success: false, error: "All plan items are already approved" },
-        { status: 403 }
-      );
-    }
-
-    // Set status to "Approved" for each planItem (each month gets approved individually)
-    existingPlan.planItems = existingPlan.planItems.map((item) => ({
-      ...item,
-      status: "Approved",
-    }));
-    existingPlan.approvedAt = new Date();
-
-    const approvedPlan = await existingPlan.save();
-
-    return NextResponse.json(
-      { success: true, data: approvedPlan },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Approve Training Plan Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
-  }
-}
+

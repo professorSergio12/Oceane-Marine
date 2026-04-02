@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
 import "@/jobs/definitions/ops-ofd-001a.job.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -236,6 +237,7 @@ export async function PUT(req) {
       operationRef: updatedQuestionnaire.operationRef,
     });
 
+    void notifyOperationsEdit("OPS-OFD-001A", updatedQuestionnaire._id);
     return NextResponse.json(
       {
         success: true,

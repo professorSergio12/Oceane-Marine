@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import Quotation from "@/lib/mongodb/models/operations-form-checklist/Quotation";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export const runtime = "nodejs";
 
@@ -70,6 +71,7 @@ export async function POST(req, { params }) {
       uploadedBy: { name: uploadedBy || "" },
     });
 
+    void notifyOperationsEdit("Quotation", record._id);
     return NextResponse.json({
       message: "Document updated successfully",
       version: nextVersion,

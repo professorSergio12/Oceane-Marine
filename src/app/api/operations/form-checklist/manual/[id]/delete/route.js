@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import Manual from "@/lib/mongodb/models/operations-form-checklist/Manual";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 export async function DELETE(req, { params }) {
   await connectDB();
@@ -26,6 +27,7 @@ export async function DELETE(req, { params }) {
 
     await Manual.findByIdAndDelete(id);
 
+    void notifyOperationsDelete("Manual Form", id);
     return NextResponse.json({
       success: true,
       message: "Manual record deleted successfully",

@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import STSTimesheet from "@/lib/mongodb/models/operation-sts-checklist/OPS-OFD-018";
 import { incrementRevisionForUpdate } from "../revision.js";
 import { createAndScheduleJob } from "../../../../../jobs/agenda/jobHelper.js";
+import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 
 // ==================== CONSTANTS ====================
 
@@ -194,6 +195,7 @@ export async function PUT(req) {
 
     await triggerDocumentGeneration(updatedTimesheet._id, updatedTimesheet.operationRef);
 
+    void notifyOperationsEdit("OPS-OFD-018", updatedTimesheet._id);
     return NextResponse.json(
       {
         success: true,

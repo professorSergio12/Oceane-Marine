@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import PoacCrossCompetency from "@/lib/mongodb/models/qhse-poac/PoacCrossCompetency";
+import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export const runtime = "nodejs";
 
@@ -58,6 +59,7 @@ export async function PUT(req, { params }) {
     record.approvedBy = "";
     await record.save();
 
+    void notifyEdit("QHSE", "cross-competency · reject", id);
     return NextResponse.json(
       {
         success: true,
