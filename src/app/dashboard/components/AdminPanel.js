@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 
 const OPS_ROLE_OPTIONS = [
@@ -123,7 +124,7 @@ function ConfirmDialog({ open, onClose, onConfirm, title, message, loading }) {
   );
 }
 
-export default function AdminPanel() {
+export default function AdminPanel({ hideShellTitles = false } = {}) {
   const currentUser = useAuthStore((s) => s.user);
   const isAdmin = currentUser?.operationsRole === "admin";
 
@@ -341,31 +342,50 @@ export default function AdminPanel() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-5 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Administration
-          </p>
-          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-            User management
-          </h2>
+        {!hideShellTitles && (
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Administration
+            </p>
+            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              User management
+            </h2>
+            <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
+              Assign module-specific roles for Operations, HR, PMS, and QHSE. Hover a role badge in the table
+              to see the full permission description.
+            </p>
+          </div>
+        )}
+        {hideShellTitles && (
           <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
-            Assign module-specific roles for Operations, HR, PMS, and QHSE. Hover a role badge in the table
-            to see the full permission description.
+            Assign module-specific roles for Operations, HR, PMS, and QHSE. Hover a role badge in the table to
+            see the full permission description.
           </p>
+        )}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
+          {hideShellTitles && (
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            >
+              <span aria-hidden="true">←</span>
+              <span>Dashboard</span>
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddModal(true);
+              clearMessages();
+            }}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add user
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setShowAddModal(true);
-            clearMessages();
-          }}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Add user
-        </button>
       </div>
 
       {/* Messages */}
