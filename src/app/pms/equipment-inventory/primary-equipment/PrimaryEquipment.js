@@ -1255,6 +1255,9 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                           Client
                         </th>
                         <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                          Agent
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
                           Quantity cargo
                         </th>
                         <th className="px-4 py-3 font-semibold text-xs tracking-wide">
@@ -1290,6 +1293,9 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                           </td>
                           <td className="px-4 py-3 text-slate-100">
                             {h.client}
+                          </td>
+                          <td className="px-4 py-3 text-slate-100">
+                            {h.agent}
                           </td>
                           <td className="px-4 py-3 text-slate-100">
                             {h.quantityCargo}

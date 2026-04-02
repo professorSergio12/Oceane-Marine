@@ -262,6 +262,10 @@ export default function EditOperationPage() {
         const clientInput = formRef.current.querySelector('input[name="client"]');
         if (clientInput) clientInput.value = op.client;
       }
+      if (op.agent) {
+        const agentInput = formRef.current.querySelector('input[name="agent"]');
+        if (agentInput) agentInput.value = op.agent;
+      }
       if (op.chs) {
         const chsInput = formRef.current.querySelector('input[name="chs"]');
         if (chsInput) chsInput.value = op.chs;
@@ -688,6 +692,11 @@ export default function EditOperationPage() {
                 label="Client"
                 placeholder="Enter client name"
                 name="client"
+              />
+              <TextField
+                label="Agent"
+                placeholder="Enter agent name"
+                name="agent"
               />
               <SelectField
                 label="Mooring Master"

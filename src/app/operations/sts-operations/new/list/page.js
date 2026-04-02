@@ -78,6 +78,7 @@ export default function STSListPage() {
         const type = op.typeOfOperation?.toLowerCase() || "";
         const location = op.location?.name?.toLowerCase() || "";
         const client = op.client?.toLowerCase() || "";
+        const agent = op.agent?.toLowerCase() || "";
         const chs = op.chs?.toLowerCase() || "";
         const ms = op.ms?.toLowerCase() || "";
         return (
@@ -85,6 +86,7 @@ export default function STSListPage() {
           type.includes(query) ||
           location.includes(query) ||
           client.includes(query) ||
+          agent.includes(query) ||
           chs.includes(query) ||
           ms.includes(query)
         );
@@ -351,7 +353,7 @@ export default function STSListPage() {
             <div className="flex-1 min-w-[200px] relative">
               <input
                 type="text"
-                placeholder="Search by Ref No, Type, Location, Client..."
+                placeholder="Search by Ref No, Type, Location, Client, Agent..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-lg sm:rounded-xl border border-white/10 bg-white/5 px-3 sm:px-4 py-2 sm:py-3 pl-8 sm:pl-10 text-xs sm:text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
@@ -414,6 +416,9 @@ export default function STSListPage() {
                         Client
                       </th>
                       <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
+                        Agent
+                      </th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Barrels
                       </th>
                       <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-[10px] sm:text-xs font-semibold text-white/90 uppercase tracking-wider w-28 sm:w-32">
@@ -457,6 +462,11 @@ export default function STSListPage() {
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <span className="text-xs sm:text-sm text-white/90">
                             {op.client || "—"}
+                          </span>
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <span className="text-xs sm:text-sm text-white/90">
+                            {op.agent || "—"}
                           </span>
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">

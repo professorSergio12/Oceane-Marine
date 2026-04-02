@@ -1080,6 +1080,11 @@ export default function NewOperationPage() {
                 placeholder="Enter client name"
                 name="client"
               />
+              <TextField
+                label="Agent"
+                placeholder="Enter agent name"
+                name="agent"
+              />
               <SelectField
                 label="Mooring Master"
                 loading={loadingMasters}
@@ -1664,6 +1669,7 @@ function OperationsListComponent() {
         const type = op.typeOfOperation?.toLowerCase() || "";
         const location = op.location?.name?.toLowerCase() || "";
         const client = op.client?.toLowerCase() || "";
+        const agent = op.agent?.toLowerCase() || "";
         const chs = op.chs?.toLowerCase() || "";
         const ms = op.ms?.toLowerCase() || "";
         return (
@@ -1671,6 +1677,7 @@ function OperationsListComponent() {
           type.includes(query) ||
           location.includes(query) ||
           client.includes(query) ||
+          agent.includes(query) ||
           chs.includes(query) ||
           ms.includes(query)
         );
@@ -1786,7 +1793,7 @@ function OperationsListComponent() {
         <div className="flex-1 min-w-[200px] relative">
           <input
             type="text"
-            placeholder="Search by Ref No, Type, Location, Client, CHS, MS..."
+            placeholder="Search by Ref No, Type, Location, Client, Agent, CHS, MS..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
@@ -1883,6 +1890,9 @@ function OperationsListComponent() {
                     Client
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
+                    Agent
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
                     Barrels
                   </th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-white/90 uppercase tracking-wider w-32">
@@ -1926,6 +1936,11 @@ function OperationsListComponent() {
                     <td className="px-6 py-4">
                       <span className="text-sm text-white/90">
                         {op.client || "—"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-white/90">
+                        {op.agent || "—"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

@@ -135,6 +135,7 @@ const stsOperationSchema = new mongoose.Schema(
 
     client: String,
 
+    agent: String,
 
     /* ================= OPERATION STATUS ================= */
 

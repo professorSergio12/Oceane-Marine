@@ -38,6 +38,7 @@ export async function GET(req, { params }) {
         typeOfCargo
         operationStartTime
         client
+        agent
         quantity
         equipments
       `)
@@ -59,6 +60,7 @@ export async function GET(req, { params }) {
                 typeOfCargo: op.typeOfCargo?.name || "-",
                 dateOfJob: op.operationStartTime,
                 client: op.client || "-",
+                agent: op.agent || "-",
                 quantityCargo: op.quantity || 0,
 
                 // optional (future use)

@@ -55,6 +55,7 @@ export function getExportColumns() {
     { label: "Operation Ref No", getValue: (op) => str(op, "Operation_Ref_No") },
     { label: "Type of Operation", getValue: (op) => str(op, "typeOfOperation") },
     { label: "Client", getValue: (op) => str(op, "client") },
+    { label: "Agent", getValue: (op) => str(op, "agent") },
     { label: "Location", getValue: (op) => op?.location?.name ?? "" },
     { label: "Mooring Master", getValue: (op) => refName(op, "mooringMaster") },
     { label: "Type of Cargo", getValue: (op) => op?.typeOfCargo?.type ?? "" },

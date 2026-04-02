@@ -403,6 +403,12 @@ function ViewOperationPage() {
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
+                    Agent
+                  </label>
+                  <p className="text-white font-medium">{op.agent || "-"}</p>
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-white/60 mb-2">
                     Location
                   </label>
                   <p className="text-white font-medium">{op.location?.name || "-"}</p>
