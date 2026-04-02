@@ -6,10 +6,13 @@ import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 export default function RiskAssessmentFormPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
   const router = useRouter();
   const [locations, setLocations] = useState([]);
   const [locationName, setLocationName] = useState("");
@@ -36,6 +39,7 @@ export default function RiskAssessmentFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setMessage("");
 
@@ -130,6 +134,12 @@ export default function RiskAssessmentFormPage() {
           </div>
         </header>
 
+        {!canSubmit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to create records. Form is view-only.
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
             {error}
@@ -145,6 +155,7 @@ export default function RiskAssessmentFormPage() {
           onSubmit={handleSubmit}
           className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6"
         >
+          <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm text-slate-200">Location</label>
@@ -241,12 +252,13 @@ export default function RiskAssessmentFormPage() {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={!canSubmit || loading}
               className="px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50"
             >
               {loading ? "Saving..." : "Save"}
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
     </div>

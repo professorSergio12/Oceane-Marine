@@ -4,6 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 const ALLOWED_EXT_STR = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -23,6 +24,8 @@ export default function MOCManagementChangeFormPage() {
   const editId = searchParams.get("edit");
   const isEditMode = Boolean(editId);
   const fileInputRef = useRef(null);
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = isEditMode ? canEdit : canCreate;
 
   const currentYear = new Date().getFullYear();
   const yearOptions = [];
@@ -61,6 +64,7 @@ export default function MOCManagementChangeFormPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loadingExisting, setLoadingExisting] = useState(false);
+  const [existingStatus, setExistingStatus] = useState(null);
   /** Risk assessment files already uploaded to this MOC (from server) */
   const [existingRiskAssessmentFiles, setExistingRiskAssessmentFiles] = useState([]);
   /** Pending files selected but not yet uploaded */
@@ -233,6 +237,7 @@ export default function MOCManagementChangeFormPage() {
 
         const m = data.data;
         if (!m) return;
+        setExistingStatus(m.status || "Draft");
 
         const docYear =
           m.year != null && !Number.isNaN(Number(m.year))
@@ -281,6 +286,7 @@ export default function MOCManagementChangeFormPage() {
   }, [editId]);
 
   const handleSaveDraft = async () => {
+    if (!canSubmit) return;
     setSaving(true);
     setError("");
     setSuccess("");
@@ -370,9 +376,8 @@ export default function MOCManagementChangeFormPage() {
         }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save draft");
-      setSuccess("Draft saved successfully");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (!res.ok) throw new Error(data.error || "Failed to save");
+      router.push("/qhse/moc/management-change/list");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -381,6 +386,7 @@ export default function MOCManagementChangeFormPage() {
   };
 
   const handleSubmit = async () => {
+    if (!canSubmit) return;
     setSubmitting(true);
     setError("");
     setSuccess("");
@@ -493,7 +499,7 @@ export default function MOCManagementChangeFormPage() {
               QHSE / MOC / Management of Change
             </p>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-              {isEditMode ? "Edit Management of Change Draft" : "Management of Change"}
+              {isEditMode ? "Edit Management of Change" : "Management of Change"}
             </h1>
             <p className="text-xs sm:text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-058</span>
@@ -539,6 +545,12 @@ export default function MOCManagementChangeFormPage() {
           </div>
         </header>
 
+        {!canSubmit && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {isEditMode ? "edit" : "create"} MOC management of change records.
+          </div>
+        )}
+
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
             <div className="flex items-center gap-2">
@@ -579,9 +591,23 @@ export default function MOCManagementChangeFormPage() {
           <form className="space-y-8">
           {/* Basic Information */}
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
-            <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
-              Basic Information
-            </h2>
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h2 className="text-lg font-semibold text-white">
+                Basic Information
+              </h2>
+              {isEditMode && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/qhse/moc/management-change/list")}
+                  className="p-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-red-500/20 hover:border-red-400/40 text-white/70 hover:text-red-300 transition"
+                  title="Close form"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
 
             <div className="space-y-4">
               <div>
@@ -1039,19 +1065,21 @@ export default function MOCManagementChangeFormPage() {
             <button
               type="button"
               onClick={handleSaveDraft}
-              disabled={saving || submitting}
+              disabled={!canSubmit || saving || submitting}
               className="px-6 py-3 rounded-lg border border-white/20 bg-white/5 text-white font-medium hover:bg-white/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? "Saving..." : "Save as Draft"}
+              {saving ? "Saving..." : isEditMode && existingStatus && existingStatus !== "Draft" ? "Save Changes" : "Save as Draft"}
             </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting || saving}
-              className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </button>
+            {!(isEditMode && existingStatus && existingStatus !== "Draft") && (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit || submitting || saving}
+                className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? "Submitting..." : "Submit"}
+              </button>
+            )}
           </div>
         </form>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useEffect, useState } from "react";
 import { useQhseSidebar } from "../QhseSidebarContext";
@@ -15,6 +16,7 @@ function getYearOptions() {
 
 export default function ArchivePage() {
   const { setPageLoading } = useQhseLoading();
+  const { canDelete, canDownload } = useQhseRole();
   const { contentClassName } = useQhseSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,7 @@ export default function ArchivePage() {
   const yearOptions = getYearOptions();
 
   const handleDelete = async (row) => {
+    if (!canDelete) return;
     if (!confirm(`Remove "${row.title || row.module}" from the archive? This cannot be undone.`)) return;
     setDeletingId(row._id);
     setError("");
@@ -147,8 +150,8 @@ export default function ArchivePage() {
               No archived files for this year.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-left text-slate-200 border-collapse">
+            <div className="overflow-hidden">
+              <table className="w-full text-sm text-left text-slate-200 border-collapse table-fixed">
                 <thead>
                   <tr className="bg-[#366092] text-white">
                     <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide">
@@ -163,13 +166,13 @@ export default function ArchivePage() {
                     <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide">
                       Serial No
                     </th>
-                    <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide min-w-[180px]">
+                    <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide">
                       Title
                     </th>
-                    <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide w-32">
+                    <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide">
                       Archived on
                     </th>
-                    <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide w-24">
+                    <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide">
                       Actions
                     </th>
                   </tr>
@@ -202,7 +205,7 @@ export default function ArchivePage() {
                       </td>
                       <td className="border border-slate-400/40 px-3 py-2">
                         <div className="flex flex-wrap items-center justify-end gap-1">
-                          {row.fileUrl && (row.fileUrl.startsWith("http://") || row.fileUrl.startsWith("https://")) ? (
+                          {canDownload && row.fileUrl && (row.fileUrl.startsWith("http://") || row.fileUrl.startsWith("https://")) ? (
                             <span className="relative group inline-flex">
                               <a
                                 href={row.fileUrl}
@@ -220,7 +223,7 @@ export default function ArchivePage() {
                                 Download
                               </span>
                             </span>
-                          ) : (
+                          ) : canDownload ? (
                             <span className="relative group inline-flex">
                               <a
                                 href={`/api/qhse/archive/${row._id}/download`}
@@ -237,31 +240,33 @@ export default function ArchivePage() {
                                 Download
                               </span>
                             </span>
-                          )}
-                          <span className="relative group inline-flex">
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(row)}
-                              disabled={deletingId === row._id}
-                              title="Delete"
-                              aria-label="Delete"
-                              className="p-1.5 rounded text-red-300 hover:text-red-200 hover:bg-red-500/10 disabled:opacity-50 transition"
-                            >
-                              {deletingId === row._id ? (
-                                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                              ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              )}
-                            </button>
-                            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                              Delete
+                          ) : null}
+                          {canDelete && (
+                            <span className="relative group inline-flex">
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(row)}
+                                disabled={deletingId === row._id}
+                                title="Delete"
+                                aria-label="Delete"
+                                className="p-1.5 rounded text-red-300 hover:text-red-200 hover:bg-red-500/10 disabled:opacity-50 transition"
+                              >
+                                {deletingId === row._id ? (
+                                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                )}
+                              </button>
+                              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                Delete
+                              </span>
                             </span>
-                          </span>
+                          )}
                         </div>
                       </td>
                     </tr>

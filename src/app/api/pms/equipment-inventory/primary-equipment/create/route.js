@@ -3,10 +3,13 @@ import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import { connectDB } from "@/lib/config/connection";
 import path from "path";
 import fs from "fs/promises";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
 export async function POST(req) {
+  const guard = await assertPmsPermission("canCreate");
+  if (!guard.ok) return guard.response;
   try {
     await connectDB();
 

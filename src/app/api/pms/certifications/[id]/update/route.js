@@ -3,8 +3,11 @@ import { connectDB } from "@/lib/config/connection";
 import Certificate from "@/lib/mongodb/models/pms/Certificate";
 import path from "path";
 import fs from "fs/promises";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function PUT(req, ctx) {
+    const guard = await assertPmsPermission("canEdit");
+    if (!guard.ok) return guard.response;
     await connectDB();
 
     try {

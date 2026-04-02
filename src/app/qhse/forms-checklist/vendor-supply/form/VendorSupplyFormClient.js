@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useMemo, useEffect } from "react";
@@ -67,6 +68,8 @@ function VendorSupplyFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -275,6 +278,7 @@ function VendorSupplyFormContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setSuccess("");
 
@@ -337,6 +341,7 @@ function VendorSupplyFormContent() {
 
   const handleSaveDraft = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setSuccess("");
 
@@ -451,12 +456,14 @@ function VendorSupplyFormContent() {
                 >
                   Vendor List
                 </Link>
-                <Link
-                  href="/qhse/forms-checklist/vendor-supply/admin"
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-                >
-                  Vendor Admin
-                </Link>
+                {isQhseAdmin && (
+                  <Link
+                    href="/qhse/forms-checklist/vendor-supply/admin"
+                    className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                  >
+                    Vendor Admin
+                  </Link>
+                )}
               </div>
             </div>
           </header>
@@ -483,6 +490,12 @@ function VendorSupplyFormContent() {
             <span>3 = Acceptable</span>
             <span>4 = Satisfied</span>
           </div>
+
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -854,14 +867,14 @@ function VendorSupplyFormContent() {
               <button
                 type="button"
                 onClick={handleSaveDraft}
-                disabled={savingDraft || submitting}
+                disabled={!canSubmit || savingDraft || submitting}
                 className="rounded-full border border-white/30 bg-white/10 px-6 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/15 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {savingDraft ? "Saving Draft..." : "Save as Draft"}
               </button>
               <button
                 type="submit"
-                disabled={submitting || savingDraft}
+                disabled={!canSubmit || submitting || savingDraft}
                 className="rounded-full border border-sky-400/60 bg-sky-500/20 px-6 py-2.5 text-sm font-semibold text-sky-100 hover:bg-sky-500/30 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {submitting ? "Submitting..." : "Submit for Approval"}

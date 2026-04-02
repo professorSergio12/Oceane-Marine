@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton } from "../../../components/ActionIcons";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 
 function getYears() {
@@ -19,6 +20,7 @@ function getYears() {
 export default function TargetKpiListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,6 +51,7 @@ export default function TargetKpiListPage() {
   };
 
   const handleDelete = async (item) => {
+    if (!canDelete) return;
     if (!confirm(`Delete Target KPI for year ${item.year ?? "?"}? This cannot be undone.`)) return;
     setDeletingId(item._id);
     setError("");
@@ -67,6 +70,7 @@ export default function TargetKpiListPage() {
   };
 
   const handleDownloadDocx = async (item) => {
+    if (!canDownload) return;
     if (!item._id) return;
     setDownloadingDocxId(item._id);
     try {
@@ -89,6 +93,7 @@ export default function TargetKpiListPage() {
   };
 
   const handleDownloadPdf = async (item) => {
+    if (!canDownload) return;
     if (!item._id) return;
     setDownloadingPdfId(item._id);
     try {
@@ -252,35 +257,41 @@ export default function TargetKpiListPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1 inline-flex">
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadDocx(item)}
-                            disabled={downloadingDocxId === item._id || downloadingPdfId === item._id}
-                            className="text-xs px-2 py-1 rounded border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
-                            title="Download Word"
-                          >
-                            {downloadingDocxId === item._id ? "…" : "Word"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadPdf(item)}
-                            disabled={downloadingDocxId === item._id || downloadingPdfId === item._id}
-                            className="text-xs px-2 py-1 rounded border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
-                            title="Download PDF"
-                          >
-                            {downloadingPdfId === item._id ? "…" : "PDF"}
-                          </button>
+                          {canDownload && (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadDocx(item)}
+                              disabled={downloadingDocxId === item._id || downloadingPdfId === item._id}
+                              className="text-xs px-2 py-1 rounded border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                              title="Download Word"
+                            >
+                              {downloadingDocxId === item._id ? "…" : "Word"}
+                            </button>
+                          )}
+                          {canDownload && (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadPdf(item)}
+                              disabled={downloadingDocxId === item._id || downloadingPdfId === item._id}
+                              className="text-xs px-2 py-1 rounded border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                              title="Download PDF"
+                            >
+                              {downloadingPdfId === item._id ? "…" : "PDF"}
+                            </button>
+                          )}
                           <ArchiveIconButton
                             onClick={() => handleArchive(item)}
                             disabled={archivingId === item._id || deletingId === item._id}
                             loading={archivingId === item._id}
                           />
                           <ViewIconButton href={`/qhse/kpi/target-kpi/view/${String(item._id ?? "")}`} />
-                          <DeleteIconButton
-                            onClick={() => handleDelete(item)}
-                            disabled={archivingId === item._id || deletingId === item._id}
-                            loading={deletingId === item._id}
-                          />
+                          {canDelete && (
+                            <DeleteIconButton
+                              onClick={() => handleDelete(item)}
+                              disabled={archivingId === item._id || deletingId === item._id}
+                              loading={deletingId === item._id}
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>

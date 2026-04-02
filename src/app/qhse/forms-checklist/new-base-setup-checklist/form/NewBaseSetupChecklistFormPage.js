@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useRef, useEffect } from "react";
@@ -13,6 +14,8 @@ export default function NewBaseSetupChecklistFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = editId ? canEdit : canCreate;
   const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     baseName: "",
@@ -135,6 +138,7 @@ export default function NewBaseSetupChecklistFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setSuccess("");
 
@@ -268,6 +272,12 @@ export default function NewBaseSetupChecklistFormPage() {
         {success && (
           <div className="bg-green-950/40 border border-green-500/40 rounded-xl px-4 py-3 text-green-200 text-sm font-medium">
             {success}
+          </div>
+        )}
+
+        {!canSubmit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
           </div>
         )}
 
@@ -445,7 +455,7 @@ export default function NewBaseSetupChecklistFormPage() {
             </Link>
             <button
               type="submit"
-              disabled={uploading}
+              disabled={!canSubmit || uploading}
               className="rounded-full bg-sky-500 hover:bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {(() => {

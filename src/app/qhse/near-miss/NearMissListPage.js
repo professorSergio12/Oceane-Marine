@@ -10,6 +10,7 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../utils/
 import { ViewIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../components/ActionIcons";
 import { TemplateDownloadLink } from "../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -47,6 +48,7 @@ function getYears() {
 export default function NearMissListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
@@ -149,6 +151,7 @@ export default function NearMissListPage() {
   };
 
   const handleArchive = async (report) => {
+    if (!canEdit) return;
     if (!confirm("Archive this report? It will be stored in QHSE Archive (Near Miss).")) return;
     setArchivingId(report._id);
     setError(null);
@@ -166,6 +169,7 @@ export default function NearMissListPage() {
   };
 
   const handleDelete = async (report) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
     setDeleting(report._id);
     setError(null);
@@ -227,7 +231,7 @@ export default function NearMissListPage() {
   };
 
   const handleStatusClick = async (reportId, currentStatus) => {
-    // If already reviewed, don't do anything
+    if (!canApprove) return;
     if (currentStatus === "Reviewed") return;
     
     setUpdatingStatus(reportId);
@@ -353,7 +357,7 @@ export default function NearMissListPage() {
                           selectedReport.status || "Under Review"
                         )
                       }
-                      disabled={updatingStatus === selectedReport._id}
+                      disabled={!canApprove || updatingStatus === selectedReport._id}
                       className="px-6 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold uppercase tracking-wider transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-orange-500/30"
                     >
                       {updatingStatus === selectedReport._id
@@ -652,12 +656,12 @@ export default function NearMissListPage() {
                               />
                               <ArchiveIconButton
                                 onClick={() => handleArchive(report)}
-                                disabled={archivingId === report._id || deleting === report._id}
+                                disabled={!canEdit || archivingId === report._id || deleting === report._id}
                                 loading={archivingId === report._id}
                               />
                               <DeleteIconButton
                                 onClick={() => handleDelete(report)}
-                                disabled={archivingId === report._id || deleting === report._id}
+                                disabled={!canDelete || archivingId === report._id || deleting === report._id}
                                 loading={deleting === report._id}
                               />
                               <ViewIconButton

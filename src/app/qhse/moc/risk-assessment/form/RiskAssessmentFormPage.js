@@ -4,6 +4,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 const currentYear = new Date().getFullYear();
 const yearOptions = [];
@@ -15,6 +16,8 @@ export default function RiskAssessmentFormPage() {
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
   const [year, setYear] = useState(currentYear);
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -89,6 +92,7 @@ export default function RiskAssessmentFormPage() {
   };
 
   const handleSubmit = async () => {
+    if (!canSubmit) return;
     if (files.length === 0) {
       setError("Please select at least one file to upload");
       return;
@@ -200,6 +204,12 @@ export default function RiskAssessmentFormPage() {
             </div>
           </div>
         </header>
+
+        {!canSubmit && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to upload risk assessment files.
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
@@ -394,7 +404,7 @@ export default function RiskAssessmentFormPage() {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={uploading || files.length === 0}
+              disabled={!canSubmit || uploading || files.length === 0}
               className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {uploading ? (

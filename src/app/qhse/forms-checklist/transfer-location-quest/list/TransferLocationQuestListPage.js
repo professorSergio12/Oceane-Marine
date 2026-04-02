@@ -9,6 +9,7 @@ import { QhseListPageContainer } from "../../../components/QhseListPageContainer
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import { useRouter } from "next/navigation";
 
 function formatDate(value) {
@@ -35,6 +36,7 @@ export default function TransferLocationQuestListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
@@ -119,6 +121,7 @@ export default function TransferLocationQuestListPage() {
   }, [year, locationName]);
 
   const handleDownloadDocx = async (form) => {
+    if (!canDownload) return;
     setDownloading(form._id);
     try {
       const res = await fetch(
@@ -148,6 +151,7 @@ export default function TransferLocationQuestListPage() {
   };
 
   const handleDownloadPdf = async (form) => {
+    if (!canDownload) return;
     setDownloadingPdf(form._id);
     setError(null);
     try {
@@ -175,6 +179,7 @@ export default function TransferLocationQuestListPage() {
   };
 
   const handleDownloadFile = async (form) => {
+    if (!canDownload) return;
     setDownloadingFile(form._id);
     try {
       const res = await fetch(
@@ -212,6 +217,7 @@ export default function TransferLocationQuestListPage() {
   };
 
   const handleEdit = (form) => {
+    if (!canEdit) return;
     router.push(
       `/qhse/forms-checklist/transfer-location-quest/form?edit=${form._id}`
     );
@@ -234,6 +240,7 @@ export default function TransferLocationQuestListPage() {
   };
 
   const handleDelete = async (form) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this record? This cannot be undone.")) return;
     setDeleting(form._id);
     setError(null);
@@ -453,51 +460,61 @@ export default function TransferLocationQuestListPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadFile(form)}
-                              disabled={downloadingFile === form._id}
-                              className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                              title="Download attached file"
-                            >
-                              {downloadingFile === form._id ? (
-                                <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                              ) : (
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
-                              )}
-                            </button>
-                            <DownloadIconButton
-                              onClick={() => handleDownloadDocx(form)}
-                              disabled={
-                                downloading === form._id || downloadingPdf === form._id
-                              }
-                              loading={downloading === form._id}
-                              title="Download as Word"
-                            />
-                            <DownloadIconButton
-                              onClick={() => handleDownloadPdf(form)}
-                              disabled={
-                                downloadingPdf === form._id || downloading === form._id
-                              }
-                              loading={downloadingPdf === form._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
+                            {canDownload && (
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadFile(form)}
+                                disabled={downloadingFile === form._id}
+                                className="px-2 py-1 rounded border border-purple-400/30 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                title="Download attached file"
+                              >
+                                {downloadingFile === form._id ? (
+                                  <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                  </svg>
+                                )}
+                              </button>
+                            )}
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadDocx(form)}
+                                disabled={
+                                  downloading === form._id || downloadingPdf === form._id
+                                }
+                                loading={downloading === form._id}
+                                title="Download as Word"
+                              />
+                            )}
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(form)}
+                                disabled={
+                                  downloadingPdf === form._id || downloading === form._id
+                                }
+                                loading={downloadingPdf === form._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}
                               disabled={archivingId === form._id || deleting === form._id}
                               loading={archivingId === form._id}
                             />
-                            <EditIconButton onClick={() => handleEdit(form)} />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(form)}
-                              disabled={archivingId === form._id || deleting === form._id}
-                              loading={deleting === form._id}
-                            />
+                            {canEdit && (
+                              <EditIconButton onClick={() => handleEdit(form)} />
+                            )}
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(form)}
+                                disabled={archivingId === form._id || deleting === form._id}
+                                loading={deleting === form._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>

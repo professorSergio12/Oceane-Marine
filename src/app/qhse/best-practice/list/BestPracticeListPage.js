@@ -9,6 +9,7 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../uti
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../components/ActionIcons";
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -33,6 +34,7 @@ function getYears() {
 export default function BestPracticeListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const initialYears = getYears();
   
   const [bestPractices, setBestPractices] = useState([]);
@@ -112,6 +114,7 @@ export default function BestPracticeListPage() {
   };
 
   const handleDownloadDocx = async (practice) => {
+    if (!canDownload) return;
     setDownloadingDocxId(practice._id);
     setError(null);
     try {
@@ -133,6 +136,7 @@ export default function BestPracticeListPage() {
   };
 
   const handleDownloadPdf = async (practice) => {
+    if (!canDownload) return;
     setDownloadingPdfId(practice._id);
     setError(null);
     try {
@@ -178,6 +182,7 @@ export default function BestPracticeListPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this best practice entry? This cannot be undone.")) return;
     setDeletingId(id);
     setError(null);
@@ -333,37 +338,43 @@ export default function BestPracticeListPage() {
                         </td>
                         <td className="py-3 pr-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
-                            <DownloadIconButton
-                              onClick={() => handleDownloadDocx(practice)}
-                              disabled={
-                                archivingId === practice._id ||
-                                deletingId === practice._id ||
-                                downloadingPdfId === practice._id
-                              }
-                              loading={downloadingDocxId === practice._id}
-                              title="Download as Word"
-                            />
-                            <DownloadIconButton
-                              onClick={() => handleDownloadPdf(practice)}
-                              disabled={
-                                archivingId === practice._id ||
-                                deletingId === practice._id ||
-                                downloadingDocxId === practice._id
-                              }
-                              loading={downloadingPdfId === practice._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadDocx(practice)}
+                                disabled={
+                                  archivingId === practice._id ||
+                                  deletingId === practice._id ||
+                                  downloadingPdfId === practice._id
+                                }
+                                loading={downloadingDocxId === practice._id}
+                                title="Download as Word"
+                              />
+                            )}
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(practice)}
+                                disabled={
+                                  archivingId === practice._id ||
+                                  deletingId === practice._id ||
+                                  downloadingDocxId === practice._id
+                                }
+                                loading={downloadingPdfId === practice._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(practice)}
                               disabled={archivingId === practice._id || deletingId === practice._id}
                               loading={archivingId === practice._id}
                             />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(practice._id)}
-                              disabled={archivingId === practice._id || deletingId === practice._id}
-                              loading={deletingId === practice._id}
-                            />
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(practice._id)}
+                                disabled={archivingId === practice._id || deletingId === practice._id}
+                                loading={deletingId === practice._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>

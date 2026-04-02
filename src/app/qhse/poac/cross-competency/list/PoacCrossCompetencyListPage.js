@@ -8,6 +8,7 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import Link from "next/link";
 
 function formatDate(value) {
@@ -24,6 +25,7 @@ function formatDate(value) {
 export default function PoacCrossCompetencyListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canDelete, canDownload } = useQhseRole();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -116,6 +118,7 @@ export default function PoacCrossCompetencyListPage() {
   };
 
   const handleDelete = async (form) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this form? This cannot be undone.")) return;
     setDeleting(form._id);
     setError(null);
@@ -134,6 +137,7 @@ export default function PoacCrossCompetencyListPage() {
   };
 
   const handleDownloadDocx = async (form) => {
+    if (!canDownload) return;
     setDownloadingDocxId(form._id);
     setError(null);
     try {
@@ -167,6 +171,7 @@ export default function PoacCrossCompetencyListPage() {
   };
 
   const handleDownloadPdf = async (form) => {
+    if (!canDownload) return;
     setDownloadingPdfId(form._id);
     setError(null);
     try {
@@ -421,6 +426,7 @@ export default function PoacCrossCompetencyListPage() {
                           </td>
                           <td className="py-3 pr-4">
                             <div className="flex flex-wrap items-center justify-end gap-1">
+                              {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadDocx(form)}
                                 disabled={
@@ -432,6 +438,8 @@ export default function PoacCrossCompetencyListPage() {
                                 loading={downloadingDocxId === form._id}
                                 title="Download as Word"
                               />
+                              )}
+                              {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadPdf(form)}
                                 disabled={
@@ -444,17 +452,20 @@ export default function PoacCrossCompetencyListPage() {
                                 title="Download as PDF"
                                 className="!text-rose-400 hover:!text-rose-300"
                               />
+                              )}
                               <ViewIconButton href={`/qhse/poac/cross-competency/${form._id}`} />
                               <ArchiveIconButton
                                 onClick={() => handleArchive(form)}
                                 disabled={archivingId === form._id || deleting === form._id}
                                 loading={archivingId === form._id}
                               />
+                              {canDelete && (
                               <DeleteIconButton
                                 onClick={() => handleDelete(form)}
                                 disabled={archivingId === form._id || deleting === form._id}
                                 loading={deleting === form._id}
                               />
+                              )}
                             </div>
                           </td>
                         </tr>

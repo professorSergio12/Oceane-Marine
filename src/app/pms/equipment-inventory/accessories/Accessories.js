@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import AccessoriesList from "./AccessoriesList";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 export default function Accessories({ view: controlledView, onViewChange }) {
+  const { canCreate } = usePmsRole();
+  const canSubmit = canCreate;
+
   // If parent controls view, use it; otherwise use internal state
   const hasParentControl = controlledView !== undefined && onViewChange !== undefined;
   const [internalView, setInternalView] = useState("form");
@@ -81,6 +85,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
 
   // Handle save
   const handleSave = async () => {
+    if (!canSubmit) return;
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -263,6 +268,15 @@ export default function Accessories({ view: controlledView, onViewChange }) {
 
       {/* Form Section */}
       <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
+        {!canSubmit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to create accessories records.
+          </div>
+        )}
+        <fieldset
+          disabled={!canSubmit}
+          className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
+        >
         <div className="grid gap-6 md:grid-cols-2">
           {/* Equipment No - Only for Regular */}
           {category === "REGULAR" && (
@@ -442,12 +456,13 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={!canSubmit || saving}
             className="px-6 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
           >
             {saving ? "Saving..." : "SAVE"}
           </button>
         </div>
+        </fieldset>
       </div>
     </div>
   );

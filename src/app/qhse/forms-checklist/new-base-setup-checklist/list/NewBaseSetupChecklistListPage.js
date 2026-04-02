@@ -6,6 +6,7 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,6 +48,7 @@ export default function NewBaseSetupChecklistListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
@@ -110,6 +112,7 @@ export default function NewBaseSetupChecklistListPage() {
   }, [year]);
 
   const handleDownloadDocx = async (form) => {
+    if (!canDownload) return;
     setDownloadingDocx(form._id);
     setError(null);
     try {
@@ -146,6 +149,7 @@ export default function NewBaseSetupChecklistListPage() {
   };
 
   const handleDownloadPdf = async (form) => {
+    if (!canDownload) return;
     setDownloadingPdf(form._id);
     setError(null);
     try {
@@ -173,6 +177,7 @@ export default function NewBaseSetupChecklistListPage() {
   };
 
   const handleDownloadFile = async (form) => {
+    if (!canDownload) return;
     if (!form.filePath) return;
     setDownloadingFile(form._id);
     setError(null);
@@ -209,6 +214,7 @@ export default function NewBaseSetupChecklistListPage() {
   };
 
   const handleEdit = (form) => {
+    if (!canEdit) return;
     router.push(
       `/qhse/forms-checklist/new-base-setup-checklist/form?edit=${form._id}`
     );
@@ -231,6 +237,7 @@ export default function NewBaseSetupChecklistListPage() {
   };
 
   const handleDelete = async (form) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this record? This cannot be undone.")) return;
     setDeleting(form._id);
     setError(null);
@@ -442,7 +449,7 @@ export default function NewBaseSetupChecklistListPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-1">
-                            {form.filePath && (
+                            {form.filePath && canDownload && (
                               <span className="relative group inline-flex">
                                 <button
                                   type="button"
@@ -467,36 +474,44 @@ export default function NewBaseSetupChecklistListPage() {
                                 </span>
                               </span>
                             )}
-                            <DownloadIconButton
-                              onClick={() => handleDownloadDocx(form)}
-                              disabled={
-                                downloadingDocx === form._id ||
-                                downloadingPdf === form._id
-                              }
-                              loading={downloadingDocx === form._id}
-                              title="Download as Word"
-                            />
-                            <DownloadIconButton
-                              onClick={() => handleDownloadPdf(form)}
-                              disabled={
-                                downloadingPdf === form._id ||
-                                downloadingDocx === form._id
-                              }
-                              loading={downloadingPdf === form._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadDocx(form)}
+                                disabled={
+                                  downloadingDocx === form._id ||
+                                  downloadingPdf === form._id
+                                }
+                                loading={downloadingDocx === form._id}
+                                title="Download as Word"
+                              />
+                            )}
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(form)}
+                                disabled={
+                                  downloadingPdf === form._id ||
+                                  downloadingDocx === form._id
+                                }
+                                loading={downloadingPdf === form._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}
                               disabled={archivingId === form._id || deleting === form._id}
                               loading={archivingId === form._id}
                             />
-                            <EditIconButton onClick={() => handleEdit(form)} />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(form)}
-                              disabled={archivingId === form._id || deleting === form._id}
-                              loading={deleting === form._id}
-                            />
+                            {canEdit && (
+                              <EditIconButton onClick={() => handleEdit(form)} />
+                            )}
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(form)}
+                                disabled={archivingId === form._id || deleting === form._id}
+                                loading={deleting === form._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>

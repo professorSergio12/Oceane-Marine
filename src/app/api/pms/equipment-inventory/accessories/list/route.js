@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import Accessories from "@/lib/mongodb/models/pms/Accessories.js";
 import { connectDB } from "@/lib/config/connection.js";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function GET(req) {
+  const guard = await assertPmsPermission("canView");
+  if (!guard.ok) return guard.response;
   try {
     await connectDB();
 

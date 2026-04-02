@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import React, { useState, useEffect } from "react";
@@ -169,6 +170,8 @@ export default function EquipmentBaseStockFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -262,6 +265,7 @@ export default function EquipmentBaseStockFormPage() {
   };
 
   const handleSubmit = async (status) => {
+    if (!canSubmit) return;
     setError("");
     setSuccess("");
 
@@ -366,15 +370,23 @@ export default function EquipmentBaseStockFormPage() {
               >
                 Base Stock List
               </Link>
-              <Link
-                href="/qhse/forms-checklist/equipment-base-stock-level/admin"
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-              >
-                Base Stock Admin
-              </Link>
+              {isQhseAdmin && (
+                <Link
+                  href="/qhse/forms-checklist/equipment-base-stock-level/admin"
+                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                >
+                  Base Stock Admin
+                </Link>
+              )}
             </div>
           </div>
         </header>
+
+        {!canSubmit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
+          </div>
+        )}
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
@@ -602,7 +614,7 @@ export default function EquipmentBaseStockFormPage() {
           </Link>
           <button
             type="button"
-            disabled={submitting}
+            disabled={!canSubmit || submitting}
             onClick={() => handleSubmit("DRAFT")}
             className="rounded-full border border-slate-300/70 bg-slate-100/10 px-6 py-3 text-sm font-semibold text-slate-50 hover:bg-slate-100/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -610,7 +622,7 @@ export default function EquipmentBaseStockFormPage() {
           </button>
           <button
             type="button"
-            disabled={submitting}
+            disabled={!canSubmit || submitting}
             onClick={() => handleSubmit("PENDING")}
             className="rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-amber-300 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >

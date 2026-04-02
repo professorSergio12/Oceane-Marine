@@ -3,6 +3,8 @@ import { connectDB } from "@/lib/config/connection";
 import User from "@/lib/mongodb/models/User";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { VALID_HR_ROLES } from "@/lib/permissions/hr";
+import { VALID_PMS_ROLES } from "@/lib/permissions/pms";
+import { VALID_QHSE_ROLES } from "@/lib/permissions/qhse";
 
 const VALID_OPS_ROLES = ["admin", "editor", "approver", "viewer"];
 
@@ -55,6 +57,12 @@ export async function PUT(req, { params }) {
     }
     if (VALID_HR_ROLES.includes(body.hrRole)) {
       updates.hrRole = body.hrRole;
+    }
+    if (VALID_PMS_ROLES.includes(body.pmsRole)) {
+      updates.pmsRole = body.pmsRole;
+    }
+    if (VALID_QHSE_ROLES.includes(body.qhseRole)) {
+      updates.qhseRole = body.qhseRole;
     }
     if (typeof body.isActive === "boolean") {
       updates.isActive = body.isActive;

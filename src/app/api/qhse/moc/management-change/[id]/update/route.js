@@ -14,12 +14,6 @@ export async function PUT(req, { params }) {
         { status: 404 }
       );
     }
-    if (mocdoc.status !== "Draft") {
-      return NextResponse.json(
-        { success: false, error: "Only Draft records can be edited" },
-        { status: 403 }
-      );
-    }
     const body = await req.json();
     if (
       !body.proposedChange ||
@@ -50,7 +44,6 @@ export async function PUT(req, { params }) {
       reasonForChange: body.reasonForChange.trim(),
       proposedBy: body.proposedBy.trim(),
       mocInitiatedBy: body.mocInitiatedBy.trim(),
-      status: "Draft",
 
       ...(body.year != null && !Number.isNaN(Number(body.year)) && { year: Number(body.year) }),
 
@@ -87,6 +80,7 @@ export async function PUT(req, { params }) {
     };
 
     // Explicitly remove system fields if they were sent
+    delete updateData.status;
     delete updateData.formCode;
     delete updateData.serialNumber;
     delete updateData.mocNumber;

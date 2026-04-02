@@ -7,6 +7,7 @@ import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 // Generate dynamic years: 2 years back, current year, and 5 years forward
 function getYears() {
@@ -106,6 +107,7 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -166,6 +168,7 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
   };
 
   const handleApprove = async () => {
+    if (!canApprove) return;
     if (!savedPlan?._id) {
       setError("Save the plan first, then approve.");
       return;
@@ -242,6 +245,9 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
     currentQuarterData.instructor.trim() ||
     currentQuarterData.description.trim();
 
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
+
   const content = (
     <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
       <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
@@ -285,10 +291,17 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
         </div>
       </header>
 
+        {!canSubmit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to create records. Form is view-only.
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
         >
+          <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
           <div className="flex items-center justify-end">
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
@@ -526,7 +539,7 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
                 <button
                   type="button"
                   onClick={handleApprove}
-                  disabled={approving}
+                  disabled={!canApprove || approving}
                   className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/40 hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span>✔</span>
@@ -536,13 +549,14 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
             )}
             <button
               type="submit"
-              disabled={saving}
+              disabled={!canSubmit || saving}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-500 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span>✉️✓→</span>
               <span>{saving ? "Saving..." : "Send for Approval"}</span>
             </button>
           </div>
+          </fieldset>
         </form>
     </div>
   );

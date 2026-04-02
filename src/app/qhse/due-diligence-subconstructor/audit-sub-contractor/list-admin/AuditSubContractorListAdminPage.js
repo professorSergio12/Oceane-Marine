@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
@@ -34,6 +35,7 @@ function getSignatureSrc(value) {
 
 export default function AuditSubContractorListAdminPage() {
   const { setPageLoading } = useQhseLoading();
+  const { canDelete, canApprove, canDownload } = useQhseRole();
   const { contentClassName } = useQhseSidebar();
   const [allAudits, setAllAudits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +112,7 @@ export default function AuditSubContractorListAdminPage() {
   }, []);
 
   const handleDownloadDocx = async (audit) => {
+    if (!canDownload) return;
     setDownloadingDocxId(audit._id);
     setError(null);
     try {
@@ -145,6 +148,7 @@ export default function AuditSubContractorListAdminPage() {
   };
 
   const handleDownloadPdf = async (audit) => {
+    if (!canDownload) return;
     setDownloadingPdfId(audit._id);
     setError(null);
     try {
@@ -180,6 +184,7 @@ export default function AuditSubContractorListAdminPage() {
   };
 
   const handleApprove = async (auditId) => {
+    if (!canApprove) return;
     if (!confirm("Are you sure you want to approve this audit form?")) {
       return;
     }
@@ -225,6 +230,7 @@ export default function AuditSubContractorListAdminPage() {
   };
 
   const handleReject = async (auditId) => {
+    if (!canApprove) return;
     if (!confirm("Are you sure you want to reject this audit form?")) {
       return;
     }
@@ -289,6 +295,7 @@ export default function AuditSubContractorListAdminPage() {
   };
 
   const handleDelete = async (audit) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this audit form? This cannot be undone.")) return;
     setDeleting(audit._id);
     setError(null);
@@ -609,7 +616,7 @@ export default function AuditSubContractorListAdminPage() {
                 </div>
 
                 {/* Approve/Reject Buttons - Only show for Pending forms */}
-                {selectedAudit.status === "Pending" && (
+                {canApprove && selectedAudit.status === "Pending" && (
                   <div className="border-t border-white/10 pt-4 flex justify-end gap-3">
                     <button
                       type="button"
@@ -722,25 +729,29 @@ export default function AuditSubContractorListAdminPage() {
                             </td>
                             <td className="py-3 pr-4 text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <DownloadIconButton
-                                  onClick={() => handleDownloadDocx(audit)}
-                                  disabled={
-                                    downloadingDocxId === audit._id ||
-                                    downloadingPdfId === audit._id
-                                  }
-                                  loading={downloadingDocxId === audit._id}
-                                  title="Download as Word"
-                                />
-                                <DownloadIconButton
-                                  onClick={() => handleDownloadPdf(audit)}
-                                  disabled={
-                                    downloadingPdfId === audit._id ||
-                                    downloadingDocxId === audit._id
-                                  }
-                                  loading={downloadingPdfId === audit._id}
-                                  title="Download as PDF"
-                                  className="!text-rose-400 hover:!text-rose-300"
-                                />
+                                {canDownload && (
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadDocx(audit)}
+                                    disabled={
+                                      downloadingDocxId === audit._id ||
+                                      downloadingPdfId === audit._id
+                                    }
+                                    loading={downloadingDocxId === audit._id}
+                                    title="Download as Word"
+                                  />
+                                )}
+                                {canDownload && (
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadPdf(audit)}
+                                    disabled={
+                                      downloadingPdfId === audit._id ||
+                                      downloadingDocxId === audit._id
+                                    }
+                                    loading={downloadingPdfId === audit._id}
+                                    title="Download as PDF"
+                                    className="!text-rose-400 hover:!text-rose-300"
+                                  />
+                                )}
                                 <ViewIconButton
                                   onClick={() => setSelectedAudit(audit)}
                                   title="View Details"
@@ -750,11 +761,13 @@ export default function AuditSubContractorListAdminPage() {
                                   disabled={archivingId === audit._id || deleting === audit._id}
                                   loading={archivingId === audit._id}
                                 />
-                                <DeleteIconButton
-                                  onClick={() => handleDelete(audit)}
-                                  disabled={archivingId === audit._id || deleting === audit._id}
-                                  loading={deleting === audit._id}
-                                />
+                                {canDelete && (
+                                  <DeleteIconButton
+                                    onClick={() => handleDelete(audit)}
+                                    disabled={archivingId === audit._id || deleting === audit._id}
+                                    loading={deleting === audit._id}
+                                  />
+                                )}
                               </div>
                             </td>
                           </tr>

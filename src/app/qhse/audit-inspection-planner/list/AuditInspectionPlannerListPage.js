@@ -8,10 +8,12 @@ import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, EditIconButton, ViewIconButton, DownloadIconButton } from "../../components/ActionIcons";
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 export default function AuditInspectionPlannerListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -45,6 +47,7 @@ export default function AuditInspectionPlannerListPage() {
   };
 
   const handleDelete = async (item) => {
+    if (!canDelete) return;
     if (!confirm(`Delete planner ${item.serialNumber || item.formCode || item._id}? This cannot be undone.`)) return;
     setDeletingId(item._id);
     setError("");
@@ -97,6 +100,7 @@ export default function AuditInspectionPlannerListPage() {
   }, [year]);
 
   const handleDownloadDocx = async (item) => {
+    if (!canDownload) return;
     setDownloadingDocxId(item._id);
     setError("");
     try {
@@ -132,6 +136,7 @@ export default function AuditInspectionPlannerListPage() {
   };
 
   const handleDownloadPdf = async (item) => {
+    if (!canDownload) return;
     setDownloadingPdfId(item._id);
     setError("");
     try {
@@ -357,37 +362,45 @@ export default function AuditInspectionPlannerListPage() {
                         <td className="px-6 py-4">{item.status}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
-                            <DownloadIconButton
-                              onClick={() => handleDownloadDocx(item)}
-                              disabled={
-                                downloadingDocxId === item._id ||
-                                downloadingPdfId === item._id
-                              }
-                              loading={downloadingDocxId === item._id}
-                              title="Download as Word"
-                            />
-                            <DownloadIconButton
-                              onClick={() => handleDownloadPdf(item)}
-                              disabled={
-                                downloadingPdfId === item._id ||
-                                downloadingDocxId === item._id
-                              }
-                              loading={downloadingPdfId === item._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadDocx(item)}
+                                disabled={
+                                  downloadingDocxId === item._id ||
+                                  downloadingPdfId === item._id
+                                }
+                                loading={downloadingDocxId === item._id}
+                                title="Download as Word"
+                              />
+                            )}
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(item)}
+                                disabled={
+                                  downloadingPdfId === item._id ||
+                                  downloadingDocxId === item._id
+                                }
+                                loading={downloadingPdfId === item._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
                             <ViewIconButton href={`/qhse/audit-inspection-planner/view/${item._id}`} />
-                            <EditIconButton href={`/qhse/audit-inspection-planner/form?edit=${item._id}`} />
+                            {canEdit && (
+                              <EditIconButton href={`/qhse/audit-inspection-planner/form?edit=${item._id}`} />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(item)}
                               disabled={archivingId === item._id || deletingId === item._id}
                               loading={archivingId === item._id}
                             />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(item)}
-                              disabled={archivingId === item._id || deletingId === item._id}
-                              loading={deletingId === item._id}
-                            />
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(item)}
+                                disabled={archivingId === item._id || deletingId === item._id}
+                                loading={deletingId === item._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>

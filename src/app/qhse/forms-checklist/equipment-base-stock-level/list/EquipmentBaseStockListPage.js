@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditIconButton, DownloadIconButton, ViewIconButton } from "../../../components/ActionIcons";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 function formatDate(value) {
@@ -67,6 +68,7 @@ export default function EquipmentBaseStockListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
@@ -148,12 +150,14 @@ export default function EquipmentBaseStockListPage() {
   });
 
   const handleEdit = (id) => {
+    if (!canEdit) return;
     router.push(
       `/qhse/forms-checklist/equipment-base-stock-level/form?edit=${id}&from=list`
     );
   };
 
   const handleDownloadDocx = async (form) => {
+    if (!canDownload) return;
     setDownloadingDocx(form._id);
     setError("");
     try {
@@ -181,6 +185,7 @@ export default function EquipmentBaseStockListPage() {
   };
 
   const handleDownloadPdf = async (form) => {
+    if (!canDownload) return;
     setDownloadingPdf(form._id);
     try {
       const res = await fetch(
@@ -211,6 +216,7 @@ export default function EquipmentBaseStockListPage() {
   };
 
   const handleApprove = async (id) => {
+    if (!canApprove) return;
     if (!confirm("Are you sure you want to approve this form?")) return;
     setApprovingId(id);
     setError("");
@@ -242,6 +248,7 @@ export default function EquipmentBaseStockListPage() {
   };
 
   const handleReject = async () => {
+    if (!canApprove) return;
     if (!formToReject) return;
     setRejectingId(formToReject._id);
     setError("");
@@ -345,12 +352,14 @@ export default function EquipmentBaseStockListPage() {
               >
                 Base Stock List
               </Link>
-              <Link
-                href="/qhse/forms-checklist/equipment-base-stock-level/admin"
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-              >
-                Base Stock Admin
-              </Link>
+              {isQhseAdmin && (
+                <Link
+                  href="/qhse/forms-checklist/equipment-base-stock-level/admin"
+                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                >
+                  Base Stock Admin
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -442,26 +451,30 @@ export default function EquipmentBaseStockListPage() {
                 {getStatusBadge(selectedForm.status)}
               </div>
               <div className="flex items-center gap-1">
-                <DownloadIconButton
-                  onClick={() => handleDownloadDocx(selectedForm)}
-                  disabled={
-                    downloadingDocx === selectedForm._id ||
-                    downloadingPdf === selectedForm._id
-                  }
-                  loading={downloadingDocx === selectedForm._id}
-                  title="Download as Word"
-                />
-                <DownloadIconButton
-                  onClick={() => handleDownloadPdf(selectedForm)}
-                  disabled={
-                    downloadingPdf === selectedForm._id ||
-                    downloadingDocx === selectedForm._id
-                  }
-                  loading={downloadingPdf === selectedForm._id}
-                  title="Download as PDF"
-                  className="!text-rose-400 hover:!text-rose-300"
-                />
-                {selectedForm.status === "PENDING" && (
+                {canDownload && (
+                  <DownloadIconButton
+                    onClick={() => handleDownloadDocx(selectedForm)}
+                    disabled={
+                      downloadingDocx === selectedForm._id ||
+                      downloadingPdf === selectedForm._id
+                    }
+                    loading={downloadingDocx === selectedForm._id}
+                    title="Download as Word"
+                  />
+                )}
+                {canDownload && (
+                  <DownloadIconButton
+                    onClick={() => handleDownloadPdf(selectedForm)}
+                    disabled={
+                      downloadingPdf === selectedForm._id ||
+                      downloadingDocx === selectedForm._id
+                    }
+                    loading={downloadingPdf === selectedForm._id}
+                    title="Download as PDF"
+                    className="!text-rose-400 hover:!text-rose-300"
+                  />
+                )}
+                {selectedForm.status === "PENDING" && canApprove && (
                   <>
                     <button
                       type="button"
@@ -630,24 +643,28 @@ export default function EquipmentBaseStockListPage() {
                       onClick={() => setSelectedForm(form)}
                       title="View"
                     />
-                    <DownloadIconButton
-                      onClick={() => handleDownloadDocx(form)}
-                      disabled={
-                        downloadingDocx === form._id || downloadingPdf === form._id
-                      }
-                      loading={downloadingDocx === form._id}
-                      title="Download as Word"
-                    />
-                    <DownloadIconButton
-                      onClick={() => handleDownloadPdf(form)}
-                      disabled={
-                        downloadingPdf === form._id || downloadingDocx === form._id
-                      }
-                      loading={downloadingPdf === form._id}
-                      title="Download as PDF"
-                      className="!text-rose-400 hover:!text-rose-300"
-                    />
-                    {form.status === "DRAFT" && (
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadDocx(form)}
+                        disabled={
+                          downloadingDocx === form._id || downloadingPdf === form._id
+                        }
+                        loading={downloadingDocx === form._id}
+                        title="Download as Word"
+                      />
+                    )}
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadPdf(form)}
+                        disabled={
+                          downloadingPdf === form._id || downloadingDocx === form._id
+                        }
+                        loading={downloadingPdf === form._id}
+                        title="Download as PDF"
+                        className="!text-rose-400 hover:!text-rose-300"
+                      />
+                    )}
+                    {form.status === "DRAFT" && canEdit && (
                       <EditIconButton
                         onClick={() => handleEdit(form._id)}
                         title="Edit Draft"

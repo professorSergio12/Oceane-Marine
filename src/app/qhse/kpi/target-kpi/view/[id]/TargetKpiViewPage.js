@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../../QhseSidebarContext";
 import { useState, useEffect } from "react";
@@ -10,6 +11,7 @@ import { useParams } from "next/navigation";
 
 export default function TargetKpiViewPage() {
   const { setPageLoading } = useQhseLoading();
+  const { canDownload } = useQhseRole();
   const { contentClassName } = useQhseSidebar();
   const params = useParams();
   const id = params?.id;
@@ -103,64 +105,66 @@ export default function TargetKpiViewPage() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
             <TemplateDownloadLink formCode="HSE-001A" />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!id) return;
-                  setDownloadingDocx(true);
-                  try {
-                    const res = await fetch(`/api/qhse/kpi/target/${id}/download`);
-                    if (!res.ok) throw new Error("Failed to download");
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `Target-KPI-${data?.year ?? "kpi"}-${data?.serialNumber ?? id}.docx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    a.remove();
-                  } catch (err) {
-                    alert(err.message || "Failed to download Word");
-                  } finally {
-                    setDownloadingDocx(false);
-                  }
-                }}
-                disabled={downloadingDocx || downloadingPdf}
-                className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
-              >
-                {downloadingDocx ? "…" : "Word"}
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!id) return;
-                  setDownloadingPdf(true);
-                  try {
-                    const res = await fetch(`/api/qhse/kpi/target/${id}/download/pdf`);
-                    if (!res.ok) throw new Error("Failed to download");
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `Target-KPI-${data?.year ?? "kpi"}-${data?.serialNumber ?? id}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    a.remove();
-                  } catch (err) {
-                    alert(err.message || "Failed to download PDF");
-                  } finally {
-                    setDownloadingPdf(false);
-                  }
-                }}
-                disabled={downloadingDocx || downloadingPdf}
-                className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
-              >
-                {downloadingPdf ? "…" : "PDF"}
-              </button>
-            </div>
+            {canDownload && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!canDownload || !id) return;
+                    setDownloadingDocx(true);
+                    try {
+                      const res = await fetch(`/api/qhse/kpi/target/${id}/download`);
+                      if (!res.ok) throw new Error("Failed to download");
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `Target-KPI-${data?.year ?? "kpi"}-${data?.serialNumber ?? id}.docx`;
+                      document.body.appendChild(a);
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      a.remove();
+                    } catch (err) {
+                      alert(err.message || "Failed to download Word");
+                    } finally {
+                      setDownloadingDocx(false);
+                    }
+                  }}
+                  disabled={downloadingDocx || downloadingPdf}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                >
+                  {downloadingDocx ? "…" : "Word"}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!canDownload || !id) return;
+                    setDownloadingPdf(true);
+                    try {
+                      const res = await fetch(`/api/qhse/kpi/target/${id}/download/pdf`);
+                      if (!res.ok) throw new Error("Failed to download");
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `Target-KPI-${data?.year ?? "kpi"}-${data?.serialNumber ?? id}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      a.remove();
+                    } catch (err) {
+                      alert(err.message || "Failed to download PDF");
+                    } finally {
+                      setDownloadingPdf(false);
+                    }
+                  }}
+                  disabled={downloadingDocx || downloadingPdf}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                >
+                  {downloadingPdf ? "…" : "PDF"}
+                </button>
+              </div>
+            )}
             <div className="flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/kpi/target-kpi/form"

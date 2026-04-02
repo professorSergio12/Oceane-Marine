@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseSidebar } from "../../QhseSidebarContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -36,6 +37,8 @@ export default function AuditInspectionPlannerFormPage() {
   const { contentClassName } = useQhseSidebar();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit") || null;
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const [formMeta, setFormMeta] = useState({
     issueDate: new Date().toISOString().split("T")[0],
@@ -197,6 +200,7 @@ export default function AuditInspectionPlannerFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     setError("");
     setSuccess("");
@@ -342,6 +346,12 @@ export default function AuditInspectionPlannerFormPage() {
             </div>
           )}
 
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
           {categories.map((cat) => (
             <section
@@ -479,7 +489,7 @@ export default function AuditInspectionPlannerFormPage() {
             </Link>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={!canSubmit || submitting}
               className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Saving..." : "Save Planner"}

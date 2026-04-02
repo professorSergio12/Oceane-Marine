@@ -3,9 +3,12 @@
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useState } from "react";
 import Link from "next/link";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 export default function KpiCreatePage() {
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -82,6 +85,7 @@ export default function KpiCreatePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     setMessage(null);
     setError(null);
@@ -189,6 +193,11 @@ export default function KpiCreatePage() {
         </header>
 
         <main>
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm mb-4">
+              You do not have permission to create records. Form is view-only.
+            </div>
+          )}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200">
@@ -209,6 +218,7 @@ export default function KpiCreatePage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-5 disabled:opacity-[0.88]">
               {/* File Upload */}
               <div>
                 <label
@@ -341,11 +351,12 @@ export default function KpiCreatePage() {
                 <button
                   type="submit"
                   className="inline-flex items-center rounded-full bg-orange-500 hover:bg-orange-400 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={submitting}
+                  disabled={!canSubmit || submitting}
                 >
                   {submitting ? "Uploading..." : "Upload File"}
                 </button>
               </div>
+              </fieldset>
             </form>
           </div>
         </main>

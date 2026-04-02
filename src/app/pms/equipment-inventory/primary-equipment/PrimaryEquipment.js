@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ActionViewIcon, ActionDownloadIcon } from "@/app/components/RecordActionIcons";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -113,6 +114,9 @@ function downloadEquipmentExcel(equipment) {
 }
 
 export default function PrimaryEquipment({ activeTab: controlledActiveTab, onChangeTab }) {
+  const { canCreate, canEdit, canDelete, canDownload, isPmsAdmin } = usePmsRole();
+  const canSubmit = canCreate;
+
   // Allow parent to control active tab; fall back to internal state if not provided
   const [internalActiveTab, setInternalActiveTab] = useState("form");
   const activeTab = controlledActiveTab ?? internalActiveTab;
@@ -261,6 +265,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     setFormError(null);
     setFormSuccess(null);
@@ -469,7 +474,9 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       <td className="px-4 py-2 text-right">
                         <div className="inline-flex items-center gap-2 justify-end">
                           <ActionViewIcon onClick={() => setSelectedEquipmentDetail(eq)} title="View equipment" />
-                          <ActionDownloadIcon onClick={() => downloadEquipmentExcel(eq)} title="Download as Excel" />
+                          {canDownload && (
+                            <ActionDownloadIcon onClick={() => downloadEquipmentExcel(eq)} title="Download as Excel" />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -715,6 +722,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                                   </p>
                                 )}
                               </div>
+                              {canDownload ? (
                               <a
                                 href={selectedEquipmentDetail.manufacturingCertificate.fileUrl}
                                 target="_blank"
@@ -727,6 +735,9 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
                               </a>
+                              ) : (
+                                <span className="text-[10px] text-white/35">No download access</span>
+                              )}
                             </div>
                           )}
                           {selectedEquipmentDetail.testCertificate?.fileUrl && (
@@ -741,6 +752,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                                   </p>
                                 )}
                               </div>
+                              {canDownload ? (
                               <a
                                 href={selectedEquipmentDetail.testCertificate.fileUrl}
                                 target="_blank"
@@ -753,6 +765,9 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
                               </a>
+                              ) : (
+                                <span className="text-[10px] text-white/35">No download access</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -811,6 +826,15 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           className="space-y-6 rounded-3xl border border-white/10 p-6 shadow-2xl overflow-x-hidden"
           style={{ backgroundColor: "#153d59" }}
         >
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to create equipment records. Form is view-only.
+            </div>
+          )}
+          <fieldset
+            disabled={!canSubmit}
+            className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
+          >
           {/* Basic details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -1031,12 +1055,13 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
             <button
               type="submit"
-              disabled={submitting}
+              disabled={!canSubmit || submitting}
               className="inline-flex items-center px-6 py-2.5 rounded-lg bg-emerald-500 text-sm font-semibold text-white shadow shadow-emerald-500/40 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition"
             >
               {submitting ? "Saving..." : "Save Equipment"}
             </button>
           </div>
+          </fieldset>
         </form>
       )}
 

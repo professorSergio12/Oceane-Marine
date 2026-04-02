@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -14,6 +15,9 @@ function formatDate(value) {
 }
 
 export default function EquipmentTesting() {
+  const { canCreate } = usePmsRole();
+  const canPlan = canCreate;
+
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [equipments, setEquipments] = useState([]);
@@ -86,6 +90,7 @@ export default function EquipmentTesting() {
   };
 
   const handlePlanTest = async (equipment) => {
+    if (!canPlan) return;
     const input = rowInputs[equipment._id] || {
       plannedOn: "",
       tester: "",
@@ -159,6 +164,12 @@ export default function EquipmentTesting() {
           coming due, then enter planned dates and testers.
         </p>
       </div>
+
+      {!canPlan && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+          You do not have permission to plan or save equipment tests.
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-slate-950/60 px-4 py-3">
@@ -309,10 +320,11 @@ export default function EquipmentTesting() {
                           type="text"
                           placeholder="Tester name"
                           value={input.tester}
+                          disabled={!canPlan}
                           onChange={(e) =>
                             handleInputChange(eq._id, "tester", e.target.value)
                           }
-                          className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-50"
                         />
                       )}
                     </td>
@@ -323,7 +335,7 @@ export default function EquipmentTesting() {
                         <button
                           type="button"
                           onClick={() => handlePlanTest(eq)}
-                          disabled={savingRow === eq._id}
+                          disabled={!canPlan || savingRow === eq._id}
                           className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-1.5 text-[11px] font-semibold text-white shadow shadow-emerald-500/40 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition"
                         >
                           {savingRow === eq._id ? "Saving..." : "Plan test"}

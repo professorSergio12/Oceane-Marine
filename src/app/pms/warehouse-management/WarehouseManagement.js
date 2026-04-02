@@ -6,6 +6,7 @@ import {
   ActionEditIcon,
   ActionDownloadIcon,
 } from "@/app/components/RecordActionIcons";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 /* =========================
    Reusable Input
@@ -172,6 +173,7 @@ function downloadWarehouseRecordExcel(record) {
 }
 
 export default function WarehouseManagement({ view: controlledView, onViewChange }) {
+  const { canCreate, canEdit, canDelete, canDownload, isPmsAdmin } = usePmsRole();
   const [internalView, setInternalView] = useState("form");
   const view = controlledView !== undefined ? controlledView : internalView;
   const setView = onViewChange !== undefined ? onViewChange : setInternalView;
@@ -185,6 +187,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     new Date().getFullYear().toString()
   );
   const [editingRecord, setEditingRecord] = useState(null);
+  const canSubmit = editingRecord ? canEdit : canCreate;
 
   // Dropdown options from Primary Equipment & Accessories
   const [equipmentNames, setEquipmentNames] = useState([]);
@@ -313,6 +316,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
   ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError(null);
     setSuccess(null);
 
@@ -453,6 +457,15 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
           className="rounded-3xl border border-white/10 p-6 space-y-6 shadow-2xl"
           style={{ backgroundColor: "#153d59" }}
         >
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to {editingRecord ? "edit" : "create"} warehouse records.
+            </div>
+          )}
+          <fieldset
+            disabled={!canSubmit}
+            className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
+          >
           {/* STATUS — Top of form */}
           <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
             <div className="flex items-center gap-3">
@@ -609,12 +622,14 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               )}
               <button
                 type="submit"
-                className="px-6 py-2 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20"
+                disabled={!canSubmit}
+                className="px-6 py-2 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingRecord ? "Update" : "Save"}
               </button>
             </div>
           </div>
+          </fieldset>
         </form>
       )}
 
@@ -697,12 +712,14 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                       <td className="text-center px-3 py-2">
                         <div className="inline-flex items-center gap-2">
                           <ActionViewIcon onClick={() => setViewRecord(r)} title="View record" />
-                          <ActionEditIcon onClick={() => handleEdit(r)} title="Edit record" />
-                          <ActionDownloadIcon
-                            onClick={() => downloadWarehouseRecordExcel(r)}
-                            title="Download as Excel"
-                          />
-                          {r.attachments && r.attachments.length > 0 && (
+                          {canEdit && <ActionEditIcon onClick={() => handleEdit(r)} title="Edit record" />}
+                          {canDownload && (
+                            <ActionDownloadIcon
+                              onClick={() => downloadWarehouseRecordExcel(r)}
+                              title="Download as Excel"
+                            />
+                          )}
+                          {canDownload && r.attachments && r.attachments.length > 0 && (
                             <ActionDownloadIcon
                               onClick={() => handleDownload(r._id, 0)}
                               title="Download attachment"

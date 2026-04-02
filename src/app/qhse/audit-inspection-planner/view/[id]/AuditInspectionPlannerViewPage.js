@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 
 export default function AuditInspectionPlannerViewPage() {
   const { setPageLoading } = useQhseLoading();
+  const { canApprove } = useQhseRole();
   const { contentClassName } = useQhseSidebar();
   const { id } = useParams();
   const router = useRouter();
@@ -42,6 +44,7 @@ export default function AuditInspectionPlannerViewPage() {
   }, [id]);
 
   const handleApprove = async () => {
+    if (!canApprove) return;
     if (!item || item.status === "Approved") return;
     if (!confirm("Approve this planner? This will set the status to Approved.")) return;
     setApproving(true);
@@ -197,7 +200,7 @@ export default function AuditInspectionPlannerViewPage() {
         ))}
 
         <footer className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-end gap-3">
-          {item.status !== "Approved" && (
+          {canApprove && item.status !== "Approved" && (
             <button
               type="button"
               onClick={handleApprove}

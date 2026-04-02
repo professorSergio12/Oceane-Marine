@@ -6,11 +6,14 @@ import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { useSearchParams } from "next/navigation";
 import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 export default function PoacCrossCompetencyFormPage() {
   const { contentClassName } = useQhseSidebar();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   // Initialize evaluation items
   const initialEvaluationItems = POAC_EVALUATION_ITEMS.map((item) => ({
@@ -263,6 +266,7 @@ export default function PoacCrossCompetencyFormPage() {
   };
 
   const handleSaveDraft = async () => {
+    if (!canSubmit) return;
     setSaving(true);
     setError(null);
     setMessage(null);
@@ -402,6 +406,7 @@ export default function PoacCrossCompetencyFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
     setMessage(null);
@@ -601,6 +606,12 @@ export default function PoacCrossCompetencyFormPage() {
             </div>
           </div>
         </header>
+
+        {!canSubmit && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} POAC cross competency forms.
+          </div>
+        )}
 
         {error && (
           <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
@@ -1166,15 +1177,15 @@ export default function PoacCrossCompetencyFormPage() {
             <button
               type="button"
               onClick={handleSaveDraft}
-              className="rounded-full border border-white/20 bg-transparent px-6 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 transition"
-              disabled={submitting || saving}
+              className="rounded-full border border-white/20 bg-transparent px-6 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={!canSubmit || submitting || saving}
             >
               {saving ? "Saving..." : "Save Draft"}
             </button>
             <button
               type="submit"
               className="inline-flex items-center rounded-full bg-orange-500 hover:bg-orange-400 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={submitting || saving}
+              disabled={!canSubmit || submitting || saving}
             >
               {submitting ? "Submitting..." : "Submit Form"}
             </button>

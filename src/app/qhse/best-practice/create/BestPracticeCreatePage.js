@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useQhseSidebar } from "../../QhseSidebarContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import Link from "next/link";
 
 export default function BestPracticeCreatePage() {
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
   const [form, setForm] = useState({
     description: "",
     eventDate: "",
@@ -16,6 +19,7 @@ export default function BestPracticeCreatePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     setMessage(null);
     setError(null);
@@ -79,6 +83,12 @@ export default function BestPracticeCreatePage() {
         </header>
 
         <main>
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to create records. Form is view-only.
+            </div>
+          )}
+
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
@@ -144,7 +154,7 @@ export default function BestPracticeCreatePage() {
                 <button
                   type="submit"
                   className="inline-flex items-center rounded-full bg-orange-500 hover:bg-orange-400 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={submitting}
+                  disabled={!canSubmit || submitting}
                 >
                   {submitting ? "Saving..." : "Save"}
                 </button>

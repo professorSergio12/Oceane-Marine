@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -44,6 +45,7 @@ function titleWithoutDate(title) {
 export default function RiskAssessmentListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canDelete, canDownload } = useQhseRole();
   const searchParams = useSearchParams();
   const yearFromUrl = searchParams.get("year");
   const initialYear =
@@ -116,6 +118,7 @@ export default function RiskAssessmentListPage() {
   }, []);
 
   const handleDownload = async (fileUrl, fileName) => {
+    if (!canDownload) return;
     try {
       // Support both Cloudinary URLs (legacy) and local file paths (new)
       const url = fileUrl.startsWith("http")
@@ -154,6 +157,7 @@ export default function RiskAssessmentListPage() {
   };
 
   const handleDelete = async (uploadId) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this upload?")) return;
     try {
       const res = await fetch(`/api/qhse/moc/risk-assessment/${uploadId}`, { method: "DELETE" });
@@ -299,7 +303,7 @@ export default function RiskAssessmentListPage() {
                               disabled={archivingId === upload._id}
                               loading={archivingId === upload._id}
                             />
-                            {upload.files?.length > 0 && (
+                            {canDownload && upload.files?.length > 0 && (
                               <>
                                 {upload.files.map((file, index) => (
                                   <DownloadIconButton
@@ -315,10 +319,12 @@ export default function RiskAssessmentListPage() {
                                 ))}
                               </>
                             )}
+                            {canDelete && (
                             <DeleteIconButton
                               onClick={() => handleDelete(upload._id)}
                               disabled={archivingId === upload._id}
                             />
+                            )}
                           </div>
                         </td>
                       </tr>

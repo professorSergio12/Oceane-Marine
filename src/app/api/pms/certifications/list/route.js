@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Certificate from "@/lib/mongodb/models/pms/Certificate";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function GET() {
+    const guard = await assertPmsPermission("canView");
+    if (!guard.ok) return guard.response;
     await connectDB();
     try {
         const certificates = await Certificate.find()

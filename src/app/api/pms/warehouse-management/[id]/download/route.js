@@ -3,8 +3,11 @@ import { connectDB } from "@/lib/config/connection.js";
 import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function GET(req, { params }) {
+  const guard = await assertPmsPermission("canDownload");
+  if (!guard.ok) return guard.response;
   await connectDB();
 
   const { id } = await params;

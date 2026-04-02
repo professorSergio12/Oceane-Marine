@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
@@ -48,6 +49,7 @@ const evaluationCategories = [
 
 export default function PoacCrossCompetencyViewPage() {
   const { setPageLoading } = useQhseLoading();
+  const { canEdit, canApprove, canDownload } = useQhseRole();
   const { contentClassName } = useQhseSidebar();
   const params = useParams();
   const router = useRouter();
@@ -92,6 +94,7 @@ export default function PoacCrossCompetencyViewPage() {
   }, [formId]);
 
   const handleDownloadDocx = async () => {
+    if (!canDownload) return;
     if (!formId || !form) return;
     setDownloadingDocx(true);
     setError(null);
@@ -126,6 +129,7 @@ export default function PoacCrossCompetencyViewPage() {
   };
 
   const handleDownloadPdf = async () => {
+    if (!canDownload) return;
     if (!formId || !form) return;
     setDownloadingPdf(true);
     setError(null);
@@ -160,6 +164,7 @@ export default function PoacCrossCompetencyViewPage() {
   };
 
   const handleApprove = async () => {
+    if (!canApprove) return;
     if (!formId || !form) return;
     const name = window.prompt(
       "Approver name (shown on PDF / Word header as Approved by):",
@@ -208,6 +213,7 @@ export default function PoacCrossCompetencyViewPage() {
   };
 
   const handleRejectSubmit = async () => {
+    if (!canApprove) return;
     if (!formId || !form) return;
     const reason = rejectionReason.trim();
     if (!reason) {
@@ -301,43 +307,46 @@ export default function PoacCrossCompetencyViewPage() {
               QHSE / POAC Cross Competency
             </p>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">View POAC Cross Competency Form</h1>
-            <div className="mt-2">{getStatusBadge(form.status || "Draft")}</div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
             <TemplateDownloadLink formCode="QAF-OFD-009" />
-            <button
-              type="button"
-              onClick={handleDownloadDocx}
-              disabled={downloadingDocx || downloadingPdf || approving}
-              className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition inline-flex items-center gap-1.5 disabled:opacity-50"
-              title="Download as Word"
-            >
-              {downloadingDocx ? (
-                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              )}
-              Download as Word
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={downloadingPdf || downloadingDocx || approving}
-              className="rounded-full border cursor-pointer border-rose-400/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition inline-flex items-center gap-1.5 disabled:opacity-50"
-              title="Download as PDF"
-            >
-              {downloadingPdf ? (
-                <span className="inline-block w-4 h-4 border-2 border-rose-300/30 border-t-rose-200 rounded-full animate-spin" />
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              )}
-              Download as PDF
-            </button>
-            {form.status === "Draft" && (
+            {canDownload && (
+              <button
+                type="button"
+                onClick={handleDownloadDocx}
+                disabled={downloadingDocx || downloadingPdf || approving}
+                className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition inline-flex items-center gap-1.5 disabled:opacity-50"
+                title="Download as Word"
+              >
+                {downloadingDocx ? (
+                  <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
+                Download as Word
+              </button>
+            )}
+            {canDownload && (
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf || downloadingDocx || approving}
+                className="rounded-full border cursor-pointer border-rose-400/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition inline-flex items-center gap-1.5 disabled:opacity-50"
+                title="Download as PDF"
+              >
+                {downloadingPdf ? (
+                  <span className="inline-block w-4 h-4 border-2 border-rose-300/30 border-t-rose-200 rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
+                Download as PDF
+              </button>
+            )}
+            {canEdit && form.status === "Draft" && (
               <Link
                 href={`/qhse/poac/cross-competency/form?edit=${form._id}`}
                 className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition"
@@ -352,7 +361,10 @@ export default function PoacCrossCompetencyViewPage() {
           {/* Form & POAC Details – actual form data in one card */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-orange-300">Form & POAC Details</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-orange-300">Form & POAC Details</h2>
+                {getStatusBadge(form.status || "Draft")}
+              </div>
               <button
                 type="button"
                 onClick={() => router.push("/qhse/poac/cross-competency/list")}
@@ -666,7 +678,7 @@ export default function PoacCrossCompetencyViewPage() {
           </div>
 
           {/* Approve / Reject — same pattern as other QHSE list detail cards (e.g. equipment base stock) */}
-          {form.status !== "Approved" && form.status !== "Rejected" && (
+          {canApprove && form.status !== "Approved" && form.status !== "Rejected" && (
             <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-4 sm:px-6 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"

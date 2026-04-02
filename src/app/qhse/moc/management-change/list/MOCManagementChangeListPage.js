@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, EditIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import QhseSidebar from "../../../components/QhseSidebar";
 import SideBarSkeleton from "../../../components/SideBarSkeleton";
 
@@ -27,6 +28,7 @@ export default function MOCManagementChangeListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
+  const { canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const [mocs, setMocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -135,6 +137,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleDelete = async (mocId) => {
+    if (!canDelete) return;
     if (
       !confirm(
         "Are you sure you want to delete this MOC form? This cannot be undone."
@@ -165,6 +168,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleSubmit = async (mocId) => {
+    if (!canEdit) return;
     if (
       !confirm(
         "Are you sure you want to submit this form? It cannot be edited after submission."
@@ -200,6 +204,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleApprove = async (mocId) => {
+    if (!canApprove) return;
     if (
       !confirm(
         "Are you sure you want to approve this MOC Management of Change form?"
@@ -240,6 +245,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleReject = async () => {
+    if (!canApprove) return;
     if (!rejectionReason.trim()) {
       setError("Please provide a reason for rejection");
       return;
@@ -345,6 +351,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleDownloadDocx = async (mocId) => {
+    if (!canDownload) return;
     setDownloadingDocxId(mocId);
     setError(null);
     try {
@@ -372,6 +379,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleDownloadPdf = async (mocId) => {
+    if (!canDownload) return;
     setDownloadingPdfId(mocId);
     setError(null);
     try {
@@ -401,6 +409,7 @@ export default function MOCManagementChangeListPage() {
   };
 
   const handleDownloadFile = async (mocId) => {
+    if (!canDownload) return;
     setDownloadingFileId(mocId);
     setError(null);
     try {
@@ -649,8 +658,7 @@ export default function MOCManagementChangeListPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Only show file download button if files are attached */}
-                  {selectedMoc.riskAssessmentFiles && selectedMoc.riskAssessmentFiles.length > 0 && (
+                  {canDownload && selectedMoc.riskAssessmentFiles && selectedMoc.riskAssessmentFiles.length > 0 && (
                     <button
                       type="button"
                       onClick={() => handleDownloadFile(selectedMoc._id)}
@@ -675,6 +683,7 @@ export default function MOCManagementChangeListPage() {
                       )}
                     </button>
                   )}
+                  {canDownload && (
                   <button
                     type="button"
                     onClick={() => handleDownloadDocx(selectedMoc._id)}
@@ -701,6 +710,8 @@ export default function MOCManagementChangeListPage() {
                       </>
                     )}
                   </button>
+                  )}
+                  {canDownload && (
                   <button
                     type="button"
                     onClick={() => handleDownloadPdf(selectedMoc._id)}
@@ -727,6 +738,7 @@ export default function MOCManagementChangeListPage() {
                       </>
                     )}
                   </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedMoc(null)}
@@ -1025,6 +1037,7 @@ export default function MOCManagementChangeListPage() {
                 {/* Action Buttons - Show different buttons based on status */}
                 {selectedMoc.status === "Draft" && (
                   <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
+                    {canEdit && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1037,6 +1050,7 @@ export default function MOCManagementChangeListPage() {
                     >
                       Edit
                     </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleSubmit(selectedMoc._id)}
@@ -1050,29 +1064,9 @@ export default function MOCManagementChangeListPage() {
                   </div>
                 )}
 
-                {/* Approve/Reject/Close Buttons - Show for Open forms */}
-                {selectedMoc.status === "Open" && (
+                {/* Close Button - Show for Open forms, approver only */}
+                {selectedMoc.status === "Open" && canApprove && (
                   <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => openRejectModal(selectedMoc)}
-                      disabled={rejecting === selectedMoc._id}
-                      className="px-4 py-2 rounded-lg border border-red-500/50 bg-red-500/10 text-red-300 font-medium hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {rejecting === selectedMoc._id
-                        ? "Rejecting..."
-                        : "Reject"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleApprove(selectedMoc._id)}
-                      disabled={approving === selectedMoc._id}
-                      className="px-4 py-2 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {approving === selectedMoc._id
-                        ? "Approving..."
-                        : "Approve"}
-                    </button>
                     <button
                       type="button"
                       onClick={() => handleClose(selectedMoc._id)}
@@ -1196,8 +1190,7 @@ export default function MOCManagementChangeListPage() {
                                     onClick={() => handleViewDetails(moc)}
                                     title="View Details"
                                   />
-                                  {/* Only show file download button if files are attached */}
-                                  {moc.riskAssessmentFiles && moc.riskAssessmentFiles.length > 0 && (
+                                  {canDownload && moc.riskAssessmentFiles && moc.riskAssessmentFiles.length > 0 && (
                                     <button
                                       type="button"
                                       onClick={() => handleDownloadFile(moc._id)}
@@ -1216,6 +1209,7 @@ export default function MOCManagementChangeListPage() {
                                       )}
                                     </button>
                                   )}
+                                  {canDownload && (
                                   <DownloadIconButton
                                     onClick={() => handleDownloadDocx(moc._id)}
                                     disabled={
@@ -1225,6 +1219,8 @@ export default function MOCManagementChangeListPage() {
                                     loading={downloadingDocxId === moc._id}
                                     title="Download as Word"
                                   />
+                                  )}
+                                  {canDownload && (
                                   <DownloadIconButton
                                     onClick={() => handleDownloadPdf(moc._id)}
                                     disabled={
@@ -1235,7 +1231,8 @@ export default function MOCManagementChangeListPage() {
                                     title="Download as PDF"
                                     className="!text-rose-400 hover:!text-rose-300"
                                   />
-                                  {moc.status === "Draft" && (
+                                  )}
+                                  {canEdit && (
                                     <EditIconButton
                                       onClick={() => router.push(`/qhse/moc/management-change/form?edit=${moc._id}`)}
                                     />
@@ -1245,11 +1242,13 @@ export default function MOCManagementChangeListPage() {
                                     disabled={archivingId === moc._id || deletingId === moc._id}
                                     loading={archivingId === moc._id}
                                   />
+                                  {canDelete && (
                                   <DeleteIconButton
                                     onClick={() => handleDelete(moc._id)}
                                     disabled={archivingId === moc._id || deletingId === moc._id}
                                     loading={deletingId === moc._id}
                                   />
+                                  )}
                                 </div>
                               </td>
                             </tr>

@@ -5,8 +5,11 @@ import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
 import EquipmentTest from "@/lib/mongodb/models/pms/EquipmentTest";
 import Accessories from "@/lib/mongodb/models/pms/Accessories";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function GET(req) {
+  const guard = await assertPmsPermission("canView");
+  if (!guard.ok) return guard.response;
   try {
     await connectDB();
 

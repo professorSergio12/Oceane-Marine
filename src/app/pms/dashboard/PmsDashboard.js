@@ -41,6 +41,12 @@ export default function PmsDashboard() {
     try {
       const res = await fetch("/api/pms/dashboard/stats");
       const json = await res.json();
+      if (res.status === 401) {
+        throw new Error(json.error || "Please sign in to view the PMS dashboard.");
+      }
+      if (res.status === 403) {
+        throw new Error(json.error || "You do not have permission to view PMS statistics.");
+      }
       if (!json.success) throw new Error(json.error || "Failed to load stats");
       setData(json.data);
     } catch (err) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
@@ -62,6 +63,7 @@ function getYears() {
 export default function VendorSupplyAdminPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canApprove, canDelete, canDownload, isQhseAdmin } = useQhseRole();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -114,6 +116,7 @@ export default function VendorSupplyAdminPage() {
   });
 
   const handleApprove = async (id) => {
+    if (!canApprove) return;
     if (!confirm("Are you sure you want to approve this vendor/supplier form?"))
       return;
 
@@ -144,6 +147,7 @@ export default function VendorSupplyAdminPage() {
   };
 
   const handleReject = async (id) => {
+    if (!canApprove) return;
     if (!rejectionReason.trim()) {
       setError("Please provide a rejection reason");
       return;
@@ -250,6 +254,7 @@ export default function VendorSupplyAdminPage() {
   };
 
   const handleDelete = async (form) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this form? This cannot be undone.")) return;
     setDeleting(form._id);
     setError("");
@@ -436,26 +441,30 @@ export default function VendorSupplyAdminPage() {
                         )}
                       title={expandedId === form._id ? "Hide details" : "View details"}
                     />
-                    <DownloadIconButton
-                      onClick={() => handleDownloadDocx(form)}
-                      disabled={
-                        downloadingDocx === form._id ||
-                        downloadingPdf === form._id
-                      }
-                      loading={downloadingDocx === form._id}
-                      title="Download as Word"
-                    />
-                    <DownloadIconButton
-                      onClick={() => handleDownloadPdf(form)}
-                      disabled={
-                        downloadingPdf === form._id ||
-                        downloadingDocx === form._id
-                      }
-                      loading={downloadingPdf === form._id}
-                      title="Download as PDF"
-                      className="!text-rose-400 hover:!text-rose-300"
-                    />
-                    {form.status === "UNDER_REVIEW" && expandedId === form._id && (
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadDocx(form)}
+                        disabled={
+                          downloadingDocx === form._id ||
+                          downloadingPdf === form._id
+                        }
+                        loading={downloadingDocx === form._id}
+                        title="Download as Word"
+                      />
+                    )}
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadPdf(form)}
+                        disabled={
+                          downloadingPdf === form._id ||
+                          downloadingDocx === form._id
+                        }
+                        loading={downloadingPdf === form._id}
+                        title="Download as PDF"
+                        className="!text-rose-400 hover:!text-rose-300"
+                      />
+                    )}
+                    {canApprove && form.status === "UNDER_REVIEW" && expandedId === form._id && (
                       <>
                         <ApproveIconButton
                           onClick={() => handleApprove(form._id)}
@@ -479,11 +488,13 @@ export default function VendorSupplyAdminPage() {
                       disabled={archivingId === form._id || deleting === form._id}
                       loading={archivingId === form._id}
                     />
-                    <DeleteIconButton
-                      onClick={() => handleDelete(form)}
-                      disabled={archivingId === form._id || deleting === form._id}
-                      loading={deleting === form._id}
-                    />
+                    {canDelete && (
+                      <DeleteIconButton
+                        onClick={() => handleDelete(form)}
+                        disabled={archivingId === form._id || deleting === form._id}
+                        loading={deleting === form._id}
+                      />
+                    )}
                   </div>
                 </div>
 

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 
 /* ---------------- helpers ---------------- */
@@ -62,6 +63,7 @@ export default function VendorSupplyListClient() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
 
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState("");
@@ -115,12 +117,14 @@ export default function VendorSupplyListClient() {
     filter === "ALL" ? forms : forms.filter((form) => form.status === filter);
 
   const handleEdit = (id) => {
+    if (!canEdit) return;
     router.push(
       `/qhse/forms-checklist/vendor-supply/form?edit=${id}&from=list`
     );
   };
 
   const handleDownloadDocx = async (form) => {
+    if (!canDownload) return;
     setDownloadingDocx(form._id);
     setError("");
     try {
@@ -148,6 +152,7 @@ export default function VendorSupplyListClient() {
   };
 
   const handleDownloadPdf = async (form) => {
+    if (!canDownload) return;
     setDownloadingPdf(form._id);
     setError("");
     try {
@@ -175,6 +180,7 @@ export default function VendorSupplyListClient() {
   };
 
   const handleApprove = async (id) => {
+    if (!canApprove) return;
     if (!confirm("Are you sure you want to approve this vendor/supplier form?")) return;
     setApprovingId(id);
     setError("");
@@ -211,6 +217,7 @@ export default function VendorSupplyListClient() {
   };
 
   const handleReject = async () => {
+    if (!canApprove) return;
     if (!formToReject || !rejectionReason.trim()) {
       setError("Please provide a reason for rejection.");
       return;
@@ -320,12 +327,14 @@ export default function VendorSupplyListClient() {
               >
                 Vendor List
               </Link>
-              <Link
-                href="/qhse/forms-checklist/vendor-supply/admin"
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-              >
-                Vendor Admin
-              </Link>
+              {isQhseAdmin && (
+                <Link
+                  href="/qhse/forms-checklist/vendor-supply/admin"
+                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                >
+                  Vendor Admin
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -408,19 +417,23 @@ export default function VendorSupplyListClient() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <DownloadIconButton
-                      onClick={() => handleDownloadDocx(selectedForm)}
-                      disabled={downloadingDocx === selectedForm._id || downloadingPdf === selectedForm._id}
-                      loading={downloadingDocx === selectedForm._id}
-                      title="Download as Word"
-                    />
-                    <DownloadIconButton
-                      onClick={() => handleDownloadPdf(selectedForm)}
-                      disabled={downloadingPdf === selectedForm._id || downloadingDocx === selectedForm._id}
-                      loading={downloadingPdf === selectedForm._id}
-                      title="Download as PDF"
-                      className="!text-rose-400 hover:!text-rose-300"
-                    />
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadDocx(selectedForm)}
+                        disabled={downloadingDocx === selectedForm._id || downloadingPdf === selectedForm._id}
+                        loading={downloadingDocx === selectedForm._id}
+                        title="Download as Word"
+                      />
+                    )}
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadPdf(selectedForm)}
+                        disabled={downloadingPdf === selectedForm._id || downloadingDocx === selectedForm._id}
+                        loading={downloadingPdf === selectedForm._id}
+                        title="Download as PDF"
+                        className="!text-rose-400 hover:!text-rose-300"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => setSelectedForm(null)}
@@ -609,16 +622,18 @@ export default function VendorSupplyListClient() {
                 {/* Action Buttons */}
                 {selectedForm.status === "DRAFT" && (
                   <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedForm(null);
-                        handleEdit(selectedForm._id);
-                      }}
-                      className="px-4 py-2 rounded-lg border border-white/25 bg-white/10 text-white/90 hover:bg-white/20 transition text-sm font-medium"
-                    >
-                      Edit
-                    </button>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedForm(null);
+                          handleEdit(selectedForm._id);
+                        }}
+                        className="px-4 py-2 rounded-lg border border-white/25 bg-white/10 text-white/90 hover:bg-white/20 transition text-sm font-medium"
+                      >
+                        Edit
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => {
@@ -632,7 +647,7 @@ export default function VendorSupplyListClient() {
                     </button>
                   </div>
                 )}
-                {selectedForm.status === "UNDER_REVIEW" && (
+                {selectedForm.status === "UNDER_REVIEW" && canApprove && (
                   <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
                     <button
                       type="button"
@@ -699,20 +714,24 @@ export default function VendorSupplyListClient() {
 
                     <div className="flex items-center gap-3">
                       <ViewIconButton onClick={() => setSelectedForm(form)} />
-                      <DownloadIconButton
-                        onClick={() => handleDownloadDocx(form)}
-                        disabled={downloadingDocx === form._id || downloadingPdf === form._id}
-                        loading={downloadingDocx === form._id}
-                        title="Download as Word"
-                      />
-                      <DownloadIconButton
-                        onClick={() => handleDownloadPdf(form)}
-                        disabled={downloadingPdf === form._id || downloadingDocx === form._id}
-                        loading={downloadingPdf === form._id}
-                        title="Download as PDF"
-                        className="!text-rose-400 hover:!text-rose-300"
-                      />
-                      {form.status === "DRAFT" && (
+                      {canDownload && (
+                        <DownloadIconButton
+                          onClick={() => handleDownloadDocx(form)}
+                          disabled={downloadingDocx === form._id || downloadingPdf === form._id}
+                          loading={downloadingDocx === form._id}
+                          title="Download as Word"
+                        />
+                      )}
+                      {canDownload && (
+                        <DownloadIconButton
+                          onClick={() => handleDownloadPdf(form)}
+                          disabled={downloadingPdf === form._id || downloadingDocx === form._id}
+                          loading={downloadingPdf === form._id}
+                          title="Download as PDF"
+                          className="!text-rose-400 hover:!text-rose-300"
+                        />
+                      )}
+                      {form.status === "DRAFT" && canEdit && (
                         <>
                           <EditIconButton onClick={() => handleEdit(form._id)} />
                           <button

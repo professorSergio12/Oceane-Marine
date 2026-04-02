@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 export default function CertificationsFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
+  const { canCreate, canEdit } = usePmsRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const [locationName, setLocationName] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
@@ -48,6 +51,7 @@ export default function CertificationsFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setMessage("");
 
@@ -181,10 +185,20 @@ export default function CertificationsFormPage() {
           </div>
         )}
 
+        {!canSubmit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} certificate records.
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
           className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6"
         >
+          <fieldset
+            disabled={!canSubmit}
+            className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
+          >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm text-slate-200">Location Name *</label>
@@ -329,6 +343,7 @@ export default function CertificationsFormPage() {
               </div>
             </div>
           </div>
+          </fieldset>
 
           <div className="flex justify-end gap-3">
             <button
@@ -340,7 +355,7 @@ export default function CertificationsFormPage() {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={!canSubmit || loading}
               className="px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50"
             >
               {loading ? (editId ? "Updating..." : "Saving...") : (editId ? "Update" : "Save")}

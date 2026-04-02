@@ -5,6 +5,7 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useQhseSidebar } from "../../QhseSidebarContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
 
 function getYears() {
@@ -28,6 +29,7 @@ export default function DrillsListPage() {
   const [downloadingPlanPdf, setDownloadingPlanPdf] = useState(null);
   const [downloadingReportDocxId, setDownloadingReportDocxId] = useState(null);
   const [downloadingReportPdfId, setDownloadingReportPdfId] = useState(null);
+  const { canDelete, canDownload } = useQhseRole();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -68,6 +70,7 @@ export default function DrillsListPage() {
   }, [fetchData]);
 
   const handleDeletePlan = async (planId, year) => {
+    if (!canDelete) return;
     if (!planId) return;
     if (!window.confirm(`Delete drill plan for ${year}? This cannot be undone.`)) return;
     setDeletingId(planId);
@@ -85,6 +88,7 @@ export default function DrillsListPage() {
   };
 
   const handleDeleteReport = async (reportId, year, quarter) => {
+    if (!canDelete) return;
     const id = reportId != null ? String(reportId) : null;
     if (!id) return;
     if (!window.confirm(`Delete drill report for ${year} ${quarter}? This cannot be undone.`)) return;
@@ -115,6 +119,7 @@ export default function DrillsListPage() {
   };
 
   const handleDownloadPlanDocx = async (planId, year, serialNumber) => {
+    if (!canDownload) return;
     if (!planId) return;
     setDownloadingPlanDocx(planId);
     try {
@@ -137,6 +142,7 @@ export default function DrillsListPage() {
   };
 
   const handleDownloadPlanPdf = async (planId, year, serialNumber) => {
+    if (!canDownload) return;
     if (!planId) return;
     setDownloadingPlanPdf(planId);
     try {
@@ -159,6 +165,7 @@ export default function DrillsListPage() {
   };
 
   const handleDownloadReportDocx = async (reportId, serialNumber) => {
+    if (!canDownload) return;
     if (!reportId) return;
     setDownloadingReportDocxId(reportId);
     try {
@@ -181,6 +188,7 @@ export default function DrillsListPage() {
   };
 
   const handleDownloadReportPdf = async (reportId, serialNumber) => {
+    if (!canDownload) return;
     if (!reportId) return;
     setDownloadingReportPdfId(reportId);
     try {
@@ -322,6 +330,7 @@ export default function DrillsListPage() {
                     </div>
                     {yearRow.planId && (
                       <div className="flex items-center gap-2">
+                        {canDownload && (
                         <button
                           type="button"
                           onClick={() => handleDownloadPlanDocx(yearRow.planId, yearRow.year, yearRow.serialNumber)}
@@ -330,6 +339,8 @@ export default function DrillsListPage() {
                         >
                           {downloadingPlanDocx === yearRow.planId ? "…" : "Word"}
                         </button>
+                        )}
+                        {canDownload && (
                         <button
                           type="button"
                           onClick={() => handleDownloadPlanPdf(yearRow.planId, yearRow.year, yearRow.serialNumber)}
@@ -338,6 +349,8 @@ export default function DrillsListPage() {
                         >
                           {downloadingPlanPdf === yearRow.planId ? "…" : "PDF"}
                         </button>
+                        )}
+                        {canDelete && (
                         <button
                           type="button"
                           onClick={() => handleDeletePlan(yearRow.planId, yearRow.year)}
@@ -346,6 +359,7 @@ export default function DrillsListPage() {
                         >
                           {deletingId === yearRow.planId ? "Deleting…" : "Delete plan"}
                         </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -392,7 +406,7 @@ export default function DrillsListPage() {
                               <span className="text-xs text-slate-400">
                                 Report
                               </span>
-                              {(report?.id || report?._id) && (
+                              {canDelete && (report?.id || report?._id) && (
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -436,6 +450,7 @@ export default function DrillsListPage() {
                                   </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2 pt-1">
+                                  {canDownload && (
                                   <button
                                     type="button"
                                     onClick={() => handleDownloadReportDocx(report.id || report._id, report.serialNumber)}
@@ -444,6 +459,8 @@ export default function DrillsListPage() {
                                   >
                                     {downloadingReportDocxId === (report.id || report._id) ? "…" : "Word"}
                                   </button>
+                                  )}
+                                  {canDownload && (
                                   <button
                                     type="button"
                                     onClick={() => handleDownloadReportPdf(report.id || report._id, report.serialNumber)}
@@ -452,6 +469,7 @@ export default function DrillsListPage() {
                                   >
                                     {downloadingReportPdfId === (report.id || report._id) ? "…" : "PDF"}
                                   </button>
+                                  )}
                                 </div>
                               </div>
                             ) : (

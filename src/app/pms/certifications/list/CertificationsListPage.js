@@ -9,9 +9,11 @@ import {
   ActionEditIcon,
   ActionDeleteIcon,
 } from "@/app/components/RecordActionIcons";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 export default function CertificationsListPage() {
   const router = useRouter();
+  const { canCreate, canEdit, canDelete, canDownload } = usePmsRole();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,11 +41,12 @@ export default function CertificationsListPage() {
   }, []);
 
   const handleEdit = (item) => {
-    // Navigate to form page with edit data in query params or use state
+    if (!canEdit) return;
     router.push(`/pms/certifications/form?edit=${item._id}`);
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this certificate? This action cannot be undone.")) {
       return;
     }
@@ -152,17 +155,21 @@ export default function CertificationsListPage() {
                       disabled={deletingId === item._id}
                       title="View certificate"
                     />
-                    <ActionEditIcon
-                      onClick={() => handleEdit(item)}
-                      disabled={deletingId === item._id}
-                      title="Edit certificate"
-                    />
-                    <ActionDeleteIcon
-                      onClick={() => handleDelete(item._id)}
-                      disabled={deletingId === item._id || !!deletingId}
-                      loading={deletingId === item._id}
-                      title="Delete certificate"
-                    />
+                    {canEdit && (
+                      <ActionEditIcon
+                        onClick={() => handleEdit(item)}
+                        disabled={deletingId === item._id}
+                        title="Edit certificate"
+                      />
+                    )}
+                    {canDelete && (
+                      <ActionDeleteIcon
+                        onClick={() => handleDelete(item._id)}
+                        disabled={deletingId === item._id || !!deletingId}
+                        loading={deletingId === item._id}
+                        title="Delete certificate"
+                      />
+                    )}
                   </div>
                 </div>
               ))}
@@ -296,6 +303,7 @@ export default function CertificationsListPage() {
                             </p>
                           </div>
                         </div>
+                        {canDownload ? (
                         <a
                           href={`/api/pms/certifications/${selectedItem._id}/download?type=manufacturing`}
                           target="_blank"
@@ -308,6 +316,9 @@ export default function CertificationsListPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
                         </a>
+                        ) : (
+                          <span className="text-[10px] text-white/35">No download</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -327,6 +338,7 @@ export default function CertificationsListPage() {
                             </p>
                           </div>
                         </div>
+                        {canDownload ? (
                         <a
                           href={`/api/pms/certifications/${selectedItem._id}/download?type=test`}
                           target="_blank"
@@ -339,6 +351,9 @@ export default function CertificationsListPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
                         </a>
+                        ) : (
+                          <span className="text-[10px] text-white/35">No download</span>
+                        )}
                       </div>
                     </div>
                   )}

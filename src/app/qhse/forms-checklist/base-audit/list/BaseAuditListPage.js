@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -47,6 +48,7 @@ export default function BaseAuditListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
@@ -131,6 +133,7 @@ export default function BaseAuditListPage() {
   }, [year, locationId]);
 
   const handleDownloadDocx = async (report) => {
+    if (!canDownload) return;
     setDownloading(report._id);
     try {
       // Fetch generated DOCX from server
@@ -161,6 +164,7 @@ export default function BaseAuditListPage() {
   };
 
   const handleDownloadPdf = async (report) => {
+    if (!canDownload) return;
     setDownloadingPdf(report._id);
     try {
       const res = await fetch(
@@ -189,6 +193,7 @@ export default function BaseAuditListPage() {
   };
 
   const handleDownloadFile = async (report) => {
+    if (!canDownload) return;
     setDownloadingFile(report._id);
     setError(null);
     try {
@@ -264,6 +269,7 @@ export default function BaseAuditListPage() {
   };
 
   const handleEdit = (report) => {
+    if (!canEdit) return;
     router.push(`/qhse/forms-checklist/base-audit/form?edit=${report._id}`);
   };
 
@@ -284,6 +290,7 @@ export default function BaseAuditListPage() {
   };
 
   const handleDelete = async (report) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
     setDeleting(report._id);
     setError(null);
@@ -513,7 +520,7 @@ export default function BaseAuditListPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-1">
                             {/* Only show file download button if file is attached */}
-                            {report.filePath && (
+                            {report.filePath && canDownload && (
                               <button
                                 type="button"
                                 onClick={() => handleDownloadFile(report)}
@@ -532,30 +539,38 @@ export default function BaseAuditListPage() {
                                 )}
                               </button>
                             )}
-                            <DownloadIconButton
-                              onClick={() => handleDownloadDocx(report)}
-                              disabled={downloading === report._id || downloadingPdf === report._id}
-                              loading={downloading === report._id}
-                              title="Download as Word"
-                            />
-                            <DownloadIconButton
-                              onClick={() => handleDownloadPdf(report)}
-                              disabled={downloadingPdf === report._id || downloading === report._id}
-                              loading={downloadingPdf === report._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadDocx(report)}
+                                disabled={downloading === report._id || downloadingPdf === report._id}
+                                loading={downloading === report._id}
+                                title="Download as Word"
+                              />
+                            )}
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(report)}
+                                disabled={downloadingPdf === report._id || downloading === report._id}
+                                loading={downloadingPdf === report._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(report)}
                               disabled={archivingId === report._id || deleting === report._id}
                               loading={archivingId === report._id}
                             />
-                            <EditIconButton onClick={() => handleEdit(report)} />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(report)}
-                              disabled={archivingId === report._id || deleting === report._id}
-                              loading={deleting === report._id}
-                            />
+                            {canEdit && (
+                              <EditIconButton onClick={() => handleEdit(report)} />
+                            )}
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(report)}
+                                disabled={archivingId === report._id || deleting === report._id}
+                                loading={deleting === report._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>

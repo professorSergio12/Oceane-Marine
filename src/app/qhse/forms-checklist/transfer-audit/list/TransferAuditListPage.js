@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 
@@ -79,6 +80,7 @@ function getYears() {
 export default function TransferAuditListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
@@ -150,6 +152,7 @@ export default function TransferAuditListPage() {
   }, [year]);
 
   const handleDownloadDocx = async (form) => {
+    if (!canDownload) return;
     setDownloading(form._id);
     setError(null);
     try {
@@ -179,6 +182,7 @@ export default function TransferAuditListPage() {
   };
 
   const handleDownloadPdf = async (form) => {
+    if (!canDownload) return;
     setDownloadingPdf(form._id);
     setError(null);
     try {
@@ -213,6 +217,7 @@ export default function TransferAuditListPage() {
   };
 
   const handleApprove = async (formId) => {
+    if (!canApprove) return;
     if (
       !confirm(
         "Are you sure you want to approve this Transfer Audit form?"
@@ -267,6 +272,7 @@ export default function TransferAuditListPage() {
 
   const handleDelete = async (formId, e) => {
     if (e) e.stopPropagation();
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this record? This cannot be undone.")) return;
     setDeleting(formId);
     setError(null);
@@ -742,20 +748,24 @@ export default function TransferAuditListPage() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
-                    <DownloadIconButton
-                      onClick={() => handleDownloadDocx(selectedForm)}
-                      disabled={downloading === selectedForm._id || downloadingPdf === selectedForm._id}
-                      loading={downloading === selectedForm._id}
-                      title="Download as Word"
-                    />
-                    <DownloadIconButton
-                      onClick={() => handleDownloadPdf(selectedForm)}
-                      disabled={downloadingPdf === selectedForm._id || downloading === selectedForm._id}
-                      loading={downloadingPdf === selectedForm._id}
-                      title="Download as PDF"
-                      className="!text-rose-400 hover:!text-rose-300"
-                    />
-                    {selectedForm.status === "Pending" && (
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadDocx(selectedForm)}
+                        disabled={downloading === selectedForm._id || downloadingPdf === selectedForm._id}
+                        loading={downloading === selectedForm._id}
+                        title="Download as Word"
+                      />
+                    )}
+                    {canDownload && (
+                      <DownloadIconButton
+                        onClick={() => handleDownloadPdf(selectedForm)}
+                        disabled={downloadingPdf === selectedForm._id || downloading === selectedForm._id}
+                        loading={downloadingPdf === selectedForm._id}
+                        title="Download as PDF"
+                        className="!text-rose-400 hover:!text-rose-300"
+                      />
+                    )}
+                    {selectedForm.status === "Pending" && canApprove && (
                       <button
                         type="button"
                         onClick={() => handleApprove(selectedForm._id)}
@@ -840,29 +850,35 @@ export default function TransferAuditListPage() {
                                 >
                                   View
                                 </button>
-                                <DownloadIconButton
-                                  onClick={() => handleDownloadDocx(form)}
-                                  disabled={downloading === form._id || downloadingPdf === form._id}
-                                  loading={downloading === form._id}
-                                  title="Download as Word"
-                                />
-                                <DownloadIconButton
-                                  onClick={() => handleDownloadPdf(form)}
-                                  disabled={downloadingPdf === form._id || downloading === form._id}
-                                  loading={downloadingPdf === form._id}
-                                  title="Download as PDF"
-                                  className="!text-rose-400 hover:!text-rose-300"
-                                />
+                                {canDownload && (
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadDocx(form)}
+                                    disabled={downloading === form._id || downloadingPdf === form._id}
+                                    loading={downloading === form._id}
+                                    title="Download as Word"
+                                  />
+                                )}
+                                {canDownload && (
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadPdf(form)}
+                                    disabled={downloadingPdf === form._id || downloading === form._id}
+                                    loading={downloadingPdf === form._id}
+                                    title="Download as PDF"
+                                    className="!text-rose-400 hover:!text-rose-300"
+                                  />
+                                )}
                                 <ArchiveIconButton
                                   onClick={(e) => handleArchive(form, e)}
                                   disabled={archivingId === form._id || deleting === form._id}
                                   loading={archivingId === form._id}
                                 />
-                                <DeleteIconButton
-                                  onClick={(e) => handleDelete(form._id, e)}
-                                  disabled={archivingId === form._id || deleting === form._id}
-                                  loading={deleting === form._id}
-                                />
+                                {canDelete && (
+                                  <DeleteIconButton
+                                    onClick={(e) => handleDelete(form._id, e)}
+                                    disabled={archivingId === form._id || deleting === form._id}
+                                    loading={deleting === form._id}
+                                  />
+                                )}
                               </div>
                             </td>
                           </tr>

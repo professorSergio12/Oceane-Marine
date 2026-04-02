@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
@@ -64,6 +65,7 @@ function getYears() {
 export default function EquipmentBaseStockAdminPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canApprove, canDelete, canDownload, isQhseAdmin } = useQhseRole();
   const initialYears = getYears();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,6 +144,7 @@ export default function EquipmentBaseStockAdminPage() {
   });
 
   const handleApproval = async (id, nextStatus) => {
+    if (!canApprove) return;
     const confirmationMessage =
       nextStatus === "APPROVED"
         ? "Are you sure you want to APPROVE this equipment base stock form?"
@@ -246,6 +249,7 @@ export default function EquipmentBaseStockAdminPage() {
   };
 
   const handleDelete = async (form) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this form? This cannot be undone.")) return;
     setDeleting(form._id);
     setError("");
@@ -436,26 +440,30 @@ export default function EquipmentBaseStockAdminPage() {
                           )}
                         title={expandedId === form._id ? "Hide details" : "View details"}
                       />
-                      <DownloadIconButton
-                        onClick={() => handleDownloadDocx(form)}
-                        disabled={
-                          downloadingDocx === form._id ||
-                          downloadingPdf === form._id
-                        }
-                        loading={downloadingDocx === form._id}
-                        title="Download as Word"
-                      />
-                      <DownloadIconButton
-                        onClick={() => handleDownloadPdf(form)}
-                        disabled={
-                          downloadingPdf === form._id ||
-                          downloadingDocx === form._id
-                        }
-                        loading={downloadingPdf === form._id}
-                        title="Download as PDF"
-                        className="!text-rose-400 hover:!text-rose-300"
-                      />
-                      {form.status === "PENDING" && (
+                      {canDownload && (
+                        <DownloadIconButton
+                          onClick={() => handleDownloadDocx(form)}
+                          disabled={
+                            downloadingDocx === form._id ||
+                            downloadingPdf === form._id
+                          }
+                          loading={downloadingDocx === form._id}
+                          title="Download as Word"
+                        />
+                      )}
+                      {canDownload && (
+                        <DownloadIconButton
+                          onClick={() => handleDownloadPdf(form)}
+                          disabled={
+                            downloadingPdf === form._id ||
+                            downloadingDocx === form._id
+                          }
+                          loading={downloadingPdf === form._id}
+                          title="Download as PDF"
+                          className="!text-rose-400 hover:!text-rose-300"
+                        />
+                      )}
+                      {canApprove && form.status === "PENDING" && (
                         <>
                           <ApproveIconButton
                             onClick={() => handleApproval(form._id, "APPROVED")}
@@ -474,11 +482,13 @@ export default function EquipmentBaseStockAdminPage() {
                         disabled={archivingId === form._id || deleting === form._id}
                         loading={archivingId === form._id}
                       />
-                      <DeleteIconButton
-                        onClick={() => handleDelete(form)}
-                        disabled={archivingId === form._id || deleting === form._id}
-                        loading={deleting === form._id}
-                      />
+                      {canDelete && (
+                        <DeleteIconButton
+                          onClick={() => handleDelete(form)}
+                          disabled={archivingId === form._id || deleting === form._id}
+                          loading={deleting === form._id}
+                        />
+                      )}
                     </div>
                   </div>
 

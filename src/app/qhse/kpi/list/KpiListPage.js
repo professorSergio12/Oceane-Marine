@@ -9,10 +9,12 @@ import { TemplateDownloadLink } from "../../components/TemplateDownloadLink";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../components/ActionIcons";
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 export default function KpiListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -97,6 +99,7 @@ export default function KpiListPage() {
   };
 
   const handleDelete = async (item) => {
+    if (!canDelete) return;
     if (!confirm(`Delete "${item.originalName || item.serialNumber}"? This cannot be undone.`)) return;
     setDeletingId(item._id);
     setError("");
@@ -243,17 +246,21 @@ export default function KpiListPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1 inline-flex">
-                          <DownloadIconButton href={`/api/qhse/kpi/${item._id}/download`} title="Download as Word" />
+                          {canDownload && (
+                            <DownloadIconButton href={`/api/qhse/kpi/${item._id}/download`} title="Download as Word" />
+                          )}
                           <ArchiveIconButton
                             onClick={() => handleArchive(item)}
                             disabled={archivingId === item._id || deletingId === item._id}
                             loading={archivingId === item._id}
                           />
-                          <DeleteIconButton
-                            onClick={() => handleDelete(item)}
-                            disabled={archivingId === item._id || deletingId === item._id}
-                            loading={deletingId === item._id}
-                          />
+                          {canDelete && (
+                            <DeleteIconButton
+                              onClick={() => handleDelete(item)}
+                              disabled={archivingId === item._id || deletingId === item._id}
+                              loading={deletingId === item._id}
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>

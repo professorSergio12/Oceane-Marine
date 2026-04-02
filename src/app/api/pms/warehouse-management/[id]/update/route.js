@@ -3,8 +3,11 @@ import { connectDB } from "@/lib/config/connection.js";
 import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
 import fs from "node:fs";
 import path from "node:path";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function PUT(req, { params }) {
+  const guard = await assertPmsPermission("canEdit");
+  if (!guard.ok) return guard.response;
   try {
     await connectDB();
 

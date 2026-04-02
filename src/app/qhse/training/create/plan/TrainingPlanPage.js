@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 // Generate dynamic years: 2 years back, current year, and 5 years forward
 function getYears() {
@@ -138,6 +139,7 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -226,6 +228,9 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
     currentPairData.instructor.trim() ||
     currentPairData.description.trim();
 
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
+
   const { contentClassName } = useQhseSidebar();
   const content = (
     <div className={hideSidebar ? "flex-1" : `${contentClassName} pr-4`}>
@@ -280,10 +285,17 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
             </div>
           </header>
 
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to create records. Form is view-only.
+            </div>
+          )}
+
           <form
             onSubmit={handleSubmit}
             className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
           >
+            <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
             <div className="flex items-center justify-end">
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
@@ -473,12 +485,13 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
             <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={!canSubmit || saving}
                 className="px-6 py-3 rounded-xl bg-orange-500 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving..." : `Submit Plan for ${year}`}
               </button>
             </div>
+            </fieldset>
           </form>
         </div>
       </div>

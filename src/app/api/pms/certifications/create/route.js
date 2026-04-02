@@ -3,8 +3,11 @@ import { connectDB } from "@/lib/config/connection";
 import Certificate from "@/lib/mongodb/models/pms/Certificate";
 import path from "path";
 import fs from "fs/promises";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function POST(req) {
+    const guard = await assertPmsPermission("canCreate");
+    if (!guard.ok) return guard.response;
     await connectDB();
 
     try {

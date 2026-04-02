@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 /* ---------------- helpers ---------------- */
 
@@ -128,6 +129,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
   }, [year]);
 
   const handleDeletePlan = async () => {
+    if (!canDelete) return;
     if (!plan?._id) return;
     if (!window.confirm("Delete this training plan? This cannot be undone.")) return;
     setPlanDeleting(true);
@@ -312,6 +314,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSaving(true);
     setError(null);
     setMessage(null);
@@ -411,6 +414,9 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
   };
 
   /* ---------------- UI ---------------- */
+
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
 
   const { contentClassName } = useQhseSidebar();
   const content = (
@@ -521,7 +527,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                     <button
                       type="button"
                       onClick={handleDeletePlan}
-                      disabled={planDeleting}
+                      disabled={!canDelete || planDeleting}
                       className="text-xs px-3 py-1.5 rounded-lg border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-50 transition"
                     >
                       {planDeleting ? "Deleting…" : "Delete plan"}
@@ -599,10 +605,17 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
           </div>
 
           {creatingFor && (
+            <>
+            {!canSubmit && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+                You do not have permission to create records. Form is view-only.
+              </div>
+            )}
             <form
               onSubmit={handleSubmit}
               className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
             >
+              <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
               {/* Form Fields */}
               <div className="rounded-2xl border border-white/10 bg-[#0b2740]/80 p-6 space-y-6">
                 {/* General Details Section */}
@@ -800,13 +813,15 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
               <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={!canSubmit || saving}
                   className="px-6 py-3 rounded-xl bg-orange-500 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {saving ? "Saving..." : "Save Training Record"}
                 </button>
               </div>
+              </fieldset>
             </form>
+            </>
           )}
 
           {/* Records List Section */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useState, useEffect } from "react";
@@ -13,6 +14,8 @@ export default function DefectCreatePage() {
   const { contentClassName } = useQhseSidebar();
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = editId ? canEdit : canCreate;
 
   const [form, setForm] = useState({
     equipmentDefect: "",
@@ -90,6 +93,7 @@ export default function DefectCreatePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     setMessage(null);
     setError(null);
@@ -184,6 +188,12 @@ export default function DefectCreatePage() {
 
         <main>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
+            {!canSubmit && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+                You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
+              </div>
+            )}
+
             {loading ? (
               <p className="text-sm text-slate-300">Loading defect...</p>
             ) : (
@@ -364,7 +374,7 @@ export default function DefectCreatePage() {
                 <button
                   type="submit"
                   className="inline-flex items-center rounded-full bg-orange-500 hover:bg-orange-400 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={submitting}
+                  disabled={!canSubmit || submitting}
                 >
                   {submitting ? "Saving..." : editId ? "Update Defect" : "Save Defect"}
                 </button>

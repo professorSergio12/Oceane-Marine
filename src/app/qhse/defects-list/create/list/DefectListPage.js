@@ -9,6 +9,7 @@ import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -33,6 +34,7 @@ function getYears() {
 export default function DefectListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
@@ -99,6 +101,7 @@ export default function DefectListPage() {
   }, [year]);
 
   const handleDownloadWord = async (defect) => {
+    if (!canDownload) return;
     setExportingId(defect._id);
     setError(null);
     try {
@@ -120,6 +123,7 @@ export default function DefectListPage() {
   };
 
   const handleDownloadPdf = async (defect) => {
+    if (!canDownload) return;
     setExportingPdfId(defect._id);
     setError(null);
     try {
@@ -143,6 +147,7 @@ export default function DefectListPage() {
   };
 
   const handleStatusChange = async (id, newStatus) => {
+    if (!canEdit) return;
     setActionLoadingId(id);
     setActionMessage(null);
     setError(null);
@@ -166,6 +171,7 @@ export default function DefectListPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this defect? This cannot be undone.")) return;
     setDeletingId(id);
     setError(null);
@@ -440,38 +446,46 @@ export default function DefectListPage() {
                         </td>
                         <td className="py-2 pr-4 text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1">
-                            <DownloadIconButton
-                              onClick={() => handleDownloadWord(defect)}
-                              disabled={
-                                archivingId === defect._id ||
-                                deletingId === defect._id ||
-                                exportingPdfId === defect._id
-                              }
-                              loading={exportingId === defect._id}
-                              title="Download as Word"
-                            />
-                            <DownloadIconButton
-                              onClick={() => handleDownloadPdf(defect)}
-                              disabled={
-                                archivingId === defect._id ||
-                                deletingId === defect._id ||
-                                exportingId === defect._id
-                              }
-                              loading={exportingPdfId === defect._id}
-                              title="Download as PDF"
-                              className="!text-rose-400 hover:!text-rose-300"
-                            />
-                            <EditIconButton href={`/qhse/defects-list/create?edit=${defect._id}`} />
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadWord(defect)}
+                                disabled={
+                                  archivingId === defect._id ||
+                                  deletingId === defect._id ||
+                                  exportingPdfId === defect._id
+                                }
+                                loading={exportingId === defect._id}
+                                title="Download as Word"
+                              />
+                            )}
+                            {canDownload && (
+                              <DownloadIconButton
+                                onClick={() => handleDownloadPdf(defect)}
+                                disabled={
+                                  archivingId === defect._id ||
+                                  deletingId === defect._id ||
+                                  exportingId === defect._id
+                                }
+                                loading={exportingPdfId === defect._id}
+                                title="Download as PDF"
+                                className="!text-rose-400 hover:!text-rose-300"
+                              />
+                            )}
+                            {canEdit && (
+                              <EditIconButton href={`/qhse/defects-list/create?edit=${defect._id}`} />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(defect)}
                               disabled={archivingId === defect._id || deletingId === defect._id}
                               loading={archivingId === defect._id}
                             />
-                            <DeleteIconButton
-                              onClick={() => handleDelete(defect._id)}
-                              disabled={archivingId === defect._id || deletingId === defect._id}
-                              loading={deletingId === defect._id}
-                            />
+                            {canDelete && (
+                              <DeleteIconButton
+                                onClick={() => handleDelete(defect._id)}
+                                disabled={archivingId === defect._id || deletingId === defect._id}
+                                loading={deletingId === defect._id}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>

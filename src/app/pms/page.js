@@ -6,6 +6,7 @@ import EquipmentTesting from "./equipment-testing/EquipmentTesting";
 import PrimaryEquipment from "./equipment-inventory/primary-equipment/PrimaryEquipment";
 import Accessories from "./equipment-inventory/accessories/Accessories";
 import WarehouseManagement from "./warehouse-management/WarehouseManagement";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 const sidebarTabs = [
   {
@@ -36,13 +37,15 @@ const sidebarTabs = [
 ];
 
 export default function PmsPage() {
+  const { canCreate, canEdit, isPmsAdmin } = usePmsRole();
+
   const [activeTab, setActiveTab] = useState("equipment-inventory");
   const [activeSubmodule, setActiveSubmodule] = useState("primary-equipment");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const sidebarRef = useRef(null);
-  const [primaryEquipmentTab, setPrimaryEquipmentTab] = useState("form"); // "form" | "list" | "history"
-  const [accessoriesView, setAccessoriesView] = useState("form"); // "form" | "list"
-  const [warehouseView, setWarehouseView] = useState("form"); // "form" | "list"
+  const [primaryEquipmentTab, setPrimaryEquipmentTab] = useState("form");
+  const [accessoriesView, setAccessoriesView] = useState("form");
+  const [warehouseView, setWarehouseView] = useState("form");
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -270,12 +273,6 @@ export default function PmsPage() {
               <WarehouseManagement
                 view={warehouseView}
                 onViewChange={setWarehouseView}
-              />
-            )}
-            {activeTab === "certifications" && (
-              <Certifications
-                view={certificationsView}
-                onViewChange={setCertificationsView}
               />
             )}
             {activeTab === "equipment-testing" && <EquipmentTesting />}

@@ -3,10 +3,13 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import Certificate from "@/lib/mongodb/models/pms/Certificate";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export const runtime = "nodejs";
 
 export async function GET(req, ctx) {
+    const guard = await assertPmsPermission("canDownload");
+    if (!guard.ok) return guard.response;
     await connectDB();
 
     const { id } = (await ctx?.params) || {};

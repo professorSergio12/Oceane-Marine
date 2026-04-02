@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useRef, useEffect } from "react";
@@ -14,6 +15,8 @@ export default function BaseAuditFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = editId ? canEdit : canCreate;
   const fileInputRef = useRef(null);
   const currentYear = new Date().getFullYear();
   const [form, setForm] = useState({
@@ -197,6 +200,7 @@ export default function BaseAuditFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
 
     if (!file) {
       setError("Please select a file to upload");
@@ -349,6 +353,12 @@ export default function BaseAuditFormPage() {
         {loading && (
           <div className="bg-blue-950/40 border border-blue-500/40 rounded-xl px-4 py-3 text-blue-200 text-sm font-medium">
             Loading report data...
+          </div>
+        )}
+
+        {!canSubmit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+            You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
           </div>
         )}
 
@@ -604,7 +614,7 @@ export default function BaseAuditFormPage() {
             <button
               type="submit"
               disabled={
-                uploading || loading || !file || !form.uploadedBy?.trim()
+                !canSubmit || uploading || loading || !file || !form.uploadedBy?.trim()
               }
               className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >

@@ -17,6 +17,20 @@ const HR_ROLE_OPTIONS = [
   { value: "admin", label: "Admin (read-only oversight)" },
 ];
 
+const PMS_ROLE_OPTIONS = [
+  { value: "viewer", label: "Viewer (read-only + download)" },
+  { value: "editor", label: "Editor (create / edit / delete)" },
+  { value: "approver", label: "Approver (read + download)" },
+  { value: "admin", label: "Admin (forms visible; no submit)" },
+];
+
+const QHSE_ROLE_OPTIONS = [
+  { value: "viewer", label: "Viewer (read-only + download)" },
+  { value: "editor", label: "Editor (create / edit / delete)" },
+  { value: "approver", label: "Approver (view + approve only)" },
+  { value: "admin", label: "Admin (view all; no create/approve)" },
+];
+
 const ROLE_BADGE = {
   admin: "bg-red-500/20 text-red-300 border-red-500/40",
   editor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
@@ -37,6 +51,26 @@ function RoleBadge({ role }) {
 function HrRoleBadge({ role }) {
   const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
   const label = HR_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
+  return (
+    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function PmsRoleBadge({ role }) {
+  const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
+  const label = PMS_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
+  return (
+    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function QhseRoleBadge({ role }) {
+  const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
+  const label = QHSE_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
   return (
     <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
       {label}
@@ -101,6 +135,8 @@ export default function AdminPanel() {
     password: "",
     operationsRole: "viewer",
     hrRole: "viewer",
+    pmsRole: "viewer",
+    qhseRole: "viewer",
   });
   const [editForm, setEditForm] = useState({
     employeeName: "",
@@ -108,6 +144,8 @@ export default function AdminPanel() {
     employeeId: "",
     operationsRole: "viewer",
     hrRole: "viewer",
+    pmsRole: "viewer",
+    qhseRole: "viewer",
     isActive: true,
   });
   const [newPassword, setNewPassword] = useState("");
@@ -154,6 +192,8 @@ export default function AdminPanel() {
         password: "",
         operationsRole: "viewer",
         hrRole: "viewer",
+        pmsRole: "viewer",
+        qhseRole: "viewer",
       });
       fetchUsers();
     } catch (err) {
@@ -171,6 +211,8 @@ export default function AdminPanel() {
       employeeId: user.employeeId || "",
       operationsRole: user.operationsRole || "viewer",
       hrRole: user.hrRole || "viewer",
+      pmsRole: user.pmsRole || "viewer",
+      qhseRole: user.qhseRole || "viewer",
       isActive: user.isActive !== false,
     });
     setShowEditModal(true);
@@ -273,7 +315,9 @@ export default function AdminPanel() {
       u.email?.toLowerCase().includes(q) ||
       u.employeeId?.toLowerCase().includes(q) ||
       u.operationsRole?.toLowerCase().includes(q) ||
-      u.hrRole?.toLowerCase().includes(q)
+      u.hrRole?.toLowerCase().includes(q) ||
+      u.pmsRole?.toLowerCase().includes(q) ||
+      u.qhseRole?.toLowerCase().includes(q)
     );
   });
 
@@ -287,7 +331,7 @@ export default function AdminPanel() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-white">User Management</h2>
           <p className="text-white/50 text-sm mt-1">
-            Manage users, Operations roles, and HR module roles (each module has its own permission matrix).
+            Manage users, Operations, HR, PMS, and QHSE roles (each module has its own permission matrix).
           </p>
         </div>
         <button
@@ -340,13 +384,15 @@ export default function AdminPanel() {
                 <th className="px-4 py-3 text-left font-semibold text-white/80 hidden sm:table-cell">Email</th>
                 <th className="px-4 py-3 text-left font-semibold text-white/80">Ops Role</th>
                 <th className="px-4 py-3 text-left font-semibold text-white/80 hidden lg:table-cell">HR Role</th>
+                <th className="px-4 py-3 text-left font-semibold text-white/80 hidden xl:table-cell">PMS Role</th>
+                <th className="px-4 py-3 text-left font-semibold text-white/80 hidden xl:table-cell">QHSE Role</th>
                 <th className="px-4 py-3 text-center font-semibold text-white/80">Status</th>
                 <th className="px-4 py-3 text-center font-semibold text-white/80">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-white/40">No users found</td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-white/40">No users found</td></tr>
               ) : (
                 filtered.map((u) => (
                   <tr key={u._id} className="border-b border-white/5 hover:bg-white/5 transition">
@@ -355,7 +401,13 @@ export default function AdminPanel() {
                     <td className="px-4 py-3 text-white/60 hidden sm:table-cell">{u.email}</td>
                     <td className="px-4 py-3"><RoleBadge role={u.operationsRole || "viewer"} /></td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <RoleBadge role={u.hrRole || "viewer"} />
+                      <HrRoleBadge role={u.hrRole || "viewer"} />
+                    </td>
+                    <td className="px-4 py-3 hidden xl:table-cell">
+                      <PmsRoleBadge role={u.pmsRole || "viewer"} />
+                    </td>
+                    <td className="px-4 py-3 hidden xl:table-cell">
+                      <QhseRoleBadge role={u.qhseRole || "viewer"} />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${u.isActive !== false ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
@@ -420,6 +472,18 @@ export default function AdminPanel() {
               {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
             </select>
           </div>
+          <div>
+            <label className={labelCls}>PMS Role</label>
+            <select value={addForm.pmsRole} onChange={(e) => setAddForm((f) => ({ ...f, pmsRole: e.target.value }))} className={inputCls}>
+              {PMS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>QHSE Role</label>
+            <select value={addForm.qhseRole} onChange={(e) => setAddForm((f) => ({ ...f, qhseRole: e.target.value }))} className={inputCls}>
+              {QHSE_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            </select>
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowAddModal(false)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition">Cancel</button>
             <button type="submit" disabled={actionLoading} className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition">
@@ -454,6 +518,18 @@ export default function AdminPanel() {
             <label className={labelCls}>HR Role</label>
             <select value={editForm.hrRole} onChange={(e) => setEditForm((f) => ({ ...f, hrRole: e.target.value }))} className={inputCls}>
               {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>PMS Role</label>
+            <select value={editForm.pmsRole} onChange={(e) => setEditForm((f) => ({ ...f, pmsRole: e.target.value }))} className={inputCls}>
+              {PMS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>QHSE Role</label>
+            <select value={editForm.qhseRole} onChange={(e) => setEditForm((f) => ({ ...f, qhseRole: e.target.value }))} className={inputCls}>
+              {QHSE_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
             </select>
           </div>
           <div className="flex items-center gap-3">

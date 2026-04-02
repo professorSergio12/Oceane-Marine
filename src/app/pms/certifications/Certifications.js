@@ -7,8 +7,11 @@ import {
   ActionEditIcon,
   ActionDeleteIcon,
 } from "@/app/components/RecordActionIcons";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
 export default function Certifications({ view: controlledView, onViewChange }) {
+  const { canCreate, canEdit, canDelete, canDownload } = usePmsRole();
+
   const [internalView, setInternalView] = useState("form");
   const view = controlledView ?? internalView;
   const setView = onViewChange ?? setInternalView;
@@ -28,6 +31,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const canSubmit = editingId ? canEdit : canCreate;
 
   // Fetch list
   const fetchList = async () => {
@@ -54,6 +58,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError("");
     setMessage("");
 
@@ -129,6 +134,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
   };
 
   const handleEdit = (item) => {
+    if (!canEdit) return;
     setEditingId(item._id);
     setLocationName(item.locationName || "");
     setEquipmentName(item.equipmentName || "");
@@ -144,6 +150,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this certificate? This action cannot be undone.")) {
       return;
     }
@@ -228,6 +235,15 @@ export default function Certifications({ view: controlledView, onViewChange }) {
           onSubmit={handleSubmit}
           className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6"
         >
+          {!canSubmit && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to {editingId ? "edit" : "create"} certificate records.
+            </div>
+          )}
+          <fieldset
+            disabled={!canSubmit}
+            className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
+          >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm text-slate-200">Location Name *</label>
@@ -366,6 +382,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
               </div>
             </div>
           </div>
+          </fieldset>
 
           <div className="flex justify-end gap-3">
             <button
@@ -386,7 +403,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={!canSubmit || loading}
               className="px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50"
             >
               {loading ? (editingId ? "Updating..." : "Saving...") : (editingId ? "Update" : "Save")}
@@ -440,17 +457,21 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                         disabled={deletingId === item._id}
                         title="View certificate"
                       />
-                      <ActionEditIcon
-                        onClick={() => handleEdit(item)}
-                        disabled={deletingId === item._id}
-                        title="Edit certificate"
-                      />
-                      <ActionDeleteIcon
-                        onClick={() => handleDelete(item._id)}
-                        disabled={deletingId === item._id || !!deletingId}
-                        loading={deletingId === item._id}
-                        title="Delete certificate"
-                      />
+                      {canEdit && (
+                        <ActionEditIcon
+                          onClick={() => handleEdit(item)}
+                          disabled={deletingId === item._id}
+                          title="Edit certificate"
+                        />
+                      )}
+                      {canDelete && (
+                        <ActionDeleteIcon
+                          onClick={() => handleDelete(item._id)}
+                          disabled={deletingId === item._id || !!deletingId}
+                          loading={deletingId === item._id}
+                          title="Delete certificate"
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -585,6 +606,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                             </p>
                           </div>
                         </div>
+                        {canDownload ? (
                         <a
                           href={`/api/pms/certifications/${selectedItem._id}/download?type=manufacturing`}
                           target="_blank"
@@ -597,6 +619,9 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
                         </a>
+                        ) : (
+                          <span className="text-[10px] text-white/35">No download</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -616,6 +641,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                             </p>
                           </div>
                         </div>
+                        {canDownload ? (
                         <a
                           href={`/api/pms/certifications/${selectedItem._id}/download?type=test`}
                           target="_blank"
@@ -628,6 +654,9 @@ export default function Certifications({ view: controlledView, onViewChange }) {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
                         </a>
+                        ) : (
+                          <span className="text-[10px] text-white/35">No download</span>
+                        )}
                       </div>
                     </div>
                   )}

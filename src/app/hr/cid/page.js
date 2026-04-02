@@ -8,15 +8,12 @@ import CidListPage from "./list/CidListPage";
 import HrSidebarWrapper from "../components/HrSidebarWrapper";
 import { useHrSidebar } from "../HrSidebarContext";
 import { useHrLoading } from "../HrLoadingContext";
-import { useHrRole } from "@/hooks/useHrRole";
 import { useAuthStore } from "@/store/authStore";
 
 function CidContent() {
   const searchParams = useSearchParams();
-  const { canCreate, canEdit, isHrAdmin } = useHrRole();
   const fetchUser = useAuthStore((s) => s.fetchUser);
-  const showFormTab = canCreate || canEdit || isHrAdmin;
-  const [activeTab, setActiveTab] = useState(() => (showFormTab ? "form" : "list"));
+  const [activeTab, setActiveTab] = useState("form");
   const { contentClassName, isSidebarOpen } = useHrSidebar();
   const { setPageLoading } = useHrLoading();
 
@@ -24,12 +21,7 @@ function CidContent() {
     fetchUser();
   }, [fetchUser]);
 
-  // Check for tab and edit in URL; list-only users stay on list
   useEffect(() => {
-    if (!showFormTab) {
-      setActiveTab("list");
-      return;
-    }
     const tab = searchParams.get("tab");
     const edit = searchParams.get("edit");
     if (tab === "list") {
@@ -38,7 +30,7 @@ function CidContent() {
       setPageLoading(true);
       setActiveTab("form");
     }
-  }, [searchParams, setPageLoading, showFormTab]);
+  }, [searchParams, setPageLoading]);
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -70,19 +62,17 @@ function CidContent() {
 
             <div className="flex justify-center md:justify-end shrink-0">
               <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-                {showFormTab && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("form")}
-                    className={`px-4 py-2 text-sm font-semibold transition ${
-                      activeTab === "form"
-                        ? "text-white bg-orange-500 hover:bg-orange-600"
-                        : "text-white/90 hover:bg-white/10"
-                    }`}
-                  >
-                    Form
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("form")}
+                  className={`px-4 py-2 text-sm font-semibold transition ${
+                    activeTab === "form"
+                      ? "text-white bg-orange-500 hover:bg-orange-600"
+                      : "text-white/90 hover:bg-white/10"
+                  }`}
+                >
+                  Form
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("list")}
@@ -99,7 +89,7 @@ function CidContent() {
           </header>
 
           {/* Content */}
-          {showFormTab && activeTab === "form" && (
+          {activeTab === "form" && (
             <CidFormPage
               onSuccess={() => {
                 setActiveTab("list");

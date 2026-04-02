@@ -1,6 +1,7 @@
 "use client";
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
@@ -35,6 +36,7 @@ function getSignatureSrc(value) {
 
 export default function QuestionnaireListAdminPage() {
   const { setPageLoading } = useQhseLoading();
+  const { canDelete, canApprove, canDownload } = useQhseRole();
   const { contentClassName } = useQhseSidebar();
   const [allForms, setAllForms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,7 @@ export default function QuestionnaireListAdminPage() {
   }, [filterStatus, selectedForm]);
 
   const handleApprove = async (formId) => {
+    if (!canApprove) return;
     if (!confirm("Are you sure you want to approve this form?")) {
       return;
     }
@@ -140,6 +143,7 @@ export default function QuestionnaireListAdminPage() {
   };
 
   const handleDownloadDocx = async (form) => {
+    if (!canDownload) return;
     setDownloadingDocxId(form._id);
     setError(null);
     try {
@@ -175,6 +179,7 @@ export default function QuestionnaireListAdminPage() {
   };
 
   const handleDownloadPdf = async (form) => {
+    if (!canDownload) return;
     setDownloadingPdfId(form._id);
     setError(null);
     try {
@@ -210,6 +215,7 @@ export default function QuestionnaireListAdminPage() {
   };
 
   const handleReject = async (formId) => {
+    if (!canApprove) return;
     if (!confirm("Are you sure you want to reject this form?")) {
       return;
     }
@@ -274,6 +280,7 @@ export default function QuestionnaireListAdminPage() {
   };
 
   const handleDelete = async (form) => {
+    if (!canDelete) return;
     if (!confirm("Are you sure you want to delete this form? This cannot be undone.")) return;
     setDeleting(form._id);
     setError(null);
@@ -854,7 +861,7 @@ export default function QuestionnaireListAdminPage() {
                 )}
 
                 {/* Approve/Reject Buttons - Only show for Pending forms */}
-                {selectedForm.status === "Pending" ? (
+                {canApprove && selectedForm.status === "Pending" ? (
                   <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
                     <button
                       type="button"
@@ -981,25 +988,29 @@ export default function QuestionnaireListAdminPage() {
                             </td>
                             <td className="py-3 pr-4 text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <DownloadIconButton
-                                  onClick={() => handleDownloadDocx(form)}
-                                  disabled={
-                                    downloadingDocxId === form._id ||
-                                    downloadingPdfId === form._id
-                                  }
-                                  loading={downloadingDocxId === form._id}
-                                  title="Download as Word"
-                                />
-                                <DownloadIconButton
-                                  onClick={() => handleDownloadPdf(form)}
-                                  disabled={
-                                    downloadingPdfId === form._id ||
-                                    downloadingDocxId === form._id
-                                  }
-                                  loading={downloadingPdfId === form._id}
-                                  title="Download as PDF"
-                                  className="!text-rose-400 hover:!text-rose-300"
-                                />
+                                {canDownload && (
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadDocx(form)}
+                                    disabled={
+                                      downloadingDocxId === form._id ||
+                                      downloadingPdfId === form._id
+                                    }
+                                    loading={downloadingDocxId === form._id}
+                                    title="Download as Word"
+                                  />
+                                )}
+                                {canDownload && (
+                                  <DownloadIconButton
+                                    onClick={() => handleDownloadPdf(form)}
+                                    disabled={
+                                      downloadingPdfId === form._id ||
+                                      downloadingDocxId === form._id
+                                    }
+                                    loading={downloadingPdfId === form._id}
+                                    title="Download as PDF"
+                                    className="!text-rose-400 hover:!text-rose-300"
+                                  />
+                                )}
                                 <ViewIconButton
                                   onClick={() => setSelectedForm(form)}
                                   title="View Details"
@@ -1009,11 +1020,13 @@ export default function QuestionnaireListAdminPage() {
                                   disabled={archivingId === form._id || deleting === form._id}
                                   loading={archivingId === form._id}
                                 />
-                                <DeleteIconButton
-                                  onClick={() => handleDelete(form)}
-                                  disabled={archivingId === form._id || deleting === form._id}
-                                  loading={deleting === form._id}
-                                />
+                                {canDelete && (
+                                  <DeleteIconButton
+                                    onClick={() => handleDelete(form)}
+                                    disabled={archivingId === form._id || deleting === form._id}
+                                    loading={deleting === form._id}
+                                  />
+                                )}
                               </div>
                             </td>
                           </tr>

@@ -14,15 +14,6 @@ export async function PUT(req, { params }) {
         { status: 404 }
       );
     }
-    if (mocdoc.status !== "Draft") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Only Draft status records can be moved to Open",
-        },
-        { status: 403 }
-      );
-    }
     // body may be empty when submitting directly from list; use existing doc as source of truth
     const body = await req.json().catch(() => ({}));
 

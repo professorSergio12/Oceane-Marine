@@ -7,10 +7,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 export default function RiskAssessmentListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
+  const { canDelete, canDownload } = useQhseRole();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -83,6 +85,7 @@ export default function RiskAssessmentListPage() {
   };
 
   const handleDelete = async (item) => {
+    if (!canDelete) return;
     if (!confirm(`Delete this risk assessment (${item.serialNumber || item.locationName})? This cannot be undone.`)) return;
     setDeletingId(item._id);
     setError("");
@@ -254,6 +257,7 @@ export default function RiskAssessmentListPage() {
                         Archive
                       </span>
                     </span>
+                    {canDownload && (
                     <span className="relative group inline-flex">
                       <a
                         href={`/api/qhse/risk-assessment/${item._id}/download`}
@@ -270,6 +274,8 @@ export default function RiskAssessmentListPage() {
                         Download as Word
                       </span>
                     </span>
+                    )}
+                    {canDelete && (
                     <span className="relative group inline-flex">
                       <button
                         type="button"
@@ -294,6 +300,7 @@ export default function RiskAssessmentListPage() {
                         Delete
                       </span>
                     </span>
+                    )}
                   </div>
                 </div>
               ))}

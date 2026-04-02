@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 
 export async function GET(req, { params }) {
+    const guard = await assertPmsPermission("canView");
+    if (!guard.ok) return guard.response;
     try {
         await connectDB();
 

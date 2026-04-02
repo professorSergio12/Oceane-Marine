@@ -3,9 +3,12 @@
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useQhseRole } from "@/hooks/useQhseRole";
 
 export default function DefectPlanPage() {
   const { contentClassName } = useQhseSidebar();
+  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
+  const canSubmit = canCreate;
   const [form, setForm] = useState({
     equipmentDefect: "",
     base: "",
@@ -36,6 +39,7 @@ export default function DefectPlanPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     setMessage(null);
     setError(null);
@@ -138,6 +142,12 @@ export default function DefectPlanPage() {
         </header>
 
         <main>
+          {!canSubmit && (
+            <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+              You do not have permission to create equipment defects.
+            </div>
+          )}
+
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
@@ -288,7 +298,7 @@ export default function DefectPlanPage() {
                 <button
                   type="submit"
                   className="inline-flex items-center rounded-full bg-orange-500 hover:bg-orange-400 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={submitting}
+                  disabled={!canSubmit || submitting}
                 >
                   {submitting ? "Saving..." : "Save Defect"}
                 </button>
