@@ -189,7 +189,7 @@ export default function GlobalNotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute bottom-[4.5rem] right-0 flex w-[min(100vw-1.5rem,420px)] max-h-[min(78vh,560px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1222] shadow-[0_25px_80px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl">
+        <div className="absolute bottom-[4.5rem] right-0 flex w-[min(100vw-1.5rem,420px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1222] shadow-[0_25px_80px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl">
           <div
             className={`shrink-0 bg-gradient-to-r px-4 py-3.5 ${activeAccent} bg-[length:200%_100%]`}
           >
@@ -269,20 +269,21 @@ export default function GlobalNotificationBell() {
             )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          {/* ~3 notification rows visible; list scrolls inside fixed height */}
+          <div className="h-[min(288px,45vh)] shrink-0 overflow-y-auto overscroll-y-contain">
             {loading ? (
-              <div className="flex justify-center py-14">
+              <div className="flex h-[min(288px,45vh)] items-center justify-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
               </div>
             ) : items.length === 0 ? (
-              <div className="px-6 py-14 text-center">
+              <div className="flex h-[min(288px,45vh)] flex-col items-center justify-center px-6 text-center">
                 <p className="text-sm text-white/50">No activity in this module yet</p>
                 <p className="mt-1 text-xs text-white/30">
                   Record changes will appear here automatically
                 </p>
               </div>
             ) : (
-              <ul className="divide-y divide-white/[0.06]">
+              <ul className="divide-y divide-white/6">
                 {items.map((n) => (
                   <li key={n._id}>
                     <button
