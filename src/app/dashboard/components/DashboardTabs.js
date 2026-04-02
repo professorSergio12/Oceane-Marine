@@ -6,8 +6,6 @@ import PMSCharts from "./PMSCharts";
 import QHSECharts from "./QHSECharts";
 import AccountCharts from "./AccountCharts";
 import HrCharts from "./HrCharts";
-import AdminPanel from "./AdminPanel";
-
 const DashboardTabs = ({ activeTab, onTabChange }) => {
   const tabs = [
     { key: "operations", label: "Operations" },
@@ -44,7 +42,6 @@ const DashboardTabs = ({ activeTab, onTabChange }) => {
         {activeTab === "qhse" && <QHSECharts />}
         {activeTab === "accounts" && <AccountCharts />}
         {activeTab === "hr" && <HrCharts />}
-        {activeTab === "admin" && <AdminPanel />}
       </div>
     </div>
   );

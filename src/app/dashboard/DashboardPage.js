@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardTabs from "./components/DashboardTabs";
@@ -36,20 +36,41 @@ export default function DashboardPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabs = baseTabs;
-  const VALID_TABS = isAdmin ? [...BASE_VALID_TABS, "admin"] : BASE_VALID_TABS;
+  const VALID_TABS = BASE_VALID_TABS;
 
   const [activeTab, setActiveTab] = useState(() => {
-    return tabFromUrl && [...BASE_VALID_TABS, "admin"].includes(tabFromUrl) ? tabFromUrl : "operations";
+    return tabFromUrl && BASE_VALID_TABS.includes(tabFromUrl) ? tabFromUrl : "operations";
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const router = useRouter();
   const menuRef = useRef(null);
+
+  const DASHBOARD_REFRESH_MS = 60_000;
+
+  useEffect(() => {
+    const id = globalThis.setInterval(() => {
+      setDataRefreshKey((k) => k + 1);
+      router.refresh();
+    }, DASHBOARD_REFRESH_MS);
+    return () => globalThis.clearInterval(id);
+  }, [router]);
 
   useEffect(() => {
     if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
   }, [tabFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (tabFromUrl !== "admin") return;
+    if (!currentUser) return;
+    if (currentUser.operationsRole === "admin") {
+      router.replace("/admin");
+      return;
+    }
+    router.replace("/dashboard?tab=operations", { scroll: false });
+  }, [tabFromUrl, currentUser, router]);
 
   // Update URL whenever activeTab changes (keeps URL in sync so refresh works)
   const handleTabChange = (tabKey) => {
@@ -79,6 +100,14 @@ export default function DashboardPage() {
     setIsMenuOpen(false);
     router.push(item.href);
   };
+
+  const resolvedMenuItems = useMemo(() => {
+    if (!isAdmin) return menuItems;
+    return [
+      { key: "admin", label: "Admin Panel", href: "/admin" },
+      ...menuItems,
+    ];
+  }, [isAdmin]);
 
   const cta = {
     operations: { label: "Go to Operations", href: "/operations" },
@@ -119,19 +148,19 @@ export default function DashboardPage() {
           {isAdmin && (
             <>
               <button
-                onClick={() => handleTabChange("admin")}
-                className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 hover:bg-white/15 transition cursor-pointer"
+                type="button"
+                onClick={() => router.push("/admin")}
+                className="hidden cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 transition hover:bg-white/15 sm:flex"
               >
-                <div className="h-8 w-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-semibold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-sm font-semibold text-white">
                   A
                 </div>
-                <span className="text-sm text-white/80">
-                  Admin Panel
-                </span>
+                <span className="text-sm text-white/80">Admin Panel</span>
               </button>
               <button
-                onClick={() => handleTabChange("admin")}
-                className="flex sm:hidden items-center justify-center h-8 w-8 rounded-full bg-orange-500 text-white text-xs font-semibold cursor-pointer"
+                type="button"
+                onClick={() => router.push("/admin")}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-orange-500 text-xs font-semibold text-white sm:hidden"
                 title="Admin Panel"
               >
                 A
@@ -185,7 +214,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-2">
-                  {menuItems.map((item) => (
+                  {resolvedMenuItems.map((item) => (
                     <button
                       key={item.key}
                       onClick={() => handleMenuClick(item)}
@@ -234,7 +263,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <DashboardTabs activeTab={activeTab} onTabChange={handleTabChange} />
+          <DashboardTabs
+            key={dataRefreshKey}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+          />
         </div>
       </main>
     </div>

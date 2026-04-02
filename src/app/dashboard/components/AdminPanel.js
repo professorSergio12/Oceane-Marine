@@ -31,49 +31,40 @@ const QHSE_ROLE_OPTIONS = [
   { value: "admin", label: "Admin (view all; no create/approve)" },
 ];
 
-const ROLE_BADGE = {
-  admin: "bg-red-500/20 text-red-300 border-red-500/40",
-  editor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-  approver: "bg-purple-500/20 text-purple-300 border-purple-500/40",
-  viewer: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+const MODULE_ROLE_OPTIONS = {
+  operations: OPS_ROLE_OPTIONS,
+  hr: HR_ROLE_OPTIONS,
+  pms: PMS_ROLE_OPTIONS,
+  qhse: QHSE_ROLE_OPTIONS,
 };
 
-function RoleBadge({ role }) {
-  const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
-  const label = OPS_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
-  return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
-      {label}
-    </span>
-  );
-}
+const ROLE_SHORT_LABELS = { viewer: "Viewer", editor: "Editor", approver: "Approver", admin: "Admin" };
 
-function HrRoleBadge({ role }) {
-  const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
-  const label = HR_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
-  return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
-      {label}
-    </span>
-  );
-}
+/** Compact table chip: short label; full permission text on hover (tooltip). */
+function ModuleRoleChip({ moduleKey, role }) {
+  const r = role || "viewer";
+  const options = MODULE_ROLE_OPTIONS[moduleKey] || OPS_ROLE_OPTIONS;
+  const fullLabel = options.find((o) => o.value === r)?.label || r;
+  const short = ROLE_SHORT_LABELS[r] || r;
 
-function PmsRoleBadge({ role }) {
-  const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
-  const label = PMS_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
-  return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
-      {label}
-    </span>
-  );
-}
+  const visual = {
+    admin:
+      "border-amber-400/70 bg-amber-500/35 text-amber-50 shadow-[0_0_12px_-2px_rgba(245,158,11,0.45)]",
+    editor:
+      "border-cyan-400/65 bg-cyan-500/30 text-cyan-50 shadow-[0_0_12px_-2px_rgba(6,182,212,0.4)]",
+    approver:
+      "border-fuchsia-400/65 bg-fuchsia-500/30 text-fuchsia-50 shadow-[0_0_12px_-2px_rgba(217,70,239,0.4)]",
+    viewer: "border-white/15 bg-white/10 text-slate-300",
+  };
 
-function QhseRoleBadge({ role }) {
-  const cls = ROLE_BADGE[role] || ROLE_BADGE.viewer;
-  const label = QHSE_ROLE_OPTIONS.find((o) => o.value === role)?.label || role;
+  const cls = visual[r] || visual.viewer;
+
   return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>
-      {label}
+    <span
+      title={fullLabel}
+      className={`inline-flex max-w-full cursor-default rounded-md border px-2 py-0.5 text-[11px] font-semibold leading-none tracking-tight ${cls}`}
+    >
+      {short}
     </span>
   );
 }
@@ -81,14 +72,36 @@ function QhseRoleBadge({ role }) {
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      <button type="button" className="fixed inset-0 bg-black/60 backdrop-blur-sm border-0 cursor-pointer" onClick={onClose} aria-label="Close" />
-      <div className="relative z-10 w-full max-w-lg mx-4 rounded-2xl border border-white/10 bg-gray-900 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <h3 className="text-lg font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="text-white/60 hover:text-white text-xl leading-none">&times;</button>
+    <div
+      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto px-4 pb-10 pt-4 sm:px-6 sm:pb-12 sm:pt-6 md:pt-8"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-modal-title"
+    >
+      {/* Panel: horizontal center, sits below top bar (center-top) */}
+      <button
+        type="button"
+        className="absolute inset-0 border-0 bg-slate-950/55 backdrop-blur-md backdrop-saturate-150 cursor-pointer transition-[backdrop-filter] duration-200"
+        onClick={onClose}
+        aria-label="Close dialog"
+      />
+      <div className="relative z-10 flex max-h-[min(90dvh,720px)] min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-gray-900 shadow-2xl shadow-black/50">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-6 py-4">
+          <h3 id="admin-modal-title" className="text-lg font-bold text-white">
+            {title}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-white/60 transition hover:bg-white/10 hover:text-white"
+            aria-label="Close"
+          >
+            <span className="text-xl leading-none">&times;</span>
+          </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="sidebar-scrollbar-dark min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -325,21 +338,33 @@ export default function AdminPanel() {
   const labelCls = "block text-sm font-medium text-white/70 mb-1.5";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white">User Management</h2>
-          <p className="text-white/50 text-sm mt-1">
-            Manage users, Operations, HR, PMS, and QHSE roles (each module has its own permission matrix).
+      <div className="flex flex-col gap-5 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Administration
+          </p>
+          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            User management
+          </h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
+            Assign module-specific roles for Operations, HR, PMS, and QHSE. Hover a role badge in the table
+            to see the full permission description.
           </p>
         </div>
         <button
-          onClick={() => { setShowAddModal(true); clearMessages(); }}
-          className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition"
+          type="button"
+          onClick={() => {
+            setShowAddModal(true);
+            clearMessages();
+          }}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-          Add User
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Add user
         </button>
       </div>
 
@@ -358,14 +383,25 @@ export default function AdminPanel() {
       )}
 
       {/* Search */}
-      <div className="relative max-w-md">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+      <div className="relative max-w-xl">
+        <svg
+          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
         <input
-          type="text"
-          placeholder="Search by name, email, ID or role..."
+          type="search"
+          placeholder="Search by name, email, employee ID, or role…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className={`${inputCls} pl-10`}
+          className={`${inputCls} border-white/[0.08] bg-slate-950/40 pl-10 shadow-inner shadow-black/20`}
+          aria-label="Search users"
         />
       </div>
 
@@ -375,70 +411,171 @@ export default function AdminPanel() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-orange-500" />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="px-4 py-3 text-left font-semibold text-white/80">Employee ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-white/80">Name</th>
-                <th className="px-4 py-3 text-left font-semibold text-white/80 hidden sm:table-cell">Email</th>
-                <th className="px-4 py-3 text-left font-semibold text-white/80">Ops Role</th>
-                <th className="px-4 py-3 text-left font-semibold text-white/80 hidden lg:table-cell">HR Role</th>
-                <th className="px-4 py-3 text-left font-semibold text-white/80 hidden xl:table-cell">PMS Role</th>
-                <th className="px-4 py-3 text-left font-semibold text-white/80 hidden xl:table-cell">QHSE Role</th>
-                <th className="px-4 py-3 text-center font-semibold text-white/80">Status</th>
-                <th className="px-4 py-3 text-center font-semibold text-white/80">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-white/40">No users found</td></tr>
-              ) : (
-                filtered.map((u) => (
-                  <tr key={u._id} className="border-b border-white/5 hover:bg-white/5 transition">
-                    <td className="px-4 py-3 text-white/70 font-mono text-xs">{u.employeeId}</td>
-                    <td className="px-4 py-3 text-white font-medium">{u.employeeName}</td>
-                    <td className="px-4 py-3 text-white/60 hidden sm:table-cell">{u.email}</td>
-                    <td className="px-4 py-3"><RoleBadge role={u.operationsRole || "viewer"} /></td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      <HrRoleBadge role={u.hrRole || "viewer"} />
-                    </td>
-                    <td className="px-4 py-3 hidden xl:table-cell">
-                      <PmsRoleBadge role={u.pmsRole || "viewer"} />
-                    </td>
-                    <td className="px-4 py-3 hidden xl:table-cell">
-                      <QhseRoleBadge role={u.qhseRole || "viewer"} />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${u.isActive !== false ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
-                        {u.isActive !== false ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => openEdit(u)} title="Edit user" className="rounded-lg border border-amber-400/40 p-1.5 text-amber-300 hover:bg-amber-500/15 transition">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                        </button>
-                        <button onClick={() => openPasswordChange(u)} title="Change password" className="rounded-lg border border-sky-400/40 p-1.5 text-sky-300 hover:bg-sky-500/15 transition">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-                        </button>
-                        {String(u._id) !== String(currentUser?._id) && (
-                          <button onClick={() => openDelete(u)} title="Delete user" className="rounded-lg border border-rose-400/40 p-1.5 text-rose-300 hover:bg-rose-500/15 transition">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                        )}
-                      </div>
+        <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/30 shadow-xl shadow-black/40 ring-1 ring-white/[0.04]">
+          <div className="sidebar-scrollbar-dark overflow-x-auto">
+            <table className="w-full min-w-[860px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-white/[0.06] bg-slate-900/80">
+                  <th
+                    scope="col"
+                    className="sticky top-0 z-[1] px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 backdrop-blur-sm"
+                  >
+                    Employee ID
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 z-[1] px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 backdrop-blur-sm"
+                  >
+                    Name
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 z-[1] hidden px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 backdrop-blur-sm sm:table-cell"
+                  >
+                    Email
+                  </th>
+                  <th
+                    scope="col"
+                    colSpan={4}
+                    className="sticky top-0 z-[1] border-l border-white/[0.06] px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 backdrop-blur-sm"
+                  >
+                    Module roles
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 z-[1] px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 backdrop-blur-sm"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 z-[1] px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 backdrop-blur-sm"
+                  >
+                    Actions
+                  </th>
+                </tr>
+                <tr className="border-b border-white/[0.06] bg-slate-900/60 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+                  <th className="px-5 py-2" colSpan={3} />
+                  <th className="border-l border-white/[0.06] px-3 py-2 text-left lg:px-4">Ops</th>
+                  <th className="hidden px-3 py-2 text-left lg:table-cell lg:px-4">HR</th>
+                  <th className="hidden px-3 py-2 text-left xl:table-cell xl:px-4">PMS</th>
+                  <th className="hidden px-3 py-2 text-left xl:table-cell xl:px-4">QHSE</th>
+                  <th className="px-4 py-2" colSpan={2} />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-5 py-16 text-center text-sm text-slate-500">
+                      No users match your search.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filtered.map((u) => (
+                    <tr
+                      key={u._id}
+                      className="transition-colors hover:bg-white/[0.03] even:bg-white/[0.015]"
+                    >
+                      <td className="whitespace-nowrap px-5 py-4 font-mono text-sm tabular-nums text-slate-300">
+                        {u.employeeId}
+                      </td>
+                      <td className="px-5 py-4 font-medium text-white">{u.employeeName}</td>
+                      <td className="hidden max-w-[220px] truncate px-5 py-4 text-slate-400 sm:table-cell" title={u.email}>
+                        {u.email}
+                      </td>
+                      <td className="border-l border-white/[0.06] px-3 py-4 lg:px-4">
+                        <ModuleRoleChip moduleKey="operations" role={u.operationsRole} />
+                      </td>
+                      <td className="hidden px-3 py-4 lg:table-cell lg:px-4">
+                        <ModuleRoleChip moduleKey="hr" role={u.hrRole} />
+                      </td>
+                      <td className="hidden px-3 py-4 xl:table-cell xl:px-4">
+                        <ModuleRoleChip moduleKey="pms" role={u.pmsRole} />
+                      </td>
+                      <td className="hidden px-3 py-4 xl:table-cell xl:px-4">
+                        <ModuleRoleChip moduleKey="qhse" role={u.qhseRole} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+                            u.isActive !== false
+                              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                              : "border-rose-500/25 bg-rose-500/10 text-rose-200"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                              u.isActive !== false ? "bg-emerald-400" : "bg-rose-400"
+                            }`}
+                            aria-hidden
+                          />
+                          {u.isActive !== false ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-4">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(u)}
+                            className="rounded-md border border-white/10 bg-white/[0.03] p-2 text-slate-300 transition hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-200"
+                            title="Edit user"
+                            aria-label={`Edit ${u.employeeName}`}
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openPasswordChange(u)}
+                            className="rounded-md border border-white/10 bg-white/[0.03] p-2 text-slate-300 transition hover:border-sky-500/30 hover:bg-sky-500/10 hover:text-sky-200"
+                            title="Change password"
+                            aria-label={`Change password for ${u.employeeName}`}
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                              />
+                            </svg>
+                          </button>
+                          {String(u._id) !== String(currentUser?._id) && (
+                            <button
+                              type="button"
+                              onClick={() => openDelete(u)}
+                              className="rounded-md border border-white/10 bg-white/[0.03] p-2 text-slate-300 transition hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-200"
+                              title="Delete user"
+                              aria-label={`Delete ${u.employeeName}`}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      <div className="text-xs text-white/30 text-right">
-        Total: {filtered.length} user{filtered.length !== 1 ? "s" : ""}
+      <div className="flex justify-end text-xs text-slate-500">
+        <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 font-medium tabular-nums text-slate-400">
+          {filtered.length} user{filtered.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
       {/* Add User Modal */}

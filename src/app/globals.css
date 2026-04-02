@@ -151,3 +151,23 @@ select:-webkit-autofill:active {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Dark scrollbar (Operations-style): black thumb, invisible track — use on sidebars + modals */
+.sidebar-scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.5) transparent;
+}
+.sidebar-scrollbar-dark::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.sidebar-scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.55);
+  border-radius: 9999px;
+}
+.sidebar-scrollbar-dark:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.8);
+}
