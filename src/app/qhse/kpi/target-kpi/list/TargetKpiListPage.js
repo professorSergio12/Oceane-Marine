@@ -4,6 +4,8 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton } from "../../../components/ActionIcons";
@@ -143,6 +145,10 @@ export default function TargetKpiListPage() {
 
   const years = availableYears.length > 0 ? availableYears : getYears();
 
+  const targetKpiListPagination = useOperationsClientPagination(items, `${year}|${items.length}`);
+  const { paginatedItems: paginatedTargetKpiRows, ...targetKpiListPaginationFooterProps } =
+    targetKpiListPagination;
+
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
@@ -241,7 +247,7 @@ export default function TargetKpiListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {items.map((item) => (
+                  {paginatedTargetKpiRows.map((item) => (
                     <tr key={item._id} className="hover:bg-white/5">
                       <td className="px-4 py-3 font-mono font-medium text-sky-300">
                         {item.formCode || "—"}
@@ -298,6 +304,7 @@ export default function TargetKpiListPage() {
                   ))}
                 </tbody>
               </table>
+              <OperationsListPaginationFooter {...targetKpiListPaginationFooterProps} />
             </div>
           )}
         </div>

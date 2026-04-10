@@ -3,13 +3,15 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useQhseRole } from "@/hooks/useQhseRole";
 import Link from "next/link";
+import { useQhseMongoCursorList } from "../../../hooks/useQhseMongoCursorList";
+import QhseCursorPaginationFooter from "../../../components/QhseCursorPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -26,14 +28,8 @@ export default function PoacCrossCompetencyListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const { canDelete, canDownload } = useQhseRole();
-  const [forms, setForms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const [totalFromApi, setTotalFromApi] = useState(0);
-  const [totalPagesFromApi, setTotalPagesFromApi] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [year, setYear] = useState("");
   const [availableYears, setAvailableYears] = useState([]);
@@ -49,55 +45,61 @@ export default function PoacCrossCompetencyListPage() {
     return Array.from({ length: 5 }, (_, i) => currentYear - i);
   };
 
-  const fetchForms = async () => {
-    setLoading(true);
-    setPageLoading(true);
-    setError(null);
-    try {
+  const itemsPerPage = 10;
+
+  const loadPage = useCallback(
+    async (requestCursor) => {
       const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
+        paged: "cursor",
+        limit: String(itemsPerPage),
         latestOnly: "true",
       });
-
-      if (searchTerm.trim()) {
-        params.append("search", searchTerm.trim());
+      if (searchDebounced.trim()) {
+        params.append("search", searchDebounced.trim());
       }
-
       if (statusFilter !== "all") {
         params.append("status", statusFilter);
       }
-
       if (year !== "" && year != null) {
         params.append("year", year.toString());
       }
-
+      if (requestCursor) {
+        params.append("cursor", requestCursor);
+      }
       const res = await fetch(
         `/api/qhse/cross-competency/list?${params.toString()}`
       );
       const data = await res.json();
-
       if (!res.ok) {
         throw new Error(data.error || "Failed to load forms");
       }
-
-      setForms(data.data || []);
-      setTotalFromApi(data.total ?? 0);
-      setTotalPagesFromApi(data.totalPages ?? 1);
       if (data.years && data.years.length > 0) {
         setAvailableYears(data.years);
       }
-    } catch (err) {
-      setError(err.message || "Failed to load forms");
-    } finally {
-      setLoading(false);
-      setPageLoading(false);
-    }
-  };
+      return {
+        items: data.data || [],
+        hasNext: !!data.hasNext,
+      };
+    },
+    [searchDebounced, statusFilter, year]
+  );
+
+  const cursorResetKey = `${searchDebounced}|${statusFilter}|${year}`;
+  const {
+    items: forms,
+    loading,
+    error,
+    setError,
+    hasNext,
+    hasPrev,
+    goNext,
+    goPrev,
+    setItems: setForms,
+  } = useQhseMongoCursorList(loadPage, cursorResetKey);
 
   useEffect(() => {
-    fetchForms();
-  }, [currentPage, statusFilter, year]);
+    setPageLoading(loading);
+  }, [loading, setPageLoading]);
 
   const handleArchive = async (form) => {
     if (!confirm("Archive this form? It will be stored in QHSE Archive (POAC Cross Competency).")) return;
@@ -224,23 +226,10 @@ export default function PoacCrossCompetencyListPage() {
     fetchYears();
   }, []);
 
-  // Debounced search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (currentPage === 1) {
-        fetchForms();
-      } else {
-        setCurrentPage(1);
-      }
-    }, 500);
-
+    const timer = setTimeout(() => setSearchDebounced(searchTerm), 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -261,8 +250,6 @@ export default function PoacCrossCompetencyListPage() {
       </span>
     );
   };
-
-  const totalPages = totalPagesFromApi;
 
   return (
     <div className={`${contentClassName} pr-4`}>
@@ -305,7 +292,6 @@ export default function PoacCrossCompetencyListPage() {
                     onChange={(e) => {
                       const v = e.target.value;
                       setYear(v === "" ? "" : Number(v));
-                      setCurrentPage(1);
                     }}
                     disabled={loadingYears}
                   >
@@ -324,7 +310,6 @@ export default function PoacCrossCompetencyListPage() {
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
-                    setCurrentPage(1);
                   }}
                 >
                   <option value="all">All Status</option>
@@ -473,30 +458,20 @@ export default function PoacCrossCompetencyListPage() {
                     </tbody>
                   </table>
                 </div>
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <p className="text-xs text-slate-300">
-                      Showing page {currentPage} of {totalPages}
-                      {totalFromApi > 0 && ` (${totalFromApi} total)`}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage >= totalPages}
-                        className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <QhseCursorPaginationFooter
+                  hasPrev={hasPrev}
+                  hasNext={hasNext}
+                  itemCount={forms.length}
+                  onPrev={() => {
+                    void goPrev();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  onNext={() => {
+                    void goNext();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  loading={loading}
+                />
               </>
             )}
           </QhseListPageContainer>

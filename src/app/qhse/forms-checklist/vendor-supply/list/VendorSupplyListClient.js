@@ -3,7 +3,9 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
@@ -113,8 +115,28 @@ export default function VendorSupplyListClient() {
     fetchForms();
   }, [year]);
 
-  const filteredForms =
-    filter === "ALL" ? forms : forms.filter((form) => form.status === filter);
+  const filteredForms = useMemo(
+    () => (filter === "ALL" ? forms : forms.filter((form) => form.status === filter)),
+    [forms, filter]
+  );
+
+  const vendorSearchFiltered = useMemo(() => {
+    if (!searchTerm.trim()) return filteredForms;
+    const s = searchTerm.toLowerCase();
+    return filteredForms.filter(
+      (f) =>
+        (f.serialNumber || "").toLowerCase().includes(s) ||
+        (f.formCode || f.formNo || "").toLowerCase().includes(s) ||
+        (f.vendorName || "").toLowerCase().includes(s)
+    );
+  }, [filteredForms, searchTerm]);
+
+  const vendorSupplyListPagination = useOperationsClientPagination(
+    vendorSearchFiltered,
+    `${searchTerm}|${filter}|${year}|${forms.length}`
+  );
+  const { paginatedItems: paginatedVendorRows, ...vendorSupplyListPaginationFooterProps } =
+    vendorSupplyListPagination;
 
   const handleEdit = (id) => {
     if (!canEdit) return;
@@ -379,14 +401,7 @@ export default function VendorSupplyListClient() {
               {error}
             </div>
           )}
-          {(() => {
-            const searchFiltered = !searchTerm.trim()
-              ? filteredForms
-              : filteredForms.filter((f) => {
-                  const s = searchTerm.toLowerCase();
-                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || f.formNo || "").toLowerCase().includes(s) || (f.vendorName || "").toLowerCase().includes(s);
-                });
-            return searchFiltered.length === 0 ? (
+          {vendorSearchFiltered.length === 0 ? (
           <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
             <p className="text-white/60 text-sm">
               {filter === "DRAFT"
@@ -673,7 +688,7 @@ export default function VendorSupplyListClient() {
             {/* List View - Hidden when detail card is shown */}
             {!selectedForm && (
               <div className="space-y-4">
-                {searchFiltered.map((form) => (
+                {paginatedVendorRows.map((form) => (
                   <div
                     key={form._id}
                     className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 flex items-center justify-between gap-4 hover:border-white/20 transition"
@@ -747,11 +762,11 @@ export default function VendorSupplyListClient() {
                     </div>
                   </div>
                 ))}
+                <OperationsListPaginationFooter {...vendorSupplyListPaginationFooterProps} />
               </div>
             )}
           </div>
-        );
-          })()}
+        )}
         </QhseListPageContainer>
       </div>
 

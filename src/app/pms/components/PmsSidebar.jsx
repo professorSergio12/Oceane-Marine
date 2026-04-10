@@ -67,7 +67,7 @@ export default function PmsSidebar() {
     <>
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[280px] bg-slate-900/98 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[280px] bg-slate-900/98 border-r border-white/20 shadow-2xl backdrop-blur-[2px] z-50 transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

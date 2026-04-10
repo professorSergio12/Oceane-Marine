@@ -17,6 +17,8 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -176,6 +178,12 @@ export default function QuotationListPage() {
           formatDate(r.proposalDate || r.createdAt).toLowerCase().includes(s)
         );
       });
+
+  const pagination = useOperationsClientPagination(
+    searchFiltered,
+    `${year}|${quotationTab}|${searchTerm}`
+  );
+  const { paginatedItems: paginatedQuotations, ...paginationFooterProps } = pagination;
 
   if (loading) {
     return (
@@ -464,7 +472,7 @@ export default function QuotationListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {searchFiltered.map((row) => (
+                    {paginatedQuotations.map((row) => (
                       <tr key={row._id} className="hover:bg-white/5 transition">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm font-mono text-orange-400">{row.formType || "—"}</span>
@@ -502,6 +510,7 @@ export default function QuotationListPage() {
                   </tbody>
                 </table>
               </div>
+              <OperationsListPaginationFooter {...paginationFooterProps} />
             </div>
           )}
         </section>

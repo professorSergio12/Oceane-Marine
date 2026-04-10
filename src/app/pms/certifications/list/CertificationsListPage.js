@@ -10,6 +10,8 @@ import {
   ActionDeleteIcon,
 } from "@/app/components/RecordActionIcons";
 import { usePmsRole } from "@/hooks/usePmsRole";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 export default function CertificationsListPage() {
   const router = useRouter();
@@ -39,6 +41,12 @@ export default function CertificationsListPage() {
   useEffect(() => {
     fetchList();
   }, []);
+
+  const certsPagination = useOperationsClientPagination(items, items.length);
+  const {
+    paginatedItems: paginatedCertItems,
+    ...certsPaginationFooterProps
+  } = certsPagination;
 
   const handleEdit = (item) => {
     if (!canEdit) return;
@@ -79,7 +87,7 @@ export default function CertificationsListPage() {
         <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Link
             href="/dashboard"
-            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
+            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-[2px] transition flex-shrink-0"
           >
             ← Dashboard
           </Link>
@@ -119,7 +127,7 @@ export default function CertificationsListPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+        <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] shadow-2xl overflow-hidden">
           <div className="grid grid-cols-6 text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3">
             <div>Location</div>
             <div>Equipment Name</div>
@@ -134,46 +142,49 @@ export default function CertificationsListPage() {
           ) : items.length === 0 ? (
             <div className="p-6 text-sm text-slate-300">No records found.</div>
           ) : (
-            <div className="divide-y divide-white/10">
-              {items.map((item) => (
-                <div
-                  key={item._id}
-                  className="grid grid-cols-6 items-center px-4 py-3 text-sm"
-                >
-                  <div className="font-medium text-white">{item.locationName}</div>
-                  <div className="text-slate-200">{item.equipmentName || "—"}</div>
-                  <div className="text-slate-200">{item.equipmentType || "—"}</div>
-                  <div className="text-slate-200">{item.testedBy || "—"}</div>
-                  <div className="text-slate-400">
-                    {item.createdAt
-                      ? new Date(item.createdAt).toLocaleDateString()
-                      : "-"}
-                  </div>
-                  <div className="text-right flex items-center justify-end gap-2">
-                    <ActionViewIcon
-                      onClick={() => setSelectedItem(item)}
-                      disabled={deletingId === item._id}
-                      title="View certificate"
-                    />
-                    {canEdit && (
-                      <ActionEditIcon
-                        onClick={() => handleEdit(item)}
+            <>
+              <div className="divide-y divide-white/10">
+                {paginatedCertItems.map((item) => (
+                  <div
+                    key={item._id}
+                    className="grid grid-cols-6 items-center px-4 py-3 text-sm"
+                  >
+                    <div className="font-medium text-white">{item.locationName}</div>
+                    <div className="text-slate-200">{item.equipmentName || "—"}</div>
+                    <div className="text-slate-200">{item.equipmentType || "—"}</div>
+                    <div className="text-slate-200">{item.testedBy || "—"}</div>
+                    <div className="text-slate-400">
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleDateString()
+                        : "-"}
+                    </div>
+                    <div className="text-right flex items-center justify-end gap-2">
+                      <ActionViewIcon
+                        onClick={() => setSelectedItem(item)}
                         disabled={deletingId === item._id}
-                        title="Edit certificate"
+                        title="View certificate"
                       />
-                    )}
-                    {canDelete && (
-                      <ActionDeleteIcon
-                        onClick={() => handleDelete(item._id)}
-                        disabled={deletingId === item._id || !!deletingId}
-                        loading={deletingId === item._id}
-                        title="Delete certificate"
-                      />
-                    )}
+                      {canEdit && (
+                        <ActionEditIcon
+                          onClick={() => handleEdit(item)}
+                          disabled={deletingId === item._id}
+                          title="Edit certificate"
+                        />
+                      )}
+                      {canDelete && (
+                        <ActionDeleteIcon
+                          onClick={() => handleDelete(item._id)}
+                          disabled={deletingId === item._id || !!deletingId}
+                          loading={deletingId === item._id}
+                          title="Delete certificate"
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <OperationsListPaginationFooter {...certsPaginationFooterProps} />
+            </>
           )}
         </div>
       </div>
@@ -181,7 +192,7 @@ export default function CertificationsListPage() {
       {/* VIEW MODAL - rendered via Portal to document.body so it's truly centered on viewport */}
       {selectedItem && typeof document !== "undefined" && createPortal(
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-[2px] z-[9999] flex items-center justify-center p-4"
           style={{ margin: 0, top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -189,9 +200,9 @@ export default function CertificationsListPage() {
             }
           }}
         >
-          <div className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-2xl border border-white/20 shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+          <div className="rounded-2xl border border-white/20 bg-[#0b2740]/92 backdrop-blur-[2px] shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="bg-slate-800 border-b border-white/10 px-6 py-5 flex items-center justify-between flex-shrink-0">
+            <div className="border-b border-white/10 bg-[#0b2740]/70 backdrop-blur-[2px] px-6 py-5 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 shadow-lg shadow-sky-500/30">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

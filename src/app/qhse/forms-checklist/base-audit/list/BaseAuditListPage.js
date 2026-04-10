@@ -3,7 +3,9 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
@@ -308,6 +310,26 @@ export default function BaseAuditListPage() {
     }
   };
 
+  const filteredBaseAuditItems = useMemo(() => {
+    if (!searchTerm.trim()) return reports;
+    const s = searchTerm.toLowerCase();
+    return reports.filter((r) => {
+      const locName = (locations.find((l) => l._id === r.locationId) || {}).name || "";
+      return (
+        (r.serialNumber || "").toLowerCase().includes(s) ||
+        (r.formCode || "").toLowerCase().includes(s) ||
+        locName.toLowerCase().includes(s)
+      );
+    });
+  }, [reports, searchTerm, locations]);
+
+  const baseAuditListPagination = useOperationsClientPagination(
+    filteredBaseAuditItems,
+    `${searchTerm}|${year}|${locationId}|${reports.length}`
+  );
+  const { paginatedItems: paginatedBaseAuditRows, ...baseAuditListPaginationFooterProps } =
+    baseAuditListPagination;
+
   if (loading) return null;
 
   return (
@@ -457,15 +479,7 @@ export default function BaseAuditListPage() {
                 Upload Report
               </Link>
             </div>
-          ) : (() => {
-            const filtered = !searchTerm.trim()
-              ? reports
-              : reports.filter((r) => {
-                  const s = searchTerm.toLowerCase();
-                  const locName = (locations.find((l) => l._id === r.locationId) || {}).name || "";
-                  return (r.serialNumber || "").toLowerCase().includes(s) || (r.formCode || "").toLowerCase().includes(s) || locName.toLowerCase().includes(s);
-                });
-            return filtered.length === 0 ? (
+          ) : filteredBaseAuditItems.length === 0 ? (
               <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
                 <p className="text-white/60">No reports matching search.</p>
               </div>
@@ -486,7 +500,7 @@ export default function BaseAuditListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((report) => (
+                    {paginatedBaseAuditRows.map((report) => (
                       <tr
                         key={report._id}
                         className="border-b border-white/5 hover:bg-white/5 transition"
@@ -577,9 +591,9 @@ export default function BaseAuditListPage() {
                     ))}
                   </tbody>
                 </table>
+                <OperationsListPaginationFooter {...baseAuditListPaginationFooterProps} />
               </div>
-            );
-          })()}
+            )}
           </QhseListPageContainer>
         </main>
       </div>

@@ -11,6 +11,8 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 const FORMS = [
   { formNo: 'OPS-OFD-001', title: 'Before Operation Commence', apiPath: 'ops-ofd-001' },
@@ -52,6 +54,9 @@ export default function StsChecklistListPage() {
       f.apiPath.toLowerCase().includes(s)
     );
   });
+
+  const pagination = useOperationsClientPagination(formsFiltered, searchTerm);
+  const { paginatedItems: formsPage, ...paginationFooterProps } = pagination;
 
   const handleViewList = (apiPath) => {
     router.push(`/operations/sts-operations/new/form-checklist/sts-checklist/${apiPath}/list`);
@@ -248,7 +253,7 @@ export default function StsChecklistListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {formsFiltered.map((form, index) => (
+                  {formsPage.map((form, index) => (
                     <tr
                       key={form.formNo}
                       className="hover:bg-white/5 transition"
@@ -274,6 +279,7 @@ export default function StsChecklistListPage() {
                 </tbody>
               </table>
             </div>
+            <OperationsListPaginationFooter {...paginationFooterProps} />
           </div>
           )}
           </QhseListPageContainer>

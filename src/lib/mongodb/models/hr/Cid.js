@@ -26,6 +26,9 @@ const cidSchema = new mongoose.Schema(
       enum: ["ACTIVE", "INACTIVE"],
       default: "ACTIVE",
     },
+    /** Set when 5-day CID expiry reminder was sent (dedupe per validity date) */
+    lastCidExpiryReminder5dAt: { type: Date },
+    lastCidExpiryReminder5dValidity: { type: Date },
   },
   { timestamps: true }
 );

@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
 import { DownloadIconButton } from "../../../qhse/components/ActionIcons";
 import { useHrRole } from "@/hooks/useHrRole";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -110,6 +112,12 @@ export default function CidListPage({ onRefresh }) {
     if (filterTitle) filtered = filtered.filter((r) => r.title === filterTitle);
     setFilteredRecords(filtered);
   }, [records, filterLocation, filterTitle]);
+
+  const cidListPagination = useOperationsClientPagination(
+    filteredRecords,
+    `${filterTitle}|${filterLocation}|${records.length}`
+  );
+  const { paginatedItems: paginatedListRows, ...cidListPaginationFooterProps } = cidListPagination;
 
   const fetchRecords = async () => {
     try {
@@ -265,7 +273,7 @@ export default function CidListPage({ onRefresh }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((record) => (
+                    {paginatedListRows.map((record) => (
                       <tr
                         key={record._id}
                         className="border-b border-white/5 hover:bg-white/5 transition"
@@ -305,6 +313,7 @@ export default function CidListPage({ onRefresh }) {
                   </tbody>
                 </table>
               </div>
+              <OperationsListPaginationFooter {...cidListPaginationFooterProps} />
             </div>
           )}
       </div>

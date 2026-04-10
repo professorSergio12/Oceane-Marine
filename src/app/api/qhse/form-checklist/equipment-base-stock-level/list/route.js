@@ -1,32 +1,19 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsEquipmentBaseStockLevel from "@/lib/mongodb/models/qhse-form-checklist/StsEquipmentBaseStockLevel";
+import { findWithMongoIdCursor } from "@/lib/qhse/mongoIdCursorPagination";
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 export async function GET(req) {
   await connectDB();
   try {
     const { searchParams } = new URL(req.url);
+    const useCursor = searchParams.get("paged") === "cursor";
     const year = searchParams.get("year");
 
-    // Build query
-    const query = {};
-    
-    // Filter by year if provided: match serialNumber (e.g. 2026-001) OR year field
-    if (year) {
-      const yearNum = Number.parseInt(year, 10);
-      if (!Number.isNaN(yearNum)) {
-        query.$or = [
-          { serialNumber: new RegExp(`^${yearNum}-`) },
-          { year: yearNum },
-        ];
-      }
-    }
-
-    const records = await StsEquipmentBaseStockLevel.find(query)
-      .sort({ revisionDate: -1, createdAt: -1 })
-      .lean();
-
-    // Get available years from serialNumber and year field
     const allRecords = await StsEquipmentBaseStockLevel.find({})
       .select("serialNumber year")
       .lean();
@@ -44,8 +31,74 @@ export async function GET(req) {
 
     const years = Array.from(yearsSet).sort((a, b) => b - a);
 
-    return NextResponse.json({ 
-      success: true, 
+    if (useCursor) {
+      const statusParam = searchParams.get("status");
+      const excludeDraft = searchParams.get("excludeDraft") === "1";
+      const search = searchParams.get("search");
+      const cursor = searchParams.get("cursor");
+      const limit = searchParams.get("limit");
+
+      const parts = [];
+      if (year) {
+        const yearNum = Number.parseInt(year, 10);
+        if (!Number.isNaN(yearNum)) {
+          parts.push({
+            $or: [
+              { serialNumber: new RegExp(`^${yearNum}-`) },
+              { year: yearNum },
+            ],
+          });
+        }
+      }
+      if (excludeDraft) {
+        parts.push({ status: { $ne: "DRAFT" } });
+      }
+      if (statusParam && statusParam !== "ALL") {
+        parts.push({ status: statusParam });
+      }
+      if (search && search.trim()) {
+        const rx = new RegExp(escapeRegex(search.trim()), "i");
+        parts.push({
+          $or: [
+            { serialNumber: rx },
+            { formCode: rx },
+          ],
+        });
+      }
+
+      const filter = parts.length === 0 ? {} : { $and: parts };
+
+      const { items, hasNext } = await findWithMongoIdCursor(
+        StsEquipmentBaseStockLevel,
+        filter,
+        { cursor, limit }
+      );
+
+      return NextResponse.json({
+        success: true,
+        data: items,
+        hasNext,
+        years: years.length > 0 ? years : [new Date().getFullYear()],
+      });
+    }
+
+    const query = {};
+    if (year) {
+      const yearNum = Number.parseInt(year, 10);
+      if (!Number.isNaN(yearNum)) {
+        query.$or = [
+          { serialNumber: new RegExp(`^${yearNum}-`) },
+          { year: yearNum },
+        ];
+      }
+    }
+
+    const records = await StsEquipmentBaseStockLevel.find(query)
+      .sort({ revisionDate: -1, createdAt: -1 })
+      .lean();
+
+    return NextResponse.json({
+      success: true,
       data: records,
       years: years.length > 0 ? years : [new Date().getFullYear()],
     });

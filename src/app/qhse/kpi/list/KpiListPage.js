@@ -3,7 +3,9 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../components/TemplateDownloadLink";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
@@ -47,6 +49,23 @@ export default function KpiListPage() {
     };
     fetchData();
   }, [year]);
+
+  const filteredKpiItems = useMemo(() => {
+    if (!searchTerm.trim()) return items;
+    const s = searchTerm.toLowerCase();
+    return items.filter(
+      (i) =>
+        (i.originalName || "").toLowerCase().includes(s) ||
+        (i.serialNumber || "").toLowerCase().includes(s) ||
+        (i.formCode || "").toLowerCase().includes(s)
+    );
+  }, [items, searchTerm]);
+
+  const kpiListPagination = useOperationsClientPagination(
+    filteredKpiItems,
+    `${searchTerm}|${year}|${items.length}`
+  );
+  const { paginatedItems: paginatedKpiRows, ...kpiListPaginationFooterProps } = kpiListPagination;
 
   const handleArchive = async (item) => {
     if (!confirm("Archive this KPI file? It will be stored in QHSE Archive (KPI).")) return;
@@ -212,14 +231,7 @@ export default function KpiListPage() {
           )}
           {loading ? (
             <p className="text-sm text-slate-300">Loading...</p>
-          ) : (() => {
-            const filtered = !searchTerm.trim()
-              ? items
-              : items.filter((i) => {
-                  const s = searchTerm.toLowerCase();
-                  return (i.originalName || "").toLowerCase().includes(s) || (i.serialNumber || "").toLowerCase().includes(s) || (i.formCode || "").toLowerCase().includes(s);
-                });
-            return filtered.length === 0 ? (
+          ) : filteredKpiItems.length === 0 ? (
               <p className="text-sm text-slate-300">No uploads yet.</p>
             ) : (
               <div className="overflow-x-auto">
@@ -227,13 +239,13 @@ export default function KpiListPage() {
                   <thead className="text-xs uppercase tracking-wide text-slate-300 border-b border-white/10">
                     <tr>
                       <th className="px-4 py-3">Form code</th>
-                      <th cexlassName="px-4 py-3">Serial</th>
+                      <th className="px-4 py-3">Serial</th>
                       <th className="px-4 py-3">File name</th>
                       <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {filtered.map((item) => (
+                    {paginatedKpiRows.map((item) => (
                     <tr key={item._id} className="hover:bg-white/5">
                       <td className="px-4 py-3 font-mono text-sky-300">
                         {item.formCode || "—"}
@@ -267,9 +279,9 @@ export default function KpiListPage() {
                     ))}
                   </tbody>
                 </table>
+                <OperationsListPaginationFooter {...kpiListPaginationFooterProps} />
               </div>
-            );
-          })()}
+            )}
         </QhseListPageContainer>
       </div>
     </div>

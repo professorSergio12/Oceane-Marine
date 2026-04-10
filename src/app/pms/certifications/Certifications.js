@@ -484,7 +484,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
       {/* VIEW MODAL - rendered via Portal to document.body so it's truly centered on viewport */}
       {selectedItem && typeof document !== "undefined" && createPortal(
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-[2px] z-[9999] flex items-center justify-center p-4"
           style={{ margin: 0, top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {

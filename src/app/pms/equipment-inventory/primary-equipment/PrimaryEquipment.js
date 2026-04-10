@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { ActionViewIcon, ActionDownloadIcon } from "@/app/components/RecordActionIcons";
 import { usePmsRole } from "@/hooks/usePmsRole";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -158,6 +160,31 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
   // List tab detail view state
   const [selectedEquipmentDetail, setSelectedEquipmentDetail] = useState(null);
+
+  const listTabPagination = useOperationsClientPagination(
+    activeTab === "list" ? equipments : [],
+    activeTab === "list" ? `list-${equipments.length}` : "list-off"
+  );
+  const { paginatedItems: paginatedListEquipments, ...listPaginationFooterProps } =
+    listTabPagination;
+
+  const historyEquipPagination = useOperationsClientPagination(
+    activeTab === "history" ? equipments : [],
+    activeTab === "history" ? `hist-eq-${equipments.length}` : "hist-eq-off"
+  );
+  const {
+    paginatedItems: paginatedHistoryEquipments,
+    ...historyEquipPaginationFooterProps
+  } = historyEquipPagination;
+
+  const historyRowsPagination = useOperationsClientPagination(
+    activeTab === "history" && selectedEquipment ? history : [],
+    `${selectedEquipmentId || ""}-${history.length}`
+  );
+  const {
+    paginatedItems: paginatedHistoryRows,
+    ...historyRowsPaginationFooterProps
+  } = historyRowsPagination;
 
   // Load equipments list when list or history tab first opened
   useEffect(() => {
@@ -384,7 +411,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
       {/* Tab content */}
       {activeTab === "list" && (
-        <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-950/40 p-6">
+        <div className="space-y-4 rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-6 shadow-2xl">
           <div className="flex items-center justify-between gap-3 mb-2">
             <h3 className="text-sm font-semibold text-white">
               Equipment List
@@ -405,7 +432,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/10 bg-slate-900/60 overflow-hidden">
+          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
             <div className="border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
               Primary Equipments
             </div>
@@ -433,7 +460,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       </td>
                     </tr>
                   )}
-                  {equipments.map((eq) => (
+                  {paginatedListEquipments.map((eq) => (
                     <tr
                       key={eq._id}
                       className="border-b border-white/5 hover:bg-white/5 transition"
@@ -484,14 +511,15 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 </tbody>
               </table>
             </div>
+            <OperationsListPaginationFooter {...listPaginationFooterProps} />
           </div>
 
           {/* Detail View Card - Right Side */}
           {selectedEquipmentDetail && (
             <div className="relative self-center-safe inset-0 z-30 flex justify-center  pt-10 pb-30">
-             <div className="relative w-full max-w-[1200px] h-[110vh] flex flex-col rounded-3xl border border-sky-500/40 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 shadow-[0_20px_60px_rgba(0,0,0,0.75)] overflow-hidden">
+             <div className="relative w-full max-w-[1200px] h-[110vh] flex flex-col rounded-3xl border border-sky-400/40 bg-[#0b2740]/88 backdrop-blur-[2px] shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-6 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
+                <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-6 bg-[#0b2740]/65 backdrop-blur-[2px] flex-shrink-0">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <button
@@ -788,7 +816,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 </div>
 
                 {/* Footer actions */}
-                <div className="border-t border-white/10 bg-slate-950/80 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
+                <div className="border-t border-white/10 bg-[#0b2740]/65 backdrop-blur-[2px] px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -823,8 +851,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       {activeTab === "form" && (
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 rounded-3xl border border-white/10 p-6 shadow-2xl overflow-x-hidden"
-          style={{ backgroundColor: "#153d59" }}
+          className="space-y-6 rounded-3xl border border-white/10 bg-[#0b2740]/85 backdrop-blur-[2px] p-6 shadow-2xl overflow-x-hidden max-w-6xl mx-auto"
         >
           {!canSubmit && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
@@ -846,7 +873,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="equipmentCode"
                 value={form.equipmentCode}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="E.g., EQ-001"
                 required
               />
@@ -860,7 +887,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="equipmentName"
                 value={form.equipmentName}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="E.g., Transfer Hose"
                 required
               />
@@ -874,7 +901,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="equipmentType"
                 value={form.equipmentType}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="E.g., Lifting Gear, Hose"
               />
             </div>
@@ -891,7 +918,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="specification"
                 value={form.specification}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="Size, capacity, rating, etc."
               />
             </div>
@@ -904,7 +931,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="manufacturer"
                 value={form.manufacturer}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="Manufacturer name"
               />
             </div>
@@ -917,7 +944,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="yearOfManufacturing"
                 value={form.yearOfManufacturing}
                 onChange={handleNumberChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="e.g., 2022"
                 min="1900"
                 max={new Date().getFullYear() + 1}
@@ -935,7 +962,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="ownershipType"
                 value={form.ownershipType}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 required
               >
                 <option value="OWNED">Owned</option>
@@ -951,7 +978,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="dateOfPurchase"
                 value={form.dateOfPurchase}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
               />
             </div>
             <div>
@@ -963,7 +990,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="firstUseDate"
                 value={form.firstUseDate}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
               />
             </div>
             <div>
@@ -975,7 +1002,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="retirementPeriodYears"
                 value={form.retirementPeriodYears}
                 onChange={handleNumberChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 min="1"
               />
             </div>
@@ -992,7 +1019,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="lastTestDate"
                 value={form.lastTestDate}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
               />
             </div>
             <div>
@@ -1004,7 +1031,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="nextTestDate"
                 value={form.nextTestDate}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
               />
             </div>
           </div>
@@ -1020,7 +1047,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="manufacturingCertificate"
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 onChange={(e) => setManufacturingCertificateFile(e.target.files?.[0] || null)}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
               />
             </div>
             <div>
@@ -1032,7 +1059,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 name="testCertificate"
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 onChange={(e) => setTestCertificateFile(e.target.files?.[0] || null)}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
               />
             </div>
           </div>
@@ -1047,7 +1074,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
               value={form.remarks}
               onChange={handleInputChange}
               rows={3}
-              className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500/50 resize-none"
               placeholder="Any additional notes about this equipment"
             />
           </div>
@@ -1066,7 +1093,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       )}
 
       {activeTab === "history" && (
-        <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-950/40 p-6">
+        <div className="space-y-4 rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-6 shadow-2xl">
           {/* Equipments list */}
           <div className="flex items-center justify-between gap-3 mb-2">
             <h3 className="text-sm font-semibold text-white">
@@ -1090,7 +1117,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: equipments table */}
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 overflow-hidden max-h-[420px] flex flex-col">
+            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden max-h-[420px] flex flex-col">
               <div className="border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
                 Primary Equipments
               </div>
@@ -1120,7 +1147,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                         </td>
                       </tr>
                     )}
-                    {equipments.map((eq) => (
+                    {paginatedHistoryEquipments.map((eq) => (
                       <tr
                         key={eq._id}
                         className={`border-b border-white/5 transition ${selectedEquipmentId === eq._id
@@ -1166,10 +1193,11 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   </tbody>
                 </table>
               </div>
+              <OperationsListPaginationFooter {...historyEquipPaginationFooterProps} />
             </div>
 
             {/* Right: history details */}
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 space-y-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4">
               {!selectedEquipment && !historyLoading && (
                 <p className="text-xs text-slate-300">
                   Select an equipment from the list to view its usage history.
@@ -1232,87 +1260,90 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
               )}
 
               {!historyLoading && history.length > 0 && (
-                <div className="rounded-xl border border-white/10 bg-slate-950/60 overflow-auto max-h-[320px]">
-                  <table className="w-full text-[11px]">
-                    <thead>
-                      <tr className="text-left text-slate-100 border-b border-white/10 bg-slate-900/80">
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Job No
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          CHS
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          MS
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Cargo Type
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Date of Job
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Client
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Agent
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Quantity cargo
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Used Hours
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-xs tracking-wide">
-                          Usage Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((h, idx) => (
-                        <tr
-                          key={`${h.jobNo || idx}-${idx}`}
-                          className="border-b border-white/5 hover:bg-white/5 transition"
-                        >
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center rounded-full bg-sky-500/15 px-3 py-1 text-[10px] font-semibold text-sky-100 border border-sky-400/70">
-                              {h.jobNo}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-50 font-medium">
-                            {h.chs}
-                          </td>
-                          <td className="px-4 py-3 text-slate-50 font-medium">
-                            {h.ms}
-                          </td>
-                          <td className="px-4 py-3 text-slate-100">
-                            {h.typeOfCargo}
-                          </td>
-                          <td className="px-4 py-3 text-slate-100">
-                            {formatDateTime(h.dateOfJob)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-100">
-                            {h.client}
-                          </td>
-                          <td className="px-4 py-3 text-slate-100">
-                            {h.agent}
-                          </td>
-                          <td className="px-4 py-3 text-slate-100">
-                            {h.quantityCargo}
-                          </td>
-                          <td className="px-4 py-3 text-slate-100">
-                            {h.usedHours ?? "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 border border-emerald-400/60 text-emerald-200">
-                              {h.usageStatus}
-                            </span>
-                          </td>
+                <>
+                  <div className="rounded-xl border border-white/10 bg-white/5 overflow-auto max-h-[320px]">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="text-left text-slate-100 border-b border-white/10 bg-white/10">
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Job No
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            CHS
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            MS
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Cargo Type
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Date of Job
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Client
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Agent
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Quantity cargo
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Used Hours
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-xs tracking-wide">
+                            Usage Status
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {paginatedHistoryRows.map((h, idx) => (
+                          <tr
+                            key={`${h.jobNo || idx}-${idx}`}
+                            className="border-b border-white/5 hover:bg-white/5 transition"
+                          >
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center rounded-full bg-sky-500/15 px-3 py-1 text-[10px] font-semibold text-sky-100 border border-sky-400/70">
+                                {h.jobNo}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-slate-50 font-medium">
+                              {h.chs}
+                            </td>
+                            <td className="px-4 py-3 text-slate-50 font-medium">
+                              {h.ms}
+                            </td>
+                            <td className="px-4 py-3 text-slate-100">
+                              {h.typeOfCargo}
+                            </td>
+                            <td className="px-4 py-3 text-slate-100">
+                              {formatDateTime(h.dateOfJob)}
+                            </td>
+                            <td className="px-4 py-3 text-slate-100">
+                              {h.client}
+                            </td>
+                            <td className="px-4 py-3 text-slate-100">
+                              {h.agent}
+                            </td>
+                            <td className="px-4 py-3 text-slate-100">
+                              {h.quantityCargo}
+                            </td>
+                            <td className="px-4 py-3 text-slate-100">
+                              {h.usedHours ?? "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 border border-emerald-400/60 text-emerald-200">
+                                {h.usageStatus}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <OperationsListPaginationFooter {...historyRowsPaginationFooterProps} />
+                </>
               )}
             </div>
           </div>

@@ -7,7 +7,9 @@ import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useQhseRole } from "@/hooks/useQhseRole";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -255,6 +257,24 @@ export default function NewBaseSetupChecklistListPage() {
     }
   };
 
+  const filteredNewBaseSetupItems = useMemo(() => {
+    if (!searchTerm.trim()) return forms;
+    const s = searchTerm.toLowerCase();
+    return forms.filter(
+      (f) =>
+        (f.serialNumber || "").toLowerCase().includes(s) ||
+        (f.baseName || "").toLowerCase().includes(s) ||
+        (f.formCode || "").toLowerCase().includes(s)
+    );
+  }, [forms, searchTerm]);
+
+  const newBaseSetupListPagination = useOperationsClientPagination(
+    filteredNewBaseSetupItems,
+    `${searchTerm}|${year}|${forms.length}`
+  );
+  const { paginatedItems: paginatedNewBaseSetupRows, ...newBaseSetupListPaginationFooterProps } =
+    newBaseSetupListPagination;
+
   if (loading) return null;
 
   return (
@@ -386,14 +406,7 @@ export default function NewBaseSetupChecklistListPage() {
                 Upload Checklist
               </Link>
             </div>
-          ) : (() => {
-            const filtered = !searchTerm.trim()
-              ? forms
-              : forms.filter((f) => {
-                  const s = searchTerm.toLowerCase();
-                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.baseName || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s);
-                });
-            return filtered.length === 0 ? (
+          ) : filteredNewBaseSetupItems.length === 0 ? (
               <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
                 <p className="text-white/60">No checklists matching search.</p>
               </div>
@@ -414,7 +427,7 @@ export default function NewBaseSetupChecklistListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((form) => (
+                    {paginatedNewBaseSetupRows.map((form) => (
                       <tr
                         key={form._id}
                         className="border-b border-white/5 hover:bg-white/5 transition"
@@ -518,9 +531,9 @@ export default function NewBaseSetupChecklistListPage() {
                     ))}
                   </tbody>
                 </table>
+                <OperationsListPaginationFooter {...newBaseSetupListPaginationFooterProps} />
               </div>
-            );
-          })()}
+            )}
           </QhseListPageContainer>
         </main>
       </div>

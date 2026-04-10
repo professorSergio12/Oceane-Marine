@@ -16,6 +16,8 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 const FORM_TITLES = {
   'ops-ofd-001': 'OPS-OFD-001 - Before Operation Commence',
@@ -205,6 +207,12 @@ export default function FormListPage() {
           String(form.status || "").toLowerCase().includes(s)
         );
       });
+
+  const pagination = useOperationsClientPagination(
+    searchFiltered,
+    `${selectedYear ?? ""}|${searchTerm}|${formPath}`
+  );
+  const { paginatedItems: paginatedForms, ...paginationFooterProps } = pagination;
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -451,7 +459,7 @@ export default function FormListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {searchFiltered.map((form) => {
+                    {paginatedForms.map((form) => {
                       const fields = getFormDisplayFields(form);
                       return (
                         <tr key={form._id} className="hover:bg-white/5 transition">
@@ -512,6 +520,7 @@ export default function FormListPage() {
                 </tbody>
               </table>
             </div>
+            <OperationsListPaginationFooter {...paginationFooterProps} />
           </div>
             )}
           </QhseListPageContainer>

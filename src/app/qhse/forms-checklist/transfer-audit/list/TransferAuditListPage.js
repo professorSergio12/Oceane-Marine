@@ -3,7 +3,9 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
@@ -291,13 +293,32 @@ export default function TransferAuditListPage() {
     }
   };
 
-  // Filter forms based on selected filter
-  const filteredForms = forms.filter((form) => {
-    if (filter === "pending") return form.status === "Pending";
-    if (filter === "approved") return form.status === "Approved";
-    if (filter === "rejected") return form.status === "Rejected";
-    return true; // "all"
-  });
+  const filteredForms = useMemo(() => {
+    return forms.filter((form) => {
+      if (filter === "pending") return form.status === "Pending";
+      if (filter === "approved") return form.status === "Approved";
+      if (filter === "rejected") return form.status === "Rejected";
+      return true;
+    });
+  }, [forms, filter]);
+
+  const transferAuditSearchFiltered = useMemo(() => {
+    if (!searchTerm.trim()) return filteredForms;
+    const s = searchTerm.toLowerCase();
+    return filteredForms.filter(
+      (f) =>
+        (f.serialNumber || "").toLowerCase().includes(s) ||
+        (f.formCode || "").toLowerCase().includes(s) ||
+        (f.header?.locationName || "").toLowerCase().includes(s)
+    );
+  }, [filteredForms, searchTerm]);
+
+  const transferAuditListPagination = useOperationsClientPagination(
+    transferAuditSearchFiltered,
+    `${searchTerm}|${filter}|${year}|${forms.length}`
+  );
+  const { paginatedItems: paginatedTransferAuditRows, ...transferAuditListPaginationFooterProps } =
+    transferAuditListPagination;
 
   if (loading) return null;
 
@@ -403,14 +424,7 @@ export default function TransferAuditListPage() {
             </div>
           )}
 
-          {(() => {
-            const searchFiltered = !searchTerm.trim()
-              ? filteredForms
-              : filteredForms.filter((f) => {
-                  const s = searchTerm.toLowerCase();
-                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s) || (f.header?.locationName || "").toLowerCase().includes(s);
-                });
-            return searchFiltered.length === 0 ? (
+          {transferAuditSearchFiltered.length === 0 ? (
             <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
               <div className="flex justify-center mb-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/20 border border-sky-500/50">
@@ -801,7 +815,7 @@ export default function TransferAuditListPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {searchFiltered.map((form) => (
+                        {paginatedTransferAuditRows.map((form) => (
                           <tr
                             key={form._id}
                             className="border-b border-white/5 hover:bg-white/5 transition cursor-pointer"
@@ -885,11 +899,12 @@ export default function TransferAuditListPage() {
                         ))}
                       </tbody>
                     </table>
+                    <OperationsListPaginationFooter {...transferAuditListPaginationFooterProps} />
                   </div>
                 </div>
               )}
             </div>
-          ); })()}
+          )}
         </QhseListPageContainer>
       </div>
     </div>

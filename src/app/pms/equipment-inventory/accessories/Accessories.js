@@ -267,7 +267,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
       )}
 
       {/* Form Section */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6">
+      <div className="rounded-3xl border border-white/10 bg-[#0b2740]/85 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl space-y-6 max-w-6xl mx-auto">
         {!canSubmit && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
             You do not have permission to create accessories records.
@@ -289,7 +289,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
                 value={form.equipmentNo}
                 onChange={(e) => setForm({ ...form, equipmentNo: e.target.value })}
                 placeholder="Enter equipment number"
-                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition"
+                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition"
               />
             </div>
           )}
@@ -306,7 +306,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
                 value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                 placeholder="Enter quantity"
-                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition"
+                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition"
               />
             </div>
           )}
@@ -321,7 +321,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
               value={form.equipmentName}
               onChange={(e) => setForm({ ...form, equipmentName: e.target.value })}
               placeholder="Enter equipment name"
-              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition"
+              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition"
             />
           </div>
 
@@ -335,7 +335,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
               value={form.specification}
               onChange={(e) => setForm({ ...form, specification: e.target.value })}
               placeholder="Enter specification"
-              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition"
+              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition"
             />
           </div>
 
@@ -349,7 +349,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
                 type="date"
                 value={form.purchaseDate}
                 onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
               />
             </div>
           </div>
@@ -380,7 +380,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
                   type="date"
                   value={form.putInUseDate}
                   onChange={(e) => setForm({ ...form, putInUseDate: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+                  className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
                 />
               </div>
             </div>
@@ -447,7 +447,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
             onChange={(e) => setForm({ ...form, remarks: e.target.value })}
             placeholder="Enter remarks..."
             rows={4}
-            className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition resize-none"
           />
         </div>
 

@@ -3,15 +3,15 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, EditIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useQhseRole } from "@/hooks/useQhseRole";
-import QhseSidebar from "../../../components/QhseSidebar";
-import SideBarSkeleton from "../../../components/SideBarSkeleton";
+import { useQhseMongoCursorList } from "../../../hooks/useQhseMongoCursorList";
+import QhseCursorPaginationFooter from "../../../components/QhseCursorPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -29,11 +29,7 @@ export default function MOCManagementChangeListPage() {
   const { contentClassName } = useQhseSidebar();
   const router = useRouter();
   const { canEdit, canDelete, canApprove, canDownload } = useQhseRole();
-  const [mocs, setMocs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [selectedMoc, setSelectedMoc] = useState(null);
   const [submitting, setSubmitting] = useState(null);
   const [approving, setApproving] = useState(null);
@@ -60,42 +56,68 @@ export default function MOCManagementChangeListPage() {
     return Array.from({ length: 5 }, (_, i) => currentYear - i);
   };
 
-  const fetchMocs = async () => {
-    setLoading(true);
-    setPageLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  const loadPage = useCallback(
+    async (requestCursor) => {
+      const params = new URLSearchParams({
+        paged: "cursor",
+        limit: "10",
+        status: filter,
+      });
       if (year !== "" && year != null) {
-        params.append("year", String(year));
+        params.set("year", String(year));
       }
-      const url = `/api/qhse/moc/management-change/list${params.toString() ? `?${params.toString()}` : ""}`;
-      const res = await fetch(url);
+      if (searchDebounced.trim()) {
+        params.set("search", searchDebounced.trim());
+      }
+      if (requestCursor) params.set("cursor", requestCursor);
+      const res = await fetch(
+        `/api/qhse/moc/management-change/list?${params.toString()}`
+      );
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to load MOC forms");
       }
-      setMocs(data.data || []);
       if (data.years && data.years.length > 0) {
         setAvailableYears(data.years);
       }
-      if (selectedMoc) {
-        const updated = (data.data || []).find(
-          (m) => m._id === selectedMoc._id
-        );
-        if (updated) setSelectedMoc(updated);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setPageLoading(false);
-    }
-  };
+      return {
+        items: data.data || [],
+        hasNext: !!data.hasNext,
+      };
+    },
+    [year, filter, searchDebounced]
+  );
+
+  const cursorResetKey = `${year}|${filter}|${searchDebounced}`;
+  const {
+    items: mocRows,
+    loading,
+    error,
+    setError,
+    hasNext,
+    hasPrev,
+    goNext,
+    goPrev,
+    refreshFirstPage,
+    setItems: setMocRows,
+  } = useQhseMongoCursorList(loadPage, cursorResetKey);
 
   useEffect(() => {
-    fetchMocs();
-  }, [year]);
+    setPageLoading(loading);
+  }, [loading, setPageLoading]);
+
+  useEffect(() => {
+    setSelectedMoc((prev) => {
+      if (!prev) return prev;
+      const updated = mocRows.find((m) => String(m._id) === String(prev._id));
+      return updated || prev;
+    });
+  }, [mocRows]);
 
   useEffect(() => {
     const fetchYears = async () => {
@@ -127,7 +149,7 @@ export default function MOCManagementChangeListPage() {
       const payload = buildArchivePayload(ARCHIVE_MODULES.MOC_MANAGEMENT_CHANGE, moc, moc.proposedChange || moc.formCode, moc.formCode);
       const result = await archiveDocument(payload);
       if (!result.success) throw new Error(result.error);
-      setMocs((prev) => prev.filter((m) => m._id !== moc._id));
+      setMocRows((prev) => prev.filter((m) => m._id !== moc._id));
       setActionMessage("MOC form archived successfully.");
     } catch (err) {
       setError(err.message);
@@ -158,7 +180,7 @@ export default function MOCManagementChangeListPage() {
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete");
-      setMocs((prev) => prev.filter((m) => m._id !== mocId));
+      setMocRows((prev) => prev.filter((m) => m._id !== mocId));
       setActionMessage("MOC form deleted successfully.");
     } catch (err) {
       setError(err.message);
@@ -193,7 +215,7 @@ export default function MOCManagementChangeListPage() {
         throw new Error(data.error || "Failed to submit form");
       }
 
-      await fetchMocs();
+      await refreshFirstPage();
       setSelectedMoc(null);
       alert("Form submitted successfully!");
     } catch (err) {
@@ -234,7 +256,7 @@ export default function MOCManagementChangeListPage() {
         throw new Error(data.error || "Failed to approve form");
       }
 
-      await fetchMocs();
+      await refreshFirstPage();
       setSelectedMoc(null);
       alert("MOC form approved successfully!");
     } catch (err) {
@@ -271,7 +293,7 @@ export default function MOCManagementChangeListPage() {
         throw new Error(data.error || "Failed to reject form");
       }
 
-      await fetchMocs();
+      await refreshFirstPage();
       setSelectedMoc(null);
       setShowRejectModal(false);
       setRejectionReason("");
@@ -303,7 +325,7 @@ export default function MOCManagementChangeListPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to close");
       const updated = { status: "Closed", statusReview: "Closed" };
-      setMocs((prev) =>
+      setMocRows((prev) =>
         prev.map((m) => (m._id === mocId ? { ...m, ...updated } : m))
       );
       if (selectedMoc?._id === mocId) {
@@ -315,34 +337,6 @@ export default function MOCManagementChangeListPage() {
     } finally {
       setClosingId(null);
     }
-  };
-
-  // Filter MOCs based on selected status filter
-  const filteredMocs = mocs.filter((moc) => {
-    if (filter === "Draft") return moc.status === "Draft";
-    if (filter === "Open") return moc.status === "Open";
-    if (filter === "Closed") return moc.status === "Closed";
-    return true; // "All"
-  });
-
-  const searchFiltered = !searchTerm.trim()
-    ? filteredMocs
-    : filteredMocs.filter((m) => {
-        const s = searchTerm.toLowerCase();
-        return (m.serialNumber || "").toLowerCase().includes(s)
-          || (m.formCode || "").toLowerCase().includes(s)
-          || (m.proposedChange || "").toLowerCase().includes(s);
-      });
-
-  // Pagination calculations
-  const totalPages = Math.ceil(searchFiltered.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentMocs = searchFiltered.slice(startIndex, endIndex);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleViewDetails = (moc) => {
@@ -484,8 +478,6 @@ export default function MOCManagementChangeListPage() {
     }
   };
 
-  if (loading) return null;
-
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
@@ -578,7 +570,6 @@ export default function MOCManagementChangeListPage() {
                     type="button"
                     onClick={() => {
                       setFilter(statusKey);
-                      setCurrentPage(1);
                     }}
                     className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
                       filter === statusKey
@@ -1086,7 +1077,11 @@ export default function MOCManagementChangeListPage() {
           {/* Table - Hidden when detail card is shown */}
           {!selectedMoc && (
             <>
-              {searchFiltered.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5 text-white/60 text-sm">
+                  Loading MOC forms…
+                </div>
+              ) : mocRows.length === 0 ? (
                 <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
                     <p className="text-white/60 mb-4">
                       {searchTerm.trim()
@@ -1138,7 +1133,7 @@ export default function MOCManagementChangeListPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/10">
-                          {currentMocs.map((moc) => (
+                          {mocRows.map((moc) => (
                             <tr
                               key={moc._id}
                               className="hover:bg-white/5 transition"
@@ -1258,28 +1253,20 @@ export default function MOCManagementChangeListPage() {
                     </div>
                   </div>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-sm text-white/80">
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
+                  <QhseCursorPaginationFooter
+                    hasPrev={hasPrev}
+                    hasNext={hasNext}
+                    itemCount={mocRows.length}
+                    onPrev={() => {
+                      void goPrev();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    onNext={() => {
+                      void goNext();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    loading={loading}
+                  />
                 </>
               )}
             </>

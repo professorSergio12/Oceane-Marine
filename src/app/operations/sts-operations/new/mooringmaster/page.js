@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { ActionDeleteIcon } from "@/app/components/RecordActionIcons";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
 import {
   getSidebarTabs,
@@ -26,6 +28,9 @@ export default function MooringMasterPage() {
   useEffect(() => {
     if (canManageMasterData) load();
   }, [canManageMasterData]);
+
+  const mooringPag = useOperationsClientPagination(items, "mooring-master");
+  const { paginatedItems: mooringPageItems, ...mooringFooterProps } = mooringPag;
 
   if (!canManageMasterData) {
     return (
@@ -478,14 +483,14 @@ export default function MooringMasterPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {items.map((item, idx) => (
+              {mooringPageItems.map((item, idx) => (
                 <tr
                   key={item._id || item.name}
                   className="hover:bg-white/5 transition-colors duration-150"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-sm font-semibold text-white/80">
-                      {idx + 1}
+                      {(mooringPag.page - 1) * mooringPag.pageSize + idx + 1}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -557,6 +562,7 @@ export default function MooringMasterPage() {
             </tbody>
           </table>
         </div>
+        <OperationsListPaginationFooter {...mooringFooterProps} />
       </div>
         </div>
       </div>

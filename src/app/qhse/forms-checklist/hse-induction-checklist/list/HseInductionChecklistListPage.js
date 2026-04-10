@@ -6,11 +6,13 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import QhseSidebar from "../../../components/QhseSidebar";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useQhseRole } from "@/hooks/useQhseRole";
 import Link from "next/link";
+import { useQhseMongoCursorList } from "../../../hooks/useQhseMongoCursorList";
+import QhseCursorPaginationFooter from "../../../components/QhseCursorPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -133,9 +135,7 @@ export default function HseInductionChecklistListPage() {
   const currentYear = new Date().getFullYear();
   const initialYears = getYears();
   
-  const [forms, setForms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [selectedForm, setSelectedForm] = useState(null);
   const [approving, setApproving] = useState(null);
   const [rejecting, setRejecting] = useState(null);
@@ -150,8 +150,6 @@ export default function HseInductionChecklistListPage() {
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
   const [year, setYear] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch available years
@@ -174,74 +172,82 @@ export default function HseInductionChecklistListPage() {
     loadYears();
   }, []);
 
-  const fetchForms = async () => {
-    setLoading(true);
-    setPageLoading(true);
-    setError(null);
-    try {
-      const url = year !== "" && year != null
-        ? `/api/qhse/form-checklist/hse-induction-checklist/list?year=${year}`
-        : "/api/qhse/form-checklist/hse-induction-checklist/list";
-      const res = await fetch(url);
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
-      // Check if response is JSON
+  const loadPage = useCallback(
+    async (requestCursor) => {
+      const params = new URLSearchParams({
+        paged: "cursor",
+        limit: "10",
+        status: filter,
+      });
+      if (year !== "" && year != null) {
+        params.set("year", String(year));
+      }
+      if (searchDebounced.trim()) {
+        params.set("search", searchDebounced.trim());
+      }
+      if (requestCursor) params.set("cursor", requestCursor);
+      const res = await fetch(
+        `/api/qhse/form-checklist/hse-induction-checklist/list?${params.toString()}`
+      );
       const contentType = res.headers.get("content-type");
       if (!contentType?.includes("application/json")) {
         throw new Error(
           `Server returned non-JSON response. Status: ${res.status}`
         );
       }
-
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to load forms");
       }
-      setForms(data.data || []);
-    } catch (err) {
-      setError(err.message || "Failed to load forms");
-    } finally {
-      setLoading(false);
-      setPageLoading(false);
-    }
-  };
+      if (res.ok && data.success && Array.isArray(data.years)) {
+        const merged = Array.from(
+          new Set([...initialYears, ...data.years])
+        ).sort((a, b) => b - a);
+        setAvailableYears(merged);
+      }
+      return {
+        items: data.data || [],
+        hasNext: !!data.hasNext,
+      };
+    },
+    [year, filter, searchDebounced, initialYears]
+  );
+
+  const cursorResetKey = `${year}|${filter}|${searchDebounced}`;
+  const {
+    items: forms,
+    loading,
+    error,
+    setError,
+    hasNext,
+    hasPrev,
+    goNext,
+    goPrev,
+    refreshFirstPage,
+    setItems: setForms,
+  } = useQhseMongoCursorList(loadPage, cursorResetKey);
 
   useEffect(() => {
-    fetchForms();
-  }, [year]);
+    setPageLoading(loading);
+  }, [loading, setPageLoading]);
 
-  // Filter forms based on selected filter
-  const filteredForms = forms.filter((form) => {
-    if (filter === "pending") return form.status === "Pending";
-    if (filter === "approved") return form.status === "Approved";
-    if (filter === "rejected") return form.status === "Rejected";
-    return true; // "all"
-  });
-
-  // Clear selected form if it doesn't match current filter
   useEffect(() => {
     if (selectedForm) {
-      const isVisible = filteredForms.some((f) => f._id === selectedForm._id);
-      if (!isVisible) {
+      const matches =
+        filter === "all" ||
+        (filter === "pending" && selectedForm.status === "Pending") ||
+        (filter === "approved" && selectedForm.status === "Approved") ||
+        (filter === "rejected" && selectedForm.status === "Rejected");
+      if (!matches) {
         setSelectedForm(null);
       }
     }
-  }, [filter, filteredForms, selectedForm]);
-
-  const searchFiltered = !searchTerm.trim()
-    ? filteredForms
-    : filteredForms.filter((f) => {
-        const s = searchTerm.toLowerCase();
-        return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || f.formNo || "").toLowerCase().includes(s) || (f.employeeOrContractorName || "").toLowerCase().includes(s);
-      });
-  const totalPages = Math.ceil(searchFiltered.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentForms = searchFiltered.slice(startIndex, endIndex);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, [filter, selectedForm]);
 
   const handleDownloadDocx = async (form) => {
     if (!canDownload) return;
@@ -327,7 +333,7 @@ export default function HseInductionChecklistListPage() {
         throw new Error(data.error || "Failed to approve checklist");
       }
 
-      await fetchForms();
+      await refreshFirstPage();
       // Update selected form if it's the one that was approved
       if (selectedForm?._id === formId && data.data) {
         setSelectedForm(data.data);
@@ -367,7 +373,7 @@ export default function HseInductionChecklistListPage() {
         throw new Error(data.error || "Failed to reject checklist");
       }
 
-      await fetchForms();
+      await refreshFirstPage();
       // Update selected form if it's the one that was rejected
       if (selectedForm?._id === formToReject._id && data.data) {
         setSelectedForm(data.data);
@@ -425,8 +431,6 @@ export default function HseInductionChecklistListPage() {
     }
   };
 
-  if (loading) return null;
-
   return (
     <>
       <div className={`${contentClassName} pr-4`}>
@@ -465,7 +469,6 @@ export default function HseInductionChecklistListPage() {
                   onChange={(e) => {
                     const v = e.target.value;
                     setYear(v === "" ? "" : Number(v));
-                    setCurrentPage(1);
                   }}
                   disabled={loadingYears}
                 >
@@ -480,7 +483,7 @@ export default function HseInductionChecklistListPage() {
                 </select>
                 <button
                   type="button"
-                  onClick={() => { setFilter("pending"); setCurrentPage(1); }}
+                  onClick={() => { setFilter("pending"); }}
                   className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
                     filter === "pending"
                       ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
@@ -491,7 +494,7 @@ export default function HseInductionChecklistListPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setFilter("approved"); setCurrentPage(1); }}
+                  onClick={() => { setFilter("approved"); }}
                   className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
                     filter === "approved"
                       ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
@@ -502,7 +505,7 @@ export default function HseInductionChecklistListPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setFilter("rejected"); setCurrentPage(1); }}
+                  onClick={() => { setFilter("rejected"); }}
                   className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
                     filter === "rejected"
                       ? "bg-red-500/20 text-red-300 border border-red-500/50"
@@ -513,7 +516,7 @@ export default function HseInductionChecklistListPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setFilter("all"); setCurrentPage(1); }}
+                  onClick={() => { setFilter("all"); }}
                   className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
                     filter === "all"
                       ? "bg-sky-500/20 text-sky-300 border border-sky-500/50"
@@ -887,9 +890,13 @@ export default function HseInductionChecklistListPage() {
 
             {!selectedForm && (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-                {searchFiltered.length === 0 ? (
+                {loading ? (
+                  <p className="text-white/60 text-center py-8">Loading checklists…</p>
+                ) : forms.length === 0 ? (
                   <p className="text-white/60 text-center py-8">
-                    {filter === "pending"
+                    {searchTerm.trim()
+                      ? "No checklists match your search."
+                      : filter === "pending"
                       ? "No pending HSE induction checklists."
                       : filter === "approved"
                       ? "No approved checklists."
@@ -913,7 +920,7 @@ export default function HseInductionChecklistListPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {currentForms.map((form) => (
+                          {forms.map((form) => (
                             <tr
                               key={form._id}
                               className="border-b border-white/5 hover:bg-white/5 transition"
@@ -978,36 +985,20 @@ export default function HseInductionChecklistListPage() {
                         </tbody>
                       </table>
                     </div>
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10 text-xs text-white/70">
-                        <span>
-                          Showing {startIndex + 1} to{" "}
-                          {Math.min(endIndex, searchFiltered.length)} of{" "}
-                          {searchFiltered.length}
-                        </span>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage <= 1}
-                            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
-                          >
-                            Previous
-                          </button>
-                          <span className="px-3 py-1.5">
-                            Page {currentPage} of {totalPages}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage >= totalPages}
-                            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
-                          >
-                            Next
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <QhseCursorPaginationFooter
+                      hasPrev={hasPrev}
+                      hasNext={hasNext}
+                      itemCount={forms.length}
+                      onPrev={() => {
+                        void goPrev();
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      onNext={() => {
+                        void goNext();
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      loading={loading}
+                    />
                   </>
                 )}
               </div>

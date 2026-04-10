@@ -6,9 +6,11 @@ import { useQhseRole } from "@/hooks/useQhseRole";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton, DownloadIconButton } from "../../../components/ActionIcons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseMongoCursorList } from "../../../hooks/useQhseMongoCursorList";
+import QhseCursorPaginationFooter from "../../../components/QhseCursorPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -64,9 +66,7 @@ export default function VendorSupplyAdminPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const { canApprove, canDelete, canDownload, isQhseAdmin } = useQhseRole();
-  const [forms, setForms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [actionId, setActionId] = useState(null); // approving
   const [filter, setFilter] = useState("UNDER_REVIEW"); // UNDER_REVIEW, APPROVED, REJECTED, ALL
   const [rejectionReason, setRejectionReason] = useState("");
@@ -80,40 +80,58 @@ export default function VendorSupplyAdminPage() {
   const [year, setYear] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchForms = async () => {
-    setLoading(true);
-    setPageLoading(true);
-    setError("");
-    try {
-      const url =
-        year !== "" && year != null
-          ? `/api/qhse/form-checklist/vendor-supply-form/list?year=${year}`
-          : "/api/qhse/form-checklist/vendor-supply-form/list";
-      const res = await fetch(url);
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  const loadPage = useCallback(
+    async (requestCursor) => {
+      const params = new URLSearchParams({
+        paged: "cursor",
+        limit: "10",
+        excludeDraft: "1",
+        status: filter,
+      });
+      if (year !== "" && year != null) {
+        params.set("year", String(year));
+      }
+      if (searchDebounced.trim()) {
+        params.set("search", searchDebounced.trim());
+      }
+      if (requestCursor) params.set("cursor", requestCursor);
+      const res = await fetch(
+        `/api/qhse/form-checklist/vendor-supply-form/list?${params.toString()}`
+      );
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to load vendor approvals");
       }
-      setForms(data.data || []);
-    } catch (err) {
-      setError(err.message || "Failed to load vendor approvals");
-    } finally {
-      setLoading(false);
-      setPageLoading(false);
-    }
-  };
+      return {
+        items: data.data || [],
+        hasNext: !!data.hasNext,
+      };
+    },
+    [year, filter, searchDebounced]
+  );
+
+  const cursorResetKey = `${year}|${filter}|${searchDebounced}`;
+  const {
+    items: forms,
+    loading,
+    error,
+    setError,
+    hasNext,
+    hasPrev,
+    goNext,
+    goPrev,
+    refreshFirstPage,
+    setItems: setForms,
+  } = useQhseMongoCursorList(loadPage, cursorResetKey);
 
   useEffect(() => {
-    fetchForms();
-  }, [year]);
-
-  // Admin should never see DRAFT records
-  const visibleForms = forms.filter((form) => form.status !== "DRAFT");
-
-  const filteredForms = visibleForms.filter((form) => {
-    if (filter === "ALL") return true;
-    return form.status === filter;
-  });
+    setPageLoading(loading);
+  }, [loading, setPageLoading]);
 
   const handleApprove = async (id) => {
     if (!canApprove) return;
@@ -138,7 +156,7 @@ export default function VendorSupplyAdminPage() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to approve form");
       }
-      await fetchForms();
+      await refreshFirstPage();
     } catch (err) {
       setError(err.message || "Failed to approve form");
     } finally {
@@ -174,7 +192,7 @@ export default function VendorSupplyAdminPage() {
 
       setRejectionReason("");
       setShowRejectFor(null);
-      await fetchForms();
+      await refreshFirstPage();
     } catch (err) {
       setError(err.message || "Failed to reject form");
     } finally {
@@ -269,8 +287,6 @@ export default function VendorSupplyAdminPage() {
       setDeleting(null);
     }
   };
-
-  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>
@@ -379,17 +395,16 @@ export default function VendorSupplyAdminPage() {
               {error}
             </div>
           )}
-          {(() => {
-            const searchFiltered = !searchTerm.trim()
-              ? filteredForms
-              : filteredForms.filter((f) => {
-                  const s = searchTerm.toLowerCase();
-                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || f.formNo || "").toLowerCase().includes(s) || (f.vendorName || "").toLowerCase().includes(s);
-                });
-            return searchFiltered.length === 0 ? (
+          {loading ? (
+            <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center text-white/60 text-sm">
+              Loading…
+            </div>
+          ) : forms.length === 0 ? (
           <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
             <p className="text-white/60 text-sm">
-              {filter === "UNDER_REVIEW"
+              {searchTerm.trim()
+                ? "No vendor/supplier forms match your search."
+                : filter === "UNDER_REVIEW"
                 ? "No vendor/supplier forms pending review."
                 : filter === "APPROVED"
                 ? "No approved vendor/supplier forms."
@@ -400,7 +415,7 @@ export default function VendorSupplyAdminPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {searchFiltered.map((form) => (
+            {forms.map((form) => (
               <div
                 key={form._id}
                 className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 space-y-3 hover:border-white/20 transition"
@@ -575,9 +590,22 @@ export default function VendorSupplyAdminPage() {
                 )}
               </div>
             ))}
+            <QhseCursorPaginationFooter
+              hasPrev={hasPrev}
+              hasNext={hasNext}
+              itemCount={forms.length}
+              onPrev={() => {
+                void goPrev();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              onNext={() => {
+                void goNext();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              loading={loading}
+            />
           </div>
-        );
-          })()}
+        )}
         </QhseListPageContainer>
       </div>
     </div>

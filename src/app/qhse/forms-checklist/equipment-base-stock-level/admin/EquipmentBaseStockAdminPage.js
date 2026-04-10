@@ -6,8 +6,10 @@ import { useQhseRole } from "@/hooks/useQhseRole";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, ApproveIconButton, RejectIconButton, DownloadIconButton } from "../../../components/ActionIcons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useQhseMongoCursorList } from "../../../hooks/useQhseMongoCursorList";
+import QhseCursorPaginationFooter from "../../../components/QhseCursorPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -67,9 +69,6 @@ export default function EquipmentBaseStockAdminPage() {
   const { contentClassName } = useQhseSidebar();
   const { canApprove, canDelete, canDownload, isQhseAdmin } = useQhseRole();
   const initialYears = getYears();
-  const [forms, setForms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [filter, setFilter] = useState("PENDING"); // PENDING, APPROVED, REJECTED, ALL
   const [actionId, setActionId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -80,35 +79,6 @@ export default function EquipmentBaseStockAdminPage() {
   const [year, setYear] = useState("");
   const [availableYears, setAvailableYears] = useState(initialYears);
   const [loadingYears, setLoadingYears] = useState(true);
-
-  const fetchForms = async () => {
-    setLoading(true);
-    setPageLoading(true);
-    setError("");
-    try {
-      const url =
-        year !== "" && year != null
-          ? `/api/qhse/form-checklist/equipment-base-stock-level/list?year=${year}`
-          : "/api/qhse/form-checklist/equipment-base-stock-level/list";
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load forms");
-      }
-      setForms(data.data || []);
-      if (data.years && Array.isArray(data.years) && data.years.length > 0) {
-        const merged = Array.from(
-          new Set([...initialYears, ...data.years])
-        ).sort((a, b) => b - a);
-        setAvailableYears(merged);
-      }
-    } catch (err) {
-      setError(err.message || "Failed to load forms");
-    } finally {
-      setLoading(false);
-      setPageLoading(false);
-    }
-  };
 
   useEffect(() => {
     const loadYears = async () => {
@@ -131,17 +101,56 @@ export default function EquipmentBaseStockAdminPage() {
     loadYears();
   }, []);
 
+  const loadPage = useCallback(
+    async (requestCursor) => {
+      const params = new URLSearchParams({
+        paged: "cursor",
+        limit: "10",
+        excludeDraft: "1",
+        status: filter,
+      });
+      if (year !== "" && year != null) {
+        params.set("year", String(year));
+      }
+      if (requestCursor) params.set("cursor", requestCursor);
+      const res = await fetch(
+        `/api/qhse/form-checklist/equipment-base-stock-level/list?${params.toString()}`
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load forms");
+      }
+      if (res.ok && data.success && Array.isArray(data.years)) {
+        const merged = Array.from(
+          new Set([...initialYears, ...data.years])
+        ).sort((a, b) => b - a);
+        setAvailableYears(merged);
+      }
+      return {
+        items: data.data || [],
+        hasNext: !!data.hasNext,
+      };
+    },
+    [year, filter, initialYears]
+  );
+
+  const cursorResetKey = `${year}|${filter}`;
+  const {
+    items: forms,
+    loading,
+    error,
+    setError,
+    hasNext,
+    hasPrev,
+    goNext,
+    goPrev,
+    refreshFirstPage,
+    setItems: setForms,
+  } = useQhseMongoCursorList(loadPage, cursorResetKey);
+
   useEffect(() => {
-    fetchForms();
-  }, [year]);
-
-  // Admin should not see drafts anywhere
-  const visibleForms = forms.filter((form) => form.status !== "DRAFT");
-
-  const filteredForms = visibleForms.filter((form) => {
-    if (filter === "ALL") return true;
-    return form.status === filter;
-  });
+    setPageLoading(loading);
+  }, [loading, setPageLoading]);
 
   const handleApproval = async (id, nextStatus) => {
     if (!canApprove) return;
@@ -169,7 +178,7 @@ export default function EquipmentBaseStockAdminPage() {
           data.error || data.message || "Failed to update approval status"
         );
       }
-      await fetchForms();
+      await refreshFirstPage();
     } catch (err) {
       setError(err.message || "Failed to update approval status");
     } finally {
@@ -264,8 +273,6 @@ export default function EquipmentBaseStockAdminPage() {
       setDeleting(null);
     }
   };
-
-  if (loading) return null;
 
   return (
     <div className={`${contentClassName} pr-4`}>
@@ -384,26 +391,29 @@ export default function EquipmentBaseStockAdminPage() {
         </div>
 
         {/* List */}
-        {(() => {
-          if (filteredForms.length === 0) {
-            let message = "No equipment base stock forms found.";
-            if (filter === "PENDING") {
-              message = "No forms pending review.";
-            } else if (filter === "APPROVED") {
-              message = "No approved forms.";
-            } else if (filter === "REJECTED") {
-              message = "No rejected forms.";
-            }
-            return (
+        {loading ? (
+          <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center text-white/60 text-sm">
+            Loading…
+          </div>
+        ) : forms.length === 0 ? (
+            (() => {
+              let message = "No equipment base stock forms found.";
+              if (filter === "PENDING") {
+                message = "No forms pending review.";
+              } else if (filter === "APPROVED") {
+                message = "No approved forms.";
+              } else if (filter === "REJECTED") {
+                message = "No rejected forms.";
+              }
+              return (
               <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
                 <p className="text-white/60 text-sm">{message}</p>
               </div>
-            );
-          }
-
-          return (
+              );
+            })()
+        ) : (
             <div className="space-y-4">
-              {filteredForms.map((form) => (
+              {forms.map((form) => (
                 <div
                   key={form._id}
                   className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 space-y-3 hover:border-white/20 transition"
@@ -570,9 +580,22 @@ export default function EquipmentBaseStockAdminPage() {
                   )}
                 </div>
               ))}
+              <QhseCursorPaginationFooter
+                hasPrev={hasPrev}
+                hasNext={hasNext}
+                itemCount={forms.length}
+                onPrev={() => {
+                  void goPrev();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                onNext={() => {
+                  void goNext();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                loading={loading}
+              />
             </div>
-          );
-        })()}
+        )}
       </div>
     </div>
   );

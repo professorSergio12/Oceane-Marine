@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
 import { useHrRole } from "@/hooks/useHrRole";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -440,6 +442,14 @@ export default function PoacMatrixListPage({ onRefresh }) {
   const [selectedRecordIds, setSelectedRecordIds] = useState(new Set());
   const [downloadingOverall, setDownloadingOverall] = useState(false);
 
+  const poacListPagination = useOperationsClientPagination(records, `${records.length}`);
+  const {
+    paginatedItems: paginatedRecords,
+    page: listPage,
+    pageSize: listPageSize,
+    ...poacListPaginationFooterProps
+  } = poacListPagination;
+
   useEffect(() => {
     fetchRecords();
     const handleRefresh = () => fetchRecords();
@@ -654,14 +664,15 @@ export default function PoacMatrixListPage({ onRefresh }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((record, idx) => {
+                    {paginatedRecords.map((record, idx) => {
                       const { provider, poacCount, poacNames } = getRecordSummary(record);
+                      const rowNum = (listPage - 1) * listPageSize + idx + 1;
                       return (
                         <tr
                           key={record._id}
                           className="border-b border-white/5 hover:bg-white/5 transition"
                         >
-                          <td className="px-4 py-4 text-white/70 font-mono">{idx + 1}</td>
+                          <td className="px-4 py-4 text-white/70 font-mono">{rowNum}</td>
                           <td className="px-4 py-4 text-white font-medium">{provider}</td>
                           <td className="px-4 py-4 text-center">
                             <span className="inline-flex items-center justify-center bg-orange-500/20 text-orange-300 text-xs font-bold px-2.5 py-1 rounded-full min-w-[28px]">
@@ -693,6 +704,7 @@ export default function PoacMatrixListPage({ onRefresh }) {
                     })}
                   </tbody>
                 </table>
+                <OperationsListPaginationFooter {...poacListPaginationFooterProps} />
             </div>
           )}
       </div>
@@ -857,8 +869,8 @@ export default function PoacMatrixListPage({ onRefresh }) {
                 </button>
               </div>
 
-              {/* Modal Body — scrollable table */}
-              <div className="overflow-auto flex-1">
+              {/* Modal Body — scrollable table (black scrollbar like HR sidebar) */}
+              <div className="sidebar-scrollbar-dark min-h-0 flex-1 overflow-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-800 text-left">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import PoacCrossCompetency from "@/lib/mongodb/models/qhse-poac/PoacCrossCompetency";
+import { findWithMongoIdCursor } from "@/lib/qhse/mongoIdCursorPagination";
 
 export async function GET(req) {
   await connectDB();
@@ -17,6 +18,8 @@ export async function GET(req) {
     const latestOnly = searchParams.get("latestOnly") !== "false";
     const search = searchParams.get("search");
     const year = searchParams.get("year");
+    const useCursor = searchParams.get("paged") === "cursor";
+    const cursor = searchParams.get("cursor");
 
     /* =========================
        BUILD FILTER
@@ -50,6 +53,45 @@ export async function GET(req) {
     /* =========================
        QUERY DB
        ========================= */
+    const selectFields =
+      "formCode serialNumber nameOfPOAC jobRefNo evaluationDate leadPOAC status revNo isLatest createdAt";
+
+    if (useCursor) {
+      const { items, hasNext } = await findWithMongoIdCursor(
+        PoacCrossCompetency,
+        filter,
+        {
+          cursor,
+          limit,
+          select: selectFields,
+        }
+      );
+
+      const allForms = await PoacCrossCompetency.find({
+        evaluationDate: { $exists: true, $ne: null },
+      })
+        .select("evaluationDate")
+        .lean();
+      const years = [
+        ...new Set(
+          allForms
+            .map((f) => new Date(f.evaluationDate).getFullYear())
+            .filter((y) => !Number.isNaN(y))
+        ),
+      ].sort((a, b) => b - a);
+
+      return NextResponse.json(
+        {
+          success: true,
+          limit,
+          data: items,
+          hasNext,
+          years: years.length > 0 ? years : [new Date().getFullYear()],
+        },
+        { status: 200 }
+      );
+    }
+
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
@@ -57,9 +99,7 @@ export async function GET(req) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select(
-          "formCode serialNumber nameOfPOAC jobRefNo evaluationDate leadPOAC status revNo isLatest createdAt"
-        )
+        .select(selectFields)
         .lean(),
       PoacCrossCompetency.countDocuments(filter),
     ]);

@@ -10,6 +10,8 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 const OFFICE_CHECK_LABELS = {
   jpo: "JPO",
@@ -97,6 +99,10 @@ export default function LocationsPage() {
   const [additionalFiles, setAdditionalFiles] = useState([]);
   const additionalInputRefs = useRef([]);
 
+  const locPag = useOperationsClientPagination(items, "locations-master");
+  const { paginatedItems: locPageItems, ...locFooterProps } = locPag;
+  const recPag = useOperationsClientPagination(records, `${selectedLocationId}|${year}`);
+  const { paginatedItems: recPageItems, ...recFooterProps } = recPag;
 
   // Set active tab based on pathname
   useEffect(() => {
@@ -672,9 +678,9 @@ export default function LocationsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {items.map((item, idx) => (
+                      {locPageItems.map((item, idx) => (
                         <tr key={item._id || item.name} className="hover:bg-white/5">
-                          <td className="px-4 py-4">{idx + 1}</td>
+                          <td className="px-4 py-4">{(locPag.page - 1) * locPag.pageSize + idx + 1}</td>
                           <td className="px-4 py-4 font-semibold text-white">{item.name}</td>
                           <td className="px-4 py-3">
                             {editingId === item._id ? (
@@ -748,6 +754,7 @@ export default function LocationsPage() {
                     </tbody>
                   </table>
                 </div>
+                <OperationsListPaginationFooter {...locFooterProps} />
               </div>
             </>
           )}
@@ -818,6 +825,7 @@ export default function LocationsPage() {
               {officeView === "list" && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
                   {loadingList ? <div className="p-12 text-center text-white/60">Loading...</div> : !selectedLocationId ? <div className="p-12 text-center text-white/60">Select a location to view the list.</div> : records.length === 0 ? <div className="p-12 text-center text-white/60">No records for this location and year. Use the Form to add one.</div> : (
+                    <>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
@@ -830,7 +838,7 @@ export default function LocationsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {records.map((rec) => (
+                          {recPageItems.map((rec) => (
                             <tr key={rec._id} className="border-b border-white/5 hover:bg-white/5">
                               <td className="px-6 py-4">{rec.locationName || "—"}</td>
                               <td className="px-6 py-4">{rec.year}</td>
@@ -851,6 +859,8 @@ export default function LocationsPage() {
                         </tbody>
                       </table>
                     </div>
+                    <OperationsListPaginationFooter {...recFooterProps} />
+                  </>
                   )}
                 </div>
               )}

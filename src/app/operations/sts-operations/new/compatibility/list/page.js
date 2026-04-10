@@ -12,6 +12,8 @@ import {
 } from "@/app/components/RecordActionIcons";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
 import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 function getYears() {
   const currentYear = new Date().getFullYear();
@@ -88,6 +90,12 @@ export default function CompatibilityListPage() {
           typeLabel.toLowerCase().includes(s)
         );
       });
+
+  const pagination = useOperationsClientPagination(
+    searchFiltered,
+    `${searchTerm}|${year}|${locationId}`
+  );
+  const { paginatedItems: paginatedRecords, ...paginationFooterProps } = pagination;
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">
@@ -318,7 +326,7 @@ export default function CompatibilityListPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
-                      {searchFiltered.map((rec, index) => {
+                      {paginatedRecords.map((rec, index) => {
                       const typeLabel = calcTypeLabel(rec);
                       return (
                         <tr key={rec._id} className="hover:opacity-90 transition-opacity" style={{ backgroundColor: index % 2 === 0 ? "#2C4257" : "#23374D" }}>
@@ -378,6 +386,7 @@ export default function CompatibilityListPage() {
                   </tbody>
                 </table>
               </div>
+              <OperationsListPaginationFooter {...paginationFooterProps} />
             </div>
           )}
           </QhseListPageContainer>

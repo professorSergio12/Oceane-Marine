@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
 import { DownloadIconButton as QhseDownloadIconButton } from "../../../qhse/components/ActionIcons";
 import { useHrRole } from "@/hooks/useHrRole";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 /* ── Shared icon button components (matching QHSE style) ── */
 const tooltipClass =
@@ -112,6 +114,13 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
     if (filterLocation) filtered = filtered.filter((c) => c.location === filterLocation);
     setFilteredCertificates(filtered);
   }, [certificates, filterYear, filterLocation]);
+
+  const statutoryListPagination = useOperationsClientPagination(
+    filteredCertificates,
+    `${filterYear}|${filterLocation}|${certificates.length}`
+  );
+  const { paginatedItems: paginatedCertificates, ...statutoryListPaginationFooterProps } =
+    statutoryListPagination;
 
   const fetchCertificates = async () => {
     try {
@@ -263,7 +272,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCertificates.map((cert) => (
+                    {paginatedCertificates.map((cert) => (
                       <tr key={cert._id} className="border-b border-white/5 hover:bg-white/5 transition">
                         <td className="px-6 py-4 font-medium text-white">{cert.location}</td>
                         <td className="px-6 py-4 text-slate-200">{cert.typeOfDocs}</td>
@@ -310,6 +319,7 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                   </tbody>
                 </table>
               </div>
+              <OperationsListPaginationFooter {...statutoryListPaginationFooterProps} />
             </div>
           )}
       </div>

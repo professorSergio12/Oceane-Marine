@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 // Generate years: 2 years back, current year, and 5 years forward
 function getYears() {
@@ -62,6 +64,15 @@ export default function AccessoriesList({ onViewChange }) {
     };
     fetchData();
   }, [year, activeTab]);
+
+  const accessoriesPagination = useOperationsClientPagination(
+    accessories,
+    `${year}|${activeTab}`
+  );
+  const {
+    paginatedItems: paginatedAccessories,
+    ...accessoriesPaginationFooterProps
+  } = accessoriesPagination;
 
   const formatDate = (dateString) => {
     if (!dateString) return "—";
@@ -143,7 +154,7 @@ export default function AccessoriesList({ onViewChange }) {
       )}
 
       {/* List Content */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
+      <div className="rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-white/60">Loading accessories...</p>
@@ -153,68 +164,71 @@ export default function AccessoriesList({ onViewChange }) {
             <p className="text-white/60">No accessories found for the selected year and category.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left">
-              <thead className="text-xs uppercase tracking-wide text-slate-300 border-b border-white/10">
-                <tr>
-                  <th className="px-4 py-3">Equipment No</th>
-                  <th className="px-4 py-3">Equipment Name</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Quantity</th>
-                  <th className="px-4 py-3">Placed In</th>
-                  <th className="px-4 py-3">Purchase Date</th>
-                  <th className="px-4 py-3">Put in Use</th>
-                  <th className="px-4 py-3">Created At</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {accessories.map((item) => (
-                  <tr key={item._id} className="hover:bg-white/5">
-                    <td className="px-4 py-3 font-medium text-white">
-                      {item.equipmentNo || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-white/90">
-                      {item.equipmentName || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                        item.category === "REGULAR"
-                          ? "bg-blue-500/20 text-blue-300"
-                          : "bg-purple-500/20 text-purple-300"
-                      }`}>
-                        {item.category || "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                        item.status === "ACTIVE"
-                          ? "bg-green-500/20 text-green-300"
-                          : "bg-red-500/20 text-red-300"
-                      }`}>
-                        {item.status || "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-white/90">
-                      {item.quantity || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-white/90">
-                      {item.placedIn || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-white/90">
-                      {formatDate(item.purchaseDate)}
-                    </td>
-                    <td className="px-4 py-3 text-white/90">
-                      {item.putInUse ? "Yes" : "No"}
-                    </td>
-                    <td className="px-4 py-3 text-white/90">
-                      {formatDate(item.createdAt)}
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left">
+                <thead className="text-xs uppercase tracking-wide text-slate-300 border-b border-white/10">
+                  <tr>
+                    <th className="px-4 py-3">Equipment No</th>
+                    <th className="px-4 py-3">Equipment Name</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Quantity</th>
+                    <th className="px-4 py-3">Placed In</th>
+                    <th className="px-4 py-3">Purchase Date</th>
+                    <th className="px-4 py-3">Put in Use</th>
+                    <th className="px-4 py-3">Created At</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {paginatedAccessories.map((item) => (
+                    <tr key={item._id} className="hover:bg-white/5">
+                      <td className="px-4 py-3 font-medium text-white">
+                        {item.equipmentNo || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-white/90">
+                        {item.equipmentName || "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                          item.category === "REGULAR"
+                            ? "bg-blue-500/20 text-blue-300"
+                            : "bg-purple-500/20 text-purple-300"
+                        }`}>
+                          {item.category || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                          item.status === "ACTIVE"
+                            ? "bg-green-500/20 text-green-300"
+                            : "bg-red-500/20 text-red-300"
+                        }`}>
+                          {item.status || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-white/90">
+                        {item.quantity || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-white/90">
+                        {item.placedIn || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-white/90">
+                        {formatDate(item.purchaseDate)}
+                      </td>
+                      <td className="px-4 py-3 text-white/90">
+                        {item.putInUse ? "Yes" : "No"}
+                      </td>
+                      <td className="px-4 py-3 text-white/90">
+                        {formatDate(item.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <OperationsListPaginationFooter {...accessoriesPaginationFooterProps} />
+          </>
         )}
       </div>
     </div>

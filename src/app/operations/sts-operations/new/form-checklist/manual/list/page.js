@@ -16,6 +16,8 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -53,8 +55,6 @@ export default function ManualListPage() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [formCode, setFormCode] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const ROWS_PER_PAGE = 8;
   const { setPageLoading } = useOperationsLoading();
   const { isOpsAdmin, canEditForm, canDeleteForm } = useOperationsRole();
   const sidebarTabs = getSidebarTabs(isOpsAdmin);
@@ -115,12 +115,11 @@ export default function ManualListPage() {
         );
       });
 
-  const totalPages = Math.max(1, Math.ceil(searchFiltered.length / ROWS_PER_PAGE));
-  const paginatedRecords = searchFiltered.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
-
-  useEffect(() => {
-    setPage(1);
-  }, [year, formCode, searchTerm, records.length]);
+  const pagination = useOperationsClientPagination(
+    searchFiltered,
+    `${year}|${formCode}|${searchTerm}`
+  );
+  const { paginatedItems: paginatedRecords, ...paginationFooterProps } = pagination;
 
   const handleDownload = async (record) => {
     setDownloading(record._id);
@@ -518,29 +517,7 @@ export default function ManualListPage() {
               </table>
             </div>
           </div>
-          {totalPages > 1 && (
-            <div className="flex-shrink-0 flex items-center justify-center gap-2 py-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="px-3 py-1.5 rounded-lg bg-white/10 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/15"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-white/80">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="px-3 py-1.5 rounded-lg bg-white/10 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/15"
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <OperationsListPaginationFooter {...paginationFooterProps} />
               </div>
             )}
           </QhseListPageContainer>

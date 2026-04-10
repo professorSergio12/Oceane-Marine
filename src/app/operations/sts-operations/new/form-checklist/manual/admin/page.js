@@ -9,6 +9,8 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 export default function ManualAdminPage() {
   const pathname = usePathname();
@@ -110,6 +112,9 @@ export default function ManualAdminPage() {
       setDeleting(null);
     }
   };
+
+  const adminPag = useOperationsClientPagination(formCodes, "manual-admin-codes");
+  const { paginatedItems: formCodesPage, ...adminFooterProps } = adminPag;
 
   if (!isOpsAdmin) {
     return (
@@ -382,6 +387,7 @@ export default function ManualAdminPage() {
                 <p className="text-white/60">No form codes found. Add one above.</p>
               </div>
             ) : (
+              <>
               <table className="w-full">
                 <thead className="bg-white/5 border-b border-white/10">
                   <tr>
@@ -397,7 +403,7 @@ export default function ManualAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {formCodes.map((fc) => (
+                  {formCodesPage.map((fc) => (
                     <tr key={fc._id} className="hover:bg-white/5 transition">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-mono text-sky-300">{fc.code}</span>
@@ -427,6 +433,8 @@ export default function ManualAdminPage() {
                   ))}
                 </tbody>
               </table>
+              <OperationsListPaginationFooter {...adminFooterProps} />
+              </>
             )}
           </div>
         </div>

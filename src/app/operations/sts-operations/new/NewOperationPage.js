@@ -17,6 +17,7 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 const STS_NEW_OP_DRAFT_STORAGE_KEY = "sts-operation-new-documentation-draft-v2";
 
@@ -132,6 +133,14 @@ const statusTone = {
     option: "text-red-100",
   },
 };
+
+function DocumentationPageShell({ children }) {
+  return (
+    <div className="relative min-h-screen w-full text-white">
+      <div className="relative z-10 min-h-screen w-full">{children}</div>
+    </div>
+  );
+}
 
 export default function NewOperationPage() {
   const [status, setStatus] = useState("INPROGRESS");
@@ -705,7 +714,8 @@ export default function NewOperationPage() {
   // Success page component
   if (showSuccessPage) {
     return (
-      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
+      <DocumentationPageShell>
+        <div className="flex min-h-screen items-center justify-center">
         <div className="text-center space-y-6 px-6">
           {/* Big Green Tick */}
           <div className="flex justify-center">
@@ -769,14 +779,14 @@ export default function NewOperationPage() {
             </Link>
           </div>
         </div>
-      </div>
+        </div>
+      </DocumentationPageShell>
     );
   }
 
   return (
-    <div
-      className="min-h-screen bg-transparent text-white flex"
-    >
+    <DocumentationPageShell>
+    <div className="flex min-h-screen w-full">
       {/* Left Sidebar */}
       <div
         ref={sidebarRef}
@@ -1623,6 +1633,7 @@ export default function NewOperationPage() {
         </div>
       </div>
     </div>
+    </DocumentationPageShell>
   );
 }
 
@@ -1635,6 +1646,8 @@ function OperationsListComponent() {
   const [filteredOperations, setFilteredOperations] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const router = useRouter();
   const { canEditForm, canDeleteForm } = useOperationsRole();
 
@@ -1686,6 +1699,25 @@ function OperationsListComponent() {
 
     setFilteredOperations(filtered);
   }, [searchQuery, operations]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, yearFilter]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredOperations.length / pageSize));
+    if (page > totalPages) setPage(totalPages);
+  }, [filteredOperations.length, pageSize, page]);
+
+  const totalFiltered = filteredOperations.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = totalFiltered === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, totalFiltered);
+  const paginatedOperations = filteredOperations.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  );
 
   const fetchOperations = async () => {
     try {
@@ -1901,7 +1933,7 @@ function OperationsListComponent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
-                {filteredOperations.map((op) => (
+                {paginatedOperations.map((op) => (
                   <tr key={op._id} className="hover:bg-white/5 transition">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-white/90">
@@ -1970,6 +2002,16 @@ function OperationsListComponent() {
               </tbody>
             </table>
           </div>
+          <OperationsListPaginationFooter
+            totalFiltered={totalFiltered}
+            page={safePage}
+            setPage={setPage}
+            totalPages={totalPages}
+            pageStart={pageStart}
+            pageEnd={pageEnd}
+            pageSize={pageSize}
+            setPageSize={setPageSize}
+          />
         </div>
       )}
     </div>

@@ -1,25 +1,80 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import VendorSupplierApproval from "@/lib/mongodb/models/qhse-form-checklist/VendorSupplierApproval";
+import { findWithMongoIdCursor } from "@/lib/qhse/mongoIdCursorPagination";
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 export async function GET(req) {
   await connectDB();
   try {
     const { searchParams } = new URL(req.url);
+    const useCursor = searchParams.get("paged") === "cursor";
+
+    if (useCursor) {
+      const yearParam = searchParams.get("year");
+      const statusParam = searchParams.get("status");
+      const excludeDraft = searchParams.get("excludeDraft") === "1";
+      const search = searchParams.get("search");
+      const cursor = searchParams.get("cursor");
+      const limit = searchParams.get("limit");
+
+      const parts = [];
+      if (yearParam) {
+        const y = Number.parseInt(yearParam, 10);
+        if (!Number.isNaN(y)) {
+          const start = new Date(`${y}-01-01T00:00:00.000Z`);
+          const end = new Date(`${y}-12-31T23:59:59.999Z`);
+          parts.push({
+            $or: [{ year: y }, { date: { $gte: start, $lte: end } }],
+          });
+        }
+      }
+      if (excludeDraft) {
+        parts.push({ status: { $ne: "DRAFT" } });
+      }
+      if (statusParam && statusParam !== "ALL") {
+        parts.push({ status: statusParam });
+      }
+      if (search && search.trim()) {
+        const rx = new RegExp(escapeRegex(search.trim()), "i");
+        parts.push({
+          $or: [
+            { serialNumber: rx },
+            { formCode: rx },
+            { vendorName: rx },
+          ],
+        });
+      }
+
+      const filter = parts.length === 0 ? {} : { $and: parts };
+
+      const { items, hasNext } = await findWithMongoIdCursor(
+        VendorSupplierApproval,
+        filter,
+        { cursor, limit }
+      );
+
+      return NextResponse.json(
+        { success: true, data: items, hasNext },
+        { status: 200 }
+      );
+    }
+
     const yearParam = searchParams.get("year");
 
     let forms = await VendorSupplierApproval.find()
       .sort({ createdAt: -1 })
       .lean();
 
-    // If year filter is provided, filter by year field or extract from date
     if (yearParam) {
       const year = Number.parseInt(yearParam, 10);
       forms = forms.filter((form) => {
         if (form.year) {
           return form.year === year;
         }
-        // Fallback: extract year from date if year field is missing
         if (form.date) {
           const dateYear = new Date(form.date).getFullYear();
           return dateYear === year;
@@ -28,7 +83,6 @@ export async function GET(req) {
       });
     }
 
-    // Sort by year (descending), then by createdAt
     forms.sort((a, b) => {
       const yearA = a.year || (a.date ? new Date(a.date).getFullYear() : 0);
       const yearB = b.year || (b.date ? new Date(b.date).getFullYear() : 0);

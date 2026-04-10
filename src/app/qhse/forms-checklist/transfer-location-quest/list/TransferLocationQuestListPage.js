@@ -6,7 +6,9 @@ import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { useQhseRole } from "@/hooks/useQhseRole";
@@ -258,6 +260,24 @@ export default function TransferLocationQuestListPage() {
     }
   };
 
+  const filteredTransferQuestItems = useMemo(() => {
+    if (!searchTerm.trim()) return forms;
+    const s = searchTerm.toLowerCase();
+    return forms.filter(
+      (f) =>
+        (f.serialNumber || "").toLowerCase().includes(s) ||
+        (f.locationName || "").toLowerCase().includes(s) ||
+        (f.formCode || "").toLowerCase().includes(s)
+    );
+  }, [forms, searchTerm]);
+
+  const transferQuestListPagination = useOperationsClientPagination(
+    filteredTransferQuestItems,
+    `${searchTerm}|${year}|${locationName}|${forms.length}`
+  );
+  const { paginatedItems: paginatedTransferQuestRows, ...transferQuestListPaginationFooterProps } =
+    transferQuestListPagination;
+
   if (loading) return null;
 
   return (
@@ -397,14 +417,7 @@ export default function TransferLocationQuestListPage() {
                 Upload Questionnaire
               </Link>
             </div>
-          ) : (() => {
-            const filtered = !searchTerm.trim()
-              ? forms
-              : forms.filter((f) => {
-                  const s = searchTerm.toLowerCase();
-                  return (f.serialNumber || "").toLowerCase().includes(s) || (f.locationName || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s);
-                });
-            return filtered.length === 0 ? (
+          ) : filteredTransferQuestItems.length === 0 ? (
               <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
                 <p className="text-white/60">No questionnaires matching search.</p>
               </div>
@@ -427,7 +440,7 @@ export default function TransferLocationQuestListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((form) => (
+                    {paginatedTransferQuestRows.map((form) => (
                       <tr
                         key={form._id}
                         className="border-b border-white/5 hover:bg-white/5 transition"
@@ -521,9 +534,9 @@ export default function TransferLocationQuestListPage() {
                     ))}
                   </tbody>
                 </table>
+                <OperationsListPaginationFooter {...transferQuestListPaginationFooterProps} />
               </div>
-            );
-          })()}
+            )}
           </QhseListPageContainer>
         </main>
       </div>

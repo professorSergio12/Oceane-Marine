@@ -3,7 +3,9 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditIconButton, DownloadIconButton, ViewIconButton } from "../../../components/ActionIcons";
@@ -140,14 +142,33 @@ export default function EquipmentBaseStockListPage() {
     fetchForms();
   }, [year]);
 
-  const filteredForms = forms.filter((form) => {
-    if (filter === "ALL") return true;
-    if (filter === "DRAFT") return form.status === "DRAFT";
-    if (filter === "PENDING") return form.status === "PENDING";
-    if (filter === "APPROVED") return form.status === "APPROVED";
-    if (filter === "REJECTED") return form.status === "REJECTED";
-    return false;
-  });
+  const filteredForms = useMemo(() => {
+    return forms.filter((form) => {
+      if (filter === "ALL") return true;
+      if (filter === "DRAFT") return form.status === "DRAFT";
+      if (filter === "PENDING") return form.status === "PENDING";
+      if (filter === "APPROVED") return form.status === "APPROVED";
+      if (filter === "REJECTED") return form.status === "REJECTED";
+      return false;
+    });
+  }, [forms, filter]);
+
+  const equipmentStockSearchFiltered = useMemo(() => {
+    if (!searchTerm.trim()) return filteredForms;
+    const s = searchTerm.toLowerCase();
+    return filteredForms.filter(
+      (f) =>
+        (f.serialNumber || "").toLowerCase().includes(s) ||
+        (f.formCode || "").toLowerCase().includes(s)
+    );
+  }, [filteredForms, searchTerm]);
+
+  const equipmentStockListPagination = useOperationsClientPagination(
+    equipmentStockSearchFiltered,
+    `${searchTerm}|${filter}|${year}|${forms.length}`
+  );
+  const { paginatedItems: paginatedEquipmentStockRows, ...equipmentStockListPaginationFooterProps } =
+    equipmentStockListPagination;
 
   const handleEdit = (id) => {
     if (!canEdit) return;
@@ -585,34 +606,28 @@ export default function EquipmentBaseStockListPage() {
         )}
 
         {/* List */}
-        {!selectedForm && (() => {
-          const searchFiltered = !searchTerm.trim()
-            ? filteredForms
-            : filteredForms.filter((f) => {
-                const s = searchTerm.toLowerCase();
-                return (f.serialNumber || "").toLowerCase().includes(s) || (f.formCode || "").toLowerCase().includes(s);
-              });
-          if (searchFiltered.length === 0) {
-            let message = "No equipment base stock forms found.";
-            if (filter === "DRAFT") {
-              message = "No draft forms found.";
-            } else if (filter === "PENDING") {
-              message = "No forms pending review.";
-            } else if (filter === "APPROVED") {
-              message = "No approved forms.";
-            } else if (filter === "REJECTED") {
-              message = "No rejected forms.";
-            }
-            return (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
-                <p className="text-white/60 text-sm">{message}</p>
-              </div>
-            );
-          }
-
-          return (
+        {!selectedForm && (
+          equipmentStockSearchFiltered.length === 0 ? (
+            (() => {
+              let message = "No equipment base stock forms found.";
+              if (filter === "DRAFT") {
+                message = "No draft forms found.";
+              } else if (filter === "PENDING") {
+                message = "No forms pending review.";
+              } else if (filter === "APPROVED") {
+                message = "No approved forms.";
+              } else if (filter === "REJECTED") {
+                message = "No rejected forms.";
+              }
+              return (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
+                  <p className="text-white/60 text-sm">{message}</p>
+                </div>
+              );
+            })()
+          ) : (
             <div className="space-y-4">
-              {searchFiltered.map((form) => (
+              {paginatedEquipmentStockRows.map((form) => (
                 <div
                   key={form._id}
                   className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 flex items-center justify-between gap-4 hover:border-white/20 transition"
@@ -673,9 +688,10 @@ export default function EquipmentBaseStockListPage() {
                   </div>
                 </div>
               ))}
+              <OperationsListPaginationFooter {...equipmentStockListPaginationFooterProps} />
             </div>
-          );
-        })()}
+          )
+        )}
 
         </QhseListPageContainer>
 

@@ -152,7 +152,7 @@ export default function PmsDashboard() {
 
         {/* Donut Chart */}
         <div className="lg:col-span-4">
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6 h-full flex flex-col">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-[2px] shadow-2xl p-6 h-full flex flex-col">
             <h3 className="text-sm font-semibold text-white/80 mb-4">
               Equipment Distribution
             </h3>
@@ -196,7 +196,7 @@ export default function PmsDashboard() {
       <WarehouseMovementTracker movements={data.warehouseMovements || []} />
 
       {/* ==================== EQUIPMENT BY LOCATION ==================== */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-[2px] shadow-2xl p-6">
         <h3 className="text-sm font-semibold text-white/80 mb-4">
           Equipment by Location
         </h3>
@@ -251,7 +251,7 @@ export default function PmsDashboard() {
 function StatCard({ label, value, gradient, accent }) {
   return (
     <div
-      className={`rounded-2xl border border-white/15 bg-gradient-to-br ${gradient} backdrop-blur-md shadow-2xl p-5 hover:shadow-lg transition-all hover:scale-[1.03] cursor-default`}
+      className={`rounded-2xl border border-white/15 bg-gradient-to-br ${gradient} backdrop-blur-[2px] shadow-2xl p-5 hover:shadow-lg transition-all hover:scale-[1.03] cursor-default`}
     >
       <h3 className={`text-xs font-semibold ${accent} uppercase tracking-wider mb-2`}>
         {label}
@@ -265,7 +265,7 @@ function StatCard({ label, value, gradient, accent }) {
 /* ---------- Usage of Spare Table ---------- */
 function SpareUsageTable({ spares }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col">
+    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-[2px] shadow-2xl h-full flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-r from-cyan-800/60 to-sky-900/60 rounded-t-2xl px-5 py-3 border-b border-white/10">
         <h3 className="text-sm font-bold text-cyan-100 tracking-wide">
@@ -316,7 +316,7 @@ function SpareUsageTable({ spares }) {
 /* ---------- Equipment currently in Use ---------- */
 function EquipmentInUseTable({ items }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col">
+    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-[2px] shadow-2xl h-full flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-600/70 to-orange-700/70 rounded-t-2xl px-5 py-3 border-b border-white/10">
         <h3 className="text-sm font-bold text-orange-50 tracking-wide">
@@ -392,7 +392,7 @@ function EquipmentInUseTable({ items }) {
 /* ---------- Current Warehouse Movement ---------- */
 function WarehouseMovementTracker({ movements }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-6">
+    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-[2px] shadow-2xl p-6">
       <h3 className="text-sm font-semibold text-white/80 mb-5">
         Current Warehouse Movement
       </h3>

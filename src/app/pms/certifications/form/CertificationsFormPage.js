@@ -127,7 +127,7 @@ export default function CertificationsFormPage() {
         <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Link
             href="/dashboard"
-            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
+            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-[2px] transition flex-shrink-0"
           >
             ← Dashboard
           </Link>
@@ -180,7 +180,7 @@ export default function CertificationsFormPage() {
         )}
 
         {loadingData && (
-          <div className="bg-slate-950/40 border border-slate-500/40 rounded-xl px-4 py-3 text-slate-200 text-sm font-medium">
+          <div className="rounded-xl border border-white/15 bg-[#0b2740]/70 backdrop-blur-[2px] px-4 py-3 text-slate-200 text-sm font-medium">
             Loading certificate data...
           </div>
         )}
@@ -193,7 +193,7 @@ export default function CertificationsFormPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6"
+          className="space-y-6 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b2740]/85 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl max-w-6xl mx-auto"
         >
           <fieldset
             disabled={!canSubmit}
@@ -205,7 +205,7 @@ export default function CertificationsFormPage() {
               <input
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="Enter location name"
                 required
               />
@@ -215,7 +215,7 @@ export default function CertificationsFormPage() {
               <input
                 value={equipmentName}
                 onChange={(e) => setEquipmentName(e.target.value)}
-                className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="Enter equipment name"
                 required
               />
@@ -225,7 +225,7 @@ export default function CertificationsFormPage() {
               <input
                 value={equipmentType}
                 onChange={(e) => setEquipmentType(e.target.value)}
-                className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="Enter equipment type"
                 required
               />
@@ -235,7 +235,7 @@ export default function CertificationsFormPage() {
               <input
                 value={testedBy}
                 onChange={(e) => setTestedBy(e.target.value)}
-                className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-sky-400"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 placeholder="Enter tester name"
                 required
               />
@@ -260,7 +260,7 @@ export default function CertificationsFormPage() {
                   />
                   <label
                     htmlFor="manufacturing-file"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-slate-900/20 cursor-pointer hover:bg-slate-900/30 hover:border-sky-400/40 transition group"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-white/5 cursor-pointer hover:bg-white/10 hover:border-sky-400/40 transition group"
                   >
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <svg
@@ -310,7 +310,7 @@ export default function CertificationsFormPage() {
                   />
                   <label
                     htmlFor="test-file"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-slate-900/20 cursor-pointer hover:bg-slate-900/30 hover:border-sky-400/40 transition group"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-white/5 cursor-pointer hover:bg-white/10 hover:border-sky-400/40 transition group"
                   >
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <svg

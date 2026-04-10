@@ -3,7 +3,9 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
@@ -257,6 +259,24 @@ export default function DefectListPage() {
 
   const statusOptions = ["Open", "In Progress", "Closed"];
 
+  const searchFilteredDefects = useMemo(() => {
+    if (!searchTerm.trim()) return defects;
+    const s = searchTerm.toLowerCase();
+    return defects.filter(
+      (d) =>
+        (d.serialNumber || "").toLowerCase().includes(s) ||
+        (d.formCode || "").toLowerCase().includes(s) ||
+        (d.equipmentDefect || "").toLowerCase().includes(s) ||
+        (d.base || "").toLowerCase().includes(s)
+    );
+  }, [defects, searchTerm]);
+
+  const defectListPagination = useOperationsClientPagination(
+    searchFilteredDefects,
+    `${searchTerm}|${year}|${defects.length}`
+  );
+  const { paginatedItems: paginatedDefectRows, ...defectListPaginationFooterProps } = defectListPagination;
+
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
@@ -359,17 +379,7 @@ export default function DefectListPage() {
 
           {loading ? (
             <p className="text-sm text-slate-100">Loading defects…</p>
-          ) : (() => {
-            const searchFiltered = !searchTerm.trim()
-              ? defects
-              : defects.filter((d) => {
-                  const s = searchTerm.toLowerCase();
-                  return (d.serialNumber || "").toLowerCase().includes(s)
-                    || (d.formCode || "").toLowerCase().includes(s)
-                    || (d.equipmentDefect || "").toLowerCase().includes(s)
-                    || (d.base || "").toLowerCase().includes(s);
-                });
-            return searchFiltered.length === 0 ? (
+          ) : searchFilteredDefects.length === 0 ? (
               <p className="text-sm text-slate-100">
                 {searchTerm.trim() ? "No defects match your search." : (year !== "" && year != null ? `No equipment defects found for ${year}.` : "No equipment defects found.")}
               </p>
@@ -390,7 +400,7 @@ export default function DefectListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {searchFiltered.map((defect) => (
+                    {paginatedDefectRows.map((defect) => (
                       <tr
                         key={defect._id}
                         className="border-b border-white/5 hover:bg-white/5"
@@ -492,9 +502,9 @@ export default function DefectListPage() {
                     ))}
                   </tbody>
                 </table>
+                <OperationsListPaginationFooter {...defectListPaginationFooterProps} />
               </div>
-            );
-          })()}
+            )}
         </QhseListPageContainer>
       </div>
     </div>

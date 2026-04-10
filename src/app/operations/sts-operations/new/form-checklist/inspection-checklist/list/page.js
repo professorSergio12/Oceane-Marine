@@ -16,6 +16,8 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -131,6 +133,12 @@ export default function InspectionChecklistListPage() {
           String(r.year ?? "").includes(s)
         );
       });
+
+  const pagination = useOperationsClientPagination(
+    searchFiltered,
+    `${year}|${locationId}|${formNumber}|${filterYear}|${boatName}|${searchTerm}`
+  );
+  const { paginatedItems: paginatedRecords, ...paginationFooterProps } = pagination;
 
   const handleDownload = async (record) => {
     setDownloading(record._id);
@@ -523,7 +531,7 @@ export default function InspectionChecklistListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {searchFiltered.map((record) => (
+                  {paginatedRecords.map((record) => (
                     <tr key={record._id} className="hover:bg-white/5 transition">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-mono text-orange-400">
@@ -593,6 +601,7 @@ export default function InspectionChecklistListPage() {
                 </tbody>
               </table>
             </div>
+            <OperationsListPaginationFooter {...paginationFooterProps} />
           </div>
           )}
         </QhseListPageContainer>

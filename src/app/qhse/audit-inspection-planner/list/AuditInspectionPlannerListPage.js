@@ -3,7 +3,9 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, EditIconButton, ViewIconButton, DownloadIconButton } from "../../components/ActionIcons";
@@ -218,6 +220,23 @@ export default function AuditInspectionPlannerListPage() {
     fetchYears();
   }, []);
 
+  const filteredAuditPlannerItems = useMemo(() => {
+    if (!searchTerm.trim()) return items;
+    const s = searchTerm.toLowerCase();
+    return items.filter(
+      (i) =>
+        (i.serialNumber || "").toLowerCase().includes(s) ||
+        (i.formCode || "").toLowerCase().includes(s)
+    );
+  }, [items, searchTerm]);
+
+  const auditPlannerListPagination = useOperationsClientPagination(
+    filteredAuditPlannerItems,
+    `${searchTerm}|${year}|${items.length}`
+  );
+  const { paginatedItems: paginatedAuditPlannerRows, ...auditPlannerListPaginationFooterProps } =
+    auditPlannerListPagination;
+
   if (loading) return null;
 
   return (
@@ -317,14 +336,7 @@ export default function AuditInspectionPlannerListPage() {
               <div className="flex items-center justify-center py-12">
                 <p className="text-sm text-slate-300">Loading...</p>
               </div>
-            ) : (() => {
-              const filtered = !searchTerm.trim()
-                ? items
-                : items.filter((i) => {
-                    const s = searchTerm.toLowerCase();
-                    return (i.serialNumber || "").toLowerCase().includes(s) || (i.formCode || "").toLowerCase().includes(s);
-                  });
-              return filtered.length === 0 ? (
+            ) : filteredAuditPlannerItems.length === 0 ? (
                 <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5">
                   <p className="text-white/60 mb-2">
                     {year ? `No planners found for ${year}` : "No planners found"}
@@ -351,7 +363,7 @@ export default function AuditInspectionPlannerListPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((item) => (
+                      {paginatedAuditPlannerRows.map((item) => (
                       <tr key={item._id} className="border-b border-white/5">
                         <td className="px-6 py-4 font-mono text-sky-300">{item.formCode}</td>
                         <td className="px-6 py-4 font-mono text-slate-200">{item.serialNumber || "—"}</td>
@@ -407,9 +419,9 @@ export default function AuditInspectionPlannerListPage() {
                       ))}
                     </tbody>
                   </table>
+                  <OperationsListPaginationFooter {...auditPlannerListPaginationFooterProps} />
                 </div>
-              );
-            })()}
+              )}
           </QhseListPageContainer>
         </main>
       </div>

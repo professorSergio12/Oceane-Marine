@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import {
   ActionViewIcon,
   ActionEditIcon,
@@ -18,7 +20,7 @@ const Input = ({ label, required, ...props }) => (
     </label>
     <input
       {...props}
-      className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+      className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
     />
   </div>
 );
@@ -51,7 +53,7 @@ const SearchableDropdown = ({ label, required, options = [], value, onChange, pl
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-orange-500"
+        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-orange-500/50"
       >
         <span className={value ? "text-white" : "text-slate-400"}>
           {value || placeholder}
@@ -61,14 +63,14 @@ const SearchableDropdown = ({ label, required, options = [], value, onChange, pl
         </svg>
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-white/20 bg-slate-900 shadow-2xl max-h-56 overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-white/15 bg-[#0b2740]/95 backdrop-blur-[2px] shadow-2xl max-h-56 overflow-hidden">
           <div className="p-2 border-b border-white/10">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="w-full rounded border border-white/10 bg-slate-950/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none"
+              className="w-full rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none"
               autoFocus
             />
           </div>
@@ -183,9 +185,8 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
   const [attachmentFile, setAttachmentFile] = useState(null);
-  const [filterYear, setFilterYear] = useState(
-    new Date().getFullYear().toString()
-  );
+  /** "" = all years (matches QHSE defects list / API omits year filter) */
+  const [filterYear, setFilterYear] = useState("");
   const [editingRecord, setEditingRecord] = useState(null);
   const canSubmit = editingRecord ? canEdit : canCreate;
 
@@ -196,6 +197,15 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
   // View modal state
   const [viewRecord, setViewRecord] = useState(null);
+
+  const warehouseListPagination = useOperationsClientPagination(
+    view === "list" ? records : [],
+    view === "list" ? `${filterYear}|${selectedLocation}|${records.length}` : "list-off"
+  );
+  const {
+    paginatedItems: paginatedRecords,
+    ...warehouseListPaginationFooterProps
+  } = warehouseListPagination;
 
   const [form, setForm] = useState({
     status: "NOT_COMPLETED",
@@ -267,8 +277,10 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
      FETCH LIST
   ========================= */
   const fetchList = async () => {
+    const params = new URLSearchParams({ location: selectedLocation });
+    if (filterYear) params.set("year", filterYear);
     const res = await fetch(
-      `/api/pms/warehouse-management/list?location=${selectedLocation}&year=${filterYear}`
+      `/api/pms/warehouse-management/list?${params.toString()}`
     );
     const data = await res.json();
     setRecords(data.data || []);
@@ -410,9 +422,9 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div>
+      {/* HEADER — title + list filters (year, location) on one row */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between gap-y-4">
+        <div className="min-w-0">
           <p className="text-xs tracking-widest text-sky-300">
             PMS / Warehouse Management
           </p>
@@ -420,21 +432,50 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
             Warehouse Management
           </h2>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-medium text-slate-200">
-            Select Location:
-          </label>
-          <select
-            value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.target.value)}
-            className="rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 min-w-[180px]"
-          >
-            {LOCATIONS.map((loc) => (
-              <option key={loc.value} value={loc.value}>
-                {loc.label}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-4 sm:gap-5 shrink-0">
+          {view === "list" && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
+                Year
+              </span>
+              <select
+                id="warehouse-list-filter-year"
+                value={filterYear}
+                onChange={(e) => setFilterYear(e.target.value)}
+                className="theme-select min-w-[10.5rem] rounded-full px-3 py-1.5 text-xs tracking-widest uppercase"
+              >
+                <option value="">All years</option>
+                {Array.from(
+                  { length: new Date().getFullYear() + 5 - 2020 + 1 },
+                  (_, i) => 2020 + i
+                ).map((y) => (
+                  <option key={y} value={String(y)}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <label
+              htmlFor="warehouse-header-location"
+              className="text-xs font-medium text-slate-200 whitespace-nowrap"
+            >
+              Select Location:
+            </label>
+            <select
+              id="warehouse-header-location"
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 min-w-[160px] sm:min-w-[180px]"
+            >
+              {LOCATIONS.map((loc) => (
+                <option key={loc.value} value={loc.value}>
+                  {loc.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -454,8 +495,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
       {view === "form" && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-3xl border border-white/10 p-6 space-y-6 shadow-2xl"
-          style={{ backgroundColor: "#153d59" }}
+          className="rounded-3xl border border-white/10 bg-[#0b2740]/85 backdrop-blur-[2px] p-6 space-y-6 shadow-2xl max-w-6xl mx-auto"
         >
           {!canSubmit && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
@@ -485,7 +525,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               name="status"
               value={form.status}
               onChange={handleChange}
-              className="rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
             >
               <option value="NOT_COMPLETED">Not Completed</option>
               <option value="COMPLETED">Completed</option>
@@ -501,7 +541,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               <select
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
               >
                 {LOCATIONS.map((loc) => (
                   <option key={loc.value} value={loc.value}>
@@ -554,7 +594,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                 name="ownership"
                 value={form.ownership}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
                 required
               >
                 <option value="OWNED">Owned</option>
@@ -585,7 +625,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               rows={3}
               value={form.remarks}
               onChange={handleChange}
-              className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
             />
           </div>
 
@@ -635,30 +675,9 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
       {/* ========================= LIST ========================= */}
       {view === "list" && (
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-white">Filters</h3>
-            <div className="grid gap-4 max-w-xs">
-              <div>
-                <label className="text-xs font-medium text-slate-200 block mb-2">
-                  Year
-                </label>
-                <input
-                  type="number"
-                  min="2020"
-                  max={new Date().getFullYear() + 5}
-                  value={filterYear}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                  className="w-full rounded-lg border border-white/20 bg-slate-950/40 px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-6 overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[720px]">
               <thead className="text-slate-300 border-b border-white/10">
                 <tr>
                   <th className="text-left px-3 py-2">Equipment</th>
@@ -681,7 +700,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                     </td>
                   </tr>
                 ) : (
-                  records.map((r) => (
+                  paginatedRecords.map((r) => (
                     <tr
                       key={r._id}
                       className="border-b border-white/5 hover:bg-white/5 transition"
@@ -733,6 +752,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               </tbody>
             </table>
           </div>
+          <OperationsListPaginationFooter {...warehouseListPaginationFooterProps} />
         </div>
       )}
 
@@ -741,7 +761,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
         typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-[2px] z-[9999] flex items-center justify-center p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) setViewRecord(null);
             }}

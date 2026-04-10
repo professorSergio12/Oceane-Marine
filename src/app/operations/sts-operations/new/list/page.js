@@ -17,6 +17,8 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 const statusTone = {
   INPROGRESS: {
@@ -94,6 +96,9 @@ export default function STSListPage() {
       setFilteredOperations(filtered);
     }
   }, [searchQuery, operations]);
+
+  const pagination = useOperationsClientPagination(filteredOperations, searchQuery);
+  const { paginatedItems: paginatedOperations, ...paginationFooterProps } = pagination;
 
   const fetchOperations = async () => {
     try {
@@ -427,7 +432,7 @@ export default function STSListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {filteredOperations.map((op) => (
+                    {paginatedOperations.map((op) => (
                       <tr key={op._id} className="hover:bg-white/5 transition">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <span className="text-xs sm:text-sm text-white/90">
@@ -496,6 +501,7 @@ export default function STSListPage() {
                   </tbody>
                 </table>
               </div>
+              <OperationsListPaginationFooter {...paginationFooterProps} />
             </div>
           )}
         </div>

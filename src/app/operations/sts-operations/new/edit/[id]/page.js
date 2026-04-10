@@ -434,7 +434,7 @@ export default function EditOperationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
+      <div className="min-h-screen text-white flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mx-auto"></div>
           <p className="text-white/60">Loading operation data...</p>
@@ -445,7 +445,7 @@ export default function EditOperationPage() {
 
   return (
     <div
-      className="min-h-screen bg-transparent text-white flex"
+      className="min-h-screen text-white flex"
     >
       {/* Left Sidebar */}
       <div

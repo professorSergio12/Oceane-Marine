@@ -52,7 +52,7 @@ export default function PmsPage() {
       {/* Left Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[280px] bg-slate-900/98 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[280px] bg-slate-900/70 border-r border-white/20 shadow-2xl backdrop-blur-[2px] z-50 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         <div className="flex flex-col h-full">
@@ -131,7 +131,7 @@ export default function PmsPage() {
           </button>
           <Link
             href="/dashboard"
-            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-[2px] transition"
           >
             ← Dashboard
           </Link>
@@ -147,7 +147,7 @@ export default function PmsPage() {
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
+              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-[2px] transition flex-shrink-0"
             >
               ← Dashboard
             </Link>
@@ -255,7 +255,7 @@ export default function PmsPage() {
           </header>
 
           {/* Tab Content */}
-          <div className="rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/10 bg-white/5 p-3 sm:p-4 md:p-6 backdrop-blur shadow-2xl">
+          <div className="rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/10 bg-[#0b2740]/45 backdrop-blur-[2px] p-3 sm:p-4 md:p-6 shadow-2xl">
             {activeTab === "equipment-inventory" &&
               activeSubmodule === "primary-equipment" && (
                 <PrimaryEquipment

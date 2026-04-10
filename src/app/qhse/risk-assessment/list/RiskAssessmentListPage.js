@@ -3,32 +3,37 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
 import { QhseListPageContainer } from "../../components/QhseListPageContainer";
 import { useQhseRole } from "@/hooks/useQhseRole";
+import { useQhseMongoCursorList } from "../../hooks/useQhseMongoCursorList";
+import QhseCursorPaginationFooter from "../../components/QhseCursorPaginationFooter";
 
 export default function RiskAssessmentListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const { canDelete, canDownload } = useQhseRole();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [archivingId, setArchivingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [locations, setLocations] = useState([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
 
   const currentYear = new Date().getFullYear();
   const yearOptions = [];
   for (let y = currentYear + 5; y >= currentYear - 7; y--) {
     yearOptions.push(y);
   }
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetch("/api/master/locations/list")
@@ -38,33 +43,50 @@ export default function RiskAssessmentListPage() {
           setLocations(data.locations);
         }
       })
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setPageLoading(true);
-        const params = new URLSearchParams();
-        if (locationFilter) params.set("location", locationFilter);
-        if (yearFilter) params.set("year", yearFilter);
-        const url = params.toString()
-          ? `/api/qhse/risk-assessment/list?${params.toString()}`
-          : "/api/qhse/risk-assessment/list";
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to load");
-        setItems(data.data || []);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-        setPageLoading(false);
+  const loadPage = useCallback(
+    async (requestCursor) => {
+      const params = new URLSearchParams({
+        paged: "cursor",
+        limit: "10",
+      });
+      if (locationFilter) params.set("location", locationFilter);
+      if (yearFilter) params.set("year", yearFilter);
+      if (searchDebounced.trim()) {
+        params.set("search", searchDebounced.trim());
       }
-    };
-    load();
-  }, [locationFilter, yearFilter]);
+      if (requestCursor) params.set("cursor", requestCursor);
+      const res = await fetch(
+        `/api/qhse/risk-assessment/list?${params.toString()}`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load");
+      return {
+        items: data.data || [],
+        hasNext: !!data.hasNext,
+      };
+    },
+    [locationFilter, yearFilter, searchDebounced]
+  );
+
+  const cursorResetKey = `${locationFilter}|${yearFilter}|${searchDebounced}`;
+  const {
+    items,
+    loading,
+    error,
+    setError,
+    hasNext,
+    hasPrev,
+    goNext,
+    goPrev,
+    setItems,
+  } = useQhseMongoCursorList(loadPage, cursorResetKey);
+
+  useEffect(() => {
+    setPageLoading(loading);
+  }, [loading, setPageLoading]);
 
   const handleArchive = async (item) => {
     if (!confirm("Archive this risk assessment? It will be stored in QHSE Archive (Risk Assessment).")) return;
@@ -72,7 +94,12 @@ export default function RiskAssessmentListPage() {
     setError("");
     setActionMessage("");
     try {
-      const payload = buildArchivePayload(ARCHIVE_MODULES.RISK_ASSESSMENT, item, item.locationName + (item.version ? ` – v${item.version}` : ""), "");
+      const payload = buildArchivePayload(
+        ARCHIVE_MODULES.RISK_ASSESSMENT,
+        item,
+        item.locationName + (item.version ? ` – v${item.version}` : ""),
+        ""
+      );
       const result = await archiveDocument(payload);
       if (!result.success) throw new Error(result.error);
       setItems((prev) => prev.filter((i) => i._id !== item._id));
@@ -86,12 +113,19 @@ export default function RiskAssessmentListPage() {
 
   const handleDelete = async (item) => {
     if (!canDelete) return;
-    if (!confirm(`Delete this risk assessment (${item.serialNumber || item.locationName})? This cannot be undone.`)) return;
+    if (
+      !confirm(
+        `Delete this risk assessment (${item.serialNumber || item.locationName})? This cannot be undone.`
+      )
+    )
+      return;
     setDeletingId(item._id);
     setError("");
     setActionMessage("");
     try {
-      const res = await fetch(`/api/qhse/risk-assessment/${item._id}`, { method: "DELETE" });
+      const res = await fetch(`/api/qhse/risk-assessment/${item._id}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete");
       setItems((prev) => prev.filter((i) => i._id !== item._id));
@@ -165,7 +199,9 @@ export default function RiskAssessmentListPage() {
               >
                 <option value="">All years</option>
                 {yearOptions.map((y) => (
-                  <option key={y} value={y}>{y}</option>
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
                 ))}
               </select>
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
@@ -196,122 +232,128 @@ export default function RiskAssessmentListPage() {
           )}
 
           <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-          <div className="grid grid-cols-6 text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3 gap-2">
-            <div>Location</div>
-            <div>Form Code</div>
-            <div>Serial No</div>
-            <div>Version</div>
-            <div>File</div>
-            <div className="text-right">Actions</div>
-          </div>
+            <div className="grid grid-cols-6 text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3 gap-2">
+              <div>Location</div>
+              <div>Form Code</div>
+              <div>Serial No</div>
+              <div>Version</div>
+              <div>File</div>
+              <div className="text-right">Actions</div>
+            </div>
 
-          {loading ? (
-            <div className="p-6 text-sm text-slate-300">Loading...</div>
-          ) : (() => {
-            const searchFiltered = !searchTerm.trim()
-              ? items
-              : items.filter((i) => {
-                  const s = searchTerm.toLowerCase();
-                  return (i.locationName || "").toLowerCase().includes(s)
-                    || (i.formCode || "").toLowerCase().includes(s)
-                    || (i.serialNumber || "").toLowerCase().includes(s);
-                });
-            return searchFiltered.length === 0 ? (
+            {loading ? (
+              <div className="p-6 text-sm text-slate-300">Loading...</div>
+            ) : items.length === 0 ? (
               <div className="p-6 text-sm text-slate-300">
                 {searchTerm.trim() ? "No records match your search." : "No records found."}
               </div>
             ) : (
-            <div className="divide-y divide-white/10">
-              {searchFiltered.map((item) => (
-                <div
-                  key={item._id}
-                  className="grid grid-cols-6 items-center px-4 py-3 text-sm gap-2"
-                >
-                  <div className="font-medium text-white">{item.locationName}</div>
-                  <div className="text-slate-200">{item.formCode || "—"}</div>
-                  <div className="text-slate-200">{item.serialNumber || "—"}</div>
-                  <div className="text-slate-200">{item.version || "—"}</div>
-                  <div className="text-slate-200 truncate">{item.fileName}</div>
-                  <div className="text-right flex flex-wrap items-center justify-end gap-1">
-                    <span className="relative group inline-flex">
-                      <button
-                        type="button"
-                        onClick={() => handleArchive(item)}
-                        disabled={archivingId === item._id || deletingId === item._id}
-                        title="Archive"
-                        aria-label="Archive"
-                        className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 disabled:opacity-50 transition"
-                      >
-                        {archivingId === item._id ? (
-                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                          </svg>
+              <>
+                <div className="divide-y divide-white/10">
+                  {items.map((item) => (
+                    <div
+                      key={item._id}
+                      className="grid grid-cols-6 items-center px-4 py-3 text-sm gap-2"
+                    >
+                      <div className="font-medium text-white">{item.locationName}</div>
+                      <div className="text-slate-200">{item.formCode || "—"}</div>
+                      <div className="text-slate-200">{item.serialNumber || "—"}</div>
+                      <div className="text-slate-200">{item.version || "—"}</div>
+                      <div className="text-slate-200 truncate">{item.fileName}</div>
+                      <div className="text-right flex flex-wrap items-center justify-end gap-1">
+                        <span className="relative group inline-flex">
+                          <button
+                            type="button"
+                            onClick={() => handleArchive(item)}
+                            disabled={archivingId === item._id || deletingId === item._id}
+                            title="Archive"
+                            aria-label="Archive"
+                            className="p-1.5 rounded text-slate-400 hover:text-slate-300 hover:bg-white/10 disabled:opacity-50 transition"
+                          >
+                            {archivingId === item._id ? (
+                              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                              </svg>
+                            )}
+                          </button>
+                          <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                            Archive
+                          </span>
+                        </span>
+                        {canDownload && (
+                          <span className="relative group inline-flex">
+                            <a
+                              href={`/api/qhse/risk-assessment/${item._id}/download`}
+                              download
+                              title="Download as Word"
+                              aria-label="Download as Word"
+                              className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </a>
+                            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                              Download as Word
+                            </span>
+                          </span>
                         )}
-                      </button>
-                      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                        Archive
-                      </span>
-                    </span>
-                    {canDownload && (
-                    <span className="relative group inline-flex">
-                      <a
-                        href={`/api/qhse/risk-assessment/${item._id}/download`}
-                        download
-                        title="Download as Word"
-                        aria-label="Download as Word"
-                        className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      </a>
-                      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                        Download as Word
-                      </span>
-                    </span>
-                    )}
-                    {canDelete && (
-                    <span className="relative group inline-flex">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(item)}
-                        disabled={archivingId === item._id || deletingId === item._id}
-                        title="Delete"
-                        aria-label="Delete"
-                        className="p-1.5 rounded text-red-300 hover:text-red-200 hover:bg-red-500/10 disabled:opacity-50 transition"
-                      >
-                        {deletingId === item._id ? (
-                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
+                        {canDelete && (
+                          <span className="relative group inline-flex">
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(item)}
+                              disabled={archivingId === item._id || deletingId === item._id}
+                              title="Delete"
+                              aria-label="Delete"
+                              className="p-1.5 rounded text-red-300 hover:text-red-200 hover:bg-red-500/10 disabled:opacity-50 transition"
+                            >
+                              {deletingId === item._id ? (
+                                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
+                            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                              Delete
+                            </span>
+                          </span>
                         )}
-                      </button>
-                      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                        Delete
-                      </span>
-                    </span>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            );
-          })()}
-        </div>
+                <div className="px-4 pb-4">
+                  <QhseCursorPaginationFooter
+                    hasPrev={hasPrev}
+                    hasNext={hasNext}
+                    itemCount={items.length}
+                    onPrev={() => {
+                      void goPrev();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    onNext={() => {
+                      void goNext();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    loading={loading}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </QhseListPageContainer>
       </div>
     </div>
   );
 }
-
-

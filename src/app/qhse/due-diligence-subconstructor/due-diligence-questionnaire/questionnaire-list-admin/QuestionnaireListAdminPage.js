@@ -4,12 +4,14 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ViewIconButton, ApproveIconButton, RejectIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { useQhseMongoCursorList } from "../../../hooks/useQhseMongoCursorList";
+import QhseCursorPaginationFooter from "../../../components/QhseCursorPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -38,11 +40,7 @@ export default function QuestionnaireListAdminPage() {
   const { setPageLoading } = useQhseLoading();
   const { canDelete, canApprove, canDownload } = useQhseRole();
   const { contentClassName } = useQhseSidebar();
-  const [allForms, setAllForms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [approving, setApproving] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
@@ -53,37 +51,52 @@ export default function QuestionnaireListAdminPage() {
   const [filterStatus, setFilterStatus] = useState("Pending"); // Pending = Pending Review
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchForms = async () => {
-    setLoading(true);
-    setPageLoading(true);
-    setError(null);
-    try {
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  const loadPage = useCallback(
+    async (requestCursor) => {
+      const params = new URLSearchParams({
+        paged: "cursor",
+        limit: "10",
+        status: filterStatus,
+      });
+      if (searchDebounced.trim()) {
+        params.set("search", searchDebounced.trim());
+      }
+      if (requestCursor) params.set("cursor", requestCursor);
       const res = await fetch(
-        "/api/qhse/due-diligence/due-diligence-questionnaire/list"
+        `/api/qhse/due-diligence/due-diligence-questionnaire/list?${params.toString()}`
       );
       const data = await res.json();
-
       if (!res.ok) {
         throw new Error(data.error || "Failed to load forms");
       }
+      const rows = data.data || data.supplierDueDiligences || [];
+      return { items: rows, hasNext: !!data.hasNext };
+    },
+    [filterStatus, searchDebounced]
+  );
 
-      console.log("API Response:", data);
-
-      // Handle both possible response structures
-      const forms = data.supplierDueDiligences || data.data || [];
-      setAllForms(forms);
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setError(err.message || "Failed to load forms. Please try again.");
-    } finally {
-      setLoading(false);
-      setPageLoading(false);
-    }
-  };
+  const cursorResetKey = `${filterStatus}|${searchDebounced}`;
+  const {
+    items: listForms,
+    loading,
+    error,
+    setError,
+    hasNext,
+    hasPrev,
+    goNext,
+    goPrev,
+    refreshFirstPage,
+    setItems: setListForms,
+  } = useQhseMongoCursorList(loadPage, cursorResetKey);
 
   useEffect(() => {
-    fetchForms();
-  }, []);
+    setPageLoading(loading);
+  }, [loading, setPageLoading]);
 
   // Clear selected form if it no longer matches the active filter
   useEffect(() => {
@@ -132,7 +145,7 @@ export default function QuestionnaireListAdminPage() {
         throw new Error(data.error || "Failed to approve form");
       }
 
-      await fetchForms();
+      await refreshFirstPage();
       setSelectedForm(null);
       alert("Form approved successfully!");
     } catch (err) {
@@ -250,7 +263,7 @@ export default function QuestionnaireListAdminPage() {
         throw new Error(data.error || "Failed to reject form");
       }
 
-      await fetchForms();
+      await refreshFirstPage();
       setSelectedForm(null);
       alert("Form rejected successfully!");
     } catch (err) {
@@ -269,7 +282,7 @@ export default function QuestionnaireListAdminPage() {
       const payload = buildArchivePayload(ARCHIVE_MODULES.DUE_DILIGENCE_QUESTIONNAIRE, form, title, form.formCode);
       const result = await archiveDocument(payload);
       if (!result.success) throw new Error(result.error);
-      await fetchForms();
+      await refreshFirstPage();
       if (selectedForm?._id === form._id) setSelectedForm(null);
       alert("Form archived successfully.");
     } catch (err) {
@@ -288,38 +301,13 @@ export default function QuestionnaireListAdminPage() {
       const res = await fetch(`/api/qhse/due-diligence/due-diligence-questionnaire/${form._id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete");
-      setAllForms((prev) => prev.filter((f) => f._id !== form._id));
+      setListForms((prev) => prev.filter((f) => f._id !== form._id));
       if (selectedForm?._id === form._id) setSelectedForm(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setDeleting(null);
     }
-  };
-
-  const statusFiltered = allForms.filter((form) => {
-    if (filterStatus === "All") return true;
-    return form.status === filterStatus;
-  });
-
-  const forms = !searchTerm.trim()
-    ? statusFiltered
-    : statusFiltered.filter((f) => {
-        const s = searchTerm.toLowerCase();
-        return (f.serialNumber || "").toLowerCase().includes(s)
-          || (f.formCode || "").toLowerCase().includes(s)
-          || (f.companyName || "").toLowerCase().includes(s)
-          || (f.contact || "").toLowerCase().includes(s);
-      });
-
-  const totalPages = Math.ceil(forms.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentForms = forms.slice(startIndex, endIndex);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -358,7 +346,6 @@ export default function QuestionnaireListAdminPage() {
                   type="button"
                   onClick={() => {
                     setFilterStatus(statusKey);
-                    setCurrentPage(1);
                   }}
                   className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
                     filterStatus === statusKey
@@ -909,7 +896,7 @@ export default function QuestionnaireListAdminPage() {
                 <div className="flex items-center justify-center py-12">
                   <div className="text-sm text-slate-100">Loading forms…</div>
                 </div>
-              ) : forms.length === 0 ? (
+              ) : listForms.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <p className="text-sm text-slate-100">
                     No{" "}
@@ -944,7 +931,7 @@ export default function QuestionnaireListAdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentForms.map((form) => (
+                        {listForms.map((form) => (
                           <tr
                             key={form._id}
                             className="border-b border-white/5 hover:bg-white/5 transition"
@@ -1035,77 +1022,20 @@ export default function QuestionnaireListAdminPage() {
                     </table>
                   </div>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                      <div className="text-xs text-slate-300">
-                        Showing {startIndex + 1} to{" "}
-                        {Math.min(endIndex, forms.length)} of {forms.length}{" "}
-                        {filterStatus === "All"
-                          ? ""
-                          : filterStatus === "Pending"
-                          ? "pending "
-                          : `${filterStatus.toLowerCase()} `}
-                        forms
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-medium text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          Previous
-                        </button>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: totalPages }, (_, i) => i + 1)
-                            .filter((page) => {
-                              return (
-                                page === 1 ||
-                                page === totalPages ||
-                                (page >= currentPage - 1 &&
-                                  page <= currentPage + 1)
-                              );
-                            })
-                            .map((page, index, array) => {
-                              const showEllipsisBefore =
-                                index > 0 && array[index - 1] !== page - 1;
-                              return (
-                                <div
-                                  key={page}
-                                  className="flex items-center gap-1"
-                                >
-                                  {showEllipsisBefore && (
-                                    <span className="text-slate-400 px-1">
-                                      …
-                                    </span>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => handlePageChange(page)}
-                                    className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
-                                      currentPage === page
-                                        ? "bg-orange-500 text-white border-orange-500"
-                                        : "border-white/10 bg-white/5 text-white/90 hover:bg-white/10"
-                                    }`}
-                                  >
-                                    {page}
-                                  </button>
-                                </div>
-                              );
-                            })}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-medium text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <QhseCursorPaginationFooter
+                    hasPrev={hasPrev}
+                    hasNext={hasNext}
+                    itemCount={listForms.length}
+                    onPrev={() => {
+                      void goPrev();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    onNext={() => {
+                      void goNext();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    loading={loading}
+                  />
                 </>
               )}
             </div>

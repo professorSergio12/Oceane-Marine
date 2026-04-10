@@ -157,7 +157,7 @@ function ViewOperationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
+      <div className="min-h-screen text-white flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mx-auto"></div>
           <p className="text-white/60">Loading operation data...</p>
@@ -168,7 +168,7 @@ function ViewOperationPage() {
 
   if (error || !operationData) {
     return (
-      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
+      <div className="min-h-screen text-white flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-300">{error || "Operation not found"}</p>
           <Link
@@ -185,7 +185,7 @@ function ViewOperationPage() {
   const op = operationData;
 
   return (
-    <div className="min-h-screen bg-transparent text-white flex">
+    <div className="min-h-screen text-white flex">
       {/* Left Sidebar */}
       <div
         ref={sidebarRef}

@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "worker": "node src/workers/worker.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:cid-email": "node scripts/test-cid-expiry-email.mjs",
+    "test:email": "node scripts/send-test-email.mjs"
   },
   "dependencies": {
     "agenda": "^5.0.0",

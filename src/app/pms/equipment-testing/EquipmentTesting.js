@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePmsRole } from "@/hooks/usePmsRole";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -78,6 +80,12 @@ export default function EquipmentTesting() {
     loadEquipments(year);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
+
+  const testingPagination = useOperationsClientPagination(equipments, `${year}|${equipments.length}`);
+  const {
+    paginatedItems: paginatedEquipments,
+    ...testingPaginationFooterProps
+  } = testingPagination;
 
   const handleInputChange = (equipmentId, field, value) => {
     setRowInputs((prev) => ({
@@ -172,13 +180,13 @@ export default function EquipmentTesting() {
       )}
 
       {/* Filters */}
-      <div className="flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-slate-950/60 px-4 py-3">
+      <div className="flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-[#0b2740]/70 backdrop-blur-[2px] px-4 py-3 shadow-xl">
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-300">Select Year</span>
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-lg border border-white/15 bg-slate-900/80 px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
           >
             {yearOptions.map((y) => (
               <option key={y} value={y}>
@@ -215,7 +223,7 @@ export default function EquipmentTesting() {
       )}
 
       {/* Table */}
-      <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-6">
+      <div className="rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-white">
             Equipment inventory
@@ -228,10 +236,10 @@ export default function EquipmentTesting() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 overflow-auto">
+        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-auto">
           <table className="w-full text-xs min-w-[900px]">
             <thead>
-              <tr className="text-left text-slate-100 border-b border-white/10 bg-slate-900/90">
+              <tr className="text-left text-slate-100 border-b border-white/10 bg-white/10">
                 <th className="px-4 py-3 font-semibold text-sm">
                   Equipment Type
                 </th>
@@ -263,7 +271,7 @@ export default function EquipmentTesting() {
                 </tr>
               )}
 
-              {equipments.map((eq) => {
+              {paginatedEquipments.map((eq) => {
                 const input = rowInputs[eq._id] || {
                   plannedOn: "",
                   tester: "",
@@ -306,7 +314,7 @@ export default function EquipmentTesting() {
                           onChange={(e) =>
                             handleInputChange(eq._id, "plannedOn", e.target.value)
                           }
-                          className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                         />
                       )}
                     </td>
@@ -324,7 +332,7 @@ export default function EquipmentTesting() {
                           onChange={(e) =>
                             handleInputChange(eq._id, "tester", e.target.value)
                           }
-                          className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-50"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:opacity-50"
                         />
                       )}
                     </td>
@@ -348,6 +356,7 @@ export default function EquipmentTesting() {
             </tbody>
           </table>
         </div>
+        <OperationsListPaginationFooter {...testingPaginationFooterProps} />
       </div>
     </div>
   );

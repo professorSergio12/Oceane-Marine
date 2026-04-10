@@ -2,7 +2,9 @@
 
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../utils/archive";
@@ -200,6 +202,24 @@ export default function BestPracticeListPage() {
     }
   };
 
+  const filteredBestPractices = useMemo(() => {
+    if (!searchTerm.trim()) return bestPractices;
+    const s = searchTerm.toLowerCase();
+    return bestPractices.filter(
+      (p) =>
+        (p.serialNumber || "").toLowerCase().includes(s) ||
+        (p.description || "").toLowerCase().includes(s) ||
+        (p.formCode || "").toLowerCase().includes(s)
+    );
+  }, [bestPractices, searchTerm]);
+
+  const bestPracticeListPagination = useOperationsClientPagination(
+    filteredBestPractices,
+    `${searchTerm}|${year}|${bestPractices.length}`
+  );
+  const { paginatedItems: paginatedBestPracticeRows, ...bestPracticeListPaginationFooterProps } =
+    bestPracticeListPagination;
+
   return (
     <div className={`${contentClassName} pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
@@ -288,14 +308,7 @@ export default function BestPracticeListPage() {
             )}
             {loading ? (
               <p className="text-sm text-slate-100">Loading...</p>
-            ) : (() => {
-              const filtered = !searchTerm.trim()
-                ? bestPractices
-                : bestPractices.filter((p) => {
-                    const s = searchTerm.toLowerCase();
-                    return (p.serialNumber || "").toLowerCase().includes(s) || (p.description || "").toLowerCase().includes(s) || (p.formCode || "").toLowerCase().includes(s);
-                  });
-              return filtered.length === 0 ? (
+            ) : filteredBestPractices.length === 0 ? (
                 <p className="text-sm text-slate-100">
                   {year !== "" && year != null ? `No records found for ${year}.` : "No records found."}
                   {searchTerm.trim() ? " matching search." : ""}
@@ -314,7 +327,7 @@ export default function BestPracticeListPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((practice) => (
+                      {paginatedBestPracticeRows.map((practice) => (
                       <tr
                         key={practice._id}
                         className="border-b border-white/5 hover:bg-white/5"
@@ -381,9 +394,9 @@ export default function BestPracticeListPage() {
                       ))}
                     </tbody>
                   </table>
+                  <OperationsListPaginationFooter {...bestPracticeListPaginationFooterProps} />
                 </div>
-              );
-            })()}
+              )}
           </QhseListPageContainer>
         </main>
       </div>

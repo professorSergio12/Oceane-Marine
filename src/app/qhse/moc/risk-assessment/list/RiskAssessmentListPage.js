@@ -4,6 +4,8 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useState } from "react";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
@@ -170,6 +172,9 @@ export default function RiskAssessmentListPage() {
     }
   };
 
+  const mocRaListPagination = useOperationsClientPagination(uploads, `${year}|${uploads.length}`);
+  const { paginatedItems: paginatedUploads, ...mocRaListPaginationFooterProps } = mocRaListPagination;
+
   if (loading) return null;
 
   return (
@@ -277,7 +282,7 @@ export default function RiskAssessmentListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {uploads.map((upload) => (
+                    {paginatedUploads.map((upload) => (
                       <tr key={upload._id} className="hover:bg-white/5 transition">
                         <td className="px-6 py-4 whitespace-nowrap font-mono text-sky-300">
                           {upload.formCode || "—"}
@@ -331,6 +336,7 @@ export default function RiskAssessmentListPage() {
                     ))}
                   </tbody>
                 </table>
+                <OperationsListPaginationFooter {...mocRaListPaginationFooterProps} />
               </div>
             </div>
           )}

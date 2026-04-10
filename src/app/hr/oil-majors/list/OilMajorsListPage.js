@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
 import { useHrRole } from "@/hooks/useHrRole";
+import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
+import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 
 /* ── Shared icon button components ── */
 const tooltipClass =
@@ -193,6 +195,17 @@ export default function OilMajorsListPage({ onRefresh }) {
     if (filterStatus) filtered = filtered.filter((r) => r.status === filterStatus);
     setFilteredRecords(filtered);
   }, [records, filterCompany, filterStatus]);
+
+  const oilMajorsListPagination = useOperationsClientPagination(
+    filteredRecords,
+    `${filterCompany}|${filterStatus}|${records.length}`
+  );
+  const {
+    paginatedItems: paginatedListRows,
+    page: listPage,
+    pageSize: listPageSize,
+    ...oilMajorsListPaginationFooterProps
+  } = oilMajorsListPagination;
 
   const fetchRecords = async () => {
     try {
@@ -399,11 +412,12 @@ export default function OilMajorsListPage({ onRefresh }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((record, idx) => {
+                    {paginatedListRows.map((record, idx) => {
                       const attachments = getAttachments(record);
+                      const rowNum = (listPage - 1) * listPageSize + idx + 1;
                       return (
                         <tr key={record._id} className="border-b border-white/5 hover:bg-white/5 transition">
-                          <td className="px-6 py-4 text-slate-400 font-medium">{idx + 1}</td>
+                          <td className="px-6 py-4 text-slate-400 font-medium">{rowNum}</td>
                           <td className="px-6 py-4 font-medium text-white">{record.companyName}</td>
                           <td className="px-6 py-4"><StatusBadge status={record.status} /></td>
                           <td className="px-6 py-4">
@@ -439,6 +453,7 @@ export default function OilMajorsListPage({ onRefresh }) {
                   </tbody>
                 </table>
               </div>
+              <OperationsListPaginationFooter {...oilMajorsListPaginationFooterProps} />
             </div>
           )}
       </div>
