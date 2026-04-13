@@ -27,7 +27,7 @@ const DashboardTabs = ({ activeTab, onTabChange }) => {
               className={`rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
                 activeTab === tab.key
                   ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                  : "bg-white/10 text-white hover:bg-white/20"
+                  : "bg-white/5 text-white hover:bg-white/15"
               }`}
             >
               {tab.label}
@@ -36,7 +36,7 @@ const DashboardTabs = ({ activeTab, onTabChange }) => {
         </div>
       </div>
 
-      <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-slate-900/60 p-3 sm:p-4 md:p-6 shadow-xl backdrop-blur overflow-hidden">
+      <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-slate-900/40 p-3 sm:p-4 md:p-6 shadow-xl backdrop-blur-md overflow-hidden">
         {activeTab === "operations" && <OperationsCharts />}
         {activeTab === "pms" && <PMSCharts />}
         {activeTab === "qhse" && <QHSECharts />}

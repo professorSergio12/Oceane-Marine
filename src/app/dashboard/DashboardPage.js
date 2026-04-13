@@ -24,6 +24,11 @@ const menuItems = [
 
 const BASE_VALID_TABS = ["operations", "pms", "qhse", "accounts", "hr"];
 
+const OPERATIONS_DASHBOARD_BG = "/bg-image/operation/documentations.png";
+const PMS_DASHBOARD_BG = "/bg-image/pms/pms-bg.jpeg";
+const QHSE_DASHBOARD_BG = "/bg-image/qhse/bg.jpeg";
+const HR_DASHBOARD_BG = "/bg-image/HR/hr-bg.jpeg";
+
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get("tab");
@@ -125,12 +130,37 @@ export default function DashboardPage() {
     router.refresh();
   };
 
+  const imageBackdrop = (imageUrl) => (
+    <>
+      <div
+        className="absolute inset-0 scale-105 bg-cover bg-center bg-no-repeat blur-sm"
+        style={{ backgroundImage: `url('${imageUrl}')` }}
+      />
+      <div className="absolute inset-0 bg-slate-950/55" />
+    </>
+  );
+
+  let dashboardBackdrop;
+  if (activeTab === "operations") {
+    dashboardBackdrop = imageBackdrop(OPERATIONS_DASHBOARD_BG);
+  } else if (activeTab === "pms") {
+    dashboardBackdrop = imageBackdrop(PMS_DASHBOARD_BG);
+  } else if (activeTab === "qhse") {
+    dashboardBackdrop = imageBackdrop(QHSE_DASHBOARD_BG);
+  } else if (activeTab === "hr") {
+    dashboardBackdrop = imageBackdrop(HR_DASHBOARD_BG);
+  } else {
+    dashboardBackdrop = <div className="absolute inset-0 bg-[#08334f]/85" />;
+  }
+
   return (
-    <div
-      className="min-h-screen text-white"
-      style={{ backgroundColor: "#08334f" }}
-    >
-      <header className="flex items-center justify-between px-3 sm:px-5 md:px-8 py-3 md:py-5 border-b border-white/10 bg-white/10 backdrop-blur-sm relative z-40">
+    <div className="relative min-h-screen text-white">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+        {dashboardBackdrop}
+      </div>
+
+      <div className="relative z-10 min-h-screen">
+      <header className="flex items-center justify-between px-3 sm:px-5 md:px-8 py-3 md:py-5 border-b border-white/10 bg-white/5 backdrop-blur-md relative z-40">
         <div className="flex-shrink-0 flex items-center">
           <img
             src="/image/logo.png"
@@ -270,6 +300,7 @@ export default function DashboardPage() {
           />
         </div>
       </main>
+      </div>
     </div>
   );
 }
