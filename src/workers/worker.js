@@ -4,6 +4,7 @@ dotenv.config({ path: ".env.local" });
 import { connectDB } from "../lib/config/connection.js";
 import { getAgenda } from "../jobs/agenda/agenda.js";
 import { registerJobs } from "../jobs/agenda/registerJobs.js";
+import { attachDocxJobRetryHandler } from "../jobs/agenda/docxJobRetry.js";
 
 async function startWorker() {
     try {
@@ -68,6 +69,9 @@ async function startWorker() {
         agenda.on("fail", (err, job) => {
             console.error(`❌ Job failed: ${job?.attrs?.name || "unknown"} (ID: ${job?.attrs?._id || "unknown"})`, err.message);
         });
+
+        // STS DOCX jobs (generate-*): Agenda 5 has no define() backoff — reschedule after failure (see docxJobRetry.js)
+        attachDocxJobRetryHandler(agenda);
 
         // ==================== START PROCESSING ====================
         await agenda.start();

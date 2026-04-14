@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 
 /** Keep in sync with @/lib/notifications/moduleNotify NOTIFICATION_MODULES */
@@ -32,6 +33,10 @@ function timeAgo(date) {
 }
 
 export default function GlobalNotificationBell() {
+  const pathname = usePathname();
+  /** Notification summary polling only on main dashboard — not on /admin or module pages */
+  const pollUnreadSummaryOnDashboard = pathname === "/dashboard";
+
   const user = useAuthStore((s) => s.user);
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
@@ -95,9 +100,12 @@ export default function GlobalNotificationBell() {
 
   useEffect(() => {
     fetchSummary();
+    if (!pollUnreadSummaryOnDashboard) {
+      return;
+    }
     const t = setInterval(fetchSummary, 25000);
     return () => clearInterval(t);
-  }, [fetchSummary]);
+  }, [fetchSummary, pollUnreadSummaryOnDashboard]);
 
   useEffect(() => {
     if (open) fetchList();

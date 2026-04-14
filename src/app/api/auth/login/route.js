@@ -21,7 +21,7 @@ export async function POST(req) {
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "2h",
+      expiresIn: "2h", // keep in sync with access_token cookie Max-Age (middleware ACCESS_TOKEN_MAX_AGE_SEC)
     });
 
     const userObj = user.toObject();
@@ -33,9 +33,10 @@ export async function POST(req) {
     );
 
     // Set cookie using Response API (Next.js 14+)
+    const maxAgeSec = 2 * 60 * 60; // 2h — must match JWT expiresIn above
     response.headers.set(
       "Set-Cookie",
-      `access_token=${token}; HttpOnly; Path=/; Max-Age=3600; SameSite=Lax; ${
+      `access_token=${token}; HttpOnly; Path=/; Max-Age=${maxAgeSec}; SameSite=Lax; ${
         process.env.NODE_ENV === "production" ? "Secure" : ""
       }`
     );

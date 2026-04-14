@@ -17,7 +17,7 @@ export function buildCidExpiryReminderEmail({ personName, location, expiryDateFo
     "",
     "To avoid any interruptions in Port Entry, please ensure that you renew it before the expiry date.",
     "",
-    "Thank you for your attention to this matter.",
+    "For further queries and clarifications, please contact operations@oceanemarine.com. Thank you for your attention to this matter.",
     "",
     "Best regards,",
     "Oceane Group",
@@ -40,8 +40,15 @@ export function buildCidExpiryReminderEmail({ personName, location, expiryDateFo
         <p style="margin:0 0 16px;">
           To avoid any interruptions in Port Entry, please ensure that you renew it before the expiry date.
         </p>
-        <p style="margin:0 0 8px;">Thank you for your attention to this matter.</p>
-        <p style="margin:24px 0 0;">Best regards,<br /><strong>Oceane Group</strong></p>
+        <!-- Single footer block: reduces Gmail collapsing content after mailto links -->
+        <p style="margin:0 0 16px;">
+          For further queries and clarifications, please contact
+          <a href="mailto:operations@oceanemarine.com" style="color:#0f766e;text-decoration:underline;">operations@oceanemarine.com</a>.
+          Thank you for your attention to this matter.
+          <br /><br />
+          Best regards,<br />
+          <strong>Oceane Group</strong>
+        </p>
       </td>
     </tr>
   </table>

@@ -24,6 +24,9 @@ const menuItems = [
 
 const BASE_VALID_TABS = ["operations", "pms", "qhse", "accounts", "hr"];
 
+/** Periodic `router.refresh` only for these dashboard module tabs (not admin — admin is `/admin`) */
+const DASHBOARD_AUTO_REFRESH_TABS = new Set(BASE_VALID_TABS);
+
 const OPERATIONS_DASHBOARD_BG = "/bg-image/operation/documentations.png";
 const PMS_DASHBOARD_BG = "/bg-image/pms/pms-bg.jpeg";
 const QHSE_DASHBOARD_BG = "/bg-image/qhse/bg.jpeg";
@@ -54,12 +57,15 @@ export default function DashboardPage() {
   const DASHBOARD_REFRESH_MS = 60_000;
 
   useEffect(() => {
+    if (!DASHBOARD_AUTO_REFRESH_TABS.has(activeTab)) {
+      return;
+    }
     const id = globalThis.setInterval(() => {
       setDataRefreshKey((k) => k + 1);
       router.refresh();
     }, DASHBOARD_REFRESH_MS);
     return () => globalThis.clearInterval(id);
-  }, [router]);
+  }, [router, activeTab]);
 
   useEffect(() => {
     if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
