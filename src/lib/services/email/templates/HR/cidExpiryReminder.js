@@ -13,7 +13,7 @@ export function buildCidExpiryReminderEmail({ personName, location, expiryDateFo
   const text = [
     "Dear Team,",
     "",
-    `This is a friendly reminder that the CID of ${name} for the location ${loc} is set to expire on ${when}.`,
+    `This is a formal reminder that the CID of ${name} for the location ${loc} is set to expire on ${when}.`,
     "",
     "To avoid any interruptions in Port Entry, please ensure that you renew it before the expiry date.",
     "",
@@ -33,7 +33,7 @@ export function buildCidExpiryReminderEmail({ personName, location, expiryDateFo
       <td style="padding:28px 28px 8px;">
         <p style="margin:0 0 16px;">Dear Team,</p>
         <p style="margin:0 0 16px;">
-          This is a friendly reminder that the CID of <strong>${escapeHtml(name)}</strong>
+          This is a formal reminder that the CID of <strong>${escapeHtml(name)}</strong>
           for the location <strong>${escapeHtml(loc)}</strong> is set to expire on
           <strong>${escapeHtml(when)}</strong>.
         </p>
