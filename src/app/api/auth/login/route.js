@@ -37,7 +37,7 @@ export async function POST(req) {
     const maxAgeSec = 2 * 60 * 60; // 2h — must match JWT expiresIn above
     response.headers.set(
       "Set-Cookie",
-      buildAccessTokenCookieHeader(token, maxAgeSec)
+      `access_token=${token}; HttpOnly; Path=/; Max-Age=${maxAgeSec}; SameSite=Lax`
     );
 
     return response;
