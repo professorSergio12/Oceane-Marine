@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildAccessTokenCookieHeader } from "@/lib/auth/accessTokenCookie";
 
 export async function POST() {
   try {
@@ -9,9 +10,7 @@ export async function POST() {
 
     response.headers.set(
       "Set-Cookie",
-      `access_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax; ${
-        process.env.NODE_ENV === "production" ? "Secure" : ""
-      }`
+      buildAccessTokenCookieHeader("", 0)
     );
 
     return response;

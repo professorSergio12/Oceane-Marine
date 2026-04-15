@@ -38,10 +38,23 @@ export default function GlobalNotificationBell() {
   const pollUnreadSummaryOnDashboard = pathname === "/dashboard";
 
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
+  /** Wait for /api/auth/me so we never flash the bell from stale persisted Zustand before session is verified */
+  const [sessionReady, setSessionReady] = useState(false);
   useEffect(() => {
-    fetchUser();
+    let cancelled = false;
+    (async () => {
+      try {
+        await fetchUser();
+      } finally {
+        if (!cancelled) setSessionReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchUser]);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState(M.Operations);
@@ -99,13 +112,14 @@ export default function GlobalNotificationBell() {
   }, [isAdmin, tab]);
 
   useEffect(() => {
+    if (!sessionReady) return;
     fetchSummary();
     if (!pollUnreadSummaryOnDashboard) {
       return;
     }
     const t = setInterval(fetchSummary, 25000);
     return () => clearInterval(t);
-  }, [fetchSummary, pollUnreadSummaryOnDashboard]);
+  }, [fetchSummary, pollUnreadSummaryOnDashboard, sessionReady]);
 
   useEffect(() => {
     if (open) fetchList();
@@ -161,7 +175,9 @@ export default function GlobalNotificationBell() {
     }
   };
 
-  if (!isAdmin) return null;
+  if (!sessionReady || !isAuthenticated || !user || !isAdmin) {
+    return null;
+  }
 
   const activeAccent =
     TABS.find((t) => t.key === tab)?.accent ?? "from-slate-500 to-slate-700";

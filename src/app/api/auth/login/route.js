@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import User from "@/lib/mongodb/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { buildAccessTokenCookieHeader } from "@/lib/auth/accessTokenCookie";
 
 export async function POST(req) {
   try {
@@ -36,9 +37,7 @@ export async function POST(req) {
     const maxAgeSec = 2 * 60 * 60; // 2h — must match JWT expiresIn above
     response.headers.set(
       "Set-Cookie",
-      `access_token=${token}; HttpOnly; Path=/; Max-Age=${maxAgeSec}; SameSite=Lax; ${
-        process.env.NODE_ENV === "production" ? "Secure" : ""
-      }`
+      buildAccessTokenCookieHeader(token, maxAgeSec)
     );
 
     return response;

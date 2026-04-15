@@ -10,7 +10,8 @@ export default function SignupPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "VIEWER",
+    /** Legacy User.roles value (see signup API). Module roles start as viewer until an admin updates them. */
+    role: "REVIEWER",
   });
 
   const [error, setError] = useState("");
@@ -31,23 +32,38 @@ export default function SignupPage() {
     setError("");
     setIsLoading(true);
 
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setIsLoading(false);
+      return;
+    }
+
+    const payload = { ...formData };
+    delete payload.confirmPassword;
+
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error("Failed to create account");
+        throw new Error(data.error || "Failed to create account");
       }
-      const data = await response.json();
-      console.log(data);
       setSuccess(true);
       setTimeout(() => {
         router.push("/login");
       }, 700);
     } catch (error) {
       setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -158,10 +174,32 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Role Dropdown */}
+            {/* Confirm password */}
+            <div className="space-y-2">
+              <label
+                htmlFor="signup-confirm-password"
+                className="block text-sm font-semibold text-white/90"
+              >
+                Confirm password
+              </label>
+              <input
+                id="signup-confirm-password"
+                type={showPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 
+        text-white placeholder-white/50 focus:outline-none focus:ring-2 
+        focus:ring-orange-500/50 transition-all"
+                placeholder="Re-enter password"
+              />
+            </div>
+
+            {/* Role Dropdown — legacy User.roles; module roles (Ops/HR/PMS/QHSE) are set by admin */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-white/90">
-                Select Role
+                Application role
               </label>
               <select
                 name="role"
@@ -169,12 +207,14 @@ export default function SignupPage() {
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
               >
-                <option value="VIEWER">Viewer</option>
-                <option value="REVIEWER">Reviewer</option>
+                <option value="REVIEWER">Reviewer (read / review)</option>
                 <option value="EDITOR">Editor</option>
                 <option value="UPLOADER">Uploader</option>
-                <option value="ADMIN">Admin</option>
+                <option value="CUSTOM_EDITOR">Custom Editor</option>
               </select>
+              <p className="text-xs text-white/60">
+                Operations, HR, PMS, and QHSE permissions are assigned by an administrator after signup.
+              </p>
             </div>
 
             {/* Submit */}

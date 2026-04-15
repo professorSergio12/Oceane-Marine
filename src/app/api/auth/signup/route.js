@@ -2,13 +2,34 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import User from "@/lib/mongodb/models/User";
 import bcrypt from "bcryptjs";
+import { normalizePublicSignupLegacyRole } from "@/lib/auth/signupRoleDefaults";
 
 export async function POST(req) {
   await connectDB();
-  const { employeeId, employeeName, email, password, role } = await req.json();
+  const body = await req.json();
+  const { employeeId, employeeName, email, password, role } = body;
 
   try {
-    const existingUser = await User.findOne({ email });
+    if (!employeeId?.trim() || !employeeName?.trim() || !email?.trim() || !password) {
+      return NextResponse.json(
+        { error: "employeeId, employeeName, email and password are required" },
+        { status: 400 }
+      );
+    }
+
+    if (String(role ?? "")
+      .trim()
+      .toUpperCase() === "ADMIN") {
+      return NextResponse.json(
+        {
+          error:
+            "Administrator accounts cannot be created via self-registration. Ask an Operations admin to create your account.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const existingUser = await User.findOne({ email: email.trim() });
     if (existingUser) {
       return NextResponse.json(
         { error: "User already exists" },
@@ -17,20 +38,29 @@ export async function POST(req) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const legacyRole = normalizePublicSignupLegacyRole(role);
 
-    const newUser = new User({
-      employeeId,
-      employeeName,
-      email,
+    const newUser = await User.create({
+      employeeId: employeeId.trim(),
+      employeeName: employeeName.trim(),
+      email: email.trim().toLowerCase(),
       password: hashedPassword,
-      roles: role ? [role] : ["REVIEWER"],
+      roles: [legacyRole],
+      operationsRole: "viewer",
+      hrRole: "viewer",
+      pmsRole: "viewer",
+      qhseRole: "viewer",
     });
-    await newUser.save();
+
+    const userObj = newUser.toObject();
+    delete userObj.password;
+
     return NextResponse.json(
-      { message: "User created successfully", user: newUser },
+      { message: "User created successfully", user: userObj },
       { status: 201 }
     );
   } catch (error) {
+    console.error("SIGNUP ERROR:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
