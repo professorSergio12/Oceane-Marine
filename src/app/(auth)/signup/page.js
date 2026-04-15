@@ -10,7 +10,7 @@ export default function SignupPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    /** Legacy User.roles value (see signup API). Module roles start as viewer until an admin updates them. */
+    /** Legacy User.roles; module roles come from signup API (viewer, or all admin if ADMIN). */
     role: "REVIEWER",
   });
 
@@ -196,7 +196,7 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* Role Dropdown — legacy User.roles; module roles (Ops/HR/PMS/QHSE) are set by admin */}
+            {/* Role Dropdown — legacy User.roles + module roles from API */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-white/90">
                 Application role
@@ -211,9 +211,12 @@ export default function SignupPage() {
                 <option value="EDITOR">Editor</option>
                 <option value="UPLOADER">Uploader</option>
                 <option value="CUSTOM_EDITOR">Custom Editor</option>
+                <option value="ADMIN">Admin (Admin Panel + module admin)</option>
               </select>
               <p className="text-xs text-white/60">
-                Operations, HR, PMS, and QHSE permissions are assigned by an administrator after signup.
+                {formData.role === "ADMIN"
+                  ? "Admin: legacy ADMIN role plus Operations / HR / PMS / QHSE admin — full user management and module admin access."
+                  : "Other roles: module access (Operations, HR, PMS, QHSE) starts as viewer; an Admin can raise it later from Admin Panel."}
               </p>
             </div>
 

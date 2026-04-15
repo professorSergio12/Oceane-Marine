@@ -10,7 +10,7 @@ export async function POST() {
 
     response.headers.set(
       "Set-Cookie",
-      buildAccessTokenCookieHeader("", 0)
+      `access_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
     );
 
     return response;

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import User from "@/lib/mongodb/models/User";
 import bcrypt from "bcryptjs";
-import { normalizePublicSignupLegacyRole } from "@/lib/auth/signupRoleDefaults";
+import {
+  normalizePublicSignupLegacyRole,
+  getModuleRolesForSignupLegacyRole,
+} from "@/lib/auth/signupRoleDefaults";
 
 export async function POST(req) {
   await connectDB();
@@ -17,18 +20,6 @@ export async function POST(req) {
       );
     }
 
-    if (String(role ?? "")
-      .trim()
-      .toUpperCase() === "ADMIN") {
-      return NextResponse.json(
-        {
-          error:
-            "Administrator accounts cannot be created via self-registration. Ask an Operations admin to create your account.",
-        },
-        { status: 403 }
-      );
-    }
-
     const existingUser = await User.findOne({ email: email.trim() });
     if (existingUser) {
       return NextResponse.json(
@@ -39,6 +30,7 @@ export async function POST(req) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const legacyRole = normalizePublicSignupLegacyRole(role);
+    const moduleRoles = getModuleRolesForSignupLegacyRole(legacyRole);
 
     const newUser = await User.create({
       employeeId: employeeId.trim(),
@@ -46,10 +38,7 @@ export async function POST(req) {
       email: email.trim().toLowerCase(),
       password: hashedPassword,
       roles: [legacyRole],
-      operationsRole: "viewer",
-      hrRole: "viewer",
-      pmsRole: "viewer",
-      qhseRole: "viewer",
+      ...moduleRoles,
     });
 
     const userObj = newUser.toObject();
