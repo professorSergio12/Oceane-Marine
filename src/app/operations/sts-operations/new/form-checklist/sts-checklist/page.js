@@ -10,26 +10,45 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 
+/** External STS form app: `{base}/{formNo}` with optional `?operationRef=` and `mode=update` (see operations-sts-checklist). */
+const STS_CHECKLIST_EXTERNAL_BASE = (
+  process.env.NEXT_PUBLIC_STS_CHECKLIST_FORMS_BASE_URL ?? "https://operations.oceanegroup.oceanemarine.com"
+).replace(/\/$/, "");
+
+function stsChecklistExternalUrl(formNo, operationRef, options) {
+  const path = `${STS_CHECKLIST_EXTERNAL_BASE}/${encodeURIComponent(formNo)}`;
+  const ref = operationRef?.trim();
+  if (!ref) {
+    return path;
+  }
+  const params = new URLSearchParams();
+  params.set("operationRef", ref);
+  if (options?.mode === "update") {
+    params.set("mode", "update");
+  }
+  return `${path}?${params.toString()}`;
+}
+
 const FORMS = [
-  { formNo: 'OPS-OFD-001', title: 'Checklist 1 - Before Operation Commence', apiPath: 'ops-ofd-001', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-001' },
-  { formNo: 'OPS-OFD-001A', title: 'Ship\'s Standard Questionnaire', apiPath: 'ops-ofd-001a', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-001A' },
-  { formNo: 'OPS-OFD-002', title: 'Checklist 2 - Before Run In & Mooring', apiPath: 'ops-ofd-002', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-002' },
-  { formNo: 'OPS-OFD-003', title: 'Checklist 3A & 3B - Before Cargo Transfer', apiPath: 'ops-ofd-003', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-003' },
-  { formNo: 'OPS-OFD-004', title: 'Checklist 4A-F - Pre Transfer Conference', apiPath: 'ops-ofd-004', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-004' },
-  { formNo: 'OPS-OFD-005', title: 'Checklist 5A-C – After Connection Checks till Disconnection', apiPath: 'ops-ofd-005', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005' },
-  { formNo: 'OPS-OFD-005B', title: 'Checklist 6A & B – Checks Before & After Disconnection', apiPath: 'ops-ofd-005b', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005B' },
-  { formNo: 'OPS-OFD-005C', title: 'Checklist 7 - Pre Transfer Conference Alongside a Terminal', apiPath: 'ops-ofd-005c', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005C' },
-  { formNo: 'OPS-OFD-005D', title: 'Declaration for STS operations (At port & Terminal)', apiPath: 'ops-ofd-005d', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005D' },
-  { formNo: 'OPS-OFD-005E', title: 'Declaration Of STS At Sea', apiPath: 'declaration-of-sea', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-005E' },
-  { formNo: 'OPS-OFD-028', title: 'Personnel Transfer Basket Checklist', apiPath: 'ops-ofd-028', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-028' },
-  { formNo: 'OPS-OFD-009', title: 'Mooring Master\'s Job Report', apiPath: 'ops-ofd-009', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-009' },
-  { formNo: 'OPS-OFD-011', title: 'STS Superintendent Standing Order', apiPath: 'ops-ofd-011', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-011' },
-  { formNo: 'OPS-OFD-014', title: 'STS Equipment Checklist', apiPath: 'ops-ofd-014', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-014' },
-  { formNo: 'OPS-OFD-015', title: 'Hourly Checks on Discharged and Received Quantities', apiPath: 'ops-ofd-015', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-015' },
-  { formNo: 'OPS-OFD-018', title: 'Timesheet', apiPath: 'ops-ofd-018', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-018' },
-  { formNo: 'OPS-OFD-020', title: 'Master\'s Feedback Form', apiPath: 'ops-ofd-020', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-020' },
-  { formNo: 'OPS-OFD-023', title: 'Record of Work Hours (Rest Hours CKL)', apiPath: 'ops-ofd-023', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-023' },
-  { formNo: 'OPS-OFD-029', title: 'Mooring Master Expense Sheet', apiPath: 'ops-ofd-029', link: 'https://operations-sts-check-list.vercel.app/OPS-OFD-029' },
+  { formNo: "OPS-OFD-001", title: "Checklist 1 - Before Operation Commence", apiPath: "ops-ofd-001" },
+  { formNo: "OPS-OFD-001A", title: "Ship's Standard Questionnaire", apiPath: "ops-ofd-001a" },
+  { formNo: "OPS-OFD-002", title: "Checklist 2 - Before Run In & Mooring", apiPath: "ops-ofd-002" },
+  { formNo: "OPS-OFD-003", title: "Checklist 3A & 3B - Before Cargo Transfer", apiPath: "ops-ofd-003" },
+  { formNo: "OPS-OFD-004", title: "Checklist 4A-F - Pre Transfer Conference", apiPath: "ops-ofd-004" },
+  { formNo: "OPS-OFD-005", title: "Checklist 5A-C – After Connection Checks till Disconnection", apiPath: "ops-ofd-005" },
+  { formNo: "OPS-OFD-005B", title: "Checklist 6A & B – Checks Before & After Disconnection", apiPath: "ops-ofd-005b" },
+  { formNo: "OPS-OFD-005C", title: "Checklist 7 - Pre Transfer Conference Alongside a Terminal", apiPath: "ops-ofd-005c" },
+  { formNo: "OPS-OFD-005D", title: "Declaration for STS operations (At port & Terminal)", apiPath: "ops-ofd-005d" },
+  { formNo: "OPS-OFD-005E", title: "Declaration Of STS At Sea", apiPath: "declaration-of-sea" },
+  { formNo: "OPS-OFD-028", title: "Personnel Transfer Basket Checklist", apiPath: "ops-ofd-028" },
+  { formNo: "OPS-OFD-009", title: "Mooring Master's Job Report", apiPath: "ops-ofd-009" },
+  { formNo: "OPS-OFD-011", title: "STS Superintendent Standing Order", apiPath: "ops-ofd-011" },
+  { formNo: "OPS-OFD-014", title: "STS Equipment Checklist", apiPath: "ops-ofd-014" },
+  { formNo: "OPS-OFD-015", title: "Hourly Checks on Discharged and Received Quantities", apiPath: "ops-ofd-015" },
+  { formNo: "OPS-OFD-018", title: "Timesheet", apiPath: "ops-ofd-018" },
+  { formNo: "OPS-OFD-020", title: "Master's Feedback Form", apiPath: "ops-ofd-020" },
+  { formNo: "OPS-OFD-023", title: "Record of Work Hours (Rest Hours CKL)", apiPath: "ops-ofd-023" },
+  { formNo: "OPS-OFD-029", title: "Mooring Master Expense Sheet", apiPath: "ops-ofd-029" },
 ];
 
 export default function StsChecklistPage() {
@@ -103,21 +122,16 @@ export default function StsChecklistPage() {
     }
   };
 
-  // Generate form links with operationRef
-  const getFormLinks = (formLink) => {
-    if (!selectedOperationRef) {
-      return { createLink: formLink, updateLink: null };
+  /** Open form: `{base}/{formNo}` or `{base}/{formNo}?operationRef=`; update adds `&mode=update`. */
+  const getFormLinks = (formNo) => {
+    if (!selectedOperationRef?.trim()) {
+      const base = stsChecklistExternalUrl(formNo);
+      return { createLink: base, updateLink: null };
     }
-    
-    // Trim operation ref to ensure clean value
-    const cleanOperationRef = selectedOperationRef.trim();
-    
-    const baseUrl = formLink.split('?')[0]; // Remove existing query params if any
-    // Direct format: operationRef=2026-001 (no encoding needed for alphanumeric with dashes)
-    const createLink = `${baseUrl}?operationRef=${cleanOperationRef}`;
-    const updateLink = `${baseUrl}?operationRef=${cleanOperationRef}&mode=update`;
-    
-    return { createLink, updateLink };
+    return {
+      createLink: stsChecklistExternalUrl(formNo, selectedOperationRef),
+      updateLink: stsChecklistExternalUrl(formNo, selectedOperationRef, { mode: "update" }),
+    };
   };
 
   // Forms that need separate copy buttons (001A, 005D, 028)
@@ -133,11 +147,10 @@ export default function StsChecklistPage() {
     }
 
     const cleanOperationRef = selectedOperationRef.trim();
-    const rows = overallCopyFormNos.map(formNo => {
-      const form = FORMS.find(f => f.formNo === formNo);
+    const rows = overallCopyFormNos.map((formNo) => {
+      const form = FORMS.find((f) => f.formNo === formNo);
       if (!form) return null;
-      const baseUrl = form.link.split('?')[0];
-      const url = `${baseUrl}?operationRef=${cleanOperationRef}`;
+      const url = stsChecklistExternalUrl(formNo, cleanOperationRef);
       return { code: formNo, name: form.title, url };
     }).filter(Boolean);
 
@@ -441,7 +454,7 @@ export default function StsChecklistPage() {
                             // Show Create and Update links when operation ref is selected
                             <div className="flex flex-col gap-2">
                               <a
-                                href={getFormLinks(form.link).createLink}
+                                href={getFormLinks(form.formNo).createLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 hover:border-green-400/50 text-green-300 hover:text-green-200 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5"
@@ -452,7 +465,7 @@ export default function StsChecklistPage() {
                                 Create New Form
                               </a>
                               <a
-                                href={getFormLinks(form.link).updateLink}
+                                href={getFormLinks(form.formNo).updateLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 hover:border-blue-400/50 text-blue-300 hover:text-blue-200 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5"
@@ -466,7 +479,7 @@ export default function StsChecklistPage() {
                               {formsWithSeparateCopy.includes(form.formNo) && (
                                 <button
                                   onClick={() => {
-                                    const linkWithRef = getFormLinks(form.link).createLink;
+                                    const linkWithRef = getFormLinks(form.formNo).createLink;
                                     handleCopyLink(linkWithRef, form.formNo);
                                   }}
                                   className="px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5"
@@ -492,7 +505,7 @@ export default function StsChecklistPage() {
                           ) : (
                             // Show copy link button when no operation ref is selected
                             <button
-                              onClick={() => handleCopyLink(form.link, form.formNo)}
+                              onClick={() => handleCopyLink(stsChecklistExternalUrl(form.formNo), form.formNo)}
                               className="rounded-lg bg-sky-500/20 px-2.5 py-1.5 text-[11px] font-medium text-sky-300 transition-all duration-200 hover:bg-sky-500/30 hover:text-sky-200 flex items-center gap-1.5 border border-sky-400/30 hover:border-sky-400/50 sm:px-4 sm:py-2 sm:text-sm sm:gap-2"
                             >
                               {copiedLink === form.formNo ? (
