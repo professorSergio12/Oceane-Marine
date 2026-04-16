@@ -38,7 +38,7 @@ export function useQhseSidebar() {
   const isSidebarOpen = context?.isSidebarOpen ?? true;
   const setIsSidebarOpen = context?.setIsSidebarOpen ?? (() => {});
 
-  const contentClassName = `flex-1 min-w-0 transition-all duration-300 ${
+  const contentClassName = `flex-1 min-w-0 w-full transition-all duration-300 ${
     isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"
   }`;
 

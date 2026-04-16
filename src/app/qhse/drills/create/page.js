@@ -224,7 +224,7 @@ export default function DrillsReportPage() {
       {/* Main Content */}
       <div className={contentClassName}>
         <div className="mx-auto max-w-6xl px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-          <header className="mt-12 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <header className="mt-12 md:mt-0 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
             <Link
               href="/dashboard"
               className="shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"

@@ -6,6 +6,7 @@ import { createAndScheduleJob } from "@/jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
 import "@/jobs/definitions/ops-ofd-005.job.js";
+import { buildOperationsStsSignatureDirs } from "@/lib/utils/signature-storage";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,17 +50,14 @@ export async function POST(req) {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
 
-      const uploadDir = path.join(
-        process.cwd(),
-        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005`
-      );
+      const uploadDir = path.join(process.cwd(), buildOperationsStsSignatureDirs("OPS-OFD-005").physicalDir);
       await fs.mkdir(uploadDir, { recursive: true });
 
       const fileName = `${Date.now()}-${signatureFile.name}`;
       const filePath = path.join(uploadDir, fileName);
 
       await fs.writeFile(filePath, buffer);
-      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005/${fileName}`;
+      signatureUrl = `${buildOperationsStsSignatureDirs("OPS-OFD-005").urlDir}/${fileName}`;
     }
 
     if (!body.operationRef) {

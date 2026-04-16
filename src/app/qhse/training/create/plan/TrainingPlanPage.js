@@ -233,19 +233,19 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
 
   const { contentClassName } = useQhseSidebar();
   const content = (
-    <div className={hideSidebar ? "flex-1" : `${contentClassName} pr-4`}>
+    <div className={hideSidebar ? "flex-1 w-full min-w-0" : `${contentClassName} w-full min-w-0 pr-4`}>
         <div className="w-full max-w-[95%] mx-auto pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-          <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
-              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
+              className="hidden md:inline-flex items-center gap-1.5 self-start px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition flex-shrink-0"
             >
               ← Dashboard
             </Link>
 
             {/* Center: Title */}
-            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+            <div className="flex w-full flex-1 flex-col items-center text-center sm:w-auto">
               <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
                 QHSE / Training
               </p>
@@ -255,20 +255,9 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
               </p>
             </div>
 
-            {/* Right: Template + Year + Tabs */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
-              <a
-                href="/templates/controlled-register/QAF-OFD-038.docx"
-                download
-                className="inline-flex items-center gap-1.5 rounded-lg sm:rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-                title="Download form template (QAF-OFD-038)"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                </svg>
-                Template
-              </a>
-              <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            {/* Right: Matrix / Record tabs only (Template is next to Year inside the form) */}
+            <div className="flex w-full max-w-full flex-col items-center justify-center gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:self-auto">
+              <div className="inline-flex max-w-full flex-wrap justify-center rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/qhse/training/create/plan"
                   className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
@@ -285,22 +274,34 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
             </div>
           </header>
 
-          {!canSubmit && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
-              You do not have permission to create records. Form is view-only.
-            </div>
-          )}
-
           <form
             onSubmit={handleSubmit}
             className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
           >
+            {!canSubmit && (
+              <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
+                You do not have permission to create records. Form is view-only.
+              </div>
+            )}
             <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
-            <div className="flex items-center justify-end">
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+            <div className="flex w-full min-w-0 flex-row flex-wrap items-center justify-between gap-2 sm:gap-4">
+              <a
+                href="/templates/controlled-register/QAF-OFD-038.docx"
+                download
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/20 sm:px-4 sm:py-2 sm:text-sm"
+                title="Download form template (QAF-OFD-038)"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                </svg>
+                Template
+              </a>
+              <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                  Year
+                </span>
                 <select
-                  className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+                  className="min-w-[4.5rem] rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs leading-tight text-white focus:outline-none focus:ring-2 focus:ring-sky-500 sm:min-w-[5rem] sm:px-3 sm:py-2 sm:text-sm"
                   value={year}
                   onChange={(e) => handleYearChange(Number(e.target.value))}
                 >

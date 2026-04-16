@@ -420,10 +420,10 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
 
   const { contentClassName } = useQhseSidebar();
   const content = (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="flex-1">
         <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-          <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
@@ -444,7 +444,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
             </div>
 
             {/* Right: Template + Year + Tabs */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+            <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
               <a
                 href="/templates/controlled-register/QAF-OFD-039.docx"
                 download
@@ -456,7 +456,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                 </svg>
                 Template
               </a>
-              <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <div className="inline-flex max-w-full flex-wrap justify-center rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/qhse/training/create/plan"
                   className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
@@ -475,11 +475,14 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
 
           {/* Plan list and create-record trigger */}
           <div className="rounded-2xl border border-white/10 bg-[#0b2740]/70 p-4 space-y-3">
-            <div className="flex items-center justify-end mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+            {/* Mobile: year centered + compact. sm+: year top-right */}
+            <div className="mb-1 flex justify-center sm:mb-2 sm:justify-end">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                  Year
+                </span>
                 <select
-                  className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+                  className="min-w-[4.5rem] rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs leading-tight text-white focus:outline-none focus:ring-2 focus:ring-sky-500 sm:min-w-[5.5rem] sm:px-3 sm:py-2 sm:text-sm"
                   value={year === "all" ? "all" : String(year)}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -495,48 +498,56 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                 </select>
               </div>
             </div>
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <h2 className="text-lg font-semibold">Monthly Training Plan</h2>
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className="border-b border-white/10 pb-3">
+              {/* Own row: title — centered on all breakpoints */}
+              <h2 className="text-center text-base font-semibold text-white whitespace-nowrap sm:text-lg">
+                Monthly Training Plan
+              </h2>
+              {/* Next row: badges, actions, hint — centered; unchanged stacking on small screens */}
+              <div className="mt-3 flex flex-col items-center gap-3 text-center sm:mt-4">
                 {plan && (
-                  <>
-                    <span className="text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5 text-slate-200">
-                      Plan year: {plan.year}
-                    </span>
-                    {(plan.formCode || plan.serialNumber) && (
+                  <div className="flex w-full max-w-md flex-col items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
                       <span className="text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5 text-slate-200">
-                        {[plan.formCode, plan.serialNumber].filter(Boolean).join(" • ")}
+                        Plan year: {plan.year}
                       </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleDownloadPlanDocx}
-                      disabled={downloadingPlanDocx || downloadingPlanPdf}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
-                    >
-                      {downloadingPlanDocx ? "…" : "Word"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadPlanPdf}
-                      disabled={downloadingPlanDocx || downloadingPlanPdf}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
-                    >
-                      {downloadingPlanPdf ? "…" : "PDF"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDeletePlan}
-                      disabled={!canDelete || planDeleting}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-50 transition"
-                    >
-                      {planDeleting ? "Deleting…" : "Delete plan"}
-                    </button>
-                  </>
+                      {(plan.formCode || plan.serialNumber) && (
+                        <span className="text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5 font-mono text-sky-200">
+                          {[plan.formCode, plan.serialNumber].filter(Boolean).join(" • ")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadPlanDocx}
+                        disabled={downloadingPlanDocx || downloadingPlanPdf}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                      >
+                        {downloadingPlanDocx ? "…" : "Word"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadPlanPdf}
+                        disabled={downloadingPlanDocx || downloadingPlanPdf}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                      >
+                        {downloadingPlanPdf ? "…" : "PDF"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeletePlan}
+                        disabled={!canDelete || planDeleting}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-50 transition"
+                      >
+                        {planDeleting ? "Deleting…" : "Delete plan"}
+                      </button>
+                    </div>
+                  </div>
                 )}
-                <span className="text-xs text-slate-300">
+                <p className="text-xs text-slate-300">
                   Select a month pair to create record
-                </span>
+                </p>
               </div>
             </div>
             {planLoading && (
@@ -606,15 +617,15 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
 
           {creatingFor && (
             <>
-            {!canSubmit && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
-                You do not have permission to create records. Form is view-only.
-              </div>
-            )}
             <form
               onSubmit={handleSubmit}
               className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
             >
+              {!canSubmit && (
+                <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
+                  You do not have permission to create records. Form is view-only.
+                </div>
+              )}
               <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
               {/* Form Fields */}
               <div className="rounded-2xl border border-white/10 bg-[#0b2740]/80 p-6 space-y-6">

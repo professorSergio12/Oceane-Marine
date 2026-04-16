@@ -341,7 +341,7 @@ export default function QuotationListPage() {
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
         <header
-          className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4`}
+          className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex w-full flex-col items-center gap-3 md:flex-row md:items-center md:justify-between md:gap-4`}
         >
           <Link
             href="/dashboard"
@@ -349,24 +349,24 @@ export default function QuotationListPage() {
           >
             ← Dashboard
           </Link>
-          <div className="flex-1 min-w-0 flex flex-col items-center text-center w-full md:w-auto">
+          <div className="flex w-full flex-col items-center text-center md:w-auto md:flex-1">
             <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               Operations / Forms & Checklist / Quotation
             </p>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Quotation</h1>
             <p className="text-xs sm:text-sm text-slate-200 mt-1">View and manage all Quotation records</p>
           </div>
-          <div className="flex justify-center md:justify-end shrink-0">
-            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+          <div className="flex w-full shrink-0 justify-center md:w-auto md:justify-end">
+            <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/operations/sts-operations/new/form-checklist/quotations/sts-form"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap"
+                className="px-2.5 py-1.5 text-[11px] font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap sm:px-4 sm:py-2 sm:text-sm"
               >
                 Quotation Form
               </Link>
               <Link
                 href="/operations/sts-operations/new/form-checklist/quotations/list"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition whitespace-nowrap"
+                className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 transition whitespace-nowrap sm:px-4 sm:py-2 sm:text-sm"
               >
                 Quotation List
               </Link>
@@ -405,26 +405,28 @@ export default function QuotationListPage() {
             </div>
           )}
 
-        <div className="inline-flex flex-wrap rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-          {[
-            { key: "all", label: "All Quotations" },
-            { key: "OPS-OFD-030", label: "STS Proposal (030)" },
-            { key: "OPS-OFD-030B", label: "STS Advisor (030B)" },
-            { key: "POAC", label: "POAC Quotation" },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setQuotationTab(key)}
-              className={`px-4 py-2 text-sm font-semibold transition ${
-                quotationTab === key
-                  ? "bg-orange-500 text-white"
-                  : "text-white/90 hover:bg-white/10"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="w-full overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] lg:overflow-visible">
+          <div className="inline-flex min-w-max flex-nowrap rounded-xl border border-white/15 bg-white/5 lg:inline-flex lg:min-w-0 lg:w-full lg:flex-wrap lg:max-w-full">
+            {[
+              { key: "all", label: "All Quotations" },
+              { key: "OPS-OFD-030", label: "STS Proposal (030)" },
+              { key: "OPS-OFD-030B", label: "STS Advisor (030B)" },
+              { key: "POAC", label: "POAC Quotation" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setQuotationTab(key)}
+                className={`min-h-[2.25rem] shrink-0 px-2.5 py-1.5 text-left text-[11px] font-semibold leading-tight transition sm:min-h-0 lg:flex-1 lg:px-3 lg:py-2 lg:text-center lg:text-sm ${
+                  quotationTab === key
+                    ? "bg-orange-500 text-white"
+                    : "text-white/90 hover:bg-white/10"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Quotation list */}

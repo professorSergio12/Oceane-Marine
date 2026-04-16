@@ -213,7 +213,11 @@ export default function GlobalNotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute bottom-[4.5rem] right-0 flex w-[min(100vw-1.5rem,420px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1222] shadow-[0_25px_80px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl">
+        <div
+          className="fixed bottom-24 left-3 right-3 z-[9991] flex max-h-[min(70vh,560px)] w-auto flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1222] shadow-[0_25px_80px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:absolute sm:inset-x-auto sm:bottom-[4.5rem] sm:left-auto sm:right-0 sm:z-auto sm:max-h-[min(70vh,560px)] sm:w-[min(100vw-1.5rem,420px)]"
+          role="dialog"
+          aria-label="Activity feed"
+        >
           <div
             className={`shrink-0 bg-gradient-to-r px-4 py-3.5 ${activeAccent} bg-[length:200%_100%]`}
           >

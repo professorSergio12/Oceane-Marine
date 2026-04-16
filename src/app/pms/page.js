@@ -160,8 +160,14 @@ export default function PmsPage() {
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Planned maintenance system</h1>
             </div>
 
-            {/* Right: Form/List Tabs */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
+            {/* Right: Form/List Tabs (warehouse: full-width row, centered on small screens) */}
+            <div
+              className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${
+                activeTab === "warehouse-management"
+                  ? "w-full justify-center sm:justify-end md:w-auto md:self-auto"
+                  : "self-end sm:self-auto"
+              }`}
+            >
               {activeTab === "equipment-inventory" &&
                 activeSubmodule === "primary-equipment" && (
                   <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">

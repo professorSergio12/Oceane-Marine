@@ -60,6 +60,7 @@ export async function PUT(req, { params }) {
     const recordDate = record.date ? new Date(record.date) : new Date();
     const pathOpts = {
       formCode: "QAF-OFD-037",
+      formSlug: "vendor-supply-form",
       date: recordDate,
       title: record.vendorName || "Vendor",
       fileType: "signatures",

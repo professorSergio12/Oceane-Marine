@@ -146,9 +146,9 @@ export default function RiskAssessmentFormPage() {
   };
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -164,7 +164,7 @@ export default function RiskAssessmentFormPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-058A</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
               <select
@@ -188,7 +188,7 @@ export default function RiskAssessmentFormPage() {
               </svg>
               Template (058A)
             </a>
-            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <button
                 type="button"
                 className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition cursor-default"
@@ -206,7 +206,7 @@ export default function RiskAssessmentFormPage() {
         </header>
 
         {!canSubmit && (
-          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-amber-100 text-sm">
             You do not have permission to upload risk assessment files.
           </div>
         )}

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { getQhseSignatureAbsolutePathForRead } from "@/lib/utils/qhse-file-storage";
 import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import {
   Document,
@@ -14,6 +15,47 @@ import {
   ImageRun,
 } from "docx";
 import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
+
+/**
+ * @param {object} completedBy
+ * @returns {Buffer | null}
+ */
+function readTransferAuditSignatureBuffer(completedBy) {
+  if (!completedBy) return null;
+  const photo = completedBy.signaturePhoto;
+  if (photo && typeof photo === "string" && photo.startsWith("data:")) {
+    const match = photo.match(/^data:([^;]+);base64,(.+)$/s);
+    if (match?.[2]) {
+      try {
+        return Buffer.from(match[2], "base64");
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+  const abs =
+    getQhseSignatureAbsolutePathForRead(photo) ||
+    getQhseSignatureAbsolutePathForRead(completedBy.signatureUrl);
+  if (abs && fs.existsSync(abs)) {
+    try {
+      return fs.readFileSync(abs);
+    } catch (_) {
+      return null;
+    }
+  }
+  const url = completedBy.signatureUrl;
+  if (url && typeof url === "string" && !url.startsWith("data:")) {
+    try {
+      const sigPath = url.startsWith("/")
+        ? path.join(process.cwd(), "public", url.slice(1))
+        : path.join(process.cwd(), url);
+      if (fs.existsSync(sigPath)) return fs.readFileSync(sigPath);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  return null;
+}
 
 export async function generateTransferAuditReportDoc(report, fullPath) {
   /* ================= HEADER TABLE ================= */
@@ -142,24 +184,7 @@ export async function generateTransferAuditReportDoc(report, fullPath) {
     });
     children.push(completedTable);
 
-    let signatureImageBuffer = null;
-    if (completedBy?.signaturePhoto && typeof completedBy.signaturePhoto === "string" && completedBy.signaturePhoto.startsWith("data:")) {
-      const match = completedBy.signaturePhoto.match(/^data:([^;]+);base64,(.+)$/s);
-      if (match && match[2]) {
-        try {
-          signatureImageBuffer = Buffer.from(match[2], "base64");
-        } catch (_) {}
-      }
-    } else if (completedBy?.signatureUrl && typeof completedBy.signatureUrl === "string") {
-      try {
-        const sigPath = completedBy.signatureUrl.startsWith("/")
-          ? path.join(process.cwd(), "public", completedBy.signatureUrl.slice(1))
-          : path.join(process.cwd(), completedBy.signatureUrl);
-        if (fs.existsSync(sigPath)) {
-          signatureImageBuffer = fs.readFileSync(sigPath);
-        }
-      } catch (_) {}
-    }
+    const signatureImageBuffer = readTransferAuditSignatureBuffer(completedBy);
     if (signatureImageBuffer && signatureImageBuffer.length > 0) {
       children.push(new Paragraph({ spacing: { before: 200 } }));
       children.push(
@@ -463,13 +488,11 @@ export async function generateTransferAuditReportPdf(report) {
 
 /** @returns {{ data: string, format: "PNG"|"JPEG" } | null} base64 without data URL prefix */
 function loadSignatureImageForPdf(completedBy) {
-  if (!completedBy) return null;
-  if (
-    completedBy.signaturePhoto &&
-    typeof completedBy.signaturePhoto === "string" &&
-    completedBy.signaturePhoto.startsWith("data:")
-  ) {
-    const match = completedBy.signaturePhoto.match(/^data:([^;]+);base64,(.+)$/s);
+  const buf = readTransferAuditSignatureBuffer(completedBy);
+  if (!buf || buf.length === 0) return null;
+  const photo = completedBy.signaturePhoto;
+  if (photo && typeof photo === "string" && photo.startsWith("data:")) {
+    const match = photo.match(/^data:([^;]+);base64,(.+)$/s);
     if (match?.[2]) {
       const mime = match[1].toLowerCase();
       const format =
@@ -477,20 +500,8 @@ function loadSignatureImageForPdf(completedBy) {
       return { data: match[2], format };
     }
   }
-  if (completedBy.signatureUrl && typeof completedBy.signatureUrl === "string") {
-    try {
-      const sigPath = completedBy.signatureUrl.startsWith("/")
-        ? path.join(process.cwd(), "public", completedBy.signatureUrl.slice(1))
-        : path.join(process.cwd(), completedBy.signatureUrl);
-      if (fs.existsSync(sigPath)) {
-        const buf = fs.readFileSync(sigPath);
-        const ext = path.extname(sigPath).toLowerCase();
-        const format = ext === ".jpg" || ext === ".jpeg" ? "JPEG" : "PNG";
-        return { data: buf.toString("base64"), format };
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  return null;
+  const pathStr = String(completedBy.signaturePhoto || completedBy.signatureUrl || "");
+  const ext = path.extname(pathStr).toLowerCase();
+  const format = ext === ".jpg" || ext === ".jpeg" ? "JPEG" : "PNG";
+  return { data: buf.toString("base64"), format };
 }

@@ -3,16 +3,17 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import QhseSidebar from "../../../components/QhseSidebar";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { useCallback, useEffect, useState } from "react";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
+import { QhseStandardPageHeader } from "../../../components/QhseStandardPageHeader";
+import { QhseTableScroll } from "../../../components/QhseTableScroll";
 import { useQhseRole } from "@/hooks/useQhseRole";
-import Link from "next/link";
 import { useQhseMongoCursorList } from "../../../hooks/useQhseMongoCursorList";
 import QhseCursorPaginationFooter from "../../../components/QhseCursorPaginationFooter";
+import { resolveQhseSignatureImageSrc } from "@/lib/utils/qhse-signature-url";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -38,15 +39,8 @@ function formatDateTime(value) {
   });
 }
 
-/** Normalize signature image src from external form (base64 data URL). Returns null for plain text so we don't show broken img. */
 function getSignatureSrc(value) {
-  if (value == null || typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (trimmed.startsWith("data:image")) return trimmed;
-  if (/^[A-Za-z0-9+/=]{50,}$/.test(trimmed))
-    return `data:image/png;base64,${trimmed}`;
-  return null; // plain text or too short to be base64
+  return resolveQhseSignatureImageSrc(value);
 }
 
 function getStatusBadge(status) {
@@ -75,7 +69,7 @@ function getStatusBadge(status) {
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${config.bg} ${config.border} ${config.text}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none sm:px-2.5 sm:py-1 sm:text-xs ${config.bg} ${config.border} ${config.text}`}
     >
       {config.label}
     </span>
@@ -433,28 +427,15 @@ export default function HseInductionChecklistListPage() {
 
   return (
     <>
-      <div className={`${contentClassName} pr-4`}>
-        <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-          <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-            <Link
-              href="/dashboard"
-              className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
-            >
-              ← Dashboard
-            </Link>
-            <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
-              <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
-                QHSE / Forms & Checklist / HSE Induction Checklist
-              </p>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">HSE Induction Checklist</h1>
-              <p className="text-xs sm:text-sm text-slate-200 mt-1">
-                Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-008</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
-              <TemplateDownloadLink formCode="QAF-OFD-008" />
-            </div>
-          </header>
+      <div className={`${contentClassName} w-full min-w-0 pr-4`}>
+        <div className="mx-auto w-full min-w-0 max-w-[95%] px-3 sm:px-4 py-6 sm:py-10 space-y-3 sm:space-y-4 md:space-y-6">
+          <QhseStandardPageHeader
+            breadcrumb="QHSE / Forms & Checklist / HSE Induction Checklist"
+            title="HSE Induction Checklist"
+            formCode="QAF-OFD-008"
+          >
+            <TemplateDownloadLink formCode="QAF-OFD-008" />
+          </QhseStandardPageHeader>
 
           <QhseListPageContainer
             searchPlaceholder="Search by serial, form code, name..."
@@ -484,7 +465,7 @@ export default function HseInductionChecklistListPage() {
                 <button
                   type="button"
                   onClick={() => { setFilter("pending"); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                  className={`rounded-lg px-2 py-1.5 text-[10px] font-semibold leading-tight transition sm:px-4 sm:py-2 sm:text-xs ${
                     filter === "pending"
                       ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
                       : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
@@ -495,7 +476,7 @@ export default function HseInductionChecklistListPage() {
                 <button
                   type="button"
                   onClick={() => { setFilter("approved"); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                  className={`rounded-lg px-2 py-1.5 text-[10px] font-semibold leading-tight transition sm:px-4 sm:py-2 sm:text-xs ${
                     filter === "approved"
                       ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
                       : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
@@ -506,7 +487,7 @@ export default function HseInductionChecklistListPage() {
                 <button
                   type="button"
                   onClick={() => { setFilter("rejected"); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                  className={`rounded-lg px-2 py-1.5 text-[10px] font-semibold leading-tight transition sm:px-4 sm:py-2 sm:text-xs ${
                     filter === "rejected"
                       ? "bg-red-500/20 text-red-300 border border-red-500/50"
                       : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
@@ -517,7 +498,7 @@ export default function HseInductionChecklistListPage() {
                 <button
                   type="button"
                   onClick={() => { setFilter("all"); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                  className={`rounded-lg px-2 py-1.5 text-[10px] font-semibold leading-tight transition sm:px-4 sm:py-2 sm:text-xs ${
                     filter === "all"
                       ? "bg-sky-500/20 text-sky-300 border border-sky-500/50"
                       : "bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10"
@@ -537,9 +518,9 @@ export default function HseInductionChecklistListPage() {
           <main className="space-y-6">
             {/* Detail Card – shows when a form is selected (same pattern as Subcontractor Audit) */}
             {selectedForm && (
-              <div className="w-full rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl">
-                <div className="flex items-center justify-between p-6 border-b border-white/10">
-                  <div className="flex items-center gap-4">
+              <div className="w-full min-w-0 rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl">
+                <div className="flex flex-col gap-4 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                  <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:text-left">
                     <div>
                       <h2 className="text-xl font-bold text-white">
                         HSE Induction Checklist Details
@@ -557,7 +538,7 @@ export default function HseInductionChecklistListPage() {
                       </p>
                     </div>
                     <span
-                      className={`inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border ${
+                      className={`inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide sm:px-3 sm:py-1.5 sm:text-xs sm:tracking-wider ${
                         selectedForm.status === "Approved"
                           ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/50"
                           : selectedForm.status === "Rejected"
@@ -568,7 +549,7 @@ export default function HseInductionChecklistListPage() {
                       {selectedForm.status || "Pending"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="inline-flex max-w-none flex-nowrap items-center justify-center gap-0.5 sm:gap-1 sm:justify-end">
                     {canDownload && (
                       <DownloadIconButton
                         onClick={() => handleDownloadDocx(selectedForm)}
@@ -906,29 +887,29 @@ export default function HseInductionChecklistListPage() {
                   </p>
                 ) : (
                   <>
-                    <div>
-                      <table className="w-full text-sm text-left">
+                    <QhseTableScroll>
+                      <table className="w-full min-w-[640px] text-left text-sm lg:min-w-0">
                         <thead>
-                          <tr className="border-b border-white/10 text-slate-300 uppercase tracking-wider text-xs">
+                          <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-slate-300">
                             <th className="pb-3 pr-4">Form Code</th>
-                            <th className="pb-3 pr-4">Serial No</th>
+                            <th className="hidden pb-3 pr-4 md:table-cell">Serial No</th>
                             <th className="pb-3 pr-4">Employee Name</th>
                             <th className="pb-3 pr-4">Date of Induction</th>
                             <th className="pb-3 pr-4">Location</th>
-                            <th className="pb-3 pr-4">Status</th>
-                            <th className="pb-3">Actions</th>
+                            <th className="whitespace-nowrap pb-3 pr-4 min-w-32">Status</th>
+                            <th className="pb-3 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {forms.map((form) => (
                             <tr
                               key={form._id}
-                              className="border-b border-white/5 hover:bg-white/5 transition"
+                              className="border-b border-white/5 transition hover:bg-white/5"
                             >
                               <td className="py-3 pr-4 font-mono text-white/90">
                                 {form.formCode || form.formNo || "—"}
                               </td>
-                              <td className="py-3 pr-4 text-white/90">
+                              <td className="hidden py-3 pr-4 text-white/90 md:table-cell">
                                 {form.serialNumber || "—"}
                               </td>
                               <td className="py-3 pr-4 text-white/90">
@@ -940,11 +921,9 @@ export default function HseInductionChecklistListPage() {
                               <td className="py-3 pr-4 text-white/90">
                                 {form.location || "—"}
                               </td>
-                              <td className="py-3 pr-4">
-                                {getStatusBadge(form.status)}
-                              </td>
-                              <td className="py-3">
-                                <div className="flex items-center justify-end gap-1">
+                              <td className="whitespace-nowrap py-3 pr-4 align-middle">{getStatusBadge(form.status)}</td>
+                              <td className="whitespace-nowrap py-3 text-right">
+                                <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
                                   <ViewIconButton
                                     onClick={() => setSelectedForm(form)}
                                     title="View Details"
@@ -984,7 +963,7 @@ export default function HseInductionChecklistListPage() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </QhseTableScroll>
                     <QhseCursorPaginationFooter
                       hasPrev={hasPrev}
                       hasNext={hasNext}

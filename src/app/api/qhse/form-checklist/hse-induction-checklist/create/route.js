@@ -70,6 +70,7 @@ export async function POST(req) {
 
     const pathOpts = {
       formCode: "QAF-OFD-008",
+      formSlug: "hse-induction-checklist",
       location,
       date: inductionDate,
       title: employeeName,

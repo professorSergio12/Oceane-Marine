@@ -373,7 +373,7 @@ export default function ManualFormPage() {
       {/* Main Content - same layout as Cargo Types (full-width cards) */}
       <div className={`flex-1 min-w-0 pr-4 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`w-full py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] mx-auto pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4`}>
+          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} flex w-full flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
@@ -383,7 +383,7 @@ export default function ManualFormPage() {
             </Link>
 
             {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
+            <div className="flex w-full flex-col items-center text-center sm:w-auto sm:flex-1">
               <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                 Operations / Forms & Checklist / Manual
               </p>
@@ -393,24 +393,24 @@ export default function ManualFormPage() {
             </div>
             
             {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="flex w-full shrink-0 justify-center sm:w-auto sm:justify-end">
+              <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/operations/sts-operations/new/form-checklist/manual/form"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+                  className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 transition sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Manual Form
                 </Link>
                 <Link
                   href="/operations/sts-operations/new/form-checklist/manual/list"
-                  className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                  className="px-2.5 py-1.5 text-[11px] font-semibold text-white/90 hover:bg-white/10 transition sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Manual List
                 </Link>
                 {isOpsAdmin && (
                   <Link
                     href="/operations/sts-operations/new/form-checklist/manual/admin"
-                    className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                    className="px-2.5 py-1.5 text-[11px] font-semibold text-white/90 hover:bg-white/10 transition sm:px-4 sm:py-2 sm:text-sm"
                   >
                     Admin
                   </Link>

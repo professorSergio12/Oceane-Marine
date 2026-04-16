@@ -330,9 +330,9 @@ export default function EquipmentBaseStockListPage() {
   if (loading) return null;
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -348,7 +348,7 @@ export default function EquipmentBaseStockListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-013</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <a
               href="/templates/controlled-register/QAF-OFD-013.docx"
               download
@@ -360,7 +360,7 @@ export default function EquipmentBaseStockListPage() {
               </svg>
               Template
             </a>
-            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/equipment-base-stock-level/form"
                 className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
@@ -390,38 +390,41 @@ export default function EquipmentBaseStockListPage() {
             onSearchChange={setSearchTerm}
             filterChildren={
             <>
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-                <select
-                  className="theme-select rounded-full px-3 py-1.5 text-xs tracking-widest uppercase"
-                  value={year === null || year === undefined ? "" : year}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setYear(v === "" ? "" : Number(v));
-                  }}
-                  disabled={loadingYears}
+              <div className="flex w-full min-w-0 flex-nowrap items-center justify-center gap-2 sm:inline-flex sm:w-auto sm:max-w-none">
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+                  <select
+                    className="theme-select max-w-[9rem] rounded-full px-3 py-1.5 text-xs tracking-widest uppercase sm:max-w-none"
+                    value={year === null || year === undefined ? "" : year}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setYear(v === "" ? "" : Number(v));
+                    }}
+                    disabled={loadingYears}
+                  >
+                    <option value="">All years</option>
+                    {loadingYears ? (
+                      <option disabled>Loading…</option>
+                    ) : (
+                      availableYears.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBulkDownloadPdf}
+                  disabled={bulkDownloading}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50 sm:px-3 sm:text-xs"
+                  title="Download all records as a single PDF"
                 >
-                  <option value="">All years</option>
-                  {loadingYears ? (
-                    <option disabled>Loading…</option>
-                  ) : (
-                    availableYears.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))
-                  )}
-                </select>
+                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+                  </svg>
+                  {bulkDownloading ? "Generating..." : "Download All PDF"}
+                </button>
               </div>
-              <button
-                onClick={handleBulkDownloadPdf}
-                disabled={bulkDownloading}
-                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50"
-                title="Download all records as a single PDF"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-                </svg>
-                {bulkDownloading ? "Generating..." : "Download All PDF"}
-              </button>
               <div className="flex gap-2 flex-wrap">
                 {["DRAFT", "PENDING", "APPROVED", "REJECTED", "ALL"].map((key) => {
                   const labelMap = {
@@ -570,7 +573,7 @@ export default function EquipmentBaseStockListPage() {
                         {cat.subCategory && <span className="text-slate-400 font-normal"> • {cat.subCategory}</span>}
                       </div>
                       {Array.isArray(cat.items) && cat.items.length > 0 ? (
-                        <div className="overflow-x-auto">
+                        <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                           <table className="w-full text-xs">
                             <thead>
                               <tr className="text-slate-400 border-b border-white/10">

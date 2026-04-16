@@ -56,7 +56,7 @@ export default function TargetKpiViewPage() {
 
   if (error || !data) {
     return (
-      <div className={`${contentClassName} pr-4 p-10`}>
+      <div className={`${contentClassName} w-full min-w-0 pr-4 p-10`}>
         <div className="rounded-xl border border-red-500/40 bg-red-950/30 px-4 py-3 text-red-200">
           {error || "Not found"}
         </div>
@@ -74,9 +74,9 @@ export default function TargetKpiViewPage() {
   const rows = data.rows || [];
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -103,7 +103,7 @@ export default function TargetKpiViewPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <TemplateDownloadLink formCode="HSE-001A" />
             {canDownload && (
               <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function TargetKpiViewPage() {
         </header>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-          <div className="overflow-x-auto rounded-xl border border-slate-500/30 overflow-hidden">
+          <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] rounded-xl border border-slate-500/30 overflow-hidden">
             <table className="min-w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-[#366092]">

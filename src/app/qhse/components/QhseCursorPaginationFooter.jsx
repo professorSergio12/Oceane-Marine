@@ -14,13 +14,15 @@ export default function QhseCursorPaginationFooter({
   if (!hasPrev && !hasNext && !listHasRows) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-white/10">
+    <div className="flex flex-col items-center gap-3 pt-4 border-t border-white/10 sm:flex-row sm:items-center sm:justify-between">
       {hint ? (
-        <p className="text-xs text-slate-300">{hint}</p>
+        <p className="text-center text-xs text-slate-300 sm:text-left">{hint}</p>
       ) : (
-        <p className="text-xs text-slate-300">More results may be available. Use Next and Previous to move by page.</p>
+        <p className="text-center text-xs text-slate-300 sm:text-left">
+          More results may be available. Use Next and Previous to move by page.
+        </p>
       )}
-      <div className="flex gap-2 justify-end">
+      <div className="flex w-full flex-wrap justify-center gap-2 sm:w-auto sm:justify-end">
         <button
           type="button"
           onClick={onPrev}

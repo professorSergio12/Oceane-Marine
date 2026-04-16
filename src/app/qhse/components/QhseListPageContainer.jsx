@@ -14,9 +14,9 @@ export function QhseListPageContainer({
   children,
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex-1 w-full sm:min-w-0">
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4 min-w-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
+        <div className="w-full min-w-0 sm:flex-1">
           <input
             type="text"
             placeholder={searchPlaceholder}
@@ -25,7 +25,7 @@ export function QhseListPageContainer({
             onChange={(e) => onSearchChange?.(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-2 sm:w-auto sm:flex-shrink-0 sm:justify-end sm:gap-y-2">
           {filterChildren}
         </div>
       </div>

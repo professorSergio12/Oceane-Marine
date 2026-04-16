@@ -533,26 +533,33 @@ export default function LocationsPage() {
 
       {/* Sidebar Toggle Button */}
       {!isSidebarOpen && (
-        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+        <div className="fixed left-4 top-4 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1.5">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110 sm:h-10 sm:w-10"
             aria-label="Open sidebar"
           >
             <span className="text-white text-xl">☰</span>
           </button>
           <Link
             href="/dashboard"
-            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+            className="md:hidden inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[11px] font-semibold text-white shadow-lg shadow-black/25 backdrop-blur-md transition hover:bg-white/15"
           >
             ← Dashboard
+          </Link>
+          <Link
+            href="/operations/sts-operations/new"
+            className="md:hidden inline-flex max-w-[11rem] min-w-0 shrink items-center gap-1 truncate rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-[10px] font-semibold text-white/90 shadow-md backdrop-blur-md transition hover:bg-white/10"
+            title="Back to STS form"
+          >
+            ← STS form
           </Link>
         </div>
       )}
 
       <div className={`flex-1 min-w-0 pr-4 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`w-full mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
+          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex w-full flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
@@ -562,14 +569,14 @@ export default function LocationsPage() {
             </Link>
 
             {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
+            <div className="flex w-full flex-col items-center text-center sm:w-auto sm:flex-1">
               <p className="text-sm uppercase tracking-[0.25em] text-sky-300">Operations / Locations</p>
               <h1 className="text-xl sm:text-2xl font-bold">Locations</h1>
               <p className="text-xs text-slate-200 mt-1">Manage locations and office checks by location and year</p>
             </div>
             
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Right: Action Buttons — desktop only */}
+            <div className="hidden shrink-0 md:flex md:items-center md:gap-3">
               <Link href="/operations/sts-operations/new" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/80 border border-white/10 hover:bg-white/20 transition">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 Back to STS form
@@ -577,22 +584,46 @@ export default function LocationsPage() {
             </div>
           </header>
 
-          {/* Section toggle: Manage locations | Office checks */}
-          <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => { setSection("locations"); setError(""); setSuccess(""); }}
-              className={`px-4 py-2 text-sm font-semibold transition ${section === "locations" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
-            >
-              Manage locations
-            </button>
-            <button
-              type="button"
-              onClick={() => { setSection("office-checks"); setError(""); setSuccess(""); }}
-              className={`px-4 py-2 text-sm font-semibold transition ${section === "office-checks" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
-            >
-              Office checks
-            </button>
+          {/* Section toggle + Office checks Form/List (same row on md+: tabs left, Form/List right) */}
+          <div className="flex w-full min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+            <div className="flex min-w-0 justify-center md:justify-start">
+              <div className="inline-flex max-w-full rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => { setSection("locations"); setError(""); setSuccess(""); }}
+                  className={`px-2.5 py-1.5 text-[11px] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${section === "locations" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
+                >
+                  Manage locations
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSection("office-checks"); setError(""); setSuccess(""); }}
+                  className={`px-2.5 py-1.5 text-[11px] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${section === "office-checks" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
+                >
+                  Office checks
+                </button>
+              </div>
+            </div>
+            {section === "office-checks" && (
+              <div className="flex shrink-0 justify-center md:justify-end">
+                <div className="inline-flex max-w-full rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setOfficeView("form")}
+                    className={`px-3 py-1.5 text-[11px] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${officeView === "form" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
+                  >
+                    Form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOfficeView("list")}
+                    className={`px-3 py-1.5 text-[11px] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${officeView === "list" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
+                  >
+                    List
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -647,7 +678,7 @@ export default function LocationsPage() {
                         className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 outline-none"
                       />
                     </div>
-                    <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3.5 text-sm font-semibold text-white disabled:opacity-50 min-w-[140px]">
+                    <button type="submit" disabled={loading} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 sm:min-w-[140px] sm:gap-2 sm:px-6 sm:py-3.5 sm:text-sm">
                       {loading ? "Adding..." : "Add"}
                     </button>
                   </div>
@@ -759,31 +790,58 @@ export default function LocationsPage() {
             </>
           )}
 
-          {/* --- Office checks --- */}
+          {/* --- Office checks (QHSE-style: filters inside one record container) --- */}
           {section === "office-checks" && (
-            <>
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-slate-200">Location</label>
-                  <select value={selectedLocationId} onChange={handleLocationChange} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-orange-500 min-w-[180px]">
-                    <option value="">Select location</option>
-                    {locations.map((loc) => <option key={loc._id} value={loc._id}>{loc.name}</option>)}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-slate-200">Year</label>
-                  <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-orange-500 min-w-[120px]">
-                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-                <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-                  <button type="button" onClick={() => setOfficeView("form")} className={`px-4 py-2 text-sm font-semibold transition ${officeView === "form" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}>Form</button>
-                  <button type="button" onClick={() => setOfficeView("list")} className={`px-4 py-2 text-sm font-semibold transition ${officeView === "list" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}>List</button>
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-sm sm:rounded-3xl">
+              <div className="border-b border-white/10 bg-white/[0.03] px-2 py-2 sm:px-4 sm:py-2.5">
+                <div className="flex w-full min-w-0 flex-row flex-nowrap items-center justify-end gap-2 sm:gap-3">
+                  <div className="flex w-auto shrink-0 items-center gap-1 sm:gap-1.5">
+                    <label
+                      htmlFor="office-checks-year"
+                      className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 sm:text-[10px]"
+                    >
+                      Year
+                    </label>
+                    <select
+                      id="office-checks-year"
+                      value={year}
+                      onChange={(e) => setYear(Number(e.target.value))}
+                      className="w-20 shrink-0 rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-6 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/60 sm:w-24 sm:py-1.5 sm:pl-2 sm:pr-7 sm:text-xs"
+                    >
+                      {years.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex min-w-0 max-w-[min(100%,11rem)] shrink items-center gap-1 sm:max-w-[13rem] sm:gap-1.5">
+                    <label
+                      htmlFor="office-checks-location"
+                      className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 sm:text-[10px]"
+                    >
+                      <span className="sm:hidden">Loc</span>
+                      <span className="hidden sm:inline">Location</span>
+                    </label>
+                    <select
+                      id="office-checks-location"
+                      value={selectedLocationId}
+                      onChange={handleLocationChange}
+                      className="min-w-0 w-28 max-w-full rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-6 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/60 sm:w-36 sm:py-1.5 sm:pl-2 sm:pr-7 sm:text-xs"
+                    >
+                      <option value="">—</option>
+                      {locations.map((loc) => (
+                        <option key={loc._id} value={loc._id}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {officeView === "form" && (
-                <form onSubmit={handleSubmitOfficeChecks} className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-8">
+                <form onSubmit={handleSubmitOfficeChecks} className="space-y-8 p-4 sm:p-6">
                   <section>
                     <h2 className="text-lg font-semibold text-white/90 border-b border-white/10 pb-3 mb-4">Office Checks</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -823,7 +881,7 @@ export default function LocationsPage() {
               )}
 
               {officeView === "list" && (
-                <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+                <div className="min-w-0 overflow-hidden">
                   {loadingList ? <div className="p-12 text-center text-white/60">Loading...</div> : !selectedLocationId ? <div className="p-12 text-center text-white/60">Select a location to view the list.</div> : records.length === 0 ? <div className="p-12 text-center text-white/60">No records for this location and year. Use the Form to add one.</div> : (
                     <>
                     <div className="overflow-x-auto">
@@ -864,7 +922,7 @@ export default function LocationsPage() {
                   )}
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

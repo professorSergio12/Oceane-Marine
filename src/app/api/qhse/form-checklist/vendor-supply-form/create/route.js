@@ -113,6 +113,7 @@ export async function POST(req) {
     const recordDate = body.date ? new Date(body.date) : new Date();
     const pathOpts = {
       formCode: "QAF-OFD-037",
+      formSlug: "vendor-supply-form",
       date: recordDate,
       title: body.vendorName,
       fileType: "signatures",

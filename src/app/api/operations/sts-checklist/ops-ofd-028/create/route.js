@@ -5,6 +5,7 @@ import { getNextRevisionForCreate } from "../../revision.js";
 import { createAndScheduleJob } from "../../../../../../jobs/agenda/jobHelper.js";
 import fs from "fs/promises";
 import path from "path";
+import { buildOperationsStsSignatureDirs } from "@/lib/utils/signature-storage";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,12 +49,7 @@ export async function POST(req) {
     let signatureUrl = body.signatureBlock?.signatureImage || "";
     let stampUrl = body.signatureBlock?.stampImage || "";
 
-    const now = new Date();
-    const sigYear = now.getFullYear();
-    const sigMonth = String(now.getMonth() + 1).padStart(2, '0');
-    const sigDay = String(now.getDate()).padStart(2, '0');
-    const sigBaseDir = `public/signature/operation-sts-checklist/${sigYear}/${sigMonth}/${sigDay}/OPS-OFD-028`;
-    const sigBaseUrl = `/signature/operation-sts-checklist/${sigYear}/${sigMonth}/${sigDay}/OPS-OFD-028`;
+    const { physicalDir: sigBaseDir, urlDir: sigBaseUrl } = buildOperationsStsSignatureDirs("OPS-OFD-028");
     const uploadDir = path.join(process.cwd(), sigBaseDir);
 
     // Helper: detect if a string is raw base64 (no data: prefix, no URL path)

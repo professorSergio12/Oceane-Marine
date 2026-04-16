@@ -7,6 +7,7 @@ import fs from "fs/promises";
 import path from "path";
 import "@/jobs/definitions/ops-ofd-002.job.js";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { buildOperationsStsSignatureDirs } from "@/lib/utils/signature-storage";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -88,17 +89,14 @@ export async function PUT(req, { params }) {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
 
-      const uploadDir = path.join(
-        process.cwd(),
-        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
-      );
+      const uploadDir = path.join(process.cwd(), buildOperationsStsSignatureDirs("OPS-OFD-002").physicalDir);
       await fs.mkdir(uploadDir, { recursive: true });
 
       const fileName = `${Date.now()}-${signatureFile.name}`;
       const filePath = path.join(uploadDir, fileName);
 
       await fs.writeFile(filePath, buffer);
-      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+      signatureUrl = `${buildOperationsStsSignatureDirs("OPS-OFD-002").urlDir}/${fileName}`;
     }
 
     const revisionNo = incrementRevisionForUpdate(existing.documentInfo?.revisionNo);

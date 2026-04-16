@@ -249,15 +249,15 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
   const canSubmit = canCreate;
 
   const content = (
-    <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-      <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+    <div className="w-full max-w-[95%] mx-auto pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
+      <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
         <Link
           href="/dashboard"
-          className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+          className="hidden md:inline-flex flex-shrink-0 items-center gap-1.5 self-start px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
         >
           ← Dashboard
         </Link>
-        <div className="flex-1 flex flex-col items-center text-center w-full sm:w-auto">
+        <div className="flex w-full flex-1 flex-col items-center text-center sm:w-auto">
           <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
             QHSE / Drills
           </p>
@@ -266,9 +266,9 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
             Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-040</span>
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+        <div className="flex w-full max-w-full flex-col items-center justify-center gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:self-auto">
           <TemplateDownloadLink formCode="QAF-OFD-040" />
-          <div className="inline-flex rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+          <div className="inline-flex max-w-full flex-wrap justify-center rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
             <Link
               href="/qhse/drills/create/plan"
               className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
@@ -291,16 +291,15 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
         </div>
       </header>
 
-        {!canSubmit && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
-            You do not have permission to create records. Form is view-only.
-          </div>
-        )}
-
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-6"
         >
+          {!canSubmit && (
+            <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
+              You do not have permission to create records. Form is view-only.
+            </div>
+          )}
           <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
           <div className="flex items-center justify-end">
             <div className="flex items-center gap-2">
@@ -316,12 +315,12 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
               </select>
             </div>
           </div>
-          {/* Quarter Slider */}
+          {/* Quarter selector — centered on small screens (matches Training Matrix month pairs) */}
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-300 text-center">
               Select Quarter
             </p>
-            <div className="flex items-center gap-1 border border-sky-400/30 rounded-xl bg-white/5 p-1 overflow-x-auto">
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-sky-400/30 bg-white/5 p-2 sm:p-1 sm:gap-1">
               {QUARTERS.map((quarter, index) => {
                 const isSelected = selectedQuarter === index;
                 return (
@@ -329,7 +328,7 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
                     key={index}
                     type="button"
                     onClick={() => setSelectedQuarter(index)}
-                    className={`flex-1 min-w-[80px] px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                    className={`min-w-[4.25rem] flex-1 px-3 py-3 sm:min-w-[80px] sm:flex-1 sm:px-4 rounded-lg text-sm font-semibold transition-all duration-150 ${
                       isSelected
                         ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
                         : "text-sky-200 hover:bg-white/10 border border-transparent"
@@ -566,5 +565,7 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
     return content;
   }
 
-  return <div className={`${contentClassName} pr-4`}>{content}</div>;
+  return (
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>{content}</div>
+  );
 }

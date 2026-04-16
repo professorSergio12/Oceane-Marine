@@ -8,7 +8,8 @@ export const QHSE_FORM_TEMPLATES = {
   "QAF-OFD-003": `${TEMPLATE_BASE}/QAF-OFD-003.docx`,
   "QAF-OFD-004": `${TEMPLATE_BASE}/QAF-OFD-004.docx`,
   "QAF-OFD-006": `${TEMPLATE_BASE}/QAF-OFD-006.xlsx`,
-  "QAF-OFD-008": `${TEMPLATE_BASE}/QAF-OFD-008.docx`,
+  /** Sub Contractor audit (blank file on disk remains QAF-OFD-055.docx) */
+  "QAF-OFD-008": `${TEMPLATE_BASE}/QAF-OFD-055.docx`,
   "QAF-OFD-009": `${TEMPLATE_BASE}/QAF-OFD-009.docx`,
   "QAF-OFD-013": `${TEMPLATE_BASE}/QAF-OFD-013.docx`,
   "QAF-OFD-015": `${TEMPLATE_BASE}/QAF-OFD-015.docx`,

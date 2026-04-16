@@ -240,11 +240,11 @@ export default function PoacCrossCompetencyListPage() {
       Rejected: "bg-red-500/15 text-red-300 border-red-400/40",
     };
 
-    const className = statusConfig[status] || statusConfig.Draft;
+    const tone = statusConfig[status] || statusConfig.Draft;
 
     return (
       <span
-        className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] border ${className}`}
+        className={`inline-flex max-w-[10rem] items-center justify-center truncate rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${tone}`}
       >
         {status}
       </span>
@@ -252,9 +252,9 @@ export default function PoacCrossCompetencyListPage() {
   };
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -272,7 +272,7 @@ export default function PoacCrossCompetencyListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-009</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-009" />
           </div>
         </header>
@@ -352,20 +352,22 @@ export default function PoacCrossCompetencyListPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
+                <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+                  <table className="w-full min-w-[760px] text-xs">
                     <thead>
                       <tr className="text-left text-slate-200 border-b border-white/10">
                         <th className="py-3 pr-4 font-semibold">Form Code</th>
-                        <th className="py-3 pr-4 font-semibold">Serial</th>
+                        <th className="hidden py-3 pr-4 font-semibold md:table-cell">Serial</th>
                         <th className="py-3 pr-4 font-semibold">POAC Name</th>
                         <th className="py-3 pr-4 font-semibold">
                           Job Ref No
                         </th>
                         <th className="py-3 pr-4 font-semibold">Lead POAC</th>
-                        <th className="py-3 pr-4 font-semibold">Version</th>
-                        <th className="py-3 pr-4 font-semibold">Status</th>
-                        <th className="py-3 pr-4 font-semibold text-right">
+                        <th className="hidden py-3 pr-4 font-semibold md:table-cell">Version</th>
+                        <th className="py-3 pr-4 font-semibold whitespace-nowrap">
+                          Status
+                        </th>
+                        <th className="py-3 pr-4 font-semibold text-right whitespace-nowrap">
                           Actions
                         </th>
                       </tr>
@@ -381,7 +383,7 @@ export default function PoacCrossCompetencyListPage() {
                               {form.formCode || "—"}
                             </span>
                           </td>
-                          <td className="py-3 pr-4">
+                          <td className="hidden py-3 pr-4 md:table-cell">
                             <span className="font-mono text-slate-200">
                               {form.serialNumber || "—"}
                             </span>
@@ -401,16 +403,16 @@ export default function PoacCrossCompetencyListPage() {
                               {form.leadPOAC || "—"}
                             </span>
                           </td>
-                          <td className="py-3 pr-4">
+                          <td className="hidden py-3 pr-4 md:table-cell">
                             <span className="text-slate-300 font-mono text-[10px]">
                               v{form.revNo || "1.0"}
                             </span>
                           </td>
-                          <td className="py-3 pr-4">
+                          <td className="py-3 pr-4 align-middle">
                             {getStatusBadge(form.status || "Draft")}
                           </td>
-                          <td className="py-3 pr-4">
-                            <div className="flex flex-wrap items-center justify-end gap-1">
+                          <td className="whitespace-nowrap py-2 pr-3 text-right align-middle sm:py-3 sm:pr-4">
+                            <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
                               {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadDocx(form)}

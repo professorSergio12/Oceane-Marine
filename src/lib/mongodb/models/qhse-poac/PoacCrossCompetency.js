@@ -18,10 +18,16 @@ const EvaluationItemSchema = new mongoose.Schema(
       trim: true,
     },
 
+    /** 1–5 as strings (aligned with API normalize); null = not rated */
     evaluation: {
       type: String,
-      enum: [1, 2, 3, 4, 5],
       default: null,
+      validate: {
+        validator(v) {
+          return v == null || ["1", "2", "3", "4", "5"].includes(v);
+        },
+        message: "Evaluation must be 1–5 or empty",
+      },
     },
 
     remarks: {

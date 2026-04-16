@@ -333,10 +333,10 @@ export default function EquipmentBaseStockFormPage() {
   if (loading) return null;
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         {/* Header */}
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -355,9 +355,9 @@ export default function EquipmentBaseStockFormPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-013</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-013" />
-            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/equipment-base-stock-level/form"
                 className="px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
@@ -383,7 +383,7 @@ export default function EquipmentBaseStockFormPage() {
         </header>
 
         {!canSubmit && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-amber-100 text-sm">
             You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
           </div>
         )}
@@ -466,7 +466,7 @@ export default function EquipmentBaseStockFormPage() {
             </p>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/20">
+            <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] rounded-xl border border-white/10 bg-slate-950/20">
             <table className="min-w-full text-xs md:text-sm">
               <thead className="bg-amber-200/80 text-slate-900">
                 <tr>
@@ -604,11 +604,11 @@ export default function EquipmentBaseStockFormPage() {
             </div>
           </section>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          {/* Actions — smaller padding/text on small screens; bottom space for notification FAB */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pb-20 pt-2 sm:justify-end sm:gap-3 sm:pb-2">
           <Link
             href="/qhse/forms-checklist/equipment-base-stock-level/list"
-            className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+            className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/90 hover:bg-white/10 transition sm:rounded-full sm:px-6 sm:py-3 sm:text-sm"
           >
             Cancel
           </Link>
@@ -616,7 +616,7 @@ export default function EquipmentBaseStockFormPage() {
             type="button"
             disabled={!canSubmit || submitting}
             onClick={() => handleSubmit("DRAFT")}
-            className="rounded-full border border-slate-300/70 bg-slate-100/10 px-6 py-3 text-sm font-semibold text-slate-50 hover:bg-slate-100/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300/70 bg-slate-100/10 px-3 py-1.5 text-center text-[11px] font-semibold leading-snug text-slate-50 hover:bg-slate-100/20 transition disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-full sm:px-6 sm:py-3 sm:text-sm sm:leading-normal"
           >
             {submitting && mode === "edit" ? "Saving..." : "Save as Draft"}
           </button>
@@ -624,7 +624,7 @@ export default function EquipmentBaseStockFormPage() {
             type="button"
             disabled={!canSubmit || submitting}
             onClick={() => handleSubmit("PENDING")}
-            className="rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-amber-300 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center rounded-lg bg-amber-400 px-3 py-1.5 text-center text-[11px] font-semibold leading-snug text-slate-900 hover:bg-amber-300 transition disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-full sm:px-6 sm:py-3 sm:text-sm sm:leading-normal"
           >
             {submitting ? "Submitting..." : "Submit for Review"}
           </button>

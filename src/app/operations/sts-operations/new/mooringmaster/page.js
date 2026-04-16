@@ -239,19 +239,26 @@ export default function MooringMasterPage() {
 
       {/* Sidebar Toggle Button */}
       {!isSidebarOpen && (
-        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+        <div className="fixed left-4 top-4 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1.5">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110 sm:h-10 sm:w-10"
             aria-label="Open sidebar"
           >
             <span className="text-white text-xl">☰</span>
           </button>
           <Link
             href="/dashboard"
-            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+            className="md:hidden inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[11px] font-semibold text-white shadow-lg shadow-black/25 backdrop-blur-md transition hover:bg-white/15"
           >
             ← Dashboard
+          </Link>
+          <Link
+            href="/operations/sts-operations/new"
+            className="md:hidden inline-flex max-w-[11rem] min-w-0 shrink items-center gap-1 truncate rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-[10px] font-semibold text-white/90 shadow-md backdrop-blur-md transition hover:bg-white/10"
+            title="Back to STS form"
+          >
+            ← STS form
           </Link>
         </div>
       )}
@@ -259,7 +266,7 @@ export default function MooringMasterPage() {
       {/* Main Content - fixed left margin so content stays in place when sidebar collapses */}
       <div className={`flex-1 min-w-0 pr-4 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`w-full mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
+          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex w-full flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
@@ -269,15 +276,15 @@ export default function MooringMasterPage() {
             </Link>
 
             {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
+            <div className="flex w-full flex-col items-center text-center sm:w-auto sm:flex-1">
               <p className="text-sm uppercase tracking-[0.25em] text-sky-300">
                 Master Data
               </p>
               <h1 className="text-xl sm:text-2xl font-bold">Mooring Masters</h1>
             </div>
             
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Right: Action Buttons — desktop only; mobile uses top bar */}
+            <div className="hidden shrink-0 md:flex md:items-center md:gap-3">
               <Link
                 href="/operations/sts-operations/new"
                 className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/80 backdrop-blur border border-white/10 hover:bg-white/20 transition"
@@ -365,7 +372,7 @@ export default function MooringMasterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition-all hover:from-orange-600 hover:to-orange-700 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 min-w-[140px]"
+            className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-orange-500/30 transition-all hover:from-orange-600 hover:to-orange-700 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 sm:min-w-[140px] sm:gap-2 sm:px-6 sm:py-3.5 sm:text-sm"
           >
             {loading ? (
               <>
@@ -416,12 +423,12 @@ export default function MooringMasterPage() {
 
       {/* Mooring Masters List Table */}
       <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl shadow-2xl overflow-hidden">
-        <div className="px-6 py-5 border-b border-white/10 bg-white/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 border border-sky-400/30">
+        <div className="px-4 py-4 border-b border-white/10 bg-white/5 sm:px-6 sm:py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/20 border border-sky-400/30 sm:h-10 sm:w-10">
                 <svg
-                  className="h-5 w-5 text-sky-400"
+                  className="h-4 w-4 text-sky-400 sm:h-5 sm:w-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -434,18 +441,18 @@ export default function MooringMasterPage() {
                   />
                 </svg>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-white sm:text-xl">
                   Mooring Masters List
                 </h2>
-                <p className="text-xs text-white/60 mt-0.5">
+                <p className="text-[11px] text-white/60 mt-0.5 sm:text-xs">
                   Manage all mooring masters
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
+            <div className="flex shrink-0 items-center gap-1 rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-semibold text-white/80 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-sm">
               <svg
-                className="h-4 w-4 text-white/60"
+                className="h-3.5 w-3.5 text-white/60 sm:h-4 sm:w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -457,7 +464,7 @@ export default function MooringMasterPage() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <span className="text-sm font-semibold text-white/80">
+              <span className="tabular-nums">
                 {items.length} {items.length === 1 ? "Item" : "Items"}
               </span>
             </div>

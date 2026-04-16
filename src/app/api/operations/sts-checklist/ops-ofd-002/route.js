@@ -7,6 +7,7 @@ import fs from "fs/promises";
 import path from "path";
 import "@/jobs/definitions/ops-ofd-002.job.js";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { buildOperationsStsSignatureDirs } from "@/lib/utils/signature-storage";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -133,17 +134,14 @@ export async function PUT(req) {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
 
-      const uploadDir = path.join(
-        process.cwd(),
-        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
-      );
+      const uploadDir = path.join(process.cwd(), buildOperationsStsSignatureDirs("OPS-OFD-002").physicalDir);
       await fs.mkdir(uploadDir, { recursive: true });
 
       const fileName = `${Date.now()}-${signatureFile.name}`;
       const filePath = path.join(uploadDir, fileName);
 
       await fs.writeFile(filePath, buffer);
-      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+      signatureUrl = `${buildOperationsStsSignatureDirs("OPS-OFD-002").urlDir}/${fileName}`;
       console.log("Signature saved to:", signatureUrl);
     } else if (body.signatureBlock?.signature && body.signatureBlock.signature.startsWith("data:image")) {
       // Handle base64 signature from signatureBlock
@@ -160,17 +158,14 @@ export async function PUT(req) {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
 
-      const uploadDir = path.join(
-        process.cwd(),
-        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
-      );
+      const uploadDir = path.join(process.cwd(), buildOperationsStsSignatureDirs("OPS-OFD-002").physicalDir);
       await fs.mkdir(uploadDir, { recursive: true });
 
       const fileName = `${Date.now()}-signature.png`;
       const filePath = path.join(uploadDir, fileName);
 
       await fs.writeFile(filePath, buffer);
-      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+      signatureUrl = `${buildOperationsStsSignatureDirs("OPS-OFD-002").urlDir}/${fileName}`;
       console.log("Base64 signature from signatureBlock saved to:", signatureUrl);
     } else if (body.signatureBlock?.signature && !body.signatureBlock.signature.startsWith("http") && !body.signatureBlock.signature.startsWith("/")) {
       // Handle raw base64 from signatureBlock (without data:image prefix)
@@ -186,17 +181,14 @@ export async function PUT(req) {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
 
-        const uploadDir = path.join(
-          process.cwd(),
-          `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
-        );
+        const uploadDir = path.join(process.cwd(), buildOperationsStsSignatureDirs("OPS-OFD-002").physicalDir);
         await fs.mkdir(uploadDir, { recursive: true });
 
         const fileName = `${Date.now()}-signature.png`;
         const filePath = path.join(uploadDir, fileName);
 
         await fs.writeFile(filePath, buffer);
-        signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+        signatureUrl = `${buildOperationsStsSignatureDirs("OPS-OFD-002").urlDir}/${fileName}`;
         console.log("Raw base64 signature from signatureBlock saved to:", signatureUrl);
       } catch (err) {
         console.error("Failed to process raw base64 signature:", err);
@@ -217,17 +209,14 @@ export async function PUT(req) {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
 
-      const uploadDir = path.join(
-        process.cwd(),
-        `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002`
-      );
+      const uploadDir = path.join(process.cwd(), buildOperationsStsSignatureDirs("OPS-OFD-002").physicalDir);
       await fs.mkdir(uploadDir, { recursive: true });
 
       const fileName = `${Date.now()}-signature.png`;
       const filePath = path.join(uploadDir, fileName);
 
       await fs.writeFile(filePath, buffer);
-      signatureUrl = `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-002/${fileName}`;
+      signatureUrl = `${buildOperationsStsSignatureDirs("OPS-OFD-002").urlDir}/${fileName}`;
       console.log("Base64 signature from body.signature saved to:", signatureUrl);
     }
 

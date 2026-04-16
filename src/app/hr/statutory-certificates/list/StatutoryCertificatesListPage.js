@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useHrLoading } from "../../HrLoadingContext";
@@ -79,6 +79,85 @@ function DeleteIconButton({ onClick, disabled, loading }) {
       </button>
       <span className={tooltipClass}>Delete</span>
     </span>
+  );
+}
+
+/**
+ * Custom listbox for long location labels: native <select> cannot limit open-menu width.
+ * Panel is width-bound to the trigger (left-0 right-0); options truncate with full text in title.
+ */
+function LocationFilterListbox({ value, onChange, locations, buttonClassName }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const listId = useId();
+
+  const options = [{ value: "", label: "All" }, ...locations.map((loc) => ({ value: loc, label: loc }))];
+  const selected = options.find((o) => o.value === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative min-w-0 flex-1">
+      <button
+        type="button"
+        id={`${listId}-trigger`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? `${listId}-list` : undefined}
+        title={selected.label}
+        onClick={() => setOpen((o) => !o)}
+        className={buttonClassName}
+      >
+        <span className="min-w-0 flex-1 truncate text-left">{selected.label}</span>
+        <svg className="h-3 w-3 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          id={`${listId}-list`}
+          role="listbox"
+          aria-labelledby={`${listId}-trigger`}
+          className="absolute left-0 right-0 z-50 mt-1 max-h-48 min-w-0 overflow-x-hidden overflow-y-auto rounded-xl border border-white/25 bg-[#0b2740] py-1 shadow-lg"
+        >
+          {options.map((opt) => (
+            <li key={opt.value || "__all__"} role="presentation">
+              <button
+                type="button"
+                role="option"
+                aria-selected={value === opt.value}
+                title={opt.label}
+                className={`flex w-full min-w-0 cursor-pointer items-center px-2 py-1 text-left text-[9px] uppercase tracking-wide text-slate-100 transition hover:bg-white/10 sm:px-2.5 sm:py-1.5 sm:text-xs ${
+                  value === opt.value ? "bg-sky-600/30 text-white" : ""
+                }`}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+              >
+                <span className="min-w-0 truncate">{opt.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -202,41 +281,50 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
 
   return (
     <>
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
-        {/* Filters Row */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-            <select
-              className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-              value={filterYear}
-              onChange={(e) => setFilterYear(e.target.value)}
-            >
-              <option value="">All years</option>
-              {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200 ml-2">Location</span>
-            <select
-              className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-              value={filterLocation}
-              onChange={(e) => setFilterLocation(e.target.value)}
-            >
-              <option value="">All locations</option>
-              {locations.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-            {(filterYear || filterLocation) && (
-              <button
-                onClick={() => { setFilterYear(""); setFilterLocation(""); }}
-                className="text-xs text-slate-400 hover:text-white transition underline underline-offset-2 ml-2"
+      <div className="min-w-0 max-w-full rounded-3xl border border-white/10 bg-white/5 p-3 sm:p-6 backdrop-blur shadow-2xl space-y-4">
+        {/*
+          Filters: <lg = stacked full-width rows (avoids Location overflow on narrow viewports).
+          lg+ = single row, compact selects (matches HR Oil Majors list pattern).
+        */}
+        <div className="flex w-full min-w-0 flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          <div className="flex w-full min-w-0 flex-col gap-2 lg:flex-row lg:w-auto lg:flex-none lg:items-center lg:justify-end lg:gap-4">
+            <div className="flex min-w-0 w-full items-center gap-1.5 sm:gap-2 lg:w-36 lg:max-w-36 lg:flex-none">
+              <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-slate-300 sm:text-[10px]">
+                Year
+              </span>
+              <select
+                className="theme-select min-w-0 w-full max-w-full rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wide sm:px-2 sm:py-1 sm:text-xs lg:min-w-0 lg:max-w-34"
+                value={filterYear}
+                onChange={(e) => setFilterYear(e.target.value)}
               >
-                Clear filters
-              </button>
-            )}
+                <option value="">All</option>
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex min-w-0 w-full items-center gap-1.5 sm:gap-2 lg:w-36 lg:max-w-36 lg:flex-none">
+              <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-slate-300 sm:text-[10px]">
+                <span className="lg:hidden">Loc</span>
+                <span className="hidden lg:inline">Location</span>
+              </span>
+              <LocationFilterListbox
+                value={filterLocation}
+                onChange={setFilterLocation}
+                locations={locations}
+                buttonClassName="flex min-h-[1.75rem] min-w-0 w-full max-w-full flex-1 items-center justify-between gap-1 rounded-full border border-white/25 bg-[#0b2740] px-2 py-0.5 text-left text-[10px] font-normal uppercase tracking-wide text-slate-200 shadow-none outline-none ring-0 transition hover:border-white/35 focus:border-orange-400 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-orange-500/50 sm:min-h-[2rem] sm:px-2.5 sm:py-1 sm:text-xs lg:min-w-0 lg:max-w-34"
+              />
+            </div>
           </div>
+          {(filterYear || filterLocation) && (
+            <button
+              type="button"
+              onClick={() => { setFilterYear(""); setFilterLocation(""); }}
+              className="shrink-0 self-start text-[10px] text-slate-400 underline underline-offset-2 transition hover:text-white sm:text-xs lg:self-center"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {/* Messages */}
@@ -261,26 +349,26 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
         ) : (
           <div className="overflow-hidden rounded-xl">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[520px] text-sm">
                   <thead>
                     <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
-                      <th className="px-6 py-4 font-semibold">Location</th>
-                      <th className="px-6 py-4 font-semibold">Type of Document</th>
-                      <th className="px-6 py-4 font-semibold">Year</th>
-                      <th className="px-6 py-4 font-semibold">Validity</th>
-                      <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                      <th className="px-3 py-3 font-semibold sm:px-6 sm:py-4">Location</th>
+                      <th className="px-3 py-3 font-semibold sm:px-6 sm:py-4">Type of Document</th>
+                      <th className="px-3 py-3 font-semibold sm:px-6 sm:py-4">Year</th>
+                      <th className="px-3 py-3 font-semibold sm:px-6 sm:py-4">Validity</th>
+                      <th className="px-3 py-3 font-semibold text-right sm:px-6 sm:py-4">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedCertificates.map((cert) => (
                       <tr key={cert._id} className="border-b border-white/5 hover:bg-white/5 transition">
-                        <td className="px-6 py-4 font-medium text-white">{cert.location}</td>
-                        <td className="px-6 py-4 text-slate-200">{cert.typeOfDocs}</td>
-                        <td className="px-6 py-4 font-mono text-sky-300">{cert.year}</td>
-                        <td className="px-6 py-4 text-slate-200">
+                        <td className="px-3 py-3 font-medium text-white sm:px-6 sm:py-4">{cert.location}</td>
+                        <td className="px-3 py-3 text-slate-200 sm:px-6 sm:py-4">{cert.typeOfDocs}</td>
+                        <td className="px-3 py-3 font-mono text-sky-300 sm:px-6 sm:py-4">{cert.year}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-200 sm:px-6 sm:py-4">
                           {cert.validity ? new Date(cert.validity).toLocaleDateString("en-GB") : "—"}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-3 py-3 text-right sm:px-6 sm:py-4">
                           <div className="flex items-center justify-end gap-1">
                             {canDownload && (
                               <QhseDownloadIconButton

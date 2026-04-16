@@ -7,6 +7,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import "../../../../../../../jobs/definitions/declaration-of-sea.job.js";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { buildOperationsStsSignatureDirs } from "@/lib/utils/signature-storage";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,14 +16,7 @@ const corsHeaders = {
 };
 
 function getSignatureUploadDir() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005E`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-005E`,
-  };
+  return buildOperationsStsSignatureDirs("OPS-OFD-005E");
 }
 
 function isRawBase64(str) {

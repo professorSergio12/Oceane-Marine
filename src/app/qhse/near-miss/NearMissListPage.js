@@ -282,9 +282,9 @@ export default function NearMissListPage() {
   };
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -302,7 +302,7 @@ export default function NearMissListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-015</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-015" />
           </div>
         </header>
@@ -560,7 +560,7 @@ export default function NearMissListPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="text-left text-slate-200 border-b border-white/10">
@@ -631,8 +631,8 @@ export default function NearMissListPage() {
                               {report.status || "Under Review"}
                             </span>
                           </td>
-                          <td className="py-3 pr-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
+                          <td className="whitespace-nowrap py-2 pr-3 text-right sm:py-3 sm:pr-4">
+                            <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
                               <DownloadIconButton
                                 onClick={() => handleDownloadWord(report)}
                                 disabled={

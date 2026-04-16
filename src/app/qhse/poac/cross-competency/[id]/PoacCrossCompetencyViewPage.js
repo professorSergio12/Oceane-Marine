@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
+import { resolveQhseSignatureImageSrc } from "@/lib/utils/qhse-signature-url";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -21,16 +22,12 @@ function formatDate(value) {
   });
 }
 
-/** Normalize signature for img src: base64 data URL, raw base64, or http(s) URL. Returns null if not usable as image. */
 function getSignatureSrc(value) {
   if (value == null || typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (trimmed.toLowerCase() === "not available" || trimmed.toLowerCase() === "n/a") return null;
-  if (trimmed.startsWith("data:image")) return trimmed;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
-  if (/^[A-Za-z0-9+/=]{50,}$/.test(trimmed)) return `data:image/png;base64,${trimmed}`;
-  return null;
+  return resolveQhseSignatureImageSrc(trimmed);
 }
 
 const evaluationCategories = [
@@ -276,7 +273,7 @@ export default function PoacCrossCompetencyViewPage() {
 
   if (error || !form) {
     return (
-      <div className={`${contentClassName} pr-4`}>
+      <div className={`${contentClassName} w-full min-w-0 pr-4`}>
         <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-10">
           <div className="rounded-3xl border border-red-500/40 bg-red-950/40 p-6">
             <p className="text-red-300">{error || "Form not found"}</p>
@@ -293,9 +290,9 @@ export default function PoacCrossCompetencyViewPage() {
   }
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -308,7 +305,7 @@ export default function PoacCrossCompetencyViewPage() {
             </p>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">View POAC Cross Competency Form</h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-009" />
             {canDownload && (
               <button

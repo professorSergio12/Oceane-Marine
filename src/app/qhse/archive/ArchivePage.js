@@ -82,9 +82,9 @@ export default function ArchivePage() {
   }, [year, moduleFilter]);
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -114,11 +114,13 @@ export default function ArchivePage() {
         )}
 
         <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-          <div className="flex items-center justify-end gap-4 flex-wrap p-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
+          <div className="flex w-full flex-row flex-nowrap items-center gap-2 p-3 sm:gap-4 sm:p-4">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
+              <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                Year
+              </span>
               <select
-                className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[5rem]"
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs leading-tight text-white focus:outline-none focus:ring-2 focus:ring-sky-500 sm:px-3 sm:py-2 sm:text-sm"
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
               >
@@ -127,10 +129,12 @@ export default function ArchivePage() {
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Module</span>
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
+              <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                Module
+              </span>
               <select
-                className="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 min-w-[10rem]"
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs leading-tight text-white focus:outline-none focus:ring-2 focus:ring-sky-500 sm:px-3 sm:py-2 sm:text-sm"
                 value={moduleFilter}
                 onChange={(e) => setModuleFilter(e.target.value)}
               >
@@ -150,8 +154,8 @@ export default function ArchivePage() {
               No archived files for this year.
             </div>
           ) : (
-            <div className="overflow-hidden">
-              <table className="w-full text-sm text-left text-slate-200 border-collapse table-fixed">
+            <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+              <table className="min-w-[720px] w-full text-sm text-left text-slate-200 border-collapse table-fixed">
                 <thead>
                   <tr className="bg-[#366092] text-white">
                     <th className="border border-slate-400/50 px-3 py-2.5 font-semibold uppercase tracking-wide">
@@ -204,7 +208,7 @@ export default function ArchivePage() {
                           : "—"}
                       </td>
                       <td className="border border-slate-400/40 px-3 py-2">
-                        <div className="flex flex-wrap items-center justify-end gap-1">
+                        <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
                           {canDownload && row.fileUrl && (row.fileUrl.startsWith("http://") || row.fileUrl.startsWith("https://")) ? (
                             <span className="relative group inline-flex">
                               <a

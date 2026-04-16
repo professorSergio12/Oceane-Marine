@@ -350,7 +350,7 @@ function CompatibilityPageContent() {
 
       <div className={`flex-1 min-w-0 pr-4 overflow-auto transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`w-full mx-auto py-3 sm:py-5 space-y-3 sm:space-y-4 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`} id="compatibility-top">
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
+          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-2 flex w-full flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
@@ -360,29 +360,29 @@ function CompatibilityPageContent() {
             </Link>
 
             {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
+            <div className="flex w-full flex-col items-center text-center sm:w-auto sm:flex-1">
               <p className="text-sm uppercase tracking-[0.25em] text-sky-300">Compatibility</p>
               <h1 className="text-xl sm:text-2xl font-bold text-white">Hose & Fender Calculation</h1>
             </div>
             
             {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="flex w-full shrink-0 justify-center sm:w-auto sm:justify-end">
+              <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href={editId ? `/operations/sts-operations/new/compatibility?edit=${editId}&section=hose` : "/operations/sts-operations/new/compatibility?section=hose"}
-                  className={`px-4 py-2 text-sm font-semibold transition ${calcSection === "hose" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
+                  className={`px-2.5 py-1.5 text-[11px] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${calcSection === "hose" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
                 >
                   Hose Calculation
                 </Link>
                 <Link
                   href={editId ? `/operations/sts-operations/new/compatibility?edit=${editId}&section=fender` : "/operations/sts-operations/new/compatibility?section=fender"}
-                  className={`px-4 py-2 text-sm font-semibold transition ${calcSection === "fender" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
+                  className={`px-2.5 py-1.5 text-[11px] font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${calcSection === "fender" ? "bg-orange-500 text-white" : "text-white/90 hover:bg-white/10"}`}
                 >
                   Fender Calculation
                 </Link>
                 <Link
                   href="/operations/sts-operations/new/compatibility/list"
-                  className="px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10 transition"
+                  className="px-2.5 py-1.5 text-[11px] font-semibold text-white/90 hover:bg-white/10 transition sm:px-4 sm:py-2 sm:text-sm"
                 >
                   List
                 </Link>

@@ -1,5 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import {
+  saveSignatureBufferToPublic as saveSignatureBufferToPublicCore,
+  getSignatureAbsolutePathForRead,
+} from "./signature-storage.js";
+
+export { getSignatureAbsolutePathForRead };
+
+/** @deprecated Use getSignatureAbsolutePathForRead */
+export function getQhseSignatureAbsolutePathForRead(storedValue) {
+  return getSignatureAbsolutePathForRead(storedValue);
+}
 
 /**
  * Sanitize a name for use in file/directory paths.
@@ -87,31 +98,60 @@ export async function saveQhseFile({ formCode, location, date, title, fileType, 
 }
 
 /**
+ * QHSE signatures: public/signature/qhse/{submodule}/YYYY/MM/DD/
+ *
+ * @param {object} opts
+ * @param {string} opts.formSlug - Submodule folder, e.g. "audit-sub-contractor"
+ * @param {Date|string} opts.date
+ * @param {string} opts.fileName
+ * @param {Buffer} opts.buffer
+ */
+export async function saveSignatureBufferToPublic({ formSlug, date, fileName, buffer }) {
+  return saveSignatureBufferToPublicCore({
+    moduleName: "qhse",
+    submoduleName: formSlug,
+    date,
+    fileName,
+    buffer,
+  });
+}
+
+/**
  * Decode a base64 data URL and save as a file.
+ * Signature images (fileType "signatures") are stored under public/signature/qhse/{submodule}/YYYY/MM/DD/.
+ * Other file types use uploads/QHSE/...
  *
  * @param {object} opts
  * @param {string} opts.formCode
+ * @param {string} [opts.formSlug] - Required for signatures; e.g. "audit-sub-contractor". Falls back to lowercased short form code.
  * @param {string} [opts.location]
  * @param {Date|string} opts.date
  * @param {string} opts.title
  * @param {string} opts.fileType  - "documents" | "signatures" | "attachments"
- * @param {string} opts.fileName  - Desired filename (without extension — extension will be derived from mime)
+ * @param {string} opts.fileName  - Desired filename (extension derived from mime when missing)
  * @param {string} opts.base64DataUrl - e.g. "data:image/png;base64,iVBOR..."
- * @returns {Promise<string|null>} Relative file path, or null if input is not a valid data URL
+ * @returns {Promise<string|null>} Public URL for signatures (/signature/...) or relative uploads path for documents
  */
-export async function saveBase64AsFile({ formCode, location, date, title, fileType, fileName, base64DataUrl }) {
+export async function saveBase64AsFile({
+  formCode,
+  formSlug,
+  location,
+  date,
+  title,
+  fileType,
+  fileName,
+  base64DataUrl,
+}) {
   if (!base64DataUrl || typeof base64DataUrl !== "string") return null;
 
-  // Handle both "data:image/png;base64,..." and raw base64 strings
   let buffer;
-  let ext = ".png"; // default
+  let ext = ".png";
 
   const dataUrlMatch = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/s);
   if (dataUrlMatch) {
     const mime = dataUrlMatch[1];
     const b64 = dataUrlMatch[2];
     buffer = Buffer.from(b64, "base64");
-    // Derive extension from mime
     const mimeToExt = {
       "image/png": ".png",
       "image/jpeg": ".jpg",
@@ -126,22 +166,34 @@ export async function saveBase64AsFile({ formCode, location, date, title, fileTy
     };
     ext = mimeToExt[mime] || ".bin";
   } else if (/^[A-Za-z0-9+/=\r\n]+$/.test(base64DataUrl.trim())) {
-    // Raw base64 (no data: prefix) — assume PNG
     buffer = Buffer.from(base64DataUrl.trim(), "base64");
   } else {
-    // Not a base64 string (could be a text signature or URL) — skip
     return null;
   }
 
+  const ft = fileType || "signatures";
   const safeName = sanitizeName(fileName || "file");
   const fullFileName = `${safeName}${ext}`;
+
+  if (ft === "signatures") {
+    const rawSlug = typeof formSlug === "string" ? formSlug.trim() : "";
+    const slug = rawSlug
+      ? sanitizeName(rawSlug)
+      : sanitizeName(shortFormCode(formCode)).toLowerCase();
+    return saveSignatureBufferToPublic({
+      formSlug: slug,
+      date,
+      fileName: fullFileName,
+      buffer,
+    });
+  }
 
   return saveQhseFile({
     formCode,
     location,
     date,
     title,
-    fileType: fileType || "signatures",
+    fileType: ft,
     fileName: fullFileName,
     buffer,
   });

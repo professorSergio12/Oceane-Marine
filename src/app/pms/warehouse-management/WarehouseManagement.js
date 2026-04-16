@@ -422,27 +422,34 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
   return (
     <div className="space-y-6">
-      {/* HEADER — title + list filters (year, location) on one row */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between gap-y-4">
-        <div className="min-w-0">
+      {/* HEADER — md+: heading + filters one row (filters small); mobile: centered heading, filters next line */}
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+        <div className="min-w-0 text-center md:text-left">
           <p className="text-xs tracking-widest text-sky-300">
             PMS / Warehouse Management
           </p>
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-lg font-bold text-white sm:text-xl">
             Warehouse Management
           </h2>
         </div>
-        <div className="flex flex-wrap items-center gap-4 sm:gap-5 shrink-0">
+        <div
+          className={`flex w-full min-w-0 flex-row flex-nowrap items-center gap-2 md:w-auto md:shrink-0 md:justify-end md:gap-2 ${
+            view === "form" ? "justify-center md:justify-end md:max-w-xs" : "justify-center"
+          }`}
+        >
           {view === "list" && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
+            <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
+              <label
+                htmlFor="warehouse-list-filter-year"
+                className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]"
+              >
                 Year
-              </span>
+              </label>
               <select
                 id="warehouse-list-filter-year"
                 value={filterYear}
                 onChange={(e) => setFilterYear(e.target.value)}
-                className="theme-select min-w-[10.5rem] rounded-full px-3 py-1.5 text-xs tracking-widest uppercase"
+                className="theme-select w-44 min-w-44 max-w-full shrink-0 rounded-full px-2.5 py-0.5 text-[10px] tracking-wide uppercase md:px-3 md:py-1 md:text-[11px]"
               >
                 <option value="">All years</option>
                 {Array.from(
@@ -456,18 +463,27 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               </select>
             </div>
           )}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div
+            className={`flex min-w-0 items-center gap-1 md:gap-1.5 ${
+              view === "form"
+                ? "w-full max-w-sm justify-center md:w-auto md:max-w-none md:justify-end"
+                : "max-w-[48%] flex-1 md:max-w-none md:flex-initial"
+            }`}
+          >
             <label
               htmlFor="warehouse-header-location"
-              className="text-xs font-medium text-slate-200 whitespace-nowrap"
+              className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]"
             >
-              Select Location:
+              <span className="md:hidden">Loc</span>
+              <span className="hidden md:inline">Location</span>
             </label>
             <select
               id="warehouse-header-location"
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 min-w-[160px] sm:min-w-[180px]"
+              className={`min-w-0 rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-6 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 md:rounded-full md:py-1 md:pl-2.5 md:pr-7 md:text-[11px] ${
+                view === "form" ? "w-full max-w-48 flex-1 md:w-36 md:max-w-none md:flex-initial" : "flex-1 md:w-36 md:flex-initial"
+              }`}
             >
               {LOCATIONS.map((loc) => (
                 <option key={loc.value} value={loc.value}>

@@ -44,6 +44,7 @@ export async function POST(req) {
 
     const pathOpts = {
       formCode: "QAF-OFD-043",
+      formSlug: "due-diligence-questionnaire",
       date: signDate,
       title: supplierName,
     };

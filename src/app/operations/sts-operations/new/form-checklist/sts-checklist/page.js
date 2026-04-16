@@ -300,17 +300,17 @@ export default function StsChecklistPage() {
 
       {/* Sidebar Toggle Button */}
       {!isSidebarOpen && (
-        <div className="fixed left-4 top-4 z-40 flex items-center gap-2">
+        <div className="fixed left-4 top-4 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1.5">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition border border-orange-400/30 shadow-lg shadow-orange-500/30 hover:scale-110 sm:h-10 sm:w-10"
             aria-label="Open sidebar"
           >
             <span className="text-white text-xl">☰</span>
           </button>
           <Link
             href="/dashboard"
-            className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
+            className="md:hidden inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[11px] font-semibold text-white shadow-lg shadow-black/25 backdrop-blur-md transition hover:bg-white/15"
           >
             ← Dashboard
           </Link>
@@ -320,7 +320,7 @@ export default function StsChecklistPage() {
       {/* Main Content */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
-          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4`}>
+          <header className={`${isSidebarOpen ? "mt-0" : "mt-8"} mb-4 flex w-full flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
             {/* Left: Dashboard */}
             <Link
               href="/dashboard"
@@ -330,7 +330,7 @@ export default function StsChecklistPage() {
             </Link>
 
             {/* Center: Heading */}
-            <div className="flex-1 flex flex-col items-center text-center">
+            <div className="flex w-full flex-col items-center text-center sm:w-auto sm:flex-1">
               <p className="text-xs uppercase tracking-[0.25em] text-sky-300">
                 Operations / Forms & Checklist / STS Checklist
               </p>
@@ -340,9 +340,7 @@ export default function StsChecklistPage() {
               </p>
             </div>
             
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-            </div>
+            <div className="hidden w-[140px] shrink-0 sm:block" aria-hidden />
           </header>
 
           {/* Operation Ref Dropdown */}
@@ -495,7 +493,7 @@ export default function StsChecklistPage() {
                             // Show copy link button when no operation ref is selected
                             <button
                               onClick={() => handleCopyLink(form.link, form.formNo)}
-                              className="px-4 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 hover:border-sky-400/50 text-sky-300 hover:text-sky-200 text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                              className="rounded-lg bg-sky-500/20 px-2.5 py-1.5 text-[11px] font-medium text-sky-300 transition-all duration-200 hover:bg-sky-500/30 hover:text-sky-200 flex items-center gap-1.5 border border-sky-400/30 hover:border-sky-400/50 sm:px-4 sm:py-2 sm:text-sm sm:gap-2"
                             >
                               {copiedLink === form.formNo ? (
                                 <>
@@ -519,7 +517,7 @@ export default function StsChecklistPage() {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => handleViewList(form.apiPath)}
-                          className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg text-sm font-semibold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                          className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg shadow-orange-500/30 transition-all duration-200 hover:from-orange-600 hover:to-orange-700 hover:shadow-orange-500/50 hover:scale-[1.02] active:scale-95 sm:px-5 sm:py-2.5 sm:text-sm sm:hover:scale-105"
                         >
                           View List
                         </button>

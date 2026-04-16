@@ -356,7 +356,7 @@ export default function InspectionChecklistListPage() {
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
         <header
-          className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4`}
+          className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex w-full flex-col items-center gap-3 md:flex-row md:items-center md:justify-between md:gap-4`}
         >
           <Link
             href="/dashboard"
@@ -364,7 +364,7 @@ export default function InspectionChecklistListPage() {
           >
             ← Dashboard
           </Link>
-          <div className="flex-1 min-w-0 flex flex-col items-center text-center w-full md:w-auto">
+          <div className="flex w-full flex-col items-center text-center md:w-auto md:flex-1">
             <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               Operations / Forms & Checklist / Inspection Checklist
             </p>
@@ -373,19 +373,21 @@ export default function InspectionChecklistListPage() {
               View and manage all Inspection Checklist records
             </p>
           </div>
-          <div className="flex justify-center md:justify-end shrink-0">
-            <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+          <div className="flex w-full shrink-0 justify-center md:w-auto md:justify-end">
+            <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/operations/sts-operations/new/form-checklist/inspection-checklist/form"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap"
+                className="px-2 py-1.5 text-[10px] font-semibold text-white/90 hover:bg-white/10 transition sm:px-3 sm:py-2 sm:text-xs lg:px-4 lg:text-sm whitespace-nowrap"
               >
-                Inspection Checklist Form
+                <span className="lg:hidden">Inspection Form</span>
+                <span className="hidden lg:inline">Inspection Checklist Form</span>
               </Link>
               <Link
                 href="/operations/sts-operations/new/form-checklist/inspection-checklist/list"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition whitespace-nowrap"
+                className="px-2 py-1.5 text-[10px] font-semibold text-white bg-orange-500 hover:bg-orange-600 transition sm:px-3 sm:py-2 sm:text-xs lg:px-4 lg:text-sm whitespace-nowrap"
               >
-                Inspection Checklist List
+                <span className="lg:hidden">Inspection List</span>
+                <span className="hidden lg:inline">Inspection Checklist List</span>
               </Link>
             </div>
           </div>
@@ -396,79 +398,98 @@ export default function InspectionChecklistListPage() {
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           filterChildren={
-            <>
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                value={year === "" || year === null ? "" : String(year)}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-              >
-                <option value="">All years</option>
-                {initialYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Form</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase min-w-[120px]"
-                value={formNumber || ""}
-                onChange={(e) => {
-                  setFormNumber(e.target.value);
-                  if (e.target.value !== "OPS-OFD-013") {
-                    setFilterYear("");
-                    setBoatName("");
-                  }
-                }}
-              >
-                {FORM_NUMBERS.map((form) => (
-                  <option key={form.value || "all"} value={form.value}>
-                    {form.label}
-                  </option>
-                ))}
-              </select>
-              {formNumber === "OPS-OFD-013" && (
-                <>
-                  <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Yr (013)</span>
+            <div className="flex w-full min-w-0 flex-col gap-2">
+              <div className="flex w-full min-w-0 flex-row flex-nowrap items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                    Year
+                  </span>
                   <select
-                    className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                    value={filterYear || ""}
-                    onChange={(e) => setFilterYear(e.target.value)}
+                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                    value={year === "" || year === null ? "" : String(year)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setYear(v === "" ? "" : Number(v));
+                    }}
                   >
-                    <option value="">All</option>
+                    <option value="">All years</option>
                     {initialYears.map((y) => (
                       <option key={y} value={y}>
                         {y}
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="text"
-                    placeholder="Boat name"
-                    className="rounded-full px-3 py-1 text-xs bg-slate-900/40 border border-white/15 text-white placeholder:text-white/40 min-w-[100px]"
-                    value={boatName}
-                    onChange={(e) => setBoatName(e.target.value)}
-                  />
-                </>
-              )}
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Location</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase min-w-[120px]"
-                value={locationId || ""}
-                onChange={(e) => setLocationId(e.target.value)}
-              >
-                <option value="">All Locations</option>
-                {locations.map((loc) => (
-                  <option key={loc._id} value={loc._id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-            </>
+                </div>
+                <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                    <span className="sm:hidden">Loc</span>
+                    <span className="hidden sm:inline">Location</span>
+                  </span>
+                  <select
+                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                    value={locationId || ""}
+                    onChange={(e) => setLocationId(e.target.value)}
+                  >
+                    <option value="">All Locations</option>
+                    {locations.map((loc) => (
+                      <option key={loc._id} value={loc._id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex w-full min-w-0 flex-row flex-wrap items-center gap-2 sm:flex-nowrap">
+                <div className="flex min-w-0 w-full items-center gap-1 sm:flex-1 sm:gap-2">
+                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                    Form
+                  </span>
+                  <select
+                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                    value={formNumber || ""}
+                    onChange={(e) => {
+                      setFormNumber(e.target.value);
+                      if (e.target.value !== "OPS-OFD-013") {
+                        setFilterYear("");
+                        setBoatName("");
+                      }
+                    }}
+                  >
+                    {FORM_NUMBERS.map((form) => (
+                      <option key={form.value || "all"} value={form.value}>
+                        {form.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {formNumber === "OPS-OFD-013" && (
+                  <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
+                    <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs">
+                      Yr (013)
+                    </span>
+                    <select
+                      className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] uppercase sm:max-w-[6rem] sm:px-3 sm:text-xs"
+                      value={filterYear || ""}
+                      onChange={(e) => setFilterYear(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      {initialYears.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Boat name"
+                      className="min-w-0 flex-1 rounded-full border border-white/15 bg-slate-900/40 px-2 py-1 text-[11px] text-white placeholder:text-white/40 sm:px-3 sm:text-xs"
+                      value={boatName}
+                      onChange={(e) => setBoatName(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           }
         >
           {error && (

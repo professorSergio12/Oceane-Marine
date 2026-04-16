@@ -111,6 +111,7 @@ export async function POST(req) {
       : new Date();
     const pathOpts = {
       formCode: "QAF-OFD-055",
+      formSlug: "audit-sub-contractor",
       date: auditDate,
       title: subcontractorName.trim(),
       fileType: "signatures",

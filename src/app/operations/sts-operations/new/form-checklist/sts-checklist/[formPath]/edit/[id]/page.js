@@ -10,6 +10,10 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import {
+  resolveQhseSignatureImageSrc,
+  isResolvableSignatureImage,
+} from "@/lib/utils/qhse-signature-url";
 // OPS-OFD-014 Equipment Checklist row defaults (external-form layout)
 const OPS014_FENDER_ROW = { fenderId: "", endPlates: "", bShackle: "", swivel: "", secondShackle: "", mooringShackle: "", fenderBody: "", tires: "", pressure: "" };
 const OPS014_HOSE_ROW = { hoseId: "", endFlanges: "", bodyCondition: "", nutsBolts: "", markings: "" };
@@ -55,10 +59,7 @@ const STATUS_COLORS = {
 };
 
 function isImageValue(value) {
-  if (typeof value !== 'string' || !value) return false;
-  return value.startsWith('data:image') 
-    || /^https?:\/\/.+(\.(png|jpg|jpeg|gif|webp)|(\?.*)?)$/i.test(value)
-    || /^\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(value);
+  return isResolvableSignatureImage(value);
 }
 
 function labelFromKey(key) {
@@ -545,7 +546,7 @@ export default function EditFormPage() {
               />
               {value && isImageValue(value) && (
                 <div className="mt-2">
-                  <img src={value} alt="Signature" className="max-w-full max-h-24 border border-gray-600 rounded object-contain bg-white" />
+                  <img src={resolveQhseSignatureImageSrc(value) || value} alt="Signature" className="max-w-full max-h-24 border border-gray-600 rounded object-contain bg-white" decoding="async" />
                   <button type="button" onClick={() => handleInputChange(path, '')} className="mt-2 text-sm text-red-400 hover:text-red-300">Remove</button>
                 </div>
               )}
@@ -780,7 +781,7 @@ export default function EditFormPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Signature of Mooring Master</label>
             <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => handleInputChange('signatureBlock.mooringMasterSignature', reader.result); reader.readAsDataURL(file); } }} className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer" />
-            {signature && <div className="mt-2"><img src={signature} alt="Signature" className="max-w-full max-h-32 border border-gray-600 rounded object-contain bg-white p-2" /><button type="button" onClick={() => handleInputChange('signatureBlock.mooringMasterSignature', '')} className="mt-2 text-sm text-red-400 hover:text-red-300">Remove Signature</button></div>}
+            {signature && <div className="mt-2"><img src={resolveQhseSignatureImageSrc(signature) || signature} alt="Signature" className="max-w-full max-h-32 border border-gray-600 rounded object-contain bg-white p-2" decoding="async" /><button type="button" onClick={() => handleInputChange('signatureBlock.mooringMasterSignature', '')} className="mt-2 text-sm text-red-400 hover:text-red-300">Remove Signature</button></div>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Remarks</label>

@@ -12,6 +12,7 @@ import { QhseListPageContainer } from "../../../components/QhseListPageContainer
 import { useQhseRole } from "@/hooks/useQhseRole";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
 import { ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../../../components/ActionIcons";
+import { resolveQhseSignatureImageSrc } from "@/lib/utils/qhse-signature-url";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -35,6 +36,12 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getTransferAuditSignatureSrc(completedBy) {
+  if (!completedBy) return null;
+  const raw = completedBy.signaturePhoto || completedBy.signatureUrl;
+  return resolveQhseSignatureImageSrc(raw);
 }
 
 function getStatusBadge(status) {
@@ -323,9 +330,9 @@ export default function TransferAuditListPage() {
   if (loading) return null;
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
-        <header className="mt-12 md:mt-0 mb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <header className="mt-12 md:mt-0 mb-2 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-4">
           <Link
             href="/dashboard"
             className="flex-shrink-0 hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold shadow-lg shadow-black/25 backdrop-blur-md transition"
@@ -341,7 +348,7 @@ export default function TransferAuditListPage() {
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-003</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto flex-wrap">
+          <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-003" />
           </div>
         </header>
@@ -733,16 +740,17 @@ export default function TransferAuditListPage() {
                         </div>
                       )}
                     </div>
-                    {(selectedForm.completedBy?.signatureText || selectedForm.completedBy?.signaturePhoto || selectedForm.completedBy?.signatureUrl) && (
+                    {(selectedForm.completedBy?.signatureText ||
+                      getTransferAuditSignatureSrc(selectedForm.completedBy)) && (
                       <div>
                         <p className="text-xs text-slate-400 mb-2">Signature</p>
                         <div className="bg-white/5 rounded-lg p-4 border border-white/10 space-y-2">
                           {selectedForm.completedBy.signatureText && (
                             <p className="text-sm text-white">{selectedForm.completedBy.signatureText}</p>
                           )}
-                          {(selectedForm.completedBy.signaturePhoto || selectedForm.completedBy.signatureUrl) && (
+                          {getTransferAuditSignatureSrc(selectedForm.completedBy) && (
                             <img
-                              src={selectedForm.completedBy.signaturePhoto || selectedForm.completedBy.signatureUrl}
+                              src={getTransferAuditSignatureSrc(selectedForm.completedBy)}
                               alt="Signature"
                               className="max-w-full h-auto max-h-32 object-contain"
                               onError={(e) => {
@@ -798,13 +806,13 @@ export default function TransferAuditListPage() {
               {/* Table - Hidden when detail card is shown */}
               {!selectedForm && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-                  <div className="overflow-x-auto">
+                  <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
                           <th className="px-6 py-4 font-semibold">Form Code</th>
-                          <th className="px-6 py-4 font-semibold">Serial</th>
-                          <th className="px-6 py-4 font-semibold">Version</th>
+                          <th className="hidden px-6 py-4 font-semibold md:table-cell">Serial</th>
+                          <th className="hidden px-6 py-4 font-semibold md:table-cell">Version</th>
                           <th className="px-6 py-4 font-semibold">Location</th>
                           <th className="px-6 py-4 font-semibold">Job No</th>
                           <th className="px-6 py-4 font-semibold">Date</th>
@@ -826,12 +834,12 @@ export default function TransferAuditListPage() {
                                 {form.formCode || "—"}
                               </span>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="hidden px-6 py-4 md:table-cell">
                               <span className="font-mono text-slate-200">
                                 {form.serialNumber || "—"}
                               </span>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="hidden px-6 py-4 md:table-cell">
                               <span className="text-slate-200">
                                 v{form.version || "1.0"}
                               </span>
@@ -852,9 +860,9 @@ export default function TransferAuditListPage() {
                             <td className="px-6 py-4">
                               {getStatusBadge(form.status || "Pending")}
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="whitespace-nowrap px-3 py-3 text-right sm:px-6 sm:py-4">
                               <div
-                                className="flex items-center justify-end gap-2"
+                                className="inline-flex max-w-none flex-nowrap items-center justify-end gap-1 sm:gap-2"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button

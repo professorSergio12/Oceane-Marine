@@ -7,6 +7,7 @@ import fs from "fs/promises";
 import path from "path";
 import "@/jobs/definitions/ops-ofd-003.job.js";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { buildOperationsStsSignatureDirs } from "@/lib/utils/signature-storage";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -15,14 +16,7 @@ const CORS_HEADERS = {
 };
 
 function getSignatureUploadDir() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-003`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-003`,
-  };
+  return buildOperationsStsSignatureDirs("OPS-OFD-003");
 }
 
 function isRawBase64(str) {

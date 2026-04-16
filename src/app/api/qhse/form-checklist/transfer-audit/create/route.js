@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import STSTransferAudit from "@/lib/mongodb/models/qhse-form-checklist/StsTransferAudit";
-import { saveQhseFile, saveBase64AsFile } from "@/lib/utils/qhse-file-storage";
+import { saveSignatureBufferToPublic, saveBase64AsFile } from "@/lib/utils/qhse-file-storage";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +33,7 @@ export async function POST(req) {
         const headerDate = body.header?.date ? new Date(body.header.date) : new Date();
         const sigPath = await saveBase64AsFile({
           formCode: "QAF-OFD-003",
+          formSlug: "transfer-audit",
           location: body.header?.locationName || null,
           date: headerDate,
           title: body.header?.jobNo || "Transfer-Audit",
@@ -68,12 +69,9 @@ export async function POST(req) {
         const buffer = Buffer.from(bytes);
         const headerDate = body.header?.date ? new Date(body.header.date) : new Date();
 
-        const sigPath = await saveQhseFile({
-          formCode: "QAF-OFD-003",
-          location: body.header?.locationName || null,
+        const sigPath = await saveSignatureBufferToPublic({
+          formSlug: "transfer-audit",
           date: headerDate,
-          title: body.header?.jobNo || "Transfer-Audit",
-          fileType: "signatures",
           fileName: signatureFile.name,
           buffer,
         });

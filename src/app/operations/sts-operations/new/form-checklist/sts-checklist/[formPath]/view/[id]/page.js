@@ -10,6 +10,10 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import {
+  resolveQhseSignatureImageSrc,
+  isResolvableSignatureImage,
+} from "@/lib/utils/qhse-signature-url";
 
 const FORM_TITLES = {
   'ops-ofd-001': 'OPS-OFD-001 - Before Operation Commence',
@@ -49,11 +53,9 @@ const STATUS_COLORS = {
   FINALIZED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
 };
 
+/** Stored signature paths (public/signature/…, uploads/…, data URLs, http(s)). */
 function isImageValue(value) {
-  if (typeof value !== 'string' || !value) return false;
-  return value.startsWith('data:image') 
-    || /^https?:\/\/.+(\.(png|jpg|jpeg|gif|webp)|(\?.*)?)$/i.test(value)
-    || /^\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(value);
+  return isResolvableSignatureImage(value);
 }
 
 function formatDate(dateString) {
@@ -159,13 +161,15 @@ export default function ViewFormPage() {
   };
 
   const renderSignatureImage = (src, alt = 'Signature') => {
-    if (!src || !isImageValue(src)) return <span className="text-gray-400">N/A</span>;
+    const resolved = resolveQhseSignatureImageSrc(src);
+    if (!resolved) return <span className="text-gray-400">N/A</span>;
     return (
       <div className="mt-1">
         <img
-          src={src}
+          src={resolved}
           alt={alt}
           className="max-w-full max-h-24 border border-gray-600 rounded object-contain bg-white"
+          decoding="async"
         />
       </div>
     );
@@ -450,9 +454,7 @@ export default function ViewFormPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-600 pt-6">
           <div>
             <div className="text-sm font-semibold text-gray-300 mb-2">Signature of Mooring Master</div>
-            {signature ? (
-              <img src={signature} alt="Signature" className="max-w-full max-h-32 border border-gray-600 rounded object-contain bg-white p-2" />
-            ) : <span className="text-gray-400">—</span>}
+            {signature ? renderSignatureImage(signature, 'Signature of Mooring Master') : <span className="text-gray-400">—</span>}
           </div>
           <div>
             <div className="text-sm font-semibold text-gray-300 mb-2">Remarks</div>

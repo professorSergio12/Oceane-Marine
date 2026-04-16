@@ -70,6 +70,7 @@ export async function POST(req) {
     const evalDate = new Date(evaluationDate);
     const pathOpts = {
       formCode: "QAF-OFD-009",
+      formSlug: "cross-competency",
       location: body.location?.trim() || null,
       date: evalDate,
       title: nameOfPOAC.trim(),

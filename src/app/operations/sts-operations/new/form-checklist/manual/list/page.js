@@ -328,7 +328,7 @@ export default function ManualListPage() {
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-0 md:ml-72" : "mx-auto max-w-7xl"}`}>
         <div className={`w-full mx-auto py-6 sm:py-10 space-y-4 sm:space-y-6 ${isSidebarOpen ? "max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4" : "px-3 sm:px-6"}`}>
           <header
-            className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4`}
+            className={`${isSidebarOpen ? "mt-0" : "mt-8 md:mt-0"} mb-2 flex w-full flex-col items-center gap-3 md:flex-row md:items-center md:justify-between md:gap-4`}
           >
             <Link
               href="/dashboard"
@@ -336,31 +336,31 @@ export default function ManualListPage() {
             >
               ← Dashboard
             </Link>
-            <div className="flex-1 min-w-0 flex flex-col items-center text-center w-full md:w-auto">
+            <div className="flex w-full flex-col items-center text-center md:w-auto md:flex-1">
               <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
                 Operations / Forms & Checklist / Manual
               </p>
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Manual</h1>
               <p className="text-xs sm:text-sm text-slate-200 mt-1">View and manage all Manual records</p>
             </div>
-            <div className="flex justify-center md:justify-end shrink-0">
-              <div className="inline-flex rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+            <div className="flex w-full shrink-0 justify-center md:w-auto md:justify-end">
+              <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/operations/sts-operations/new/form-checklist/manual/form"
-                  className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap"
+                  className="px-2.5 py-1.5 text-[11px] font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Manual Form
                 </Link>
                 <Link
                   href="/operations/sts-operations/new/form-checklist/manual/list"
-                  className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition whitespace-nowrap"
+                  className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 transition whitespace-nowrap sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Manual List
                 </Link>
                 {isOpsAdmin && (
                   <Link
                     href="/operations/sts-operations/new/form-checklist/manual/admin"
-                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap"
+                    className="px-2.5 py-1.5 text-[11px] font-semibold text-white/90 hover:bg-white/10 transition whitespace-nowrap sm:px-4 sm:py-2 sm:text-sm"
                   >
                     Admin
                   </Link>
@@ -374,37 +374,45 @@ export default function ManualListPage() {
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             filterChildren={
-              <>
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year === "" || year === null ? "" : String(year)}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setYear(v === "" ? "" : Number(v));
-                  }}
-                >
-                  <option value="">All years</option>
-                  {initialYears.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Form</span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase min-w-[140px]"
-                  value={formCode}
-                  onChange={(e) => setFormCode(e.target.value)}
-                >
-                  <option value="">All forms</option>
-                  {formCodeOptions.map((opt) => (
-                    <option key={opt.code} value={opt.code}>
-                      {opt.code}
-                    </option>
-                  ))}
-                </select>
-              </>
+              <div className="flex w-full min-w-0 flex-row flex-nowrap items-center gap-2 sm:gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                    Year
+                  </span>
+                  <select
+                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                    value={year === "" || year === null ? "" : String(year)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setYear(v === "" ? "" : Number(v));
+                    }}
+                  >
+                    <option value="">All years</option>
+                    {initialYears.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                    Form
+                  </span>
+                  <select
+                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                    value={formCode}
+                    onChange={(e) => setFormCode(e.target.value)}
+                  >
+                    <option value="">All forms</option>
+                    {formCodeOptions.map((opt) => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             }
           >
             {error && (

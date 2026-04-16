@@ -7,6 +7,7 @@ import fs from "fs/promises";
 import path from "path";
 import "../../../../../../jobs/definitions/ops-ofd-028.job.js";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { buildOperationsStsSignatureDirs } from "@/lib/utils/signature-storage";
 
 // ==================== CONSTANTS ====================
 
@@ -19,14 +20,7 @@ const CORS_HEADERS = {
 // ==================== HELPER FUNCTIONS ====================
 
 function getSignatureUploadDir() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return {
-    physicalDir: `public/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-028`,
-    urlDir: `/signature/operation-sts-checklist/${year}/${month}/${day}/OPS-OFD-028`,
-  };
+  return buildOperationsStsSignatureDirs("OPS-OFD-028");
 }
 
 /**

@@ -69,7 +69,7 @@ export default function AuditInspectionPlannerViewPage() {
 
   if (error || !item) {
     return (
-      <div className={`${contentClassName} pr-4`}>
+      <div className={`${contentClassName} w-full min-w-0 pr-4`}>
         <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-3 sm:space-y-4">
           <Link
             href="/qhse/audit-inspection-planner/list"
@@ -86,7 +86,7 @@ export default function AuditInspectionPlannerViewPage() {
   }
 
   return (
-    <div className={`${contentClassName} pr-4`}>
+    <div className={`${contentClassName} w-full min-w-0 pr-4`}>
       <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-6 sm:py-10 space-y-3 sm:space-y-4 sm:space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -147,7 +147,7 @@ export default function AuditInspectionPlannerViewPage() {
             <div className="bg-white/10 px-6 py-3 font-semibold text-white">
               {cat.title}
             </div>
-            <div className="overflow-x-auto">
+            <div className="qhse-table-scroll min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
