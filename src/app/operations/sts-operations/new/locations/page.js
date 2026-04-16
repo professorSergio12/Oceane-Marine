@@ -39,23 +39,6 @@ export default function LocationsPage() {
   const pathname = usePathname();
   const { canManageMasterData, isOpsAdmin } = useOperationsRole();
 
-  if (!canManageMasterData) {
-    return (
-      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-5xl">&#128274;</div>
-          <h2 className="text-xl font-bold">Access Restricted</h2>
-          <p className="text-white/60">Only administrators can access master data management.</p>
-          <a href="/operations/sts-operations/new" className="inline-block mt-4 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition">
-            Go to Documentation
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  const sidebarTabs = getSidebarTabs(isOpsAdmin);
-
   // --- Manage locations (master data) ---
   const [items, setItems] = useState([]);
   const [value, setValue] = useState("");
@@ -125,8 +108,10 @@ export default function LocationsPage() {
 
   // Load locations (master list for both sections)
   useEffect(() => {
+    if (!canManageMasterData) return;
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `load` is defined below; run when access is granted
+  }, [canManageMasterData]);
 
   const load = async () => {
     try {
@@ -165,6 +150,7 @@ export default function LocationsPage() {
 
   // Load years for office checks: merge API years with standard range so dropdown always has options
   useEffect(() => {
+    if (!canManageMasterData) return;
     const loadYears = async () => {
       try {
         const res = await fetch("/api/operations/location/list");
@@ -190,10 +176,11 @@ export default function LocationsPage() {
       }
     };
     loadYears();
-  }, []);
+  }, [canManageMasterData]);
 
   // Load office checks list when on list view
   useEffect(() => {
+    if (!canManageMasterData) return;
     if (section !== "office-checks" || officeView !== "list" || !selectedLocationId) return;
     const loadRecords = async () => {
       setLoadingList(true);
@@ -219,7 +206,7 @@ export default function LocationsPage() {
       }
     };
     loadRecords();
-  }, [section, officeView, selectedLocationId, year]);
+  }, [canManageMasterData, section, officeView, selectedLocationId, year]);
 
   const handleSubmitLocation = async (e) => {
     e.preventDefault();
@@ -415,6 +402,23 @@ export default function LocationsPage() {
     if (!d) return "—";
     return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
+
+  const sidebarTabs = getSidebarTabs(isOpsAdmin);
+
+  if (!canManageMasterData) {
+    return (
+      <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">&#128274;</div>
+          <h2 className="text-xl font-bold">Access Restricted</h2>
+          <p className="text-white/60">Only administrators can access master data management.</p>
+          <a href="/operations/sts-operations/new" className="inline-block mt-4 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition">
+            Go to Documentation
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">
