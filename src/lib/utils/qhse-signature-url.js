@@ -2,6 +2,9 @@
  * Resolve stored signature values to a browser-safe img `src`.
  * Supports: data URLs, http(s), `/signature/{module}/{submodule}/...` (public static), legacy `uploads/...` (API), raw base64.
  *
+ * Absolute URLs under `/signature/` or `/api/qhse/file/` are returned as-is so the image loads from the
+ * same host that stored the file (stripping to pathname-only breaks when the admin app origin differs).
+ *
  * @param {string | null | undefined} value
  * @returns {string | null}
  */
@@ -10,25 +13,47 @@ export function resolveQhseSignatureImageSrc(value) {
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (trimmed.startsWith("data:")) return trimmed;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+  const normalized = trimmed.replace(/\\/g, "/");
+  if (normalized.startsWith("public/signature/")) {
+    return `/${normalized.slice("public/".length)}`;
+  }
+  if (normalized.startsWith("/public/signature/")) {
+    return normalized.replace(/^\/public/, "");
+  }
+  if (normalized.startsWith("//")) {
     try {
-      const u = new URL(trimmed);
+      const absolutized = `https:${normalized}`;
+      const u = new URL(absolutized);
       if (
         u.pathname.startsWith("/signature/") ||
         u.pathname.startsWith("/api/qhse/file/")
       ) {
-        return `${u.pathname}${u.search || ""}`;
+        return absolutized;
       }
     } catch {
       /* ignore */
     }
-    return trimmed;
+    return `https:${normalized}`;
   }
-  if (trimmed.startsWith("/signature/") || trimmed.startsWith("signature/")) {
-    return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+    try {
+      const u = new URL(normalized);
+      if (
+        u.pathname.startsWith("/signature/") ||
+        u.pathname.startsWith("/api/qhse/file/")
+      ) {
+        return normalized;
+      }
+    } catch {
+      /* ignore */
+    }
+    return normalized;
   }
-  if (trimmed.startsWith("uploads/") || trimmed.startsWith("/uploads/")) {
-    const path = trimmed.replace(/^\/+/, "");
+  if (normalized.startsWith("/signature/") || normalized.startsWith("signature/")) {
+    return normalized.startsWith("/") ? normalized : `/${normalized}`;
+  }
+  if (normalized.startsWith("uploads/") || normalized.startsWith("/uploads/")) {
+    const path = normalized.replace(/^\/+/, "");
     return `/api/qhse/file/${path}`;
   }
   if (/^[A-Za-z0-9+/=]{50,}$/.test(trimmed)) {

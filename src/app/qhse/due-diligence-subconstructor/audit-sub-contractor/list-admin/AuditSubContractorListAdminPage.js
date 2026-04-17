@@ -552,13 +552,21 @@ export default function AuditSubContractorListAdminPage() {
                           <p className="text-white font-semibold mb-1">{selectedAudit.auditCompletedBy.signatureText}</p>
                         )}
                         {getSignatureSrc(selectedAudit.auditCompletedBy?.signaturePhoto) && (
-                          <img
-                            src={getSignatureSrc(selectedAudit.auditCompletedBy.signaturePhoto)}
-                            alt="Audit completed by signature"
-                            className="max-h-24 w-auto max-w-[200px] border border-white/20 rounded-lg bg-white object-contain block"
-                            style={{ minHeight: 48 }}
-                            decoding="async"
-                          />
+                          <div className="inline-block p-2 rounded-lg border border-white/20 bg-white/5">
+                            <img
+                              src={getSignatureSrc(selectedAudit.auditCompletedBy.signaturePhoto)}
+                              alt="Audit completed by signature"
+                              className="max-h-24 w-auto max-w-[200px] border border-white/20 rounded-lg bg-white object-contain block"
+                              style={{ minHeight: 48 }}
+                              decoding="async"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                                const fallback = e.target.nextElementSibling;
+                                if (fallback) fallback.classList.remove("hidden");
+                              }}
+                            />
+                            <span className="text-slate-500 text-xs hidden">Signature image could not be loaded.</span>
+                          </div>
                         )}
                       </div>
                     )}
@@ -590,13 +598,21 @@ export default function AuditSubContractorListAdminPage() {
                           <p className="text-white font-semibold mb-1">{selectedAudit.contractorApprovedBy.signatureText}</p>
                         )}
                         {getSignatureSrc(selectedAudit.contractorApprovedBy?.signaturePhoto) && (
-                          <img
-                            src={getSignatureSrc(selectedAudit.contractorApprovedBy.signaturePhoto)}
-                            alt="Contractor approved by signature"
-                            className="max-h-24 w-auto max-w-[200px] border border-white/20 rounded-lg bg-white object-contain block"
-                            style={{ minHeight: 48 }}
-                            decoding="async"
-                          />
+                          <div className="inline-block p-2 rounded-lg border border-white/20 bg-white/5">
+                            <img
+                              src={getSignatureSrc(selectedAudit.contractorApprovedBy.signaturePhoto)}
+                              alt="Contractor approved by signature"
+                              className="max-h-24 w-auto max-w-[200px] border border-white/20 rounded-lg bg-white object-contain block"
+                              style={{ minHeight: 48 }}
+                              decoding="async"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                                const fallback = e.target.nextElementSibling;
+                                if (fallback) fallback.classList.remove("hidden");
+                              }}
+                            />
+                            <span className="text-slate-500 text-xs hidden">Signature image could not be loaded.</span>
+                          </div>
                         )}
                       </div>
                     )}
