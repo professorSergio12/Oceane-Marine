@@ -16,7 +16,7 @@ export function isValidNotificationModule(m) {
 
 /**
  * @param {keyof typeof NOTIFICATION_MODULES | string} module
- * @param {"EDIT"|"DELETE"} action
+ * @param {"CREATE"|"EDIT"|"DELETE"} action
  */
 export async function notifyModuleRecord(module, action, submodule, recordId) {
   const user = await getSessionUser();
@@ -27,6 +27,10 @@ export async function notifyModuleRecord(module, action, submodule, recordId) {
     submodule: submodule?.trim() || "",
     recordId,
   });
+}
+
+export async function notifyCreate(module, submodule, recordId) {
+  await notifyModuleRecord(module, "CREATE", submodule, recordId);
 }
 
 export async function notifyEdit(module, submodule, recordId) {

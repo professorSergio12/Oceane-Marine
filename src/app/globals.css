@@ -193,3 +193,31 @@ select:-webkit-autofill:active {
 .qhse-table-scroll::-webkit-scrollbar-thumb:hover {
   background: rgb(71 85 105 / 0.98);
 }
+
+/**
+ * Dark-theme scrollbars for PMS panels / tables (#0b2740 family).
+ * Class is used across PMS dashboard, equipment lists, and charts.
+ */
+.styled-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(100 116 139 / 0.7) rgb(11 39 64 / 0.85);
+}
+.styled-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.styled-scrollbar::-webkit-scrollbar-track {
+  background: rgb(11 39 64 / 0.8);
+  border-radius: 9999px;
+}
+.styled-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(100 116 139 / 0.55);
+  border-radius: 9999px;
+  border: 2px solid rgb(11 39 64 / 0.45);
+}
+.styled-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(56 189 248 / 0.5);
+}
+.styled-scrollbar::-webkit-scrollbar-corner {
+  background: rgb(11 39 64 / 0.8);
+}

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const NOTIFICATION_ACTIONS = ["EDIT", "DELETE"];
+const NOTIFICATION_ACTIONS = ["CREATE", "EDIT", "DELETE"];
 
 const notificationSchema = new mongoose.Schema(
   {

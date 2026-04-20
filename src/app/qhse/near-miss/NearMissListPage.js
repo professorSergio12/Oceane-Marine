@@ -5,6 +5,7 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 import { useQhseSidebar } from "../QhseSidebarContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../utils/archive";
 import { ViewIconButton, ArchiveIconButton, DeleteIconButton, DownloadIconButton } from "../components/ActionIcons";
@@ -46,6 +47,9 @@ function getYears() {
 }
 
 export default function NearMissListPage() {
+  const searchParams = useSearchParams();
+  const reportFromUrl = searchParams.get("report");
+
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
@@ -122,6 +126,25 @@ export default function NearMissListPage() {
   useEffect(() => {
     fetchNearMisses();
   }, [year]);
+
+  useEffect(() => {
+    if (!reportFromUrl || loading || nearMisses.length === 0) return;
+    const r = nearMisses.find((x) => String(x._id) === String(reportFromUrl));
+    if (r) {
+      setSelectedReport(r);
+      setRemarksByReviewer(r?.remarksByReviewer || "");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [reportFromUrl, nearMisses, loading]);
+
+  /** Email links include `?report=id`; if year filter hides that row, load all years once. */
+  useEffect(() => {
+    if (!reportFromUrl || loading) return;
+    const found = nearMisses.some((x) => String(x._id) === String(reportFromUrl));
+    if (!found && nearMisses.length > 0 && year !== "") {
+      setYear("");
+    }
+  }, [reportFromUrl, loading, nearMisses, year]);
 
   const searchFiltered = !searchTerm.trim()
     ? nearMisses

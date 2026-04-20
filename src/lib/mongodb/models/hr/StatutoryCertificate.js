@@ -33,6 +33,12 @@ const statutoryCertificateSchema = new mongoose.Schema(
       enum: ["ACTIVE", "INACTIVE"],
       default: "ACTIVE",
     },
+
+    /** Cron dedupe: 30-day-prior expiry email sent for this `validity` (UTC day) */
+    hrStatutoryReminder30dSentForValidity: { type: Date, default: null },
+
+    /** Cron dedupe: 15-day-prior expiry email sent for this `validity` (UTC day) */
+    hrStatutoryReminder15dSentForValidity: { type: Date, default: null },
   },
   { timestamps: true }
 );

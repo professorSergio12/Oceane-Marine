@@ -7,7 +7,10 @@ const fileAttachmentSchema = {
 
 const equipmentSchema = new mongoose.Schema(
   {
-    equipmentCode: { type: String, required: true, unique: true },
+    /** User-defined code; not unique — multiple physical units may share the same code; use serialCode for a unique instance id */
+    equipmentCode: { type: String, required: true, trim: true },
+    /** Year-wise instance id (e.g. 2026-001); auto-assigned on create; distinct from equipmentCode */
+    serialCode: { type: String, unique: true, sparse: true, trim: true },
     equipmentName: { type: String, required: true },
     equipmentType: { type: String, trim: true, default: "" },
 
@@ -29,6 +32,11 @@ const equipmentSchema = new mongoose.Schema(
 
     isInUse: { type: Boolean, default: false },
 
+    /** Physical placement — multi-select (at least one required on create) */
+    placedInOffice: { type: Boolean, default: false },
+    placedInBase: { type: Boolean, default: false },
+    placedInBay: { type: Boolean, default: false },
+
     dateOfPurchase: Date,
     firstUseDate: Date,
 
@@ -39,11 +47,21 @@ const equipmentSchema = new mongoose.Schema(
     dateToBeRetired: Date,
     manufacturingCertificate: fileAttachmentSchema,
     testCertificate: fileAttachmentSchema,
-    remarks: String
+    remarks: String,
+
+    /** Cron dedupe: 30-day-prior testing email already sent for this `nextTestDate` (UTC day) */
+    pmsTestReminder30dSentForNextTestDate: Date,
+
+    /** Cron dedupe: 15-day-prior testing email already sent for this `nextTestDate` (UTC day) */
+    pmsTestReminder15dSentForNextTestDate: Date
   },
   { timestamps: true }
 );
 
 
-export default mongoose.models.Equipment ||
-  mongoose.model("Equipment", equipmentSchema);
+/** Drop cached model so schema changes (e.g. serialCode) apply — avoids silent strip in strict mode during HMR / long-running dev servers */
+if (mongoose.models.Equipment) {
+  mongoose.deleteModel("Equipment");
+}
+
+export default mongoose.model("Equipment", equipmentSchema);

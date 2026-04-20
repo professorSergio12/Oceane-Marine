@@ -4,6 +4,7 @@ import Notification from "@/lib/mongodb/models/Notification";
 function actionVerb(action) {
   if (action === "DELETE") return "deleted";
   if (action === "EDIT") return "edited";
+  if (action === "CREATE") return "created";
   return "updated";
 }
 
@@ -12,7 +13,7 @@ function actionVerb(action) {
  *
  * @param {{
  *   user: { _id?: unknown, employeeName?: string, name?: string } | null,
- *   action: "EDIT" | "DELETE",
+ *   action: "CREATE" | "EDIT" | "DELETE",
  *   module: string,
  *   submodule?: string,
  *   recordId?: string | import("mongoose").Types.ObjectId,

@@ -4,6 +4,7 @@ import Certificate from "@/lib/mongodb/models/pms/Certificate";
 import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyCreate } from "@/lib/notifications/moduleNotify";
 
 export async function POST(req) {
     const guard = await assertPmsPermission("canCreate");
@@ -99,6 +100,8 @@ export async function POST(req) {
                 originalFileName: testFile.name,
             },
         });
+
+        void notifyCreate(NOTIFICATION_MODULES.PMS, "Certifications", cert._id);
 
         return NextResponse.json({ data: cert }, { status: 201 });
     } catch (err) {

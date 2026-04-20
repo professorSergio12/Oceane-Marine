@@ -326,7 +326,9 @@ export default function GlobalNotificationBell() {
                           className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                             n.action === "DELETE"
                               ? "bg-red-500/20 text-red-200 ring-1 ring-red-500/25"
-                              : "bg-sky-500/20 text-sky-200 ring-1 ring-sky-500/25"
+                              : n.action === "CREATE"
+                                ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/25"
+                                : "bg-sky-500/20 text-sky-200 ring-1 ring-sky-500/25"
                           }`}
                         >
                           {n.action}

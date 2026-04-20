@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ActionViewIcon, ActionDownloadIcon } from "@/app/components/RecordActionIcons";
+import {
+  ActionViewIcon,
+  ActionDownloadIcon,
+  ActionEditIcon,
+  ActionDeleteIcon,
+} from "@/app/components/RecordActionIcons";
 import { usePmsRole } from "@/hooks/usePmsRole";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
@@ -51,12 +56,29 @@ function calculateDaysRemaining(nextTestDate) {
   return diffDays;
 }
 
+function formatPlacedIn(eq) {
+  const parts = [];
+  if (eq?.placedInOffice) parts.push("Office");
+  if (eq?.placedInBase) parts.push("Base");
+  if (eq?.placedInBay) parts.push("Bay");
+  return parts.length > 0 ? parts.join(", ") : "—";
+}
+
+function toDateInputValue(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
 /** Export columns for one Primary Equipment record, in the order they appear in the detail view. */
 function getPrimaryEquipmentExportColumns() {
   return [
     { label: "Equipment Code", getValue: (eq) => eq?.equipmentCode ?? "" },
+    { label: "Serial Code", getValue: (eq) => eq?.serialCode ?? "" },
     { label: "Equipment Name", getValue: (eq) => eq?.equipmentName ?? "" },
     { label: "Equipment Type", getValue: (eq) => eq?.equipmentType ?? "" },
+    { label: "Placed in", getValue: (eq) => formatPlacedIn(eq) },
     { label: "Status", getValue: (eq) => eq?.status ?? "" },
     { label: "Ownership", getValue: (eq) => (eq?.ownershipType === "THIRD_PARTY" ? "Third Party" : eq?.ownershipType === "OWNED" ? "Owned" : eq?.ownershipType ?? "") },
     { label: "In Operations", getValue: (eq) => (eq?.isInUse ? "Yes" : "No") },
@@ -116,13 +138,18 @@ function downloadEquipmentExcel(equipment) {
 }
 
 export default function PrimaryEquipment({ activeTab: controlledActiveTab, onChangeTab }) {
-  const { canCreate, canEdit, canDelete, canDownload, isPmsAdmin } = usePmsRole();
-  const canSubmit = canCreate;
+  const { canCreate, canEdit, canDelete, canDownload } = usePmsRole();
 
   // Allow parent to control active tab; fall back to internal state if not provided
   const [internalActiveTab, setInternalActiveTab] = useState("form");
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const setActiveTab = onChangeTab ?? setInternalActiveTab;
+
+  const [editingEquipmentId, setEditingEquipmentId] = useState(null);
+  const [editingSerialCode, setEditingSerialCode] = useState("");
+  const [deletingEquipmentId, setDeletingEquipmentId] = useState(null);
+
+  const canUseForm = editingEquipmentId ? canEdit : canCreate;
 
   // ----- Form state -----
   const [form, setForm] = useState({
@@ -139,6 +166,9 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     nextTestDate: "",
     retirementPeriodYears: 10,
     remarks: "",
+    placedInOffice: true,
+    placedInBase: false,
+    placedInBay: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -290,14 +320,127 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     }));
   };
 
+  const resetFormToNew = () => {
+    setEditingEquipmentId(null);
+    setEditingSerialCode("");
+    setForm((prev) => ({
+      ...prev,
+      equipmentCode: "",
+      equipmentName: "",
+      equipmentType: "",
+      specification: "",
+      manufacturer: "",
+      yearOfManufacturing: "",
+      dateOfPurchase: "",
+      firstUseDate: "",
+      lastTestDate: "",
+      nextTestDate: "",
+      remarks: "",
+      placedInOffice: true,
+      placedInBase: false,
+      placedInBay: false,
+    }));
+    setManufacturingCertificateFile(null);
+    setTestCertificateFile(null);
+    const manufacturingInput = document.querySelector(
+      'input[type="file"][name="manufacturingCertificate"]'
+    );
+    const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
+    if (manufacturingInput) manufacturingInput.value = "";
+    if (testInput) testInput.value = "";
+  };
+
+  const startEditFromEquipment = (eq) => {
+    if (!eq?._id || !canEdit) return;
+    setEditingEquipmentId(eq._id);
+    setEditingSerialCode(eq.serialCode?.trim() || "");
+    setForm((prev) => ({
+      ...prev,
+      equipmentCode: eq.equipmentCode || "",
+      equipmentName: eq.equipmentName || "",
+      equipmentType: eq.equipmentType || "",
+      specification: eq.specification || "",
+      manufacturer: eq.manufacturer || "",
+      yearOfManufacturing:
+        eq.yearOfManufacturing != null && eq.yearOfManufacturing !== ""
+          ? String(eq.yearOfManufacturing)
+          : "",
+      ownershipType: eq.ownershipType || "OWNED",
+      dateOfPurchase: toDateInputValue(eq.dateOfPurchase),
+      firstUseDate: toDateInputValue(eq.firstUseDate),
+      lastTestDate: toDateInputValue(eq.lastTestDate),
+      nextTestDate: toDateInputValue(eq.nextTestDate),
+      retirementPeriodYears: eq.retirementPeriodYears ?? 10,
+      remarks: eq.remarks || "",
+      placedInOffice: !!eq.placedInOffice,
+      placedInBase: !!eq.placedInBase,
+      placedInBay: !!eq.placedInBay,
+    }));
+    setManufacturingCertificateFile(null);
+    setTestCertificateFile(null);
+    const manufacturingInput = document.querySelector(
+      'input[type="file"][name="manufacturingCertificate"]'
+    );
+    const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
+    if (manufacturingInput) manufacturingInput.value = "";
+    if (testInput) testInput.value = "";
+    setFormError(null);
+    setFormSuccess(null);
+    setActiveTab("form");
+  };
+
+  const handleDeleteEquipment = async (eq) => {
+    if (!eq?._id || !canDelete) return;
+    if (
+      !confirm(
+        `Delete equipment "${eq.equipmentName || eq.equipmentCode}"? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeletingEquipmentId(eq._id);
+    setEquipmentsError(null);
+    try {
+      const res = await fetch(
+        `/api/pms/equipment-inventory/primary-equipment/${eq._id}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete equipment");
+      }
+      if (editingEquipmentId === eq._id) {
+        resetFormToNew();
+      }
+      if (selectedEquipmentDetail?._id === eq._id) {
+        setSelectedEquipmentDetail(null);
+      }
+      if (selectedEquipmentId === eq._id) {
+        setSelectedEquipmentId(null);
+        setSelectedEquipment(null);
+        setHistory([]);
+        setHistoryMeta(null);
+      }
+      await fetchEquipments();
+    } catch (err) {
+      setEquipmentsError(err.message || "Failed to delete equipment");
+    } finally {
+      setDeletingEquipmentId(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canUseForm) return;
     setSubmitting(true);
     setFormError(null);
     setFormSuccess(null);
 
     try {
+      if (!form.placedInOffice && !form.placedInBase && !form.placedInBay) {
+        throw new Error("Placed in: select at least one of Office, Base, or Bay");
+      }
+
       const formData = new FormData();
       
       // Add all form fields
@@ -316,6 +459,9 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       if (form.nextTestDate) formData.append("nextTestDate", form.nextTestDate);
       formData.append("retirementPeriodYears", form.retirementPeriodYears || 10);
       formData.append("remarks", form.remarks || "");
+      formData.append("placedInOffice", form.placedInOffice ? "true" : "false");
+      formData.append("placedInBase", form.placedInBase ? "true" : "false");
+      formData.append("placedInBay", form.placedInBay ? "true" : "false");
 
       // Add certificate files if selected
       if (manufacturingCertificateFile) {
@@ -325,51 +471,48 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
         formData.append("testCertificate", testCertificateFile);
       }
 
-      const res = await fetch(
-        "/api/pms/equipment-inventory/primary-equipment/create",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const url = editingEquipmentId
+        ? `/api/pms/equipment-inventory/primary-equipment/${editingEquipmentId}`
+        : "/api/pms/equipment-inventory/primary-equipment/create";
+      const method = editingEquipmentId ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        body: formData,
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to create equipment");
+        throw new Error(
+          data.message ||
+            (editingEquipmentId
+              ? "Failed to update equipment"
+              : "Failed to create equipment")
+        );
       }
 
-      setFormSuccess("Equipment created successfully");
+      if (editingEquipmentId) {
+        setFormSuccess("Equipment updated successfully");
+      } else {
+        const createdSerial = data.data?.serialCode?.trim();
+        setFormSuccess(
+          createdSerial
+            ? `Equipment created successfully. Serial code: ${createdSerial}`
+            : "Equipment created successfully"
+        );
+      }
       setFormError(null);
-      // Reset form except ownershipType and retirement period
-      setForm((prev) => ({
-        ...prev,
-        equipmentCode: "",
-        equipmentName: "",
-        equipmentType: "",
-        specification: "",
-        manufacturer: "",
-        yearOfManufacturing: "",
-        dateOfPurchase: "",
-        firstUseDate: "",
-        lastTestDate: "",
-        nextTestDate: "",
-        remarks: "",
-      }));
-      setManufacturingCertificateFile(null);
-      setTestCertificateFile(null);
-      // Reset file inputs
-      const manufacturingInput = document.querySelector('input[type="file"][name="manufacturingCertificate"]');
-      const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
-      if (manufacturingInput) manufacturingInput.value = "";
-      if (testInput) testInput.value = "";
+      resetFormToNew();
 
-      // Refresh equipments list so list and history tabs are up to date
-      if (activeTab === "list" || activeTab === "history") {
-        fetchEquipments();
-      }
+      fetchEquipments();
     } catch (err) {
-      setFormError(err.message || "Failed to create equipment");
+      setFormError(
+        err.message ||
+          (editingEquipmentId
+            ? "Failed to update equipment"
+            : "Failed to create equipment")
+      );
       setFormSuccess(null);
     } finally {
       setSubmitting(false);
@@ -436,13 +579,15 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
             <div className="border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
               Primary Equipments
             </div>
-            <div className="overflow-auto">
+            <div className="overflow-auto styled-scrollbar">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-slate-300 border-b border-white/10 bg-white/5">
                     <th className="px-4 py-2 font-semibold">Code</th>
+                    <th className="px-4 py-2 font-semibold">Serial</th>
                     <th className="px-4 py-2 font-semibold">Name</th>
                     <th className="px-4 py-2 font-semibold">Type</th>
+                    <th className="px-4 py-2 font-semibold">Placed in</th>
                     <th className="px-4 py-2 font-semibold">Ownership</th>
                     <th className="px-4 py-2 font-semibold">Status</th>
                     <th className="px-4 py-2 font-semibold">In Use</th>
@@ -453,7 +598,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   {equipments.length === 0 && !equipmentsLoading && (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={9}
                         className="px-4 py-4 text-center text-slate-400"
                       >
                         No equipments found
@@ -468,11 +613,17 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       <td className="px-4 py-2 font-mono text-sky-300">
                         {eq.equipmentCode}
                       </td>
+                      <td className="px-4 py-2 font-mono text-slate-200">
+                        {eq.serialCode || "—"}
+                      </td>
                       <td className="px-4 py-2 text-slate-100">
                         {eq.equipmentName}
                       </td>
                       <td className="px-4 py-2 text-slate-200">
                         {eq.equipmentType}
+                      </td>
+                      <td className="px-4 py-2 text-slate-300 text-[11px]">
+                        {formatPlacedIn(eq)}
                       </td>
                       <td className="px-4 py-2 text-slate-200">
                         {eq.ownershipType}
@@ -501,6 +652,19 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       <td className="px-4 py-2 text-right">
                         <div className="inline-flex items-center gap-2 justify-end">
                           <ActionViewIcon onClick={() => setSelectedEquipmentDetail(eq)} title="View equipment" />
+                          {canEdit && (
+                            <ActionEditIcon
+                              onClick={() => startEditFromEquipment(eq)}
+                              title="Edit equipment"
+                            />
+                          )}
+                          {canDelete && (
+                            <ActionDeleteIcon
+                              loading={deletingEquipmentId === eq._id}
+                              onClick={() => handleDeleteEquipment(eq)}
+                              title="Delete equipment"
+                            />
+                          )}
                           {canDownload && (
                             <ActionDownloadIcon onClick={() => downloadEquipmentExcel(eq)} title="Download as Excel" />
                           )}
@@ -541,7 +705,13 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       </h3>
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      Type: <span className="text-slate-200">{selectedEquipmentDetail.equipmentType || "—"}</span>
+                      Serial:{" "}
+                      <span className="font-mono text-slate-200">
+                        {selectedEquipmentDetail.serialCode || "—"}
+                      </span>
+                      {" · "}
+                      Type:{" "}
+                      <span className="text-slate-200">{selectedEquipmentDetail.equipmentType || "—"}</span>
                     </p>
                   </div>
 
@@ -586,7 +756,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 </div>
 
                 {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8">
+                <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 styled-scrollbar">
                   {/* Top grid: basic info */}
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-3">
@@ -601,6 +771,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                           </p>
                         </div>
                         <div>
+                          <p className="text-[11px] text-slate-400">Serial Code</p>
+                          <p className="font-mono font-semibold text-white">
+                            {selectedEquipmentDetail.serialCode || "—"}
+                          </p>
+                        </div>
+                        <div>
                           <p className="text-[11px] text-slate-400">Equipment Name</p>
                           <p className="font-semibold text-white">
                             {selectedEquipmentDetail.equipmentName || "—"}
@@ -610,6 +786,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                           <p className="text-[11px] text-slate-400">Equipment Type</p>
                           <p className="text-slate-100">
                             {selectedEquipmentDetail.equipmentType || "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-slate-400">Placed in</p>
+                          <p className="text-slate-100">
+                            {formatPlacedIn(selectedEquipmentDetail)}
                           </p>
                         </div>
                         <div>
@@ -816,7 +998,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 </div>
 
                 {/* Footer actions */}
-                <div className="border-t border-white/10 bg-[#0b2740]/65 backdrop-blur-[2px] px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
+                <div className="border-t border-white/10 bg-[#0b2740]/65 backdrop-blur-[2px] px-6 py-4 flex flex-wrap items-center justify-between gap-4 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -834,13 +1016,40 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                     <span>View Past Operations</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedEquipmentDetail(null)}
-                    className="inline-flex items-center rounded-lg bg-slate-700 px-4 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-600 border border-white/10 transition"
-                  >
-                    Close
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = selectedEquipmentDetail;
+                          setSelectedEquipmentDetail(null);
+                          startEditFromEquipment(d);
+                        }}
+                        className="inline-flex items-center rounded-lg bg-amber-500/20 px-4 py-2 text-xs font-semibold text-amber-100 border border-amber-400/60 hover:bg-amber-500/30 transition"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        type="button"
+                        disabled={deletingEquipmentId === selectedEquipmentDetail._id}
+                        onClick={() => handleDeleteEquipment(selectedEquipmentDetail)}
+                        className="inline-flex items-center rounded-lg bg-rose-500/20 px-4 py-2 text-xs font-semibold text-rose-100 border border-rose-400/60 hover:bg-rose-500/30 transition disabled:opacity-50"
+                      >
+                        {deletingEquipmentId === selectedEquipmentDetail._id
+                          ? "Deleting…"
+                          : "Delete"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEquipmentDetail(null)}
+                      className="inline-flex items-center rounded-lg bg-slate-700 px-4 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-600 border border-white/10 transition"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -853,13 +1062,27 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           onSubmit={handleSubmit}
           className="space-y-6 rounded-3xl border border-white/10 bg-[#0b2740]/85 backdrop-blur-[2px] p-6 shadow-2xl overflow-x-hidden max-w-6xl mx-auto"
         >
-          {!canSubmit && (
+          {!canUseForm && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
-              You do not have permission to create equipment records. Form is view-only.
+              You do not have permission to create or edit equipment records. Form is view-only.
+            </div>
+          )}
+          {editingEquipmentId && canEdit && (
+            <div className="rounded-xl border border-amber-400/40 bg-amber-950/30 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-amber-100">
+                Editing this record — serial code is not changed.
+              </p>
+              <button
+                type="button"
+                onClick={resetFormToNew}
+                className="text-xs px-3 py-1.5 rounded-lg border border-amber-400/50 text-amber-200 hover:bg-amber-500/15"
+              >
+                Cancel edit
+              </button>
             </div>
           )}
           <fieldset
-            disabled={!canSubmit}
+            disabled={!canUseForm}
             className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
           >
           {/* Basic details */}
@@ -877,6 +1100,15 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 placeholder="E.g., EQ-001"
                 required
               />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Serial code (year-counter, e.g. 2026-001) is generated automatically when you save; it identifies this physical record when the same equipment code is used more than once.
+              </p>
+              {editingEquipmentId && editingSerialCode && (
+                <p className="mt-1 text-[11px] text-sky-200/90">
+                  Current serial code:{" "}
+                  <span className="font-mono font-semibold">{editingSerialCode}</span>
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-1">
@@ -1008,6 +1240,35 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
             </div>
           </div>
 
+          {/* Placed in — multi-select */}
+          <div className="space-y-2">
+            <span className="block text-xs font-medium text-slate-200">
+              Placed in<span className="text-red-400">*</span>
+            </span>
+            <p className="text-[11px] text-slate-400">
+              Select one or more: Office, Base, Bay.
+            </p>
+            <div className="flex flex-wrap gap-6">
+              {[
+                { key: "placedInOffice", label: "Office" },
+                { key: "placedInBase", label: "Base" },
+                { key: "placedInBay", label: "Bay" },
+              ].map(({ key, label }) => (
+                <label key={key} className="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={!!form[key]}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-white/30 bg-white/5 text-sky-500 focus:ring-sky-500/50"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Test dates */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -1082,10 +1343,10 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
             <button
               type="submit"
-              disabled={!canSubmit || submitting}
+              disabled={!canUseForm || submitting}
               className="inline-flex items-center px-6 py-2.5 rounded-lg bg-emerald-500 text-sm font-semibold text-white shadow shadow-emerald-500/40 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition"
             >
-              {submitting ? "Saving..." : "Save Equipment"}
+              {submitting ? "Saving..." : editingEquipmentId ? "Save changes" : "Save Equipment"}
             </button>
           </div>
           </fieldset>
@@ -1121,13 +1382,15 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
               <div className="border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
                 Primary Equipments
               </div>
-              <div className="overflow-auto">
+              <div className="overflow-auto styled-scrollbar">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-left text-slate-300 border-b border-white/10 bg-white/5">
                       <th className="px-4 py-2 font-semibold">Code</th>
+                      <th className="px-4 py-2 font-semibold">Serial</th>
                       <th className="px-4 py-2 font-semibold">Name</th>
                       <th className="px-4 py-2 font-semibold">Type</th>
+                      <th className="px-4 py-2 font-semibold">Placed</th>
                       <th className="px-4 py-2 font-semibold text-right">
                         Status
                       </th>
@@ -1140,7 +1403,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                     {equipments.length === 0 && !equipmentsLoading && (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={7}
                           className="px-4 py-4 text-center text-slate-400"
                         >
                           No equipments found
@@ -1158,11 +1421,17 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                         <td className="px-4 py-2 font-mono text-sky-300">
                           {eq.equipmentCode}
                         </td>
+                        <td className="px-4 py-2 font-mono text-slate-200">
+                          {eq.serialCode || "—"}
+                        </td>
                         <td className="px-4 py-2 text-slate-100">
                           {eq.equipmentName}
                         </td>
                         <td className="px-4 py-2 text-slate-200">
                           {eq.equipmentType}
+                        </td>
+                        <td className="px-4 py-2 text-slate-300 text-[11px]">
+                          {formatPlacedIn(eq)}
                         </td>
                         <td className="px-4 py-2 text-right">
                           <span
@@ -1213,8 +1482,11 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                         {selectedEquipment.equipmentName}
                       </p>
                       <p className="text-[11px] text-slate-300">
-                        {selectedEquipment.equipmentCode} •{" "}
-                        {selectedEquipment.equipmentType}
+                        {selectedEquipment.equipmentCode}
+                        {selectedEquipment.serialCode
+                          ? ` · ${selectedEquipment.serialCode}`
+                          : ""}{" "}
+                        • {selectedEquipment.equipmentType}
                       </p>
                     </div>
                     <div className="text-right">
@@ -1261,7 +1533,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
               {!historyLoading && history.length > 0 && (
                 <>
-                  <div className="rounded-xl border border-white/10 bg-white/5 overflow-auto max-h-[320px]">
+                  <div className="rounded-xl border border-white/10 bg-white/5 overflow-auto max-h-[320px] styled-scrollbar">
                     <table className="w-full text-[11px]">
                       <thead>
                         <tr className="text-left text-slate-100 border-b border-white/10 bg-white/10">

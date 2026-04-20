@@ -1,26 +1,10 @@
 import { connectDB } from "../../config/connection.js";
 import Cid from "../../mongodb/models/hr/Cid.js";
+import { startOfUtcDay, addUtcDays, isSameUtcDate } from "../../utils/utcDate.js";
 import { buildCidExpiryReminderEmail } from "./templates/HR/cidExpiryReminder.js";
 import { sendResendEmail } from "./sendResendEmail.js";
 
-/** Start of calendar day in UTC */
-export function startOfUtcDay(d) {
-  const x = new Date(d);
-  return new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
-}
-
-/** Add calendar days in UTC */
-export function addUtcDays(utcDayStart, days) {
-  const x = new Date(utcDayStart);
-  x.setUTCDate(x.getUTCDate() + days);
-  return x;
-}
-
-/** Same UTC calendar day */
-export function isSameUtcDate(a, b) {
-  if (!a || !b) return false;
-  return startOfUtcDay(a).getTime() === startOfUtcDay(b).getTime();
-}
+export { startOfUtcDay, addUtcDays, isSameUtcDate } from "../../utils/utcDate.js";
 
 function formatExpiryDate(validity) {
   try {

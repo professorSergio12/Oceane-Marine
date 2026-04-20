@@ -692,7 +692,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
       {/* ========================= LIST ========================= */}
       {view === "list" && (
         <div className="rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto styled-scrollbar">
             <table className="w-full text-sm min-w-[720px]">
               <thead className="text-slate-300 border-b border-white/10">
                 <tr>

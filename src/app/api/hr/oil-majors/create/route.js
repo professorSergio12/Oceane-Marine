@@ -4,6 +4,7 @@ import OilMajor from "@/lib/mongodb/models/hr/OilMajor";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
+import { sendOilMajorApprovalConfirmedNotification } from "@/lib/services/email/oilMajorApprovalNotification.js";
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
@@ -54,6 +55,11 @@ export async function POST(req) {
       status,
       attachments,
     });
+
+    if (status === "Approved") {
+      // Await so the send finishes before the handler returns (serverless / dev can drop void promises).
+      await sendOilMajorApprovalConfirmedNotification(record.companyName);
+    }
 
     return NextResponse.json({ data: record }, { status: 201 });
   } catch (err) {

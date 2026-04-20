@@ -50,6 +50,18 @@ const AccessoriesSchema = new mongoose.Schema(
       min: 1,
     },
 
+    /** OCCASIONAL: optional test tracking for items that need a test schedule */
+    occasionalTrackTestSchedule: {
+      type: Boolean,
+      default: false,
+    },
+    occasionalTestDate: {
+      type: Date,
+    },
+    occasionalNextDueDate: {
+      type: Date,
+    },
+
     // Usage
     putInUse: {
       type: Boolean,
@@ -90,7 +102,8 @@ const AccessoriesSchema = new mongoose.Schema(
 // This model intentionally has **no** pre-save hooks,
 // to avoid any `next`-related issues with Mongoose middleware.
 
-const AccessoriesModel =
-  mongoose.models.Accessories || mongoose.model("Accessories", AccessoriesSchema);
+if (mongoose.models.Accessories) {
+  mongoose.deleteModel("Accessories");
+}
 
-export default AccessoriesModel;
+export default mongoose.model("Accessories", AccessoriesSchema);

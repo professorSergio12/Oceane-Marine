@@ -131,8 +131,10 @@ export default function EquipmentTesting() {
         throw new Error(data.message || "Failed to create test plan");
       }
 
+      const label =
+        equipment.serialCode?.trim() || equipment.equipmentCode || "equipment";
       setRowSuccess(
-        `Test plan created for ${equipment.equipmentCode} (${equipment.equipmentType}).`
+        `Test plan created for ${label} (${equipment.equipmentType || "—"}).`
       );
 
       // clear inputs for that row
@@ -236,12 +238,15 @@ export default function EquipmentTesting() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-auto">
-          <table className="w-full text-xs min-w-[900px]">
+        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-auto styled-scrollbar">
+          <table className="w-full text-xs min-w-[1000px]">
             <thead>
               <tr className="text-left text-slate-100 border-b border-white/10 bg-white/10">
                 <th className="px-4 py-3 font-semibold text-sm">
                   Equipment Type
+                </th>
+                <th className="px-4 py-3 font-semibold text-sm">
+                  Serial Code
                 </th>
                 <th className="px-4 py-3 font-semibold text-sm">
                   Equipment Number
@@ -263,7 +268,7 @@ export default function EquipmentTesting() {
               {equipments.length === 0 && !loading && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-6 text-center text-slate-400"
                   >
                     No equipment found for {year}. Try a different year.
@@ -287,6 +292,9 @@ export default function EquipmentTesting() {
                   >
                     <td className="px-4 py-4 text-sm font-semibold text-white">
                       {eq.equipmentType || "—"}
+                    </td>
+                    <td className="px-4 py-4 text-sm font-mono text-slate-100">
+                      {eq.serialCode || "—"}
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-100">
                       {eq.equipmentCode || "—"}

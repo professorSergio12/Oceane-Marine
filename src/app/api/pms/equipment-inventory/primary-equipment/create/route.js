@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
+import { getNextYearwiseSerial } from "@/lib/mongodb/models/YearwiseSerialCounter";
 import { connectDB } from "@/lib/config/connection";
 import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyCreate } from "@/lib/notifications/moduleNotify";
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
@@ -28,6 +30,9 @@ export async function POST(req) {
     const nextTestDate = formData.get("nextTestDate");
     const retirementPeriodYears = formData.get("retirementPeriodYears");
     const remarks = formData.get("remarks") || "";
+    const placedInOffice = formData.get("placedInOffice") === "true";
+    const placedInBase = formData.get("placedInBase") === "true";
+    const placedInBay = formData.get("placedInBay") === "true";
 
     if (!equipmentCode || !equipmentName || !ownershipType) {
       return NextResponse.json(
@@ -36,12 +41,10 @@ export async function POST(req) {
       );
     }
 
-    const exists = await Equipment.findOne({ equipmentCode });
-
-    if (exists) {
+    if (!placedInOffice && !placedInBase && !placedInBay) {
       return NextResponse.json(
-        { message: "Equipment with this code already exists" },
-        { status: 409 }
+        { message: "Placed in: select at least one of Office, Base, or Bay" },
+        { status: 400 }
       );
     }
 
@@ -92,8 +95,15 @@ export async function POST(req) {
       };
     }
 
+    const serialYear = new Date().getFullYear();
+    const serialCode = await getNextYearwiseSerial(
+      "PMS_PRIMARY_EQUIPMENT",
+      serialYear
+    );
+
     const equipment = await Equipment.create({
       equipmentCode,
+      serialCode,
       equipmentName,
       equipmentType,
       specification,
@@ -103,6 +113,10 @@ export async function POST(req) {
 
       status: "ACTIVE",
       isInUse: false,
+
+      placedInOffice,
+      placedInBase,
+      placedInBay,
 
       dateOfPurchase: dateOfPurchase ? new Date(dateOfPurchase) : undefined,
       firstUseDate: firstUseDate ? new Date(firstUseDate) : undefined,
@@ -116,6 +130,8 @@ export async function POST(req) {
       testCertificate,
       remarks
     });
+
+    void notifyCreate(NOTIFICATION_MODULES.PMS, "Primary Equipment", equipment._id);
 
     return NextResponse.json(
       {

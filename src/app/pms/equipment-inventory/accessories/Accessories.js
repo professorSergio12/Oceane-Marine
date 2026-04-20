@@ -4,9 +4,32 @@ import { useState, useEffect, useRef } from "react";
 import AccessoriesList from "./AccessoriesList";
 import { usePmsRole } from "@/hooks/usePmsRole";
 
+function toDateInputValue(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+const defaultFormState = () => ({
+  equipmentNo: "",
+  equipmentName: "",
+  specification: "",
+  purchaseDate: "",
+  remarks: "",
+  quantity: "",
+  occasionalTrackTestSchedule: false,
+  occasionalTestDate: "",
+  occasionalNextDueDate: "",
+  putInUse: false,
+  putInUseDate: "",
+  placedIn: "OFFICE",
+});
+
 export default function Accessories({ view: controlledView, onViewChange }) {
-  const { canCreate } = usePmsRole();
-  const canSubmit = canCreate;
+  const { canCreate, canEdit } = usePmsRole();
+  const [editingAccessoryId, setEditingAccessoryId] = useState(null);
+  const canUseForm = editingAccessoryId ? canEdit : canCreate;
 
   // If parent controls view, use it; otherwise use internal state
   const hasParentControl = controlledView !== undefined && onViewChange !== undefined;
@@ -24,17 +47,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
   const locationRef = useRef(null);
 
   // Form state
-  const [form, setForm] = useState({
-    equipmentNo: "",
-    equipmentName: "",
-    specification: "",
-    purchaseDate: "",
-    remarks: "",
-    quantity: "",
-    putInUse: false,
-    putInUseDate: "",
-    placedIn: "OFFICE"
-  });
+  const [form, setForm] = useState(defaultFormState);
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -83,9 +96,56 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     });
   };
 
+  const resetAccessoryForm = () => {
+    setEditingAccessoryId(null);
+    setCategory("REGULAR");
+    setStatus("ACTIVE");
+    setForm(defaultFormState());
+    setManufacturingCertificateFile(null);
+    setTestCertificateFile(null);
+    const manufacturingInput = document.querySelector(
+      'input[type="file"][name="manufacturingCertificate"]'
+    );
+    const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
+    if (manufacturingInput) manufacturingInput.value = "";
+    if (testInput) testInput.value = "";
+  };
+
+  const startEditFromItem = (item) => {
+    if (!item?._id || !canEdit) return;
+    setEditingAccessoryId(item._id);
+    setCategory(item.category);
+    setStatus(item.status === "INACTIVE" ? "INACTIVE" : "ACTIVE");
+    setForm({
+      equipmentNo: item.equipmentNo || "",
+      equipmentName: item.equipmentName || "",
+      specification: item.specification || "",
+      purchaseDate: toDateInputValue(item.purchaseDate),
+      remarks: item.remarks || "",
+      quantity: item.quantity != null && item.quantity !== "" ? String(item.quantity) : "",
+      occasionalTrackTestSchedule: !!item.occasionalTrackTestSchedule,
+      occasionalTestDate: toDateInputValue(item.occasionalTestDate),
+      occasionalNextDueDate: toDateInputValue(item.occasionalNextDueDate),
+      putInUse: !!item.putInUse,
+      putInUseDate: toDateInputValue(item.putInUseDate),
+      placedIn: item.placedIn || "OFFICE",
+    });
+    setManufacturingCertificateFile(null);
+    setTestCertificateFile(null);
+    const manufacturingInput = document.querySelector(
+      'input[type="file"][name="manufacturingCertificate"]'
+    );
+    const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
+    if (manufacturingInput) manufacturingInput.value = "";
+    if (testInput) testInput.value = "";
+    setMessage(null);
+    setError(null);
+    setView("form");
+  };
+
   // Handle save
   const handleSave = async () => {
-    if (!canSubmit) return;
+    if (!canUseForm) return;
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -104,6 +164,15 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           setError("Quantity is required for Occasional accessories");
           setSaving(false);
           return;
+        }
+        if (form.occasionalTrackTestSchedule) {
+          if (!form.occasionalTestDate || !form.occasionalNextDueDate) {
+            setError(
+              "When test schedule is enabled, both test date and next due date are required"
+            );
+            setSaving(false);
+            return;
+          }
         }
       }
 
@@ -130,6 +199,14 @@ export default function Accessories({ view: controlledView, onViewChange }) {
 
       if (category === "OCCASIONAL") {
         formData.append("quantity", form.quantity);
+        formData.append(
+          "occasionalTrackTestSchedule",
+          form.occasionalTrackTestSchedule ? "true" : "false"
+        );
+        if (form.occasionalTrackTestSchedule) {
+          formData.append("occasionalTestDate", form.occasionalTestDate);
+          formData.append("occasionalNextDueDate", form.occasionalNextDueDate);
+        }
       }
 
       // Add certificate files if selected
@@ -140,35 +217,25 @@ export default function Accessories({ view: controlledView, onViewChange }) {
         formData.append("testCertificate", testCertificateFile);
       }
 
-      const res = await fetch("/api/pms/equipment-inventory/accessories/create", {
-        method: "POST",
-        body: formData
+      const url = editingAccessoryId
+        ? `/api/pms/equipment-inventory/accessories/${editingAccessoryId}`
+        : "/api/pms/equipment-inventory/accessories/create";
+      const method = editingAccessoryId ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        body: formData,
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setMessage(data.message || "Accessory saved successfully!");
-        // Reset form
-        setForm({
-          equipmentNo: "",
-          equipmentName: "",
-          specification: "",
-          purchaseDate: "",
-          remarks: "",
-          quantity: "",
-          putInUse: false,
-          putInUseDate: "",
-          placedIn: "OFFICE"
-        });
+        setMessage(
+          data.message ||
+            (editingAccessoryId ? "Accessory updated successfully!" : "Accessory saved successfully!")
+        );
+        resetAccessoryForm();
         setSelectedLocation("");
-        setManufacturingCertificateFile(null);
-        setTestCertificateFile(null);
-        // Reset file inputs
-        const manufacturingInput = document.querySelector('input[type="file"][name="manufacturingCertificate"]');
-        const testInput = document.querySelector('input[type="file"][name="testCertificate"]');
-        if (manufacturingInput) manufacturingInput.value = "";
-        if (testInput) testInput.value = "";
         setTimeout(() => setMessage(null), 5000);
       } else {
         setError(data.message || "Failed to save accessory");
@@ -185,8 +252,12 @@ export default function Accessories({ view: controlledView, onViewChange }) {
 
   // If list view, render list component
   if (view === "list") {
-    return <AccessoriesList onViewChange={setView} />;
+    return <AccessoriesList onEditItem={startEditFromItem} />;
   }
+
+  let saveButtonText = "SAVE";
+  if (saving) saveButtonText = "Saving...";
+  else if (editingAccessoryId) saveButtonText = "Save changes";
 
   return (
     <div className="space-y-6">
@@ -202,8 +273,18 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           
           <div className="flex gap-2">
             <button
-              onClick={() => setCategory("REGULAR")}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+              type="button"
+              disabled={!!editingAccessoryId}
+              onClick={() => {
+                setCategory("REGULAR");
+                setForm((f) => ({
+                  ...f,
+                  occasionalTrackTestSchedule: false,
+                  occasionalTestDate: "",
+                  occasionalNextDueDate: "",
+                }));
+              }}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
                 category === "REGULAR"
                   ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
                   : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
@@ -212,8 +293,10 @@ export default function Accessories({ view: controlledView, onViewChange }) {
               Regular
             </button>
             <button
+              type="button"
+              disabled={!!editingAccessoryId}
               onClick={() => setCategory("OCCASIONAL")}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
                 category === "OCCASIONAL"
                   ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
                   : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
@@ -268,13 +351,25 @@ export default function Accessories({ view: controlledView, onViewChange }) {
 
       {/* Form Section */}
       <div className="rounded-3xl border border-white/10 bg-[#0b2740]/85 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl space-y-6 max-w-6xl mx-auto">
-        {!canSubmit && (
+        {!canUseForm && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm">
-            You do not have permission to create accessories records.
+            You do not have permission to create or edit accessories records.
+          </div>
+        )}
+        {editingAccessoryId && canEdit && (
+          <div className="rounded-xl border border-amber-400/40 bg-amber-950/30 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-amber-100">Editing an existing accessory.</p>
+            <button
+              type="button"
+              onClick={resetAccessoryForm}
+              className="text-xs px-3 py-1.5 rounded-lg border border-amber-400/50 text-amber-200 hover:bg-amber-500/15"
+            >
+              Cancel edit
+            </button>
           </div>
         )}
         <fieldset
-          disabled={!canSubmit}
+          disabled={!canUseForm}
           className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
         >
         <div className="grid gap-6 md:grid-cols-2">
@@ -354,6 +449,71 @@ export default function Accessories({ view: controlledView, onViewChange }) {
             </div>
           </div>
         </div>
+
+        {/* Occasional: optional test schedule */}
+        {category === "OCCASIONAL" && (
+          <div className="rounded-2xl border border-orange-400/35 bg-orange-500/10 p-4 sm:p-5 space-y-4">
+            <div>
+              <h4 className="text-sm font-semibold text-white">
+                Test schedule (optional)
+              </h4>
+              <p className="text-xs text-white/60 mt-1">
+                Only some occasional items need this. Turn on to capture{" "}
+                <strong className="text-white/80">test date</strong> and{" "}
+                <strong className="text-white/80">next due</strong>.
+              </p>
+            </div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.occasionalTrackTestSchedule}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    occasionalTrackTestSchedule: e.target.checked,
+                    ...(!e.target.checked
+                      ? { occasionalTestDate: "", occasionalNextDueDate: "" }
+                      : {}),
+                  })
+                }
+                className="h-5 w-5 rounded border-white/50 bg-transparent text-orange-400 focus:ring-orange-400 cursor-pointer"
+              />
+              <span className="text-sm font-semibold text-white/90">
+                Track test date and next due
+              </span>
+            </label>
+            {form.occasionalTrackTestSchedule && (
+              <div className="grid gap-4 md:grid-cols-2 pt-2 border-t border-white/10">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-white/90">
+                    Test date
+                  </label>
+                  <input
+                    type="date"
+                    value={form.occasionalTestDate}
+                    onChange={(e) =>
+                      setForm({ ...form, occasionalTestDate: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-white/90">
+                    Next due
+                  </label>
+                  <input
+                    type="date"
+                    value={form.occasionalNextDueDate}
+                    onChange={(e) =>
+                      setForm({ ...form, occasionalNextDueDate: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Put in Use */}
         <div className="space-y-3">
@@ -456,10 +616,10 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           <button
             type="button"
             onClick={handleSave}
-            disabled={!canSubmit || saving}
+            disabled={!canUseForm || saving}
             className="px-6 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
           >
-            {saving ? "Saving..." : "SAVE"}
+            {saveButtonText}
           </button>
         </div>
         </fieldset>

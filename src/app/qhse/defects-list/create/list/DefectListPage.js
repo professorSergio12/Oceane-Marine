@@ -4,12 +4,19 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import Link from "next/link";
 import { saveAs } from "file-saver";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton, DownloadIconButton, EditIconButton } from "../../../components/ActionIcons";
+import {
+  ArchiveIconButton,
+  DeleteIconButton,
+  DownloadIconButton,
+  EditIconButton,
+  ViewIconButton,
+} from "../../../components/ActionIcons";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useQhseRole } from "@/hooks/useQhseRole";
 
@@ -34,6 +41,9 @@ function getYears() {
 }
 
 export default function DefectListPage() {
+  const searchParams = useSearchParams();
+  const defectFromUrl = searchParams.get("defect");
+
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const { canCreate, canEdit, canDelete, canApprove, canDownload } = useQhseRole();
@@ -55,6 +65,7 @@ export default function DefectListPage() {
   const [year, setYear] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [viewDefect, setViewDefect] = useState(null);
 
   // Fetch available years
   useEffect(() => {
@@ -102,6 +113,15 @@ export default function DefectListPage() {
     fetchDefects();
   }, [year]);
 
+  /** Email deep link: if year filter hides the row, reload all years once. */
+  useEffect(() => {
+    if (!defectFromUrl || loading) return;
+    const found = defects.some((d) => String(d._id) === String(defectFromUrl));
+    if (!found && defects.length > 0 && year !== "") {
+      setYear("");
+    }
+  }, [defectFromUrl, loading, defects, year]);
+
   const handleDownloadWord = async (defect) => {
     if (!canDownload) return;
     setExportingId(defect._id);
@@ -148,8 +168,8 @@ export default function DefectListPage() {
     }
   };
 
-  const handleStatusChange = async (id, newStatus) => {
-    if (!canEdit) return;
+  const handleStatusChange = async (id, newStatus, { closeDetailModal = false } = {}) => {
+    if (!canApprove) return;
     setActionLoadingId(id);
     setActionMessage(null);
     setError(null);
@@ -163,14 +183,22 @@ export default function DefectListPage() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to update status");
       }
-      setActionMessage("Status updated successfully.");
+      setActionMessage("Defect closed successfully.");
       await fetchDefects();
+      if (closeDetailModal) setViewDefect(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setActionLoadingId(null);
     }
   };
+
+  function statusBadgeClass(status) {
+    const s = status || "Open";
+    if (s === "Closed") return "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30";
+    if (s === "In Progress") return "bg-sky-500/15 text-sky-200 ring-1 ring-sky-400/30";
+    return "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30";
+  }
 
   const handleDelete = async (id) => {
     if (!canDelete) return;
@@ -257,8 +285,6 @@ export default function DefectListPage() {
     }
   };
 
-  const statusOptions = ["Open", "In Progress", "Closed"];
-
   const searchFilteredDefects = useMemo(() => {
     if (!searchTerm.trim()) return defects;
     const s = searchTerm.toLowerCase();
@@ -275,7 +301,37 @@ export default function DefectListPage() {
     searchFilteredDefects,
     `${searchTerm}|${year}|${defects.length}`
   );
-  const { paginatedItems: paginatedDefectRows, ...defectListPaginationFooterProps } = defectListPagination;
+  const {
+    paginatedItems: paginatedDefectRows,
+    setPage: setDefectListPage,
+    pageSize: defectListPageSize,
+    ...defectListPaginationFooterProps
+  } = defectListPagination;
+
+  useEffect(() => {
+    if (!defectFromUrl || loading) return;
+    const idx = searchFilteredDefects.findIndex(
+      (d) => String(d._id) === String(defectFromUrl)
+    );
+    if (idx < 0) return;
+    const targetPage = Math.floor(idx / defectListPageSize) + 1;
+    setDefectListPage(targetPage);
+  }, [
+    defectFromUrl,
+    loading,
+    searchFilteredDefects,
+    defectListPageSize,
+    setDefectListPage,
+  ]);
+
+  useEffect(() => {
+    if (!defectFromUrl || loading || searchFilteredDefects.length === 0) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`defect-row-${defectFromUrl}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    return () => window.clearTimeout(t);
+  }, [defectFromUrl, loading, paginatedDefectRows, searchFilteredDefects.length]);
 
   return (
     <div className={`${contentClassName} w-full min-w-0 pr-4`}>
@@ -408,6 +464,7 @@ export default function DefectListPage() {
                     {paginatedDefectRows.map((defect) => (
                       <tr
                         key={defect._id}
+                        id={`defect-row-${defect._id}`}
                         className="border-b border-white/5 hover:bg-white/5"
                       >
                         <td className="py-2 pr-4 font-mono text-sky-300">
@@ -426,18 +483,11 @@ export default function DefectListPage() {
                           {formatDate(defect.targetDate)}
                         </td>
                         <td className="py-2 pr-4">
-                          <select
-                            value={defect.status || "Open"}
-                            onChange={(e) => handleStatusChange(defect._id, e.target.value)}
-                            disabled={actionLoadingId === defect._id}
-                            className="rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                          <span
+                            className={`inline-flex rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${statusBadgeClass(defect.status)}`}
                           >
-                            {statusOptions.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
+                            {defect.status || "Open"}
+                          </span>
                         </td>
                         <td className="py-2 pr-4">
                           {formatDate(defect.completionDate)}
@@ -461,6 +511,10 @@ export default function DefectListPage() {
                         </td>
                         <td className="whitespace-nowrap py-2 pr-3 text-right sm:pr-4">
                           <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
+                            <ViewIconButton
+                              title="View defect"
+                              onClick={() => setViewDefect(defect)}
+                            />
                             {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadWord(defect)}
@@ -512,6 +566,97 @@ export default function DefectListPage() {
             )}
         </QhseListPageContainer>
       </div>
+
+      {viewDefect && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="defect-detail-title"
+        >
+          <div className="max-h-[min(90vh,640px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/15 bg-[#0f172a] shadow-2xl">
+            <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-white/10 bg-[#0f172a]/95 px-5 py-4 backdrop-blur-sm">
+              <div>
+                <h2 id="defect-detail-title" className="text-base font-bold text-white">
+                  Defect details
+                </h2>
+                <p className="mt-0.5 font-mono text-xs text-sky-300">
+                  {viewDefect.serialNumber || "—"} · {viewDefect.formCode || "QAF-OFD-025"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewDefect(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                aria-label="Close"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-3 px-5 py-4 text-sm text-slate-200">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Status</p>
+                <span
+                  className={`mt-1 inline-flex rounded-lg px-2 py-1 text-xs font-semibold uppercase ${statusBadgeClass(viewDefect.status)}`}
+                >
+                  {viewDefect.status || "Open"}
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Equipment defect</p>
+                <p className="mt-1 whitespace-pre-wrap text-slate-100">{viewDefect.equipmentDefect || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Base</p>
+                <p className="mt-1">{viewDefect.base || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Action required</p>
+                <p className="mt-1 whitespace-pre-wrap">{viewDefect.actionRequired || "—"}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Target date</p>
+                  <p className="mt-1">{formatDate(viewDefect.targetDate)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Completion date</p>
+                  <p className="mt-1">{formatDate(viewDefect.completionDate)}</p>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-white/10 px-5 py-4">
+              {canApprove && viewDefect.status !== "Closed" ? (
+                <button
+                  type="button"
+                  disabled={actionLoadingId === viewDefect._id}
+                  onClick={() => {
+                    if (
+                      !confirm(
+                        "Mark this defect as Closed? This will record completion and notify the team (if configured)."
+                      )
+                    ) {
+                      return;
+                    }
+                    handleStatusChange(viewDefect._id, "Closed", { closeDetailModal: true });
+                  }}
+                  className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {actionLoadingId === viewDefect._id ? "Closing…" : "Mark as closed"}
+                </button>
+              ) : (
+                <p className="text-center text-xs text-slate-500">
+                  {viewDefect.status === "Closed"
+                    ? "This defect is already closed."
+                    : "Only approvers can close defects from this view."}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

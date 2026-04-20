@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 import { NOTIFICATION_MODULES, notifyEdit } from "@/lib/notifications/moduleNotify";
+import { isSameUtcDate } from "@/lib/utils/utcDate";
 
 export async function PUT(req, { params }) {
   const guard = await assertPmsPermission("canEdit");
@@ -129,6 +130,9 @@ export async function PUT(req, { params }) {
     existing.hoses = Number(body.hoses) || 0;
     existing.ownership = body.ownership;
     existing.status = body.status || "NOT_COMPLETED";
+    if (existing.status === "COMPLETED") {
+      existing.pmsWarehouseEndOverdueEmailSentForEstimatedEndDate = undefined;
+    }
     existing.nos = Number(body.nos);
     existing.fromLocation = body.fromLocation || "";
     existing.stopover = body.stopover || "";
@@ -139,8 +143,13 @@ export async function PUT(req, { params }) {
     if (body.startDate) existing.startDate = new Date(body.startDate);
     else existing.startDate = undefined;
 
+    const prevEstimatedEnd = existing.estimatedEndDate;
     if (body.estimatedEndDate) existing.estimatedEndDate = new Date(body.estimatedEndDate);
     else existing.estimatedEndDate = undefined;
+
+    if (!isSameUtcDate(prevEstimatedEnd, existing.estimatedEndDate)) {
+      existing.pmsWarehouseEndOverdueEmailSentForEstimatedEndDate = undefined;
+    }
 
     await existing.save();
 

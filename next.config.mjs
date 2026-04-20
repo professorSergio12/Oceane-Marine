@@ -9,8 +9,11 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "30mb", // Increases limit to 30MB
+      bodySizeLimit: "30mb", // Server Actions only — not API routes
     },
+    // Requests hit middleware (auth); Next clones the body with a default 10MB cap.
+    // Multipart uploads larger than that truncate and fail with "Failed to parse body as FormData."
+    proxyClientMaxBodySize: "30mb",
   },
   // If you are using remote images from Cloudinary, you might also need this:
   images: {

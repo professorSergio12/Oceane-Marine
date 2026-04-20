@@ -4,7 +4,8 @@ import StatutoryCertificate from "@/lib/mongodb/models/hr/StatutoryCertificate";
 import path from "path";
 import fs from "fs/promises";
 import { assertHrPermission } from "@/lib/auth/hrGuard";
-import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
+import { notifyEdit } from "@/lib/notifications/moduleNotify";
+import { isSameUtcDate } from "@/lib/utils/utcDate";
 
 export async function PUT(req, { params }) {
   const guard = await assertHrPermission("canEdit");
@@ -57,11 +58,16 @@ export async function PUT(req, { params }) {
       );
     }
 
+    const newValidityDate = new Date(validity);
+    const validityChanged =
+      !existingCert.validity ||
+      !isSameUtcDate(existingCert.validity, newValidityDate);
+
     const updateData = {
       location: location.trim(),
       typeOfDocs: typeOfDocs.trim(),
       year: year,
-      validity: new Date(validity),
+      validity: newValidityDate,
     };
 
     // Handle file upload if new file is provided
@@ -106,7 +112,17 @@ export async function PUT(req, { params }) {
       };
     }
 
-    const updatedCert = await StatutoryCertificate.findByIdAndUpdate(id, updateData, { new: true });
+    const updateOps = { $set: updateData };
+    if (validityChanged) {
+      updateOps.$unset = {
+        hrStatutoryReminder30dSentForValidity: "",
+        hrStatutoryReminder15dSentForValidity: "",
+      };
+    }
+
+    const updatedCert = await StatutoryCertificate.findByIdAndUpdate(id, updateOps, {
+      new: true,
+    });
 
     void notifyEdit("HR", "statutory-certificates · update", id);
     return NextResponse.json({ data: updatedCert }, { status: 200 });

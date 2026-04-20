@@ -304,7 +304,18 @@ const stsOperationSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
-    }
+    },
+
+    /* ================= STS DOCUMENTATION FOLLOW-UP EMAILS (cron dedupe) ================= */
+
+    /** Sent when operation stayed INPROGRESS ≥ 7 days (UTC calendar-day rule) */
+    stsDocFollowUpInProgress7dSentAt: Date,
+
+    /** Sent when operation stayed INPROGRESS ≥ 30 days */
+    stsDocFollowUpInProgress30dSentAt: Date,
+
+    /** Sent once when COMPLETED ≥ 7 days and required documents were still missing */
+    stsDocFollowUpCompletedMissingSentAt: Date
 
   },
   {

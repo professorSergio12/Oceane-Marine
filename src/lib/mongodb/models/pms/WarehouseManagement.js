@@ -86,6 +86,9 @@ const WarehouseManagementSchema = new mongoose.Schema(
        SYSTEM
     ========================== */
     isDeleted: { type: Boolean, default: false },
+
+    /** Dedupe: `estimatedEndDate` (UTC day) we last sent the overdue email for */
+    pmsWarehouseEndOverdueEmailSentForEstimatedEndDate: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import EquipmentTest from "@/lib/mongodb/models/pms/EquipmentTest";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyCreate } from "@/lib/notifications/moduleNotify";
 
 export async function POST(req) {
     const guard = await assertPmsPermission("canCreate");
@@ -33,6 +34,8 @@ export async function POST(req) {
             plannedOn,
             tester
         });
+
+        void notifyCreate(NOTIFICATION_MODULES.PMS, "Equipment Testing", test._id);
 
         return NextResponse.json(
             { message: "Test plan created", data: test },

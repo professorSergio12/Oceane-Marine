@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/config/connection.js";
 import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyCreate } from "@/lib/notifications/moduleNotify";
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
@@ -26,6 +27,10 @@ export async function POST(req) {
     const putInUse = formData.get("putInUse") === "true";
     const putInUseDate = formData.get("putInUseDate");
     const placedIn = formData.get("placedIn");
+    const occasionalTrackTestSchedule =
+      formData.get("occasionalTrackTestSchedule") === "true";
+    const occasionalTestDate = formData.get("occasionalTestDate");
+    const occasionalNextDueDate = formData.get("occasionalNextDueDate");
 
     // -----------------------------
     // Basic Validation
@@ -55,6 +60,17 @@ export async function POST(req) {
           { message: "Quantity is required for OCCASIONAL accessories" },
           { status: 400 }
         );
+      }
+      if (occasionalTrackTestSchedule) {
+        if (!occasionalTestDate || !occasionalNextDueDate) {
+          return NextResponse.json(
+            {
+              message:
+                "When test schedule is enabled for occasional accessories, both test date and next due are required",
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -166,6 +182,27 @@ export async function POST(req) {
 
     if (category === "OCCASIONAL") {
       accessoryData.quantity = Number(quantity);
+      accessoryData.occasionalTrackTestSchedule = occasionalTrackTestSchedule;
+      if (occasionalTrackTestSchedule) {
+        try {
+          accessoryData.occasionalTestDate = new Date(occasionalTestDate);
+          accessoryData.occasionalNextDueDate = new Date(occasionalNextDueDate);
+          if (
+            Number.isNaN(accessoryData.occasionalTestDate.getTime()) ||
+            Number.isNaN(accessoryData.occasionalNextDueDate.getTime())
+          ) {
+            return NextResponse.json(
+              { message: "Invalid occasional test date or next due date" },
+              { status: 400 }
+            );
+          }
+        } catch {
+          return NextResponse.json(
+            { message: "Invalid occasional test date or next due date" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Handle Manufacturing Certificate file
@@ -210,6 +247,8 @@ export async function POST(req) {
     accessoryData.testCertificate = testCertificate;
 
     const accessory = await Accessories.create(accessoryData);
+
+    void notifyCreate(NOTIFICATION_MODULES.PMS, "Accessories", accessory._id);
 
     return NextResponse.json(
       {

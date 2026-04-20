@@ -4,6 +4,7 @@ import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
 import fs from "node:fs";
 import path from "node:path";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { NOTIFICATION_MODULES, notifyCreate } from "@/lib/notifications/moduleNotify";
 
 export async function POST(req) {
   const guard = await assertPmsPermission("canCreate");
@@ -125,6 +126,8 @@ export async function POST(req) {
       }),
       ...(attachments.length > 0 && { attachments }),
     });
+
+    void notifyCreate(NOTIFICATION_MODULES.PMS, "Warehouse Management", record._id);
 
     return NextResponse.json(
       { success: true, data: record },
