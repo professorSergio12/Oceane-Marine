@@ -31,7 +31,7 @@ if (isSample) {
   );
 
   const { buildStsInProgressDocumentationEmail, buildStsCompletedMissingDocumentsEmail } =
-    await import("../src/lib/services/email/templates/Operations/stsDocumentationFollowUp.js");
+    await import("../src/lib/services/email/templates/operations/stsDocumentationFollowUp.js");
   const { sendResendEmail } = await import("../src/lib/services/email/sendResendEmail.js");
 
   const rawTo = process.env.OPERATIONS_STS_DOCUMENTATION_FOLLOW_UP_TO_EMAIL || "";

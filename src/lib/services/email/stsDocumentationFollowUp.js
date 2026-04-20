@@ -5,7 +5,7 @@ import { sendResendEmail } from "./sendResendEmail.js";
 import {
   buildStsCompletedMissingDocumentsEmail,
   buildStsInProgressDocumentationEmail,
-} from "./templates/Operations/stsDocumentationFollowUp.js";
+} from "./templates/operations/stsDocumentationFollowUp.js";
 
 import STSChecklistOne from "../../mongodb/models/operation-sts-checklist/OPS-OFD-001.js";
 import STSChecklistTwo from "../../mongodb/models/operation-sts-checklist/OPS-OFD-002.js";
