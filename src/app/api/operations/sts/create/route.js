@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import mongoose from "mongoose";
+import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 
@@ -67,7 +68,7 @@ async function saveUploadedFile(file, subfolder) {
   await fs.mkdir(uploadDir, { recursive: true });
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const fileName = `${Date.now()}-${safeName}`;
+  const fileName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
   const filePath = path.join(uploadDir, fileName);
 
   await fs.writeFile(filePath, buffer);
@@ -124,6 +125,24 @@ export async function POST(req) {
       if (body[field] && typeof body[field] === "string" && body[field].trim() !== "") {
         uploadedFiles[field] = body[field].trim();
       }
+    }
+
+    /* =====================
+       OPTIONAL MULTI-FILE DOCUMENTATION (Equipment & Remarks section)
+    ====================== */
+    const manualDocumentationEntries = [];
+    const documentationFiles = formData
+      .getAll("documentationFiles")
+      .filter((f) => f && typeof f !== "string" && f.name && f.size > 0);
+    for (const file of documentationFiles) {
+      const filePath = await saveUploadedFile(file, "documentation-extra");
+      const displayName =
+        file.name.replace(/[^\w.\- ]/g, "_").slice(0, 200) || "attachment";
+      manualDocumentationEntries.push({
+        documentType: displayName,
+        filePath,
+        source: "MANUAL_UPLOAD",
+      });
     }
 
     /* =====================
@@ -198,6 +217,7 @@ export async function POST(req) {
       submittedAt,
       version: 1,
       isLatest: true,
+      documents: manualDocumentationEntries,
     });
 
     /* =====================

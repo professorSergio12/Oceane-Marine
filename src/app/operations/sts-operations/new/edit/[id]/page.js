@@ -12,6 +12,7 @@ import {
 import { ActionDownloadIcon } from "@/app/components/RecordActionIcons";
 import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
 import SelectField from "@/app/operations/components/OperationsSelectField";
+import StsDocumentationMultiUpload from "../../StsDocumentationMultiUpload";
 
 const statusTone = {
   INPROGRESS: {
@@ -1206,6 +1207,11 @@ export default function EditOperationPage() {
                 name="remarks"
               />
             </div>
+
+            <StsDocumentationMultiUpload
+              key={operationData?._id || "op"}
+              existingDocuments={operationData?.documents}
+            />
 
             {/* Submit Buttons */}
             <div className="flex justify-end gap-4 pt-6 border-t border-white/10">

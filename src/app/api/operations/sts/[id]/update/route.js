@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
@@ -65,7 +66,7 @@ async function saveUploadedFile(file, subfolder) {
   await fs.mkdir(uploadDir, { recursive: true });
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const fileName = `${Date.now()}-${safeName}`;
+  const fileName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
   const filePath = path.join(uploadDir, fileName);
 
   await fs.writeFile(filePath, buffer);
@@ -134,6 +135,28 @@ export async function PUT(req, { params }) {
       }
     }
 
+    /* =====================
+       OPTIONAL MULTI-FILE DOCUMENTATION (append to documents[])
+    ====================== */
+    const newManualDocumentationEntries = [];
+    const documentationFiles = formData
+      .getAll("documentationFiles")
+      .filter((f) => f && typeof f !== "string" && f.name && f.size > 0);
+    for (const file of documentationFiles) {
+      const filePath = await saveUploadedFile(file, "documentation-extra");
+      const displayName =
+        file.name.replace(/[^\w.\- ]/g, "_").slice(0, 200) || "attachment";
+      newManualDocumentationEntries.push({
+        documentType: displayName,
+        filePath,
+        source: "MANUAL_UPLOAD",
+      });
+    }
+    const priorDocuments = Array.isArray(existing.documents)
+      ? existing.documents.map((d) => ({ ...d }))
+      : [];
+    const mergedDocuments = [...priorDocuments, ...newManualDocumentationEntries];
+
     // GET LAST VERSION OF THIS OPERATION
     const lastVersion = await StsOperation.findOne({
       parentOperationId: existing.parentOperationId,
@@ -161,6 +184,7 @@ export async function PUT(req, { params }) {
       isLatest: true,
       isSubmitted: isSubmitted || existing.isSubmitted, // Preserve if already submitted
       submittedAt: submittedAt || existing.submittedAt, // Preserve if already submitted
+      documents: mergedDocuments,
     });
 
     void notifyOperationsEdit("STS Operations", id);

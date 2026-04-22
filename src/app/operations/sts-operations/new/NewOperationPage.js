@@ -19,6 +19,7 @@ import {
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import SelectField from "@/app/operations/components/OperationsSelectField";
+import StsDocumentationMultiUpload from "./StsDocumentationMultiUpload";
 
 const STS_NEW_OP_DRAFT_STORAGE_KEY = "sts-operation-new-documentation-draft-v2";
 
@@ -1598,6 +1599,8 @@ export default function NewOperationPage() {
                 name="remarks"
               />
             </div>
+
+            <StsDocumentationMultiUpload key={formResetKey} />
 
             {/* Submit Buttons */}
             {canCreateForm ? (
