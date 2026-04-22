@@ -14,6 +14,7 @@ import { useOperationsRole } from "@/hooks/useOperationsRole";
 import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 function getYears() {
   const currentYear = new Date().getFullYear();
@@ -249,39 +250,39 @@ export default function CompatibilityListPage() {
                   <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
                     Year
                   </span>
-                  <select
-                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  <OperationsSelectField
+                    variant="pill"
+                    ariaLabel="Year filter"
                     value={year === "" || year === null ? "" : String(year)}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setYear(v === "" ? "" : Number(v));
-                    }}
-                  >
-                    <option value="">All years</option>
-                    {initialYears.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setYear(v === "" ? "" : Number(v))}
+                    options={[
+                      { value: "", label: "All years" },
+                      ...initialYears.map((y) => ({ value: String(y), label: String(y) })),
+                    ]}
+                    className="min-w-0 flex-1"
+                    triggerClassName="ops-select-trigger min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  />
                 </div>
                 <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
                   <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
                     <span className="sm:hidden">Loc</span>
                     <span className="hidden sm:inline">Location</span>
                   </span>
-                  <select
-                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  <OperationsSelectField
+                    variant="pill"
+                    ariaLabel="Location filter"
                     value={locationId || ""}
-                    onChange={(e) => setLocationId(e.target.value)}
-                  >
-                    <option value="">All locations</option>
-                    {locations.map((loc) => (
-                      <option key={loc._id} value={loc._id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setLocationId(v)}
+                    options={[
+                      { value: "", label: "All locations" },
+                      ...locations.map((loc) => ({
+                        value: String(loc._id),
+                        label: loc.name,
+                      })),
+                    ]}
+                    className="min-w-0 flex-1"
+                    triggerClassName="ops-select-trigger min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  />
                 </div>
               </div>
             }
@@ -320,8 +321,11 @@ export default function CompatibilityListPage() {
                 <p className="text-white/90">No rows match your search.</p>
               </div>
             ) : (
-              <div className="rounded-2xl border border-white/10 overflow-hidden shadow-xl" style={{ backgroundColor: "#2C4257" }}>
-                <div className="overflow-x-auto">
+              <div
+                className="flex flex-col rounded-2xl border border-white/10 shadow-xl"
+                style={{ backgroundColor: "#2C4257" }}
+              >
+                <div className="min-w-0 overflow-x-auto overflow-hidden rounded-t-2xl">
                   <table className="w-full border-collapse">
                     <thead className="border-b border-white/10" style={{ backgroundColor: "#23374D" }}>
                       <tr>
@@ -394,10 +398,13 @@ export default function CompatibilityListPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
+                <OperationsListPaginationFooter
+                  {...paginationFooterProps}
+                  className="rounded-b-2xl"
+                />
               </div>
-              <OperationsListPaginationFooter {...paginationFooterProps} />
-            </div>
-          )}
+            )}
           </QhseListPageContainer>
         </div>
       </div>

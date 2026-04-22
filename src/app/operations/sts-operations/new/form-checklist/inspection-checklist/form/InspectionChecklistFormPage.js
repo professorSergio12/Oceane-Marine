@@ -9,6 +9,7 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 export default function InspectionChecklistFormPage() {
   const router = useRouter();
@@ -505,41 +506,51 @@ export default function InspectionChecklistFormPage() {
                 <label htmlFor="formNumber" className="block text-sm font-medium text-white/90 mb-2">
                   Form Number <span className="text-red-400">*</span>
                 </label>
-                <select
+                <OperationsSelectField
                   id="formNumber"
-                  name="formNumber"
+                  ariaLabel="Form Number"
                   value={form.formNumber}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-all backdrop-blur-sm"
-                  required
-                >
-                  <option value="">Select form number</option>
-                  {FORM_NUMBERS.map((form) => (
-                    <option key={form.value} value={form.value}>
-                      {form.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      formNumber: v,
+                    }))
+                  }
+                  options={[
+                    { value: "", label: "Select form number" },
+                    ...FORM_NUMBERS.map((f) => ({
+                      value: f.value,
+                      label: f.label,
+                    })),
+                  ]}
+                  triggerClassName="flex min-h-[2.75rem] w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 pr-10 text-left text-sm text-white outline-none transition-all backdrop-blur-sm focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/50"
+                  className="w-full"
+                />
               </div>
               <div>
                 <label htmlFor="locationId" className="block text-sm font-medium text-white/90 mb-2">
                   Location <span className="text-red-400">*</span>
                 </label>
-                <select
+                <OperationsSelectField
                   id="locationId"
-                  name="locationId"
+                  ariaLabel="Location"
                   value={form.locationId}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-all backdrop-blur-sm"
-                  required
-                >
-                  <option value="">Select location</option>
-                  {locations.map((loc) => (
-                    <option key={loc._id} value={loc._id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      locationId: v,
+                    }))
+                  }
+                  options={[
+                    { value: "", label: "Select location" },
+                    ...locations.map((loc) => ({
+                      value: String(loc._id),
+                      label: loc.name,
+                    })),
+                  ]}
+                  triggerClassName="flex min-h-[2.75rem] w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 pr-10 text-left text-sm text-white outline-none transition-all backdrop-blur-sm focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/50"
+                  className="w-full"
+                />
               </div>
               {isForm013 && (
                 <>
@@ -547,20 +558,26 @@ export default function InspectionChecklistFormPage() {
                     <label htmlFor="year" className="block text-sm font-medium text-white/90 mb-2">
                       Year <span className="text-red-400">*</span>
                     </label>
-                    <select
+                    <OperationsSelectField
                       id="year"
-                      name="year"
-                      value={form.year}
-                      onChange={handleChange}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-all backdrop-blur-sm"
-                      required
-                    >
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel="Year"
+                      value={String(form.year)}
+                      onChange={(v) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          year: v === "" ? "" : Number(v),
+                        }))
+                      }
+                      options={Array.from(
+                        { length: 10 },
+                        (_, i) => new Date().getFullYear() - 2 + i
+                      ).map((y) => ({
+                        value: String(y),
+                        label: String(y),
+                      }))}
+                      triggerClassName="flex min-h-[2.75rem] w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 pr-10 text-left text-sm text-white outline-none transition-all backdrop-blur-sm focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/50"
+                      className="w-full"
+                    />
                   </div>
                   <div>
                     <label htmlFor="boatName" className="block text-sm font-medium text-white/90 mb-2">

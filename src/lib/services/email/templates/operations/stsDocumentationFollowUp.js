@@ -28,7 +28,7 @@ export function buildStsInProgressDocumentationEmail({ operationRef, operationDa
     "Kindly recheck and review the status. If the operation has been completed, please update the status accordingly.",
     "",
     "Best regards,",
-    "Ocean Group",
+    "Oceane Group",
   ].join("\n");
 
   const html = `
@@ -49,7 +49,7 @@ export function buildStsInProgressDocumentationEmail({ operationRef, operationDa
         </p>
         <p style="margin:0;">
           Best regards,<br />
-          <strong>Ocean Group</strong>
+          <strong>Oceane Group</strong>
         </p>
       </td>
     </tr>
@@ -84,7 +84,7 @@ export function buildStsCompletedMissingDocumentsEmail({ operationRef, operation
     "Kindly upload or complete the outstanding items as soon as possible.",
     "",
     "Best regards,",
-    "Ocean Group",
+    "Oceane Group",
   ].join("\n");
 
   const listHtml =
@@ -113,7 +113,7 @@ export function buildStsCompletedMissingDocumentsEmail({ operationRef, operation
         </p>
         <p style="margin:0;">
           Best regards,<br />
-          <strong>Ocean Group</strong>
+          <strong>Oceane Group</strong>
         </p>
       </td>
     </tr>

@@ -47,6 +47,12 @@ const ALL_SIDEBAR_TABS = [
     adminOnly: true,
   },
   {
+    key: "clientsAgents",
+    label: "Clients & agents",
+    href: "/operations/sts-operations/new/clients-agents",
+    adminOnly: true,
+  },
+  {
     key: "locations",
     label: "Locations",
     href: "/operations/sts-operations/new/locations",
@@ -60,7 +66,7 @@ const ALL_SIDEBAR_TABS = [
   },
 ];
 
-const ADMIN_KEYS = new Set(["cargos", "locations", "mooring"]);
+const ADMIN_KEYS = new Set(["cargos", "clientsAgents", "locations", "mooring"]);
 
 export function getSidebarTabs(isOpsAdmin) {
   if (isOpsAdmin) return ALL_SIDEBAR_TABS;

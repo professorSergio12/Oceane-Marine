@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef, forwardRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, forwardRef, useCallback, useMemo, useId } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOperationsSidebar } from "../../OperationsSidebarContext";
 import { getExportColumns, buildExportHeaders, buildExportRow } from "./sts-export-columns";
@@ -18,6 +18,7 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import SelectField from "@/app/operations/components/OperationsSelectField";
 
 const STS_NEW_OP_DRAFT_STORAGE_KEY = "sts-operation-new-documentation-draft-v2";
 
@@ -154,6 +155,8 @@ export default function NewOperationPage() {
   const { canCreateForm, canEditForm, canDeleteForm, isOpsAdmin } = useOperationsRole();
   const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
   const [cargoTypes, setCargoTypes] = useState([]);
+  const [stsClients, setStsClients] = useState([]);
+  const [stsAgents, setStsAgents] = useState([]);
   const [locations, setLocations] = useState([]);
   const [mooringMasters, setMooringMasters] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
@@ -336,6 +339,8 @@ export default function NewOperationPage() {
       setActiveTab("locations");
     } else if (pathname.startsWith("/operations/sts-operations/new/cargos")) {
       setActiveTab("cargos");
+    } else if (pathname.startsWith("/operations/sts-operations/new/clients-agents")) {
+      setActiveTab("clientsAgents");
     } else if (pathname.startsWith("/operations/sts-operations/new/mooringmaster")) {
       setActiveTab("mooring");
     }
@@ -346,20 +351,26 @@ export default function NewOperationPage() {
     const fetchMasters = async () => {
       try {
         setLoadingMasters(true);
-        const [cargoRes, locationRes, mooringRes, equipmentRes] =
+        const [cargoRes, clientsRes, agentsRes, locationRes, mooringRes, equipmentRes] =
           await Promise.all([
             fetch("/api/master/cargo-type/list"),
+            fetch("/api/master/sts-clients/list"),
+            fetch("/api/master/sts-agents/list"),
             fetch("/api/master/locations/list"),
             fetch("/api/master/mooring-master/list"),
             fetch("/api/pms/equipment-inventory/primary-equipment/list"),
           ]);
 
         const cargoJson = await cargoRes.json();
+        const clientsJson = await clientsRes.json();
+        const agentsJson = await agentsRes.json();
         const locationJson = await locationRes.json();
         const mooringJson = await mooringRes.json();
         const equipmentJson = await equipmentRes.json();
 
         setCargoTypes(cargoJson?.cargoTypes || []);
+        setStsClients(clientsJson?.clients || []);
+        setStsAgents(agentsJson?.agents || []);
         setLocations(locationJson?.locations || []);
         setMooringMasters(mooringJson?.mooringMasters || []);
         setEquipmentList(equipmentJson?.equipments || []);
@@ -1085,15 +1096,25 @@ export default function NewOperationPage() {
                   placeholder="Select type of operation"
                   options={["Ship to Ship", "POAC", "Fender Hire", "Hose hire"]}
                 />
-              <TextField
+              <SelectField
                 label="Client"
-                placeholder="Enter client name"
                 name="client"
+                placeholder="Select client"
+                loading={loadingMasters}
+                options={stsClients.map((c) => ({
+                  label: c.name,
+                  value: c.name,
+                }))}
               />
-              <TextField
+              <SelectField
                 label="Agent"
-                placeholder="Enter agent name"
                 name="agent"
+                placeholder="Select agent"
+                loading={loadingMasters}
+                options={stsAgents.map((a) => ({
+                  label: a.name,
+                  value: a.name,
+                }))}
               />
               <SelectField
                 label="Mooring Master"
@@ -1637,6 +1658,124 @@ export default function NewOperationPage() {
   );
 }
 
+const STS_LIST_MONTH_OPTIONS = [
+  { value: "1", label: "Jan" },
+  { value: "2", label: "Feb" },
+  { value: "3", label: "Mar" },
+  { value: "4", label: "Apr" },
+  { value: "5", label: "May" },
+  { value: "6", label: "Jun" },
+  { value: "7", label: "Jul" },
+  { value: "8", label: "Aug" },
+  { value: "9", label: "Sep" },
+  { value: "10", label: "Oct" },
+  { value: "11", label: "Nov" },
+  { value: "12", label: "Dec" },
+];
+
+const STS_LIST_QUARTER_OPTIONS = [
+  { value: "1", label: "Q1 (Jan–Mar)" },
+  { value: "2", label: "Q2 (Apr–Jun)" },
+  { value: "3", label: "Q3 (Jul–Sep)" },
+  { value: "4", label: "Q4 (Oct–Dec)" },
+];
+
+const STS_LIST_STATUS_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "INPROGRESS", label: "In Progress" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "Lined Up", label: "Lined Up" },
+  { value: "CANCELED", label: "Canceled" },
+];
+
+/** Custom dropdown so the menu matches trigger width (native select popups ignore width on mobile). */
+function StsListFilterSelect({
+  filterKey,
+  openFilterKey,
+  setOpenFilterKey,
+  label,
+  fieldId,
+  value,
+  onChange,
+  options,
+}) {
+  const open = openFilterKey === filterKey;
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) {
+        setOpenFilterKey(null);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpenFilterKey(null);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, setOpenFilterKey]);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? "—";
+
+  return (
+    <div
+      ref={rootRef}
+      className="flex min-w-0 w-full flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2"
+    >
+      <label
+        id={`${fieldId}-caption`}
+        htmlFor={fieldId}
+        className="shrink-0 text-sm text-white/70 whitespace-nowrap"
+      >
+        {label}
+      </label>
+      <div className="relative min-w-0 flex-1">
+        <button
+          type="button"
+          id={fieldId}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          onClick={() => setOpenFilterKey(open ? null : filterKey)}
+          className="theme-select flex min-h-[2.5rem] w-full min-w-0 items-center justify-between gap-2 rounded-full py-2 pl-3 pr-10 text-left text-xs tracking-widest uppercase"
+        >
+          <span className="min-w-0 truncate">{selectedLabel}</span>
+        </button>
+        {open && (
+          <ul
+            className="ops-select-list-scroll absolute left-0 right-0 top-full z-[200] mt-1 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-[#0b2740] py-1 shadow-xl"
+            role="listbox"
+            aria-labelledby={`${fieldId}-caption`}
+          >
+            {options.map((opt) => (
+              <li key={opt.value === "" ? "__all" : opt.value} role="none">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={value === opt.value}
+                  className={`w-full max-w-full truncate px-3 py-2 text-left text-xs tracking-widest uppercase hover:bg-[#1b3d5c] ${
+                    value === opt.value ? "bg-[#1b3d5c]/90 text-white" : "text-slate-200"
+                  }`}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpenFilterKey(null);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // List Component with Filters
 function OperationsListComponent() {
   const [operations, setOperations] = useState([]);
@@ -1646,10 +1785,17 @@ function OperationsListComponent() {
   const [filteredOperations, setFilteredOperations] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
+  const [monthFilter, setMonthFilter] = useState("");
+  const [quarterFilter, setQuarterFilter] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const router = useRouter();
   const { canEditForm, canDeleteForm } = useOperationsRole();
+  const yearFieldId = useId();
+  const statusFieldId = useId();
+  const monthFieldId = useId();
+  const quarterFieldId = useId();
+  const [openFilterKey, setOpenFilterKey] = useState(null);
 
   // Fetch all operations once on mount to calculate available years
   useEffect(() => {
@@ -1669,7 +1815,7 @@ function OperationsListComponent() {
 
   useEffect(() => {
     fetchOperations();
-  }, [statusFilter, yearFilter]);
+  }, [statusFilter, yearFilter, monthFilter, quarterFilter]);
 
   useEffect(() => {
     let filtered = operations;
@@ -1702,7 +1848,11 @@ function OperationsListComponent() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, statusFilter, yearFilter]);
+  }, [searchQuery, statusFilter, yearFilter, monthFilter, quarterFilter]);
+
+  useEffect(() => {
+    setOpenFilterKey(null);
+  }, [statusFilter, yearFilter, monthFilter, quarterFilter]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(filteredOperations.length / pageSize));
@@ -1725,6 +1875,8 @@ function OperationsListComponent() {
       const params = new URLSearchParams();
       if (statusFilter) params.append("status", statusFilter);
       if (yearFilter) params.append("year", yearFilter);
+      if (monthFilter) params.append("month", monthFilter);
+      if (quarterFilter) params.append("quarter", quarterFilter);
       
       const response = await fetch(`/api/operations/sts/list?${params.toString()}`);
       const data = await response.json();
@@ -1818,20 +1970,44 @@ function OperationsListComponent() {
     )
   ).sort((a, b) => b - a);
 
+  const yearFilterOptions = useMemo(
+    () => [
+      { value: "", label: "All" },
+      ...availableYears.map((y) => ({ value: String(y), label: String(y) })),
+    ],
+    [availableYears]
+  );
+
+  const monthFilterOptions = useMemo(
+    () => [{ value: "", label: "All" }, ...STS_LIST_MONTH_OPTIONS],
+    []
+  );
+
+  const quarterFilterOptions = useMemo(
+    () => [{ value: "", label: "All" }, ...STS_LIST_QUARTER_OPTIONS],
+    []
+  );
+
+  const hasActiveListFilters =
+    Boolean(searchQuery.trim()) ||
+    Boolean(statusFilter) ||
+    Boolean(yearFilter) ||
+    Boolean(monthFilter) ||
+    Boolean(quarterFilter);
+
   return (
     <div className="space-y-6">
-      {/* Search Bar + Download */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex-1 min-w-[200px] relative">
+      <div className="flex flex-row items-center gap-2 sm:gap-4">
+        <div className="relative min-w-0 flex-1">
           <input
             type="text"
             placeholder="Search by Ref No, Type, Location, Client, Agent, CHS, MS..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder:text-white/50 focus:border-orange-500/40 focus:ring-2 focus:ring-orange-500/40 transition outline-none"
           />
           <svg
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none"
+            className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-white/50"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -1844,176 +2020,183 @@ function OperationsListComponent() {
             />
           </svg>
         </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-white/70 whitespace-nowrap">Status:</label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-          >
-            <option value="">All</option>
-            <option value="INPROGRESS">In Progress</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="Lined Up">Lined Up</option>
-            <option value="CANCELED">Canceled</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-white/70 whitespace-nowrap">Year:</label>
-          <select
-            value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value)}
-            className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-          >
-            <option value="">All</option>
-            {availableYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <ActionDownloadIcon
-          onClick={downloadExcel}
-          disabled={filteredOperations.length === 0}
-          title="Download Excel"
-          className="!rounded-xl !p-2.5"
-        />
-      </div>
-
-      {/* Operations Table */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <p className="text-white/60">Loading operations...</p>
-        </div>
-      ) : filteredOperations.length === 0 ? (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
-          <p className="text-white/60">
-            {searchQuery || statusFilter || yearFilter
-              ? "No operations found matching your filters."
-              : "No operations found."}
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
-              <thead className="bg-white/5 border-b border-white/10">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Type of Operation
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    VSL Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Agent
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                    Barrels
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-white/90 uppercase tracking-wider w-32">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {paginatedOperations.map((op) => (
-                  <tr key={op._id} className="hover:bg-white/5 transition">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-white/90">
-                        {formatDateTime(op.operationStartTime)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-white/90">
-                        {op.typeOfOperation || "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-white/90">
-                        {op.location?.name || "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          statusTone[op.operationStatus]?.pill ||
-                          "bg-white/10 text-white"
-                        }`}
-                      >
-                        {op.operationStatus || "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-white/90">
-                        {op.chs || op.ms || "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-white/90">
-                        {op.client || "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-white/90">
-                        {op.agent || "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-white/90">
-                            {calculateBarrels(op.quantity)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2 justify-center">
-                        <ActionViewIcon
-                          onClick={() => router.push(`/operations/sts-operations/new/view/${op._id}`)}
-                          title="View operation"
-                        />
-                        {canEditForm && (
-                          <ActionEditIcon
-                            onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
-                            title="Edit operation"
-                          />
-                        )}
-                        {canDeleteForm && (
-                          <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <OperationsListPaginationFooter
-            totalFiltered={totalFiltered}
-            page={safePage}
-            setPage={setPage}
-            totalPages={totalPages}
-            pageStart={pageStart}
-            pageEnd={pageEnd}
-            pageSize={pageSize}
-            setPageSize={setPageSize}
+        <div className="flex shrink-0">
+          <ActionDownloadIcon
+            onClick={downloadExcel}
+            disabled={filteredOperations.length === 0}
+            title="Download Excel"
+            className="!rounded-xl !p-2.5"
           />
         </div>
-      )}
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5">
+        <div className="grid grid-cols-1 gap-3 border-b border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StsListFilterSelect
+            filterKey="year"
+            openFilterKey={openFilterKey}
+            setOpenFilterKey={setOpenFilterKey}
+            label="Year"
+            fieldId={yearFieldId}
+            value={yearFilter}
+            onChange={setYearFilter}
+            options={yearFilterOptions}
+          />
+          <StsListFilterSelect
+            filterKey="status"
+            openFilterKey={openFilterKey}
+            setOpenFilterKey={setOpenFilterKey}
+            label="Status"
+            fieldId={statusFieldId}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={STS_LIST_STATUS_OPTIONS}
+          />
+          <StsListFilterSelect
+            filterKey="month"
+            openFilterKey={openFilterKey}
+            setOpenFilterKey={setOpenFilterKey}
+            label="Month"
+            fieldId={monthFieldId}
+            value={monthFilter}
+            onChange={(v) => {
+              setMonthFilter(v);
+              if (v) setQuarterFilter("");
+            }}
+            options={monthFilterOptions}
+          />
+          <StsListFilterSelect
+            filterKey="quarter"
+            openFilterKey={openFilterKey}
+            setOpenFilterKey={setOpenFilterKey}
+            label="Quarter"
+            fieldId={quarterFieldId}
+            value={quarterFilter}
+            onChange={(v) => {
+              setQuarterFilter(v);
+              if (v) setMonthFilter("");
+            }}
+            options={quarterFilterOptions}
+          />
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-white/60">Loading operations...</p>
+          </div>
+        ) : filteredOperations.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-white/60">
+              {hasActiveListFilters
+                ? "No operations found matching your filters."
+                : "No operations found."}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-[700px] w-full">
+                <thead className="border-b border-white/10 bg-white/5">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Date
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Type of Operation
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Location
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      VSL Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Client
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Agent
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Barrels
+                    </th>
+                    <th className="w-32 px-6 py-4 text-center text-xs font-semibold tracking-wider text-white/90 uppercase">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10">
+                  {paginatedOperations.map((op) => (
+                    <tr key={op._id} className="transition hover:bg-white/5">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-white/90">
+                          {formatDateTime(op.operationStartTime)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-white/90">{op.typeOfOperation || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-white/90">{op.location?.name || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`rounded px-2 py-1 text-xs font-medium ${
+                            statusTone[op.operationStatus]?.pill || "bg-white/10 text-white"
+                          }`}
+                        >
+                          {op.operationStatus || "—"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-white/90">{op.chs || op.ms || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-white/90">{op.client || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-white/90">{op.agent || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-white/90">{calculateBarrels(op.quantity)}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex justify-center gap-2">
+                          <ActionViewIcon
+                            onClick={() => router.push(`/operations/sts-operations/new/view/${op._id}`)}
+                            title="View operation"
+                          />
+                          {canEditForm && (
+                            <ActionEditIcon
+                              onClick={() => router.push(`/operations/sts-operations/new/edit/${op._id}`)}
+                              title="Edit operation"
+                            />
+                          )}
+                          {canDeleteForm && (
+                            <ActionDeleteIcon onClick={() => handleDelete(op._id)} title="Delete operation" />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <OperationsListPaginationFooter
+              totalFiltered={totalFiltered}
+              page={safePage}
+              setPage={setPage}
+              totalPages={totalPages}
+              pageStart={pageStart}
+              pageEnd={pageEnd}
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -2153,96 +2336,6 @@ function DateField({ label, name }) {
     </div>
   );
 }
-
-function SelectField({
-  label,
-  options = [],
-  loading = false,
-  name,
-  multiple = false,
-  placeholder,
-  size,
-  onChange,
-}) {
-  const [isPlaceholderSelected, setIsPlaceholderSelected] = useState(
-    !multiple && !!placeholder
-  );
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-
-      <div className="relative">
-        {!multiple && (
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-orange-300">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
-        )}
-
-        <select
-          name={name}
-          multiple={multiple}
-          size={size}
-          defaultValue={!multiple ? "" : undefined}
-          onChange={(e) => {
-            if (!multiple && placeholder) {
-              setIsPlaceholderSelected(e.target.value === "");
-            }
-            if (onChange) onChange(e.target.value);
-          }}
-          className={`w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm shadow-lg shadow-black/20 outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400/60 transition ${
-            multiple ? "appearance-auto min-h-[160px]" : "appearance-none"
-          } ${
-            isPlaceholderSelected && !multiple
-              ? "text-white/60 font-normal"
-              : "text-white font-semibold"
-          }`}
-        >
-          {/* Placeholder (ONLY for single select) */}
-          {placeholder && !multiple && (
-            <option value="" disabled hidden className="text-slate-900">
-              {placeholder}
-            </option>
-          )}
-
-          {loading && (
-            <option disabled className="text-slate-900">
-              Loading...
-            </option>
-          )}
-
-          {!loading &&
-            options.map((opt) => {
-              const value = typeof opt === "object" ? opt.value : opt;
-              const text = typeof opt === "object" ? opt.label : opt;
-
-              return (
-                <option
-                  key={value ?? text}
-                  value={value}
-                  className="text-slate-900"
-                >
-                  {text}
-                </option>
-              );
-            })}
-        </select>
-      </div>
-    </div>
-  );
-}
-
 
 function FileField({ name, resetKey }) {
   const [fileUrl, setFileUrl] = useState("");

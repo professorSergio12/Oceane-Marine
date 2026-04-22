@@ -18,6 +18,7 @@ import {
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -379,38 +380,38 @@ export default function ManualListPage() {
                   <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
                     Year
                   </span>
-                  <select
-                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  <OperationsSelectField
+                    variant="pill"
+                    ariaLabel="Year filter"
                     value={year === "" || year === null ? "" : String(year)}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setYear(v === "" ? "" : Number(v));
-                    }}
-                  >
-                    <option value="">All years</option>
-                    {initialYears.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setYear(v === "" ? "" : Number(v))}
+                    options={[
+                      { value: "", label: "All years" },
+                      ...initialYears.map((y) => ({ value: String(y), label: String(y) })),
+                    ]}
+                    className="min-w-0 flex-1"
+                    triggerClassName="ops-select-trigger min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  />
                 </div>
                 <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
                   <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
                     Form
                   </span>
-                  <select
-                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  <OperationsSelectField
+                    variant="pill"
+                    ariaLabel="Form filter"
                     value={formCode}
-                    onChange={(e) => setFormCode(e.target.value)}
-                  >
-                    <option value="">All forms</option>
-                    {formCodeOptions.map((opt) => (
-                      <option key={opt.code} value={opt.code}>
-                        {opt.code}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setFormCode(v)}
+                    options={[
+                      { value: "", label: "All forms" },
+                      ...formCodeOptions.map((opt) => ({
+                        value: opt.code,
+                        label: opt.code,
+                      })),
+                    ]}
+                    className="min-w-0 flex-1"
+                    triggerClassName="ops-select-trigger min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                  />
                 </div>
               </div>
             }

@@ -7,6 +7,7 @@ import { computeAll } from "./calculations";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
 import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 const emptyShip = () => ({
   name: "",
@@ -147,6 +148,7 @@ function CompatibilityPageContent() {
       setExpandedModules((prev) => new Set([...prev, "forms"]));
     } else if (pathname.startsWith("/operations/sts-operations/new/locations")) setActiveTab("locations");
     else if (pathname.startsWith("/operations/sts-operations/new/cargos")) setActiveTab("cargos");
+    else if (pathname.startsWith("/operations/sts-operations/new/clients-agents")) setActiveTab("clientsAgents");
     else if (pathname.startsWith("/operations/sts-operations/new/mooringmaster")) setActiveTab("mooring");
   }, [pathname]);
 
@@ -245,6 +247,9 @@ function CompatibilityPageContent() {
   };
 
   const inputClass = "w-full min-h-[44px] rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-colors tabular-nums box-border";
+  /** Matches grid inputs visually; custom select uses flex+chevron so avoid min-h-[44px]+py-3 stacking. */
+  const operationSelectTriggerClass =
+    "w-full min-h-[38px] rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-colors tabular-nums box-border";
   const inputNumberClass = inputClass;
   const labelClass = "block text-sm font-medium text-white/90 mb-1.5 shrink-0";
   const fieldWrapClass = "flex flex-col min-h-[72px] shrink-0";
@@ -420,19 +425,25 @@ function CompatibilityPageContent() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className={fieldWrapClass}>
                     <label className={labelClass}>Operation number *</label>
-                    <select
+                    <OperationsSelectField
+                      ariaLabel="Operation number"
                       value={selectedOperationId}
-                      onChange={(e) => handleOperationSelect(e.target.value)}
-                      className={inputClass}
+                      onChange={(v) => handleOperationSelect(v)}
+                      options={[
+                        {
+                          value: "",
+                          label: opsLoading ? "Loading operations..." : "Select operation",
+                        },
+                        ...inProgressOps.map((op) => ({
+                          value: String(op._id),
+                          label: op.Operation_Ref_No,
+                        })),
+                      ]}
+                      triggerClassName={operationSelectTriggerClass}
                       disabled={opsLoading}
-                    >
-                      <option value="">{opsLoading ? "Loading operations..." : "Select operation"}</option>
-                      {inProgressOps.map((op) => (
-                        <option key={op._id} value={op._id}>
-                          {op.Operation_Ref_No}
-                        </option>
-                      ))}
-                    </select>
+                      loading={opsLoading}
+                      className="w-full"
+                    />
                   </div>
                   <div className={fieldWrapClass}>
                     <label className={labelClass}>Year *</label>

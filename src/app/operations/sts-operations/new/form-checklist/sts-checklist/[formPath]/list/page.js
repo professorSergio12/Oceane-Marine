@@ -18,6 +18,7 @@ import {
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 const FORM_TITLES = {
   'ops-ofd-001': 'OPS-OFD-001 - Before Operation Commence',
@@ -392,21 +393,20 @@ export default function FormListPage() {
             filterChildren={
               <>
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={selectedYear ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSelectedYear(value ? Number(value) : null);
-                  }}
-                >
-                  <option value="">All Years</option>
-                  {availableYears.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                <OperationsSelectField
+                  variant="pill"
+                  ariaLabel="Year filter"
+                  value={selectedYear != null ? String(selectedYear) : ""}
+                  onChange={(v) => setSelectedYear(v ? Number(v) : null)}
+                  options={[
+                    { value: "", label: "All Years" },
+                    ...availableYears.map((y) => ({
+                      value: String(y),
+                      label: String(y),
+                    })),
+                  ]}
+                  triggerClassName="ops-select-trigger rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                />
               </>
             }
           >

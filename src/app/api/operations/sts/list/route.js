@@ -12,6 +12,8 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const year = searchParams.get("year");
+    const month = searchParams.get("month");
+    const quarter = searchParams.get("quarter");
 
     // Build query
     const query = { isLatest: true };
@@ -21,14 +23,45 @@ export async function GET(req) {
       query.operationStatus = status;
     }
 
-    // Add year filter
-    if (year) {
-      const yearNum = parseInt(year);
-      const startDate = new Date(yearNum, 0, 1);
-      const endDate = new Date(yearNum + 1, 0, 1);
+    const yearNum = year ? parseInt(year, 10) : NaN;
+    const monthNum = month ? parseInt(month, 10) : NaN;
+    const quarterNum = quarter ? parseInt(quarter, 10) : NaN;
+
+    const hasYear = !Number.isNaN(yearNum);
+    const hasMonth = !Number.isNaN(monthNum) && monthNum >= 1 && monthNum <= 12;
+    const hasQuarter =
+      !Number.isNaN(quarterNum) && quarterNum >= 1 && quarterNum <= 4;
+
+    // operationStartTime: year (+ optional month or quarter), or month/quarter across all years
+    if (hasYear) {
+      let startDate;
+      let endDate;
+      if (hasMonth) {
+        startDate = new Date(yearNum, monthNum - 1, 1);
+        endDate = new Date(yearNum, monthNum, 1);
+      } else if (hasQuarter) {
+        const startMonth = (quarterNum - 1) * 3;
+        startDate = new Date(yearNum, startMonth, 1);
+        endDate = new Date(yearNum, startMonth + 3, 1);
+      } else {
+        startDate = new Date(yearNum, 0, 1);
+        endDate = new Date(yearNum + 1, 0, 1);
+      }
       query.operationStartTime = {
         $gte: startDate,
         $lt: endDate,
+      };
+    } else if (hasMonth) {
+      query.$expr = {
+        $eq: [{ $month: "$operationStartTime" }, monthNum],
+      };
+    } else if (hasQuarter) {
+      const startMonth = (quarterNum - 1) * 3;
+      query.$expr = {
+        $in: [
+          { $month: "$operationStartTime" },
+          [startMonth + 1, startMonth + 2, startMonth + 3],
+        ],
       };
     }
 

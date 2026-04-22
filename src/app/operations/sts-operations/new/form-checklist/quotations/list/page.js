@@ -19,6 +19,7 @@ import {
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -381,21 +382,17 @@ export default function QuotationListPage() {
           filterChildren={
             <>
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
-              <select
-                className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+              <OperationsSelectField
+                variant="pill"
+                ariaLabel="Year filter"
                 value={year === "" || year === null ? "" : String(year)}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setYear(v === "" ? "" : Number(v));
-                }}
-              >
-                <option value="">All years</option>
-                {initialYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setYear(v === "" ? "" : Number(v))}
+                options={[
+                  { value: "", label: "All years" },
+                  ...initialYears.map((y) => ({ value: String(y), label: String(y) })),
+                ]}
+                triggerClassName="ops-select-trigger rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+              />
             </>
           }
         >

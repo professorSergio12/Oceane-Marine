@@ -51,6 +51,7 @@ export default function CompatibilityViewPage() {
       setExpandedModules((prev) => new Set([...prev, "forms"]));
     } else if (pathname?.startsWith("/operations/sts-operations/new/locations")) setActiveTab("locations");
     else if (pathname?.startsWith("/operations/sts-operations/new/cargos")) setActiveTab("cargos");
+    else if (pathname?.startsWith("/operations/sts-operations/new/clients-agents")) setActiveTab("clientsAgents");
     else if (pathname?.startsWith("/operations/sts-operations/new/mooringmaster")) setActiveTab("mooring");
   }, [pathname]);
 

@@ -66,7 +66,7 @@ export function buildPmsEquipmentTestingReminderEmail({
     "Thank you for your cooperation.",
     "",
     "Best regards,",
-    "Ocean Group",
+    "Oceane Group",
     "",
     "This is an automated email. Please do not reply.",
   ].join("\n");
@@ -98,7 +98,7 @@ export function buildPmsEquipmentTestingReminderEmail({
         <p style="margin:0 0 8px;">Thank you for your cooperation.</p>
         <p style="margin:0 0 16px;">
           Best regards,<br />
-          <strong>Ocean Group</strong>
+          <strong>Oceane Group</strong>
         </p>
         <p style="margin:0;font-size:13px;color:#64748b;">
           This is an automated email. Please do not reply.

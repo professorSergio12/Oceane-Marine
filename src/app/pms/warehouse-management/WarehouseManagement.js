@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 import {
   ActionViewIcon,
   ActionEditIcon,
@@ -74,7 +75,7 @@ const SearchableDropdown = ({ label, required, options = [], value, onChange, pl
               autoFocus
             />
           </div>
-          <div className="overflow-y-auto max-h-44">
+          <div className="ops-select-list-scroll max-h-44 overflow-y-auto">
             {filtered.length === 0 ? (
               <div className="px-4 py-3 text-xs text-slate-500">No options found</div>
             ) : (
@@ -439,28 +440,27 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
         >
           {view === "list" && (
             <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
-              <label
-                htmlFor="warehouse-list-filter-year"
-                className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]"
-              >
+              <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]">
                 Year
-              </label>
-              <select
-                id="warehouse-list-filter-year"
+              </span>
+              <OperationsSelectField
+                variant="pill"
+                ariaLabel="Filter by year"
                 value={filterYear}
-                onChange={(e) => setFilterYear(e.target.value)}
-                className="theme-select w-44 min-w-44 max-w-full shrink-0 rounded-full px-2.5 py-0.5 text-[10px] tracking-wide uppercase md:px-3 md:py-1 md:text-[11px]"
-              >
-                <option value="">All years</option>
-                {Array.from(
-                  { length: new Date().getFullYear() + 5 - 2020 + 1 },
-                  (_, i) => 2020 + i
-                ).map((y) => (
-                  <option key={y} value={String(y)}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+                onChange={setFilterYear}
+                options={[
+                  { value: "", label: "All years" },
+                  ...Array.from(
+                    { length: new Date().getFullYear() + 5 - 2020 + 1 },
+                    (_, i) => {
+                      const y = 2020 + i;
+                      return { value: String(y), label: String(y) };
+                    }
+                  ),
+                ]}
+                className="min-w-0 w-36 shrink-0 md:w-44"
+                triggerClassName="ops-select-trigger w-full rounded-full px-2.5 py-0.5 text-[10px] tracking-wide uppercase md:px-3 md:py-1 md:text-[11px]"
+              />
             </div>
           )}
           <div
@@ -470,27 +470,26 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                 : "max-w-[48%] flex-1 md:max-w-none md:flex-initial"
             }`}
           >
-            <label
-              htmlFor="warehouse-header-location"
-              className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]"
-            >
+            <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]">
               <span className="md:hidden">Loc</span>
               <span className="hidden md:inline">Location</span>
-            </label>
-            <select
-              id="warehouse-header-location"
+            </span>
+            <OperationsSelectField
+              variant="pill"
+              ariaLabel="Location"
               value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className={`min-w-0 rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-6 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 md:rounded-full md:py-1 md:pl-2.5 md:pr-7 md:text-[11px] ${
-                view === "form" ? "w-full max-w-48 flex-1 md:w-36 md:max-w-none md:flex-initial" : "flex-1 md:w-36 md:flex-initial"
+              onChange={setSelectedLocation}
+              options={LOCATIONS.map((loc) => ({
+                value: loc.value,
+                label: loc.label,
+              }))}
+              className={`min-w-0 ${
+                view === "form"
+                  ? "w-full max-w-48 flex-1 md:w-36 md:max-w-none md:flex-initial"
+                  : "flex-1 md:w-36 md:flex-initial"
               }`}
-            >
-              {LOCATIONS.map((loc) => (
-                <option key={loc.value} value={loc.value}>
-                  {loc.label}
-                </option>
-              ))}
-            </select>
+              triggerClassName="ops-select-trigger w-full rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 text-[10px] leading-tight md:rounded-full md:py-1 md:pl-2.5 md:text-[11px]"
+            />
           </div>
         </div>
       </div>
@@ -537,35 +536,36 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                 {form.status === "COMPLETED" ? "Completed" : "Not Completed"}
               </span>
             </div>
-            <select
-              name="status"
+            <OperationsSelectField
+              variant="pill"
+              ariaLabel="Record status"
               value={form.status}
-              onChange={handleChange}
-              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-            >
-              <option value="NOT_COMPLETED">Not Completed</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
+              onChange={(v) => setForm((prev) => ({ ...prev, status: v }))}
+              options={[
+                { value: "NOT_COMPLETED", label: "Not Completed" },
+                { value: "COMPLETED", label: "Completed" },
+              ]}
+              className="min-w-[11rem]"
+              triggerClassName="ops-select-trigger w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm"
+            />
           </div>
 
           {/* ROW 1: Location, Equipment Name, Equipment Type, Specification */}
           <div className="grid md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-200">
-                Location <span className="text-orange-400">*</span>
-              </label>
-              <select
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-              >
-                {LOCATIONS.map((loc) => (
-                  <option key={loc.value} value={loc.value}>
-                    {loc.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <OperationsSelectField
+              label={
+                <>
+                  Location <span className="text-orange-400">*</span>
+                </>
+              }
+              value={selectedLocation}
+              onChange={setSelectedLocation}
+              options={LOCATIONS.map((loc) => ({
+                value: loc.value,
+                label: loc.label,
+              }))}
+              triggerClassName="w-full min-h-[2.75rem] rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+            />
 
             <SearchableDropdown
               label="Equipment Name"
@@ -602,21 +602,20 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
           {/* ROW 3: Ownership, Nos */}
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-200">
-                Ownership <span className="text-orange-400">*</span>
-              </label>
-              <select
-                name="ownership"
-                value={form.ownership}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                required
-              >
-                <option value="OWNED">Owned</option>
-                <option value="THIRD_PARTY">Third Party</option>
-              </select>
-            </div>
+            <OperationsSelectField
+              label={
+                <>
+                  Ownership <span className="text-orange-400">*</span>
+                </>
+              }
+              value={form.ownership}
+              onChange={(v) => setForm((prev) => ({ ...prev, ownership: v }))}
+              options={[
+                { value: "OWNED", label: "Owned" },
+                { value: "THIRD_PARTY", label: "Third Party" },
+              ]}
+              triggerClassName="w-full min-h-[2.75rem] rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+            />
             <Input label="Nos" required type="number" name="nos" value={form.nos} onChange={handleChange} />
           </div>
 
@@ -768,7 +767,10 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               </tbody>
             </table>
           </div>
-          <OperationsListPaginationFooter {...warehouseListPaginationFooterProps} />
+          <OperationsListPaginationFooter
+            {...warehouseListPaginationFooterProps}
+            className="overflow-visible"
+          />
         </div>
       )}
 

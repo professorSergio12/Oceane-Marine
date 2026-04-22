@@ -9,6 +9,7 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 /** External STS form app: `{base}/{formNo}` with optional `?operationRef=` and `mode=update` (see operations-sts-checklist). */
 const STS_CHECKLIST_EXTERNAL_BASE = (
@@ -362,20 +363,23 @@ export default function StsChecklistPage() {
               <label htmlFor="operationRef" className="text-sm font-semibold text-white/90 whitespace-nowrap">
                 Select Operation Ref:
               </label>
-              <select
+              <OperationsSelectField
                 id="operationRef"
+                ariaLabel="Select operation reference"
                 value={selectedOperationRef}
-                onChange={(e) => setSelectedOperationRef(e.target.value)}
-                className="flex-1 max-w-xs px-4 py-2.5 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onChange={(v) => setSelectedOperationRef(v)}
+                options={[
+                  { value: "", label: "-- Select Operation Ref --" },
+                  ...inProgressOperations.map((ref) => ({
+                    value: ref,
+                    label: ref,
+                  })),
+                ]}
                 disabled={loadingOperations}
-              >
-                <option value="">-- Select Operation Ref --</option>
-                {inProgressOperations.map((ref) => (
-                  <option key={ref} value={ref}>
-                    {ref}
-                  </option>
-                ))}
-              </select>
+                loading={loadingOperations}
+                triggerClassName="flex-1 max-w-xs px-4 py-2.5 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent min-h-[2.75rem]"
+                className="min-w-0 flex-1 max-w-xs"
+              />
               {selectedOperationRef && (
                 <>
                   <button

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePmsRole } from "@/hooks/usePmsRole";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -181,21 +182,19 @@ export default function EquipmentTesting() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-[#0b2740]/70 backdrop-blur-[2px] px-4 py-3 shadow-xl">
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-300">Select Year</span>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
-          >
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+      {/* Filters — z-40 so open menus paint above the inventory card (backdrop-blur stacking) */}
+      <div className="relative z-40 flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-[#0b2740]/70 backdrop-blur-[2px] px-4 py-3 shadow-xl">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-xs text-slate-300">Select Year</span>
+          <OperationsSelectField
+            variant="pill"
+            ariaLabel="Select year"
+            value={String(year)}
+            onChange={(v) => setYear(Number(v))}
+            options={yearOptions.map((y) => ({ value: String(y), label: String(y) }))}
+            className="min-w-0 w-[6.25rem] sm:w-28"
+            triggerClassName="ops-select-trigger w-full rounded-lg px-3 py-1.5 text-xs"
+          />
         </div>
 
         <button
@@ -224,8 +223,8 @@ export default function EquipmentTesting() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-6 shadow-2xl">
+      {/* Table — z-0 stays below filter strip while filter is open */}
+      <div className="relative z-0 rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-white">
             Equipment inventory
@@ -364,7 +363,10 @@ export default function EquipmentTesting() {
             </tbody>
           </table>
         </div>
-        <OperationsListPaginationFooter {...testingPaginationFooterProps} />
+        <OperationsListPaginationFooter
+          {...testingPaginationFooterProps}
+          className="overflow-visible"
+        />
       </div>
     </div>
   );

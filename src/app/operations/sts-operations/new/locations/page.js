@@ -12,6 +12,7 @@ import {
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 const OFFICE_CHECK_LABELS = {
   jpo: "JPO",
@@ -101,6 +102,8 @@ export default function LocationsPage() {
       setActiveTab("locations");
     } else if (pathname.startsWith("/operations/sts-operations/new/cargos")) {
       setActiveTab("cargos");
+    } else if (pathname.startsWith("/operations/sts-operations/new/clients-agents")) {
+      setActiveTab("clientsAgents");
     } else if (pathname.startsWith("/operations/sts-operations/new/mooringmaster")) {
       setActiveTab("mooring");
     }
@@ -806,18 +809,18 @@ export default function LocationsPage() {
                     >
                       Year
                     </label>
-                    <select
+                    <OperationsSelectField
                       id="office-checks-year"
-                      value={year}
-                      onChange={(e) => setYear(Number(e.target.value))}
-                      className="w-20 shrink-0 rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-6 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/60 sm:w-24 sm:py-1.5 sm:pl-2 sm:pr-7 sm:text-xs"
-                    >
-                      {years.map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel="Year"
+                      value={String(year)}
+                      onChange={(v) => setYear(Number(v))}
+                      options={years.map((y) => ({
+                        value: String(y),
+                        label: String(y),
+                      }))}
+                      triggerClassName="w-20 shrink-0 rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-8 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/60 sm:w-24 sm:py-1.5 sm:pl-2 sm:pr-8 sm:text-xs min-h-0"
+                      className="w-auto shrink-0"
+                    />
                   </div>
                   <div className="flex min-w-0 max-w-[min(100%,11rem)] shrink items-center gap-1 sm:max-w-[13rem] sm:gap-1.5">
                     <label
@@ -827,19 +830,21 @@ export default function LocationsPage() {
                       <span className="sm:hidden">Loc</span>
                       <span className="hidden sm:inline">Location</span>
                     </label>
-                    <select
+                    <OperationsSelectField
                       id="office-checks-location"
+                      ariaLabel="Location"
                       value={selectedLocationId}
-                      onChange={handleLocationChange}
-                      className="min-w-0 w-28 max-w-full rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-6 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/60 sm:w-36 sm:py-1.5 sm:pl-2 sm:pr-7 sm:text-xs"
-                    >
-                      <option value="">—</option>
-                      {locations.map((loc) => (
-                        <option key={loc._id} value={loc._id}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(v) => handleLocationChange({ target: { value: v } })}
+                      options={[
+                        { value: "", label: "—" },
+                        ...locations.map((loc) => ({
+                          value: String(loc._id),
+                          label: loc.name,
+                        })),
+                      ]}
+                      triggerClassName="min-w-0 w-28 max-w-full rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 pr-8 text-[10px] leading-tight text-white focus:outline-none focus:ring-1 focus:ring-orange-500/60 sm:w-36 sm:py-1.5 sm:pl-2 sm:pr-8 sm:text-xs min-h-0"
+                      className="min-w-0 max-w-full shrink"
+                    />
                   </div>
                 </div>
               </div>

@@ -9,6 +9,7 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 export default function ManualFormPage() {
   const router = useRouter();
@@ -492,21 +493,26 @@ export default function ManualFormPage() {
                     <label htmlFor="formCode" className="block text-sm font-medium text-white/90 mb-2">
                       Form Code <span className="text-red-400">*</span>
                     </label>
-                    <select
+                    <OperationsSelectField
                       id="formCode"
-                      name="formCode"
+                      ariaLabel="Form Code"
                       value={form.formCode}
-                      onChange={handleChange}
-                      required={!editId}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-all backdrop-blur-sm"
-                    >
-                      <option value="">Select form code</option>
-                      {formCodeOptions.map((opt) => (
-                        <option key={opt.code} value={opt.code}>
-                          {opt.code}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(v) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          formCode: v,
+                        }))
+                      }
+                      options={[
+                        { value: "", label: "Select form code" },
+                        ...formCodeOptions.map((opt) => ({
+                          value: opt.code,
+                          label: opt.code,
+                        })),
+                      ]}
+                      triggerClassName="flex min-h-[2.75rem] w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 pr-10 text-left text-sm text-white outline-none transition-all backdrop-blur-sm focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/50"
+                      className="w-full"
+                    />
                   </div>
                 </>
               )}

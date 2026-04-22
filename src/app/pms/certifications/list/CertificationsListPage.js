@@ -127,8 +127,8 @@ export default function CertificationsListPage() {
           </div>
         )}
 
-        <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] shadow-2xl overflow-hidden">
-          <div className="grid grid-cols-6 text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3">
+        <div className="flex flex-col rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] shadow-2xl">
+          <div className="grid grid-cols-6 rounded-t-2xl sm:rounded-t-3xl text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3">
             <div>Location</div>
             <div>Equipment Name</div>
             <div>Equipment Type</div>
@@ -143,7 +143,7 @@ export default function CertificationsListPage() {
             <div className="p-6 text-sm text-slate-300">No records found.</div>
           ) : (
             <>
-              <div className="divide-y divide-white/10">
+              <div className="min-w-0 divide-y divide-white/10">
                 {paginatedCertItems.map((item) => (
                   <div
                     key={item._id}
@@ -183,7 +183,10 @@ export default function CertificationsListPage() {
                   </div>
                 ))}
               </div>
-              <OperationsListPaginationFooter {...certsPaginationFooterProps} />
+              <OperationsListPaginationFooter
+                {...certsPaginationFooterProps}
+                className="rounded-b-2xl sm:rounded-b-3xl overflow-visible"
+              />
             </>
           )}
         </div>

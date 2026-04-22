@@ -1,5 +1,7 @@
 "use client";
 
+import OperationsSelectField from "./OperationsSelectField";
+
 const DEFAULT_SIZES = [10, 25, 50, 100];
 
 /**
@@ -21,33 +23,34 @@ export default function OperationsListPaginationFooter({
 
   return (
     <div
-      className={`flex flex-col gap-3 border-t border-white/10 bg-white/3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${className}`.trim()}
+      className={`relative z-10 flex flex-col gap-3 border-t border-white/10 bg-white/3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${className}`.trim()}
     >
-      <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
-        <span>
+      <div className="flex min-w-0 flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        <span className="shrink-0">
           Showing{" "}
           <span className="font-semibold text-white">
             {pageStart}–{pageEnd}
           </span>{" "}
           of <span className="font-semibold text-white">{totalFiltered}</span>
         </span>
-        <label className="flex items-center gap-2">
-          <span className="text-white/50">Rows per page</span>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="shrink-0 text-white/50">Rows per page</span>
+          <OperationsSelectField
+            variant="pill"
+            ariaLabel="Rows per page"
+            value={String(pageSize)}
+            onChange={(v) => {
+              setPageSize(Number(v));
               setPage(1);
             }}
-            className="theme-select rounded-lg px-2 py-1 text-xs uppercase tracking-wide"
-          >
-            {pageSizeOptions.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={pageSizeOptions.map((n) => ({
+              value: String(n),
+              label: String(n),
+            }))}
+            triggerClassName="ops-select-trigger min-h-0 w-full min-w-[3rem] justify-between rounded-lg px-2 py-1 text-xs uppercase tracking-wide"
+            className="w-14 min-w-[3.5rem] shrink-0"
+          />
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <button

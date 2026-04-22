@@ -11,6 +11,7 @@ import {
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { ActionDownloadIcon } from "@/app/components/RecordActionIcons";
 import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
+import SelectField from "@/app/operations/components/OperationsSelectField";
 
 const statusTone = {
   INPROGRESS: {
@@ -50,6 +51,8 @@ export default function EditOperationPage() {
   const sidebarRef = useRef(null);
   const pathname = usePathname();
   const [cargoTypes, setCargoTypes] = useState([]);
+  const [stsClients, setStsClients] = useState([]);
+  const [stsAgents, setStsAgents] = useState([]);
   const [locations, setLocations] = useState([]);
   const [mooringMasters, setMooringMasters] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
@@ -176,6 +179,8 @@ export default function EditOperationPage() {
       setActiveTab("locations");
     } else if (pathname.startsWith("/operations/sts-operations/new/cargos")) {
       setActiveTab("cargos");
+    } else if (pathname.startsWith("/operations/sts-operations/new/clients-agents")) {
+      setActiveTab("clientsAgents");
     } else if (pathname.startsWith("/operations/sts-operations/new/mooringmaster")) {
       setActiveTab("mooring");
     }
@@ -219,20 +224,26 @@ export default function EditOperationPage() {
     const fetchMasters = async () => {
       try {
         setLoadingMasters(true);
-        const [cargoRes, locationRes, mooringRes, equipmentRes] =
+        const [cargoRes, clientsRes, agentsRes, locationRes, mooringRes, equipmentRes] =
           await Promise.all([
             fetch("/api/master/cargo-type/list"),
+            fetch("/api/master/sts-clients/list"),
+            fetch("/api/master/sts-agents/list"),
             fetch("/api/master/locations/list"),
             fetch("/api/master/mooring-master/list"),
             fetch("/api/pms/equipment-inventory/primary-equipment/list"),
           ]);
 
         const cargoJson = await cargoRes.json();
+        const clientsJson = await clientsRes.json();
+        const agentsJson = await agentsRes.json();
         const locationJson = await locationRes.json();
         const mooringJson = await mooringRes.json();
         const equipmentJson = await equipmentRes.json();
 
         setCargoTypes(cargoJson?.cargoTypes || []);
+        setStsClients(clientsJson?.clients || []);
+        setStsAgents(agentsJson?.agents || []);
         setLocations(locationJson?.locations || []);
         setMooringMasters(mooringJson?.mooringMasters || []);
         setEquipmentList(equipmentJson?.equipments || []);
@@ -246,6 +257,24 @@ export default function EditOperationPage() {
     fetchMasters();
   }, []);
 
+  const clientSelectOptions = useMemo(() => {
+    const rows = stsClients.map((c) => ({ label: c.name, value: c.name }));
+    const cur = operationData?.client?.trim();
+    if (cur && !rows.some((r) => r.value === cur)) {
+      return [{ label: `${cur} (not in master list)`, value: cur }, ...rows];
+    }
+    return [{ label: "Select", value: "" }, ...rows];
+  }, [stsClients, operationData?.client]);
+
+  const agentSelectOptions = useMemo(() => {
+    const rows = stsAgents.map((a) => ({ label: a.name, value: a.name }));
+    const cur = operationData?.agent?.trim();
+    if (cur && !rows.some((r) => r.value === cur)) {
+      return [{ label: `${cur} (not in master list)`, value: cur }, ...rows];
+    }
+    return [{ label: "Select", value: "" }, ...rows];
+  }, [stsAgents, operationData?.agent]);
+
   // Populate form fields when operation data and form are ready
   useEffect(() => {
     if (operationData && formRef.current && !loadingMasters) {
@@ -257,14 +286,6 @@ export default function EditOperationPage() {
         if (refNoInput) refNoInput.value = op.Operation_Ref_No;
         // Fetch linked checklist/form statuses for this operation ref
         fetchLinkedForms(op.Operation_Ref_No);
-      }
-      if (op.client) {
-        const clientInput = formRef.current.querySelector('input[name="client"]');
-        if (clientInput) clientInput.value = op.client;
-      }
-      if (op.agent) {
-        const agentInput = formRef.current.querySelector('input[name="agent"]');
-        if (agentInput) agentInput.value = op.agent;
       }
       if (op.chs) {
         const chsInput = formRef.current.querySelector('input[name="chs"]');
@@ -279,35 +300,10 @@ export default function EditOperationPage() {
         if (remarksInput) remarksInput.value = op.remarks;
       }
 
-      // Select fields
-      if (op.typeOfOperation) {
-        const typeSelect = formRef.current.querySelector('select[name="typeOfOperation"]');
-        if (typeSelect) typeSelect.value = op.typeOfOperation;
-      }
-      if (op.mooringMaster) {
-        const mmId = op.mooringMaster._id || op.mooringMaster;
-        const mmSelect = formRef.current.querySelector('select[name="mooringMaster"]');
-        if (mmSelect && mmId) mmSelect.value = mmId;
-      }
+      // SelectField values come from defaultValue; still load location-dependent data
       if (op.location) {
         const locId = op.location._id || op.location;
-        const locSelect = formRef.current.querySelector('select[name="location"]');
-        if (locSelect && locId) locSelect.value = locId;
-        // Fetch QHSE risk assessments & near miss reports for this location
-        handleLocationChange(locId);
-      }
-      if (op.typeOfCargo) {
-        const cargoId = op.typeOfCargo._id || op.typeOfCargo;
-        const cargoSelect = formRef.current.querySelector('select[name="typeOfCargo"]');
-        if (cargoSelect && cargoId) cargoSelect.value = cargoId;
-      }
-      if (op.vesselTypeCHS) {
-        const vesselCHSSelect = formRef.current.querySelector('select[name="vesselTypeCHS"]');
-        if (vesselCHSSelect) vesselCHSSelect.value = op.vesselTypeCHS;
-      }
-      if (op.vesselTypeMS) {
-        const vesselMSSelect = formRef.current.querySelector('select[name="vesselTypeMS"]');
-        if (vesselMSSelect) vesselMSSelect.value = op.vesselTypeMS;
+        if (locId) handleLocationChange(locId);
       }
 
       // Date fields
@@ -687,16 +683,21 @@ export default function EditOperationPage() {
                   name="typeOfOperation"
                   placeholder="Select type of operation"
                   options={["Ship to Ship", "POAC", "Fender Hire", "Hose hire"]}
+                  defaultValue={operationData?.typeOfOperation ?? ""}
                 />
-              <TextField
+              <SelectField
                 label="Client"
-                placeholder="Enter client name"
                 name="client"
+                loading={loadingMasters}
+                options={clientSelectOptions}
+                defaultValue={operationData?.client ?? ""}
               />
-              <TextField
+              <SelectField
                 label="Agent"
-                placeholder="Enter agent name"
                 name="agent"
+                loading={loadingMasters}
+                options={agentSelectOptions}
+                defaultValue={operationData?.agent ?? ""}
               />
               <SelectField
                 label="Mooring Master"
@@ -708,6 +709,11 @@ export default function EditOperationPage() {
                     .map((m) => ({ label: m.name, value: m._id })),
                 ]}
                 name="mooringMaster"
+                defaultValue={
+                  operationData?.mooringMaster
+                    ? String(operationData.mooringMaster._id ?? operationData.mooringMaster)
+                    : ""
+                }
               />
               <SelectField
                 label="Location"
@@ -718,6 +724,11 @@ export default function EditOperationPage() {
                 ]}
                 name="location"
                 onChange={handleLocationChange}
+                defaultValue={
+                  operationData?.location
+                    ? String(operationData.location._id ?? operationData.location)
+                    : ""
+                }
               />
               <SelectField
                 label="Type of cargo"
@@ -727,6 +738,11 @@ export default function EditOperationPage() {
                   ...cargoTypes.map((c) => ({ label: c.type, value: c._id })),
                 ]}
                 name="typeOfCargo"
+                defaultValue={
+                  operationData?.typeOfCargo
+                    ? String(operationData.typeOfCargo._id ?? operationData.typeOfCargo)
+                    : ""
+                }
               />
               <SelectField
                 label="Operation Type"
@@ -737,6 +753,7 @@ export default function EditOperationPage() {
                   { label: "underway", value: "underway" },
                   { label: "At Anchor", value: "At Anchor" },
                 ]}
+                defaultValue={operationData?.operationType ?? ""}
               />
               <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -826,6 +843,7 @@ export default function EditOperationPage() {
                       { label: "Supramax", value: "Supramax" },
                     ]}
                     name="vesselTypeCHS"
+                    defaultValue={operationData?.vesselTypeCHS ?? ""}
                   />
                   <TextField
                     label="LOA (CHS)"
@@ -903,6 +921,7 @@ export default function EditOperationPage() {
                       { label: "Supramax", value: "Supramax" },
                     ]}
                     name="vesselTypeMS"
+                    defaultValue={operationData?.vesselTypeMS ?? ""}
                   />
                   <TextField
                     label="LOA (MS)"
@@ -1362,96 +1381,6 @@ function DateField({ label, name }) {
     </div>
   );
 }
-
-function SelectField({
-  label,
-  options = [],
-  loading = false,
-  name,
-  multiple = false,
-  placeholder,
-  size,
-  onChange,
-}) {
-  const [isPlaceholderSelected, setIsPlaceholderSelected] = useState(
-    !multiple && !!placeholder
-  );
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-
-      <div className="relative">
-        {!multiple && (
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-orange-300">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
-        )}
-
-        <select
-          name={name}
-          multiple={multiple}
-          size={size}
-          defaultValue={!multiple ? "" : undefined}
-          onChange={(e) => {
-            if (!multiple && placeholder) {
-              setIsPlaceholderSelected(e.target.value === "");
-            }
-            if (onChange) onChange(e.target.value);
-          }}
-          className={`w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm shadow-lg shadow-black/20 outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400/60 transition ${
-            multiple ? "appearance-auto min-h-[160px]" : "appearance-none"
-          } ${
-            isPlaceholderSelected && !multiple
-              ? "text-white/60 font-normal"
-              : "text-white font-semibold"
-          }`}
-        >
-          {/* Placeholder (ONLY for single select) */}
-          {placeholder && !multiple && (
-            <option value="" disabled hidden className="text-slate-900">
-              {placeholder}
-            </option>
-          )}
-
-          {loading && (
-            <option disabled className="text-slate-900">
-              Loading...
-            </option>
-          )}
-
-          {!loading &&
-            options.map((opt) => {
-              const value = typeof opt === "object" ? opt.value : opt;
-              const text = typeof opt === "object" ? opt.label : opt;
-
-              return (
-                <option
-                  key={value ?? text}
-                  value={value}
-                  className="text-slate-900"
-                >
-                  {text}
-                </option>
-              );
-            })}
-        </select>
-      </div>
-    </div>
-  );
-}
-
 
 function FileField({ name, resetKey, defaultValue }) {
   const [fileUrl, setFileUrl] = useState(defaultValue || "");

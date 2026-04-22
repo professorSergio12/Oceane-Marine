@@ -41,7 +41,7 @@ export function buildPmsWarehouseEstimatedEndOverdueEmail({
     "Your prompt attention to this matter is highly appreciated to maintain accurate warehouse management records.",
     "",
     "Best regards,",
-    "Ocean Group",
+    "Oceane Group",
     "",
     "This is an automated email. Please do not reply.",
   ].join("\n");
@@ -69,7 +69,7 @@ export function buildPmsWarehouseEstimatedEndOverdueEmail({
         </p>
         <p style="margin:0 0 16px;">
           Best regards,<br />
-          <strong>Ocean Group</strong>
+          <strong>Oceane Group</strong>
         </p>
         <p style="margin:0;font-size:13px;color:#64748b;">
           This is an automated email. Please do not reply.

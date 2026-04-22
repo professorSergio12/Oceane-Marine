@@ -18,6 +18,7 @@ import {
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -394,101 +395,104 @@ export default function InspectionChecklistListPage() {
         </header>
 
         <QhseListPageContainer
+          filtersOnSecondRow
           searchPlaceholder="Search by form code, location, uploaded by, boat name, year..."
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           filterChildren={
-            <div className="flex w-full min-w-0 flex-col gap-2">
-              <div className="flex w-full min-w-0 flex-row flex-nowrap items-center gap-2">
-                <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
-                    Year
-                  </span>
-                  <select
-                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
-                    value={year === "" || year === null ? "" : String(year)}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setYear(v === "" ? "" : Number(v));
-                    }}
-                  >
-                    <option value="">All years</option>
-                    {initialYears.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
-                    <span className="sm:hidden">Loc</span>
-                    <span className="hidden sm:inline">Location</span>
-                  </span>
-                  <select
-                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
-                    value={locationId || ""}
-                    onChange={(e) => setLocationId(e.target.value)}
-                  >
-                    <option value="">All Locations</option>
-                    {locations.map((loc) => (
-                      <option key={loc._id} value={loc._id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="flex min-w-0 w-full max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-2 sm:ml-auto sm:w-auto">
+              <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+                <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                  Year
+                </span>
+                <OperationsSelectField
+                  variant="pill"
+                  ariaLabel="Year filter"
+                  value={year === "" || year === null ? "" : String(year)}
+                  onChange={(v) => setYear(v === "" ? "" : Number(v))}
+                  options={[
+                    { value: "", label: "All years" },
+                    ...initialYears.map((y) => ({ value: String(y), label: String(y) })),
+                  ]}
+                  className="min-w-0 w-[6.5rem] sm:w-[7.5rem]"
+                  triggerClassName="ops-select-trigger min-w-0 w-full rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                />
               </div>
-              <div className="flex w-full min-w-0 flex-row flex-wrap items-center gap-2 sm:flex-nowrap">
-                <div className="flex min-w-0 w-full items-center gap-1 sm:flex-1 sm:gap-2">
-                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
-                    Form
-                  </span>
-                  <select
-                    className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
-                    value={formNumber || ""}
-                    onChange={(e) => {
-                      setFormNumber(e.target.value);
-                      if (e.target.value !== "OPS-OFD-013") {
-                        setFilterYear("");
-                        setBoatName("");
-                      }
-                    }}
-                  >
-                    {FORM_NUMBERS.map((form) => (
-                      <option key={form.value || "all"} value={form.value}>
-                        {form.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {formNumber === "OPS-OFD-013" && (
-                  <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
+              <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+                <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                  <span className="sm:hidden">Loc</span>
+                  <span className="hidden sm:inline">Location</span>
+                </span>
+                <OperationsSelectField
+                  variant="pill"
+                  ariaLabel="Location filter"
+                  value={locationId || ""}
+                  onChange={(v) => setLocationId(v)}
+                  options={[
+                    { value: "", label: "All Locations" },
+                    ...locations.map((loc) => ({
+                      value: String(loc._id),
+                      label: loc.name,
+                    })),
+                  ]}
+                  className="min-w-0 w-[8.5rem] sm:w-40"
+                  triggerClassName="ops-select-trigger min-w-0 w-full rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                />
+              </div>
+              <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+                <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
+                  Form
+                </span>
+                <OperationsSelectField
+                  variant="pill"
+                  ariaLabel="Form filter"
+                  value={formNumber || ""}
+                  onChange={(v) => {
+                    setFormNumber(v);
+                    if (v !== "OPS-OFD-013") {
+                      setFilterYear("");
+                      setBoatName("");
+                    }
+                  }}
+                  options={FORM_NUMBERS.map((form) => ({
+                    value: form.value,
+                    label: form.label,
+                  }))}
+                  className="min-w-0 w-[10rem] sm:min-w-48 sm:max-w-[14rem]"
+                  triggerClassName="ops-select-trigger min-w-0 w-full rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                />
+              </div>
+              {formNumber === "OPS-OFD-013" && (
+                <>
+                  <div className="flex min-w-0 items-center gap-1 sm:gap-2">
                     <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs">
                       Yr (013)
                     </span>
-                    <select
-                      className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] uppercase sm:max-w-[6rem] sm:px-3 sm:text-xs"
+                    <OperationsSelectField
+                      variant="pill"
+                      ariaLabel="Year filter for form 013"
                       value={filterYear || ""}
-                      onChange={(e) => setFilterYear(e.target.value)}
-                    >
-                      <option value="">All</option>
-                      {initialYears.map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Boat name"
-                      className="min-w-0 flex-1 rounded-full border border-white/15 bg-slate-900/40 px-2 py-1 text-[11px] text-white placeholder:text-white/40 sm:px-3 sm:text-xs"
-                      value={boatName}
-                      onChange={(e) => setBoatName(e.target.value)}
+                      onChange={(v) => setFilterYear(v)}
+                      options={[
+                        { value: "", label: "All" },
+                        ...initialYears.map((y) => ({
+                          value: String(y),
+                          label: String(y),
+                        })),
+                      ]}
+                      className="min-w-0 w-[5.5rem] sm:max-w-24"
+                      triggerClassName="ops-select-trigger min-w-0 w-full rounded-full px-2 py-1 text-[11px] uppercase sm:px-3 sm:text-xs"
                     />
                   </div>
-                )}
-              </div>
+                  <input
+                    type="text"
+                    placeholder="Boat name"
+                    className="min-w-[8rem] max-w-[12rem] flex-1 rounded-full border border-white/15 bg-slate-900/40 px-2 py-1 text-[11px] text-white placeholder:text-white/40 sm:min-w-0 sm:max-w-[10rem] sm:px-3 sm:text-xs"
+                    value={boatName}
+                    onChange={(e) => setBoatName(e.target.value)}
+                  />
+                </>
+              )}
             </div>
           }
         >
@@ -513,8 +517,8 @@ export default function InspectionChecklistListPage() {
               <p className="text-white/60">No rows match your search.</p>
             </div>
           ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5">
+            <div className="min-w-0 overflow-x-auto overflow-hidden rounded-t-2xl">
               <table className="w-full">
                 <thead className="bg-white/5 border-b border-white/10">
                   <tr>
@@ -622,7 +626,10 @@ export default function InspectionChecklistListPage() {
                 </tbody>
               </table>
             </div>
-            <OperationsListPaginationFooter {...paginationFooterProps} />
+            <OperationsListPaginationFooter
+              {...paginationFooterProps}
+              className="rounded-b-2xl overflow-visible"
+            />
           </div>
           )}
         </QhseListPageContainer>

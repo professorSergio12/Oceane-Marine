@@ -14,6 +14,7 @@ import {
   resolveQhseSignatureImageSrc,
   isResolvableSignatureImage,
 } from "@/lib/utils/qhse-signature-url";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 // OPS-OFD-014 Equipment Checklist row defaults (external-form layout)
 const OPS014_FENDER_ROW = { fenderId: "", endPlates: "", bShackle: "", swivel: "", secondShackle: "", mooringShackle: "", fenderBody: "", tires: "", pressure: "" };
 const OPS014_HOSE_ROW = { hoseId: "", endFlanges: "", bodyCondition: "", nutsBolts: "", markings: "" };
@@ -339,18 +340,26 @@ export default function EditFormPage() {
           <label className="block text-sm font-medium text-gray-300 mb-1">
             {displayLabel}
           </label>
-          <select
-            value={value || ''}
-            onChange={(e) => handleInputChange(path, e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm sm:text-base"
-          >
-            <option value="">Select...</option>
-            {['DRAFT', 'SUBMITTED', 'APPROVED', 'SIGNED', 'ARCHIVED', 'FINALIZED', 'PENDING', 'PAID'].map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+          <OperationsSelectField
+            ariaLabel={displayLabel}
+            value={value || ""}
+            onChange={(v) => handleInputChange(path, v)}
+            options={[
+              { value: "", label: "Select..." },
+              ...[
+                "DRAFT",
+                "SUBMITTED",
+                "APPROVED",
+                "SIGNED",
+                "ARCHIVED",
+                "FINALIZED",
+                "PENDING",
+                "PAID",
+              ].map((status) => ({ value: status, label: status })),
+            ]}
+            triggerClassName="flex min-h-[2.5rem] w-full items-center justify-between rounded border border-white/10 bg-white/5 px-3 py-2 pr-9 text-left text-sm text-white sm:text-base"
+            className="w-full"
+          />
         </div>
       );
     }
@@ -1266,15 +1275,14 @@ export default function EditFormPage() {
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-400">Change to:</label>
-                <select
-                  value={formData?.status || 'DRAFT'}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="bg-gray-700 border border-gray-500 rounded-lg px-3 py-1.5 text-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <OperationsSelectField
+                  ariaLabel="Change status"
+                  value={formData?.status || "DRAFT"}
+                  onChange={(v) => handleInputChange("status", v)}
+                  options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+                  triggerClassName="flex min-h-[2.25rem] min-w-[10rem] items-center justify-between rounded-lg border border-gray-500 bg-gray-700 px-3 py-1.5 pr-8 text-left text-sm text-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
+                  className="inline-block min-w-0"
+                />
               </div>
             </div>
 

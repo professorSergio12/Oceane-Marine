@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 import {
   ActionEditIcon,
   ActionDeleteIcon,
@@ -109,7 +110,7 @@ export default function AccessoriesList({ onEditItem }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between border-b border-white/10 pb-4">
+      <div className="relative z-40 flex items-start justify-between border-b border-white/10 pb-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
             Accessories Inventory
@@ -117,21 +118,22 @@ export default function AccessoriesList({ onEditItem }) {
           <p className="text-sm text-white/60">List View</p>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-xs uppercase tracking-[0.2em] text-slate-200">
               Year
             </span>
-            <select
-              className="rounded-full px-3 py-1 text-xs tracking-widest uppercase bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-            >
-              {(years.length ? years : getYears()).map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+            <OperationsSelectField
+              variant="pill"
+              ariaLabel="Year filter"
+              value={String(year)}
+              onChange={(v) => setYear(Number(v))}
+              options={(years.length ? years : getYears()).map((y) => ({
+                value: String(y),
+                label: String(y),
+              }))}
+              className="min-w-0 w-[6.25rem] sm:w-32"
+              triggerClassName="ops-select-trigger w-full rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+            />
           </div>
         </div>
       </div>
@@ -178,7 +180,7 @@ export default function AccessoriesList({ onEditItem }) {
         </div>
       )}
 
-      <div className="rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl">
+      <div className="relative z-0 rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-4 sm:p-6 shadow-2xl">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-white/60">Loading accessories...</p>
@@ -257,7 +259,10 @@ export default function AccessoriesList({ onEditItem }) {
                 </tbody>
               </table>
             </div>
-            <OperationsListPaginationFooter {...accessoriesPaginationFooterProps} />
+            <OperationsListPaginationFooter
+              {...accessoriesPaginationFooterProps}
+              className="overflow-visible"
+            />
           </>
         )}
       </div>

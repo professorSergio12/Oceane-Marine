@@ -7,6 +7,7 @@ import { buildDocumentHtml030, buildDocumentHtml030B, buildDocumentHtmlPOAC, get
 
 import { useOperationsRole } from "@/hooks/useOperationsRole";
 import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 const emptyForm = () => ({
   formType: "OPS-OFD-030",
@@ -515,16 +516,20 @@ export default function StsQuotationFormPage() {
                     </div>
                     <div>
                       <label className={labelClass}>Location</label>
-                      <select
+                      <OperationsSelectField
+                        ariaLabel="Location"
                         value={form.location}
-                        onChange={(e) => setField("location", e.target.value)}
-                        className={inputClass}
-                      >
-                        <option value="">Select location</option>
-                        {locations.map((loc) => (
-                          <option key={loc._id} value={loc.name}>{loc.name}</option>
-                        ))}
-                      </select>
+                        onChange={(v) => setField("location", v)}
+                        options={[
+                          { value: "", label: "Select location" },
+                          ...locations.map((loc) => ({
+                            value: loc.name,
+                            label: loc.name,
+                          })),
+                        ]}
+                        triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
+                        className="w-full"
+                      />
                     </div>
                     <div>
                       <label className={labelClass}>Cargo</label>
@@ -643,12 +648,20 @@ export default function StsQuotationFormPage() {
                     </div>
                     <div>
                       <label className={labelClass}>Location</label>
-                      <select value={form.location} onChange={(e) => setField("location", e.target.value)} className={inputClass}>
-                        <option value="">Select location</option>
-                        {locations.map((loc) => (
-                          <option key={loc._id} value={loc.name}>{loc.name}</option>
-                        ))}
-                      </select>
+                      <OperationsSelectField
+                        ariaLabel="Location"
+                        value={form.location}
+                        onChange={(v) => setField("location", v)}
+                        options={[
+                          { value: "", label: "Select location" },
+                          ...locations.map((loc) => ({
+                            value: loc.name,
+                            label: loc.name,
+                          })),
+                        ]}
+                        triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
+                        className="w-full"
+                      />
                     </div>
                     <div>
                       <label className={labelClass}>Cargo</label>

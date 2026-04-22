@@ -18,6 +18,7 @@ import {
 import { QhseListPageContainer } from "@/app/qhse/components/QhseListPageContainer";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -379,39 +380,39 @@ export default function JpoListPage() {
                 <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
                   Year
                 </span>
-                <select
-                  className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                <OperationsSelectField
+                  variant="pill"
+                  ariaLabel="Year filter"
                   value={year === "" || year === null ? "" : String(year)}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setYear(v === "" ? "" : Number(v));
-                  }}
-                >
-                  <option value="">All years</option>
-                  {initialYears.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setYear(v === "" ? "" : Number(v))}
+                  options={[
+                    { value: "", label: "All years" },
+                    ...initialYears.map((y) => ({ value: String(y), label: String(y) })),
+                  ]}
+                  className="min-w-0 flex-1"
+                  triggerClassName="ops-select-trigger min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                />
               </div>
               <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
                 <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-slate-200 sm:text-xs sm:tracking-[0.2em]">
                   <span className="sm:hidden">Loc</span>
                   <span className="hidden sm:inline">Location</span>
                 </span>
-                <select
-                  className="theme-select min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                <OperationsSelectField
+                  variant="pill"
+                  ariaLabel="Location filter"
                   value={locationId || ""}
-                  onChange={(e) => setLocationId(e.target.value)}
-                >
-                  <option value="">All locations</option>
-                  {locations.map((loc) => (
-                    <option key={loc._id} value={loc._id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setLocationId(v)}
+                  options={[
+                    { value: "", label: "All locations" },
+                    ...locations.map((loc) => ({
+                      value: String(loc._id),
+                      label: loc.name,
+                    })),
+                  ]}
+                  className="min-w-0 flex-1"
+                  triggerClassName="ops-select-trigger min-w-0 flex-1 rounded-full px-2 py-1 text-[11px] tracking-wide uppercase sm:px-3 sm:text-xs"
+                />
               </div>
             </div>
           }

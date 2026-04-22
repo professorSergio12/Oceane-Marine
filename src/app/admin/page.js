@@ -65,7 +65,7 @@ export default function AdminPage() {
         <div className="flex shrink-0 items-center">
           <img
             src="/image/logo.png"
-            alt="Ocean Group Logo"
+            alt="Oceane Group Logo"
             className="h-10 w-auto object-contain brightness-110 contrast-110 drop-shadow-lg sm:h-14 md:h-20"
           />
         </div>

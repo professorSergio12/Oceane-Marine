@@ -10,6 +10,7 @@ import {
 import { usePmsRole } from "@/hooks/usePmsRole";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -575,11 +576,11 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-            <div className="border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
+          <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5">
+            <div className="rounded-t-2xl border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
               Primary Equipments
             </div>
-            <div className="overflow-auto styled-scrollbar">
+            <div className="min-h-0 min-w-0 overflow-auto styled-scrollbar">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-slate-300 border-b border-white/10 bg-white/5">
@@ -675,7 +676,10 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 </tbody>
               </table>
             </div>
-            <OperationsListPaginationFooter {...listPaginationFooterProps} />
+            <OperationsListPaginationFooter
+              {...listPaginationFooterProps}
+              className="rounded-b-2xl overflow-visible"
+            />
           </div>
 
           {/* Detail View Card - Right Side */}
@@ -1187,19 +1191,22 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           {/* Ownership & dates */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-200 mb-1">
-                Ownership Type<span className="text-red-400">*</span>
-              </label>
-              <select
-                name="ownershipType"
+              <OperationsSelectField
+                label={
+                  <>
+                    Ownership Type<span className="text-red-400">*</span>
+                  </>
+                }
                 value={form.ownershipType}
-                onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
-                required
-              >
-                <option value="OWNED">Owned</option>
-                <option value="THIRD_PARTY">Third Party</option>
-              </select>
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, ownershipType: v }))
+                }
+                options={[
+                  { value: "OWNED", label: "Owned" },
+                  { value: "THIRD_PARTY", label: "Third Party" },
+                ]}
+                triggerClassName="w-full min-h-[2.75rem] rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-1">
@@ -1378,11 +1385,11 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: equipments table */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden max-h-[420px] flex flex-col">
-              <div className="border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
+            <div className="flex max-h-[420px] flex-col rounded-2xl border border-white/10 bg-white/5">
+              <div className="shrink-0 border-b border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 bg-white/5">
                 Primary Equipments
               </div>
-              <div className="overflow-auto styled-scrollbar">
+              <div className="min-h-0 min-w-0 flex-1 overflow-auto styled-scrollbar">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-left text-slate-300 border-b border-white/10 bg-white/5">
@@ -1462,7 +1469,10 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   </tbody>
                 </table>
               </div>
-              <OperationsListPaginationFooter {...historyEquipPaginationFooterProps} />
+              <OperationsListPaginationFooter
+                {...historyEquipPaginationFooterProps}
+                className="shrink-0 overflow-visible"
+              />
             </div>
 
             {/* Right: history details */}
@@ -1614,7 +1624,10 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       </tbody>
                     </table>
                   </div>
-                  <OperationsListPaginationFooter {...historyRowsPaginationFooterProps} />
+                  <OperationsListPaginationFooter
+                    {...historyRowsPaginationFooterProps}
+                    className="overflow-visible"
+                  />
                 </>
               )}
             </div>

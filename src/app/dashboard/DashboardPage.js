@@ -170,7 +170,7 @@ export default function DashboardPage() {
         <div className="flex-shrink-0 flex items-center">
           <img
             src="/image/logo.png"
-            alt="Ocean Group Logo"
+            alt="Oceane Group Logo"
             className="h-10 sm:h-14 md:h-20 w-auto object-contain brightness-110 contrast-110 drop-shadow-lg"
           />
         </div>

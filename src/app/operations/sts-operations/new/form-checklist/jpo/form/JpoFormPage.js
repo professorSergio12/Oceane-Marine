@@ -9,6 +9,7 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
+import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 
 export default function JpoFormPage() {
   const router = useRouter();
@@ -461,21 +462,26 @@ export default function JpoFormPage() {
                 <label htmlFor="locationId" className="block text-sm font-medium text-white/90 mb-2">
                   Location <span className="text-red-400">*</span>
                 </label>
-                <select
+                <OperationsSelectField
                   id="locationId"
-                  name="locationId"
+                  ariaLabel="Location"
                   value={form.locationId}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none transition-all backdrop-blur-sm"
-                  required
-                >
-                  <option value="">Select location</option>
-                  {locations.map((loc) => (
-                    <option key={loc._id} value={loc._id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      locationId: v,
+                    }))
+                  }
+                  options={[
+                    { value: "", label: "Select location" },
+                    ...locations.map((loc) => ({
+                      value: String(loc._id),
+                      label: loc.name,
+                    })),
+                  ]}
+                  triggerClassName="flex min-h-[2.75rem] w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 pr-10 text-left text-sm text-white outline-none transition-all backdrop-blur-sm focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/50"
+                  className="w-full"
+                />
               </div>
               <div>
                 <label htmlFor="date" className="block text-sm font-medium text-white/90 mb-2">

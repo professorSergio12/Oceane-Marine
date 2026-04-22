@@ -421,8 +421,8 @@ export default function Certifications({ view: controlledView, onViewChange }) {
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-            <div className="grid grid-cols-6 text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3">
+          <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5">
+            <div className="grid grid-cols-6 rounded-t-2xl text-xs uppercase tracking-wide text-slate-300 bg-white/5 px-4 py-3">
               <div>Location</div>
               <div>Equipment Name</div>
               <div>Equipment Type</div>
@@ -436,7 +436,7 @@ export default function Certifications({ view: controlledView, onViewChange }) {
             ) : items.length === 0 ? (
               <div className="p-6 text-sm text-slate-300">No records found.</div>
             ) : (
-              <div className="divide-y divide-white/10">
+              <div className="min-w-0 divide-y divide-white/10">
                 {items.map((item) => (
                   <div
                     key={item._id}
