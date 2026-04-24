@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 
@@ -71,22 +72,55 @@ function ModuleRoleChip({ moduleKey, role }) {
 }
 
 function Modal({ open, onClose, title, children }) {
-  if (!open) return null;
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const originalOverflow = body.style.overflow;
+    const originalPosition = body.style.position;
+    const originalTop = body.style.top;
+    const originalWidth = body.style.width;
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      body.style.overflow = originalOverflow;
+      body.style.position = originalPosition;
+      body.style.top = originalTop;
+      body.style.width = originalWidth;
+      window.scrollTo(0, scrollY);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open || !mounted) return null;
+
+  const modalContent = (
     <div
-      className="fixed inset-0 z-9999 flex items-start justify-center overflow-y-auto px-4 pb-10 pt-4 sm:px-6 sm:pb-12 sm:pt-6 md:pt-8"
+      className="fixed inset-0 flex items-stretch justify-center sm:items-center sm:p-4 md:p-6"
+      style={{ zIndex: 2147483647 }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="admin-modal-title"
     >
-      {/* Panel: horizontal center, sits below top bar (center-top) */}
       <button
         type="button"
-        className="absolute inset-0 border-0 bg-slate-950/55 backdrop-blur-md backdrop-saturate-150 cursor-pointer transition-[backdrop-filter] duration-200"
+        className="absolute inset-0 border-0 bg-slate-950/85 backdrop-blur-lg backdrop-saturate-150 cursor-pointer"
         onClick={onClose}
         aria-label="Close dialog"
       />
-      <div className="relative z-10 flex max-h-[min(90dvh,720px)] min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-gray-900 shadow-2xl shadow-black/50">
+      <div className="relative z-10 flex h-[100dvh] w-full flex-col overflow-hidden border-0 bg-gray-900 shadow-2xl shadow-black/60 sm:h-auto sm:max-h-[92dvh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-white/10">
         <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-6 py-4">
           <h3 id="admin-modal-title" className="text-lg font-bold text-white">
             {title}
@@ -100,12 +134,14 @@ function Modal({ open, onClose, title, children }) {
             <span className="text-xl leading-none">&times;</span>
           </button>
         </div>
-        <div className="sidebar-scrollbar-dark min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="sidebar-scrollbar-dark min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
           {children}
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
 function ConfirmDialog({ open, onClose, onConfirm, title, message, loading }) {
@@ -601,45 +637,47 @@ export default function AdminPanel({ hideShellTitles = false } = {}) {
       {/* Add User Modal */}
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add New User">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div>
-            <label className={labelCls}>Employee ID *</label>
-            <input type="text" required value={addForm.employeeId} onChange={(e) => setAddForm((f) => ({ ...f, employeeId: e.target.value }))} className={inputCls} placeholder="e.g. EMP001" />
-          </div>
-          <div>
-            <label className={labelCls}>Full Name *</label>
-            <input type="text" required value={addForm.employeeName} onChange={(e) => setAddForm((f) => ({ ...f, employeeName: e.target.value }))} className={inputCls} placeholder="Full name" />
-          </div>
-          <div>
-            <label className={labelCls}>Email *</label>
-            <input type="email" required value={addForm.email} onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} placeholder="user@oceanemarine.com" />
-          </div>
-          <div>
-            <label className={labelCls}>Password *</label>
-            <input type="password" required minLength={4} value={addForm.password} onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))} className={inputCls} placeholder="Min 4 characters" />
-          </div>
-          <div>
-            <label className={labelCls}>Operations Role</label>
-            <select value={addForm.operationsRole} onChange={(e) => setAddForm((f) => ({ ...f, operationsRole: e.target.value }))} className={inputCls}>
-              {OPS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>HR Role</label>
-            <select value={addForm.hrRole} onChange={(e) => setAddForm((f) => ({ ...f, hrRole: e.target.value }))} className={inputCls}>
-              {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>PMS Role</label>
-            <select value={addForm.pmsRole} onChange={(e) => setAddForm((f) => ({ ...f, pmsRole: e.target.value }))} className={inputCls}>
-              {PMS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>QHSE Role</label>
-            <select value={addForm.qhseRole} onChange={(e) => setAddForm((f) => ({ ...f, qhseRole: e.target.value }))} className={inputCls}>
-              {QHSE_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Employee ID *</label>
+              <input type="text" required value={addForm.employeeId} onChange={(e) => setAddForm((f) => ({ ...f, employeeId: e.target.value }))} className={inputCls} placeholder="e.g. EMP001" />
+            </div>
+            <div>
+              <label className={labelCls}>Full Name *</label>
+              <input type="text" required value={addForm.employeeName} onChange={(e) => setAddForm((f) => ({ ...f, employeeName: e.target.value }))} className={inputCls} placeholder="Full name" />
+            </div>
+            <div>
+              <label className={labelCls}>Email *</label>
+              <input type="email" required value={addForm.email} onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} placeholder="user@oceanemarine.com" />
+            </div>
+            <div>
+              <label className={labelCls}>Password *</label>
+              <input type="password" required minLength={4} value={addForm.password} onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))} className={inputCls} placeholder="Min 4 characters" />
+            </div>
+            <div>
+              <label className={labelCls}>Operations Role</label>
+              <select value={addForm.operationsRole} onChange={(e) => setAddForm((f) => ({ ...f, operationsRole: e.target.value }))} className={inputCls}>
+                {OPS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>HR Role</label>
+              <select value={addForm.hrRole} onChange={(e) => setAddForm((f) => ({ ...f, hrRole: e.target.value }))} className={inputCls}>
+                {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>PMS Role</label>
+              <select value={addForm.pmsRole} onChange={(e) => setAddForm((f) => ({ ...f, pmsRole: e.target.value }))} className={inputCls}>
+                {PMS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>QHSE Role</label>
+              <select value={addForm.qhseRole} onChange={(e) => setAddForm((f) => ({ ...f, qhseRole: e.target.value }))} className={inputCls}>
+                {QHSE_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowAddModal(false)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition">Cancel</button>
@@ -653,41 +691,43 @@ export default function AdminPanel({ hideShellTitles = false } = {}) {
       {/* Edit User Modal */}
       <Modal open={showEditModal} onClose={() => setShowEditModal(false)} title={`Edit – ${selectedUser?.employeeName || ""}`}>
         <form onSubmit={handleEdit} className="space-y-4">
-          <div>
-            <label className={labelCls}>Employee ID</label>
-            <input type="text" value={editForm.employeeId} onChange={(e) => setEditForm((f) => ({ ...f, employeeId: e.target.value }))} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Full Name</label>
-            <input type="text" value={editForm.employeeName} onChange={(e) => setEditForm((f) => ({ ...f, employeeName: e.target.value }))} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Email</label>
-            <input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Operations Role</label>
-            <select value={editForm.operationsRole} onChange={(e) => setEditForm((f) => ({ ...f, operationsRole: e.target.value }))} className={inputCls}>
-              {OPS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>HR Role</label>
-            <select value={editForm.hrRole} onChange={(e) => setEditForm((f) => ({ ...f, hrRole: e.target.value }))} className={inputCls}>
-              {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>PMS Role</label>
-            <select value={editForm.pmsRole} onChange={(e) => setEditForm((f) => ({ ...f, pmsRole: e.target.value }))} className={inputCls}>
-              {PMS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>QHSE Role</label>
-            <select value={editForm.qhseRole} onChange={(e) => setEditForm((f) => ({ ...f, qhseRole: e.target.value }))} className={inputCls}>
-              {QHSE_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Employee ID</label>
+              <input type="text" value={editForm.employeeId} onChange={(e) => setEditForm((f) => ({ ...f, employeeId: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Full Name</label>
+              <input type="text" value={editForm.employeeName} onChange={(e) => setEditForm((f) => ({ ...f, employeeName: e.target.value }))} className={inputCls} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Email</label>
+              <input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Operations Role</label>
+              <select value={editForm.operationsRole} onChange={(e) => setEditForm((f) => ({ ...f, operationsRole: e.target.value }))} className={inputCls}>
+                {OPS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>HR Role</label>
+              <select value={editForm.hrRole} onChange={(e) => setEditForm((f) => ({ ...f, hrRole: e.target.value }))} className={inputCls}>
+                {HR_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>PMS Role</label>
+              <select value={editForm.pmsRole} onChange={(e) => setEditForm((f) => ({ ...f, pmsRole: e.target.value }))} className={inputCls}>
+                {PMS_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>QHSE Role</label>
+              <select value={editForm.qhseRole} onChange={(e) => setEditForm((f) => ({ ...f, qhseRole: e.target.value }))} className={inputCls}>
+                {QHSE_ROLE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <label className="relative inline-flex cursor-pointer items-center">
