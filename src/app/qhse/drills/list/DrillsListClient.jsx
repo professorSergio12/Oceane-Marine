@@ -29,7 +29,37 @@ export default function DrillsListPage() {
   const [downloadingPlanPdf, setDownloadingPlanPdf] = useState(null);
   const [downloadingReportDocxId, setDownloadingReportDocxId] = useState(null);
   const [downloadingReportPdfId, setDownloadingReportPdfId] = useState(null);
+  const [downloadingQuarterFile, setDownloadingQuarterFile] = useState(null);
   const { canDelete, canDownload } = useQhseRole();
+
+  const handleDownloadQuarterFile = async (planId, quarter, fileName) => {
+    if (!planId || !quarter) return;
+    const key = `${planId}_${quarter}`;
+    setDownloadingQuarterFile(key);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/qhse/drill/download/quarter-file?planId=${planId}&quarter=${quarter}`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download matrix file");
+      }
+      const blob = await res.blob();
+      const url = globalThis.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName || `${quarter}-drill-matrix`;
+      document.body.appendChild(a);
+      a.click();
+      globalThis.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      setError(err.message || "Failed to download matrix file");
+    } finally {
+      setDownloadingQuarterFile(null);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -296,7 +326,8 @@ export default function DrillsListPage() {
                         (plan.topic && plan.topic.trim()) ||
                         (plan.instructor && plan.instructor.trim()));
                     const hasReport = report && (report.drillNo || report.drillDate || report.status);
-                    return hasPlanData || hasReport;
+                    const hasQuarterFile = entry.quarterFile?.hasFile;
+                    return hasPlanData || hasReport || hasQuarterFile;
                   })
                   .sort((a, b) => (quarterOrder[a.quarter] || 0) - (quarterOrder[b.quarter] || 0));
                 return { ...yearRow, quartersWithData };
@@ -399,6 +430,38 @@ export default function DrillsListPage() {
                               <span className="text-slate-400">Instructor:</span>{" "}
                               {plan?.instructor || "—"}
                             </div>
+                            {entry.quarterFile?.hasFile && canDownload && (
+                              <div className="pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDownloadQuarterFile(
+                                      yearRow.planId,
+                                      q,
+                                      entry.quarterFile.fileName
+                                    )
+                                  }
+                                  disabled={
+                                    downloadingQuarterFile === `${yearRow.planId}_${q}`
+                                  }
+                                  className="inline-flex items-center gap-1 text-[11px] text-emerald-300 hover:text-emerald-200 font-medium px-2 py-1 rounded border border-emerald-400/30 hover:bg-emerald-400/10 disabled:opacity-50 transition"
+                                  title={
+                                    entry.quarterFile.fileName || "Drill matrix"
+                                  }
+                                >
+                                  {downloadingQuarterFile === `${yearRow.planId}_${q}`
+                                    ? "…"
+                                    : (
+                                      <>
+                                        <span>📎</span>
+                                        <span className="max-w-[160px] truncate">
+                                          {entry.quarterFile.fileName || "Drill matrix"}
+                                        </span>
+                                      </>
+                                    )}
+                                </button>
+                              </div>
+                            )}
                           </div>
 
                           <div className="border-t border-white/10 pt-3">

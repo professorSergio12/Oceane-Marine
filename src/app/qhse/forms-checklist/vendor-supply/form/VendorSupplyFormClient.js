@@ -150,6 +150,10 @@ function VendorSupplyFormContent() {
         if (record.year) {
           setYear(record.year);
         }
+        setRequestedBySignatureImage(record.requestedBySignatureImage || null);
+        setForAccountsSignSignatureImage(
+          record.forAccountsSignSignatureImage || null
+        );
         setForm({
           vendorName: record.vendorName || "",
           vendorAddress: record.vendorAddress || "",

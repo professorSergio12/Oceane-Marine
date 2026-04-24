@@ -22,10 +22,10 @@ function getContentType(filename) {
   return MIME_TYPES[ext] || "application/octet-stream";
 }
 
-function contentDisposition(filename) {
+function contentDisposition(filename, disposition = "attachment") {
   const safe = (filename || "download").replace(/[^a-zA-Z0-9._-]/g, "_");
   const encoded = encodeURIComponent(filename || "download");
-  return `attachment; filename="${safe}"; filename*=UTF-8''${encoded}`;
+  return `${disposition}; filename="${safe}"; filename*=UTF-8''${encoded}`;
 }
 
 export async function GET(req, { params }) {
@@ -34,6 +34,8 @@ export async function GET(req, { params }) {
     const { id } = await params;
     const defectId = String(id);
     const indexStr = req.nextUrl.searchParams.get("index");
+    const inlineParam = req.nextUrl.searchParams.get("inline");
+    const useInline = inlineParam === "1" || inlineParam === "true";
     const index = indexStr != null ? parseInt(indexStr, 10) : 0;
     if (Number.isNaN(index) || index < 0) {
       return NextResponse.json({ error: "Invalid index" }, { status: 400 });
@@ -70,7 +72,10 @@ export async function GET(req, { params }) {
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": getContentType(filename),
-        "Content-Disposition": contentDisposition(filename),
+        "Content-Disposition": contentDisposition(
+          filename,
+          useInline ? "inline" : "attachment"
+        ),
         "Cache-Control": "private, no-cache",
       },
     });

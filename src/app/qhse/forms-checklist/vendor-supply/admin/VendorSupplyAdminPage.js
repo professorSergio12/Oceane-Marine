@@ -515,39 +515,89 @@ export default function VendorSupplyAdminPage() {
 
                 {/* Detail view when expanded */}
                 {expandedId === form._id && (
-                  <div className="mt-3 border-t border-white/10 pt-3 grid md:grid-cols-2 gap-4 text-sm text-white/80">
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/60">Vendor Name</p>
-                      <p>{form.vendorName || "—"}</p>
+                  <div className="mt-3 border-t border-white/10 pt-3 space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4 text-sm text-white/80">
+                      <div className="space-y-1">
+                        <p className="text-xs text-white/60">Vendor Name</p>
+                        <p>{form.vendorName || "—"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-white/60">Vendor Address</p>
+                        <p>{form.vendorAddress || "—"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-white/60">Date</p>
+                        <p>{formatDate(form.date)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-white/60">Requested By</p>
+                        <p>{form.requestedBy || "—"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-white/60">For Accounts (Sign)</p>
+                        <p>{form.forAccountsSign || "—"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-white/60">Parts % score</p>
+                        <p>
+                          {form.supplyOfParts?.percentageScore ??
+                            "Not calculated"}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-white/60">
+                          Services % score
+                        </p>
+                        <p>
+                          {form.supplyOfServices?.percentageScore ??
+                            "Not calculated"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/60">Vendor Address</p>
-                      <p>{form.vendorAddress || "—"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/60">Date</p>
-                      <p>{formatDate(form.date)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/60">Requested By</p>
-                      <p>{form.requestedBy || "—"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/60">Parts % score</p>
-                      <p>
-                        {form.supplyOfParts?.percentageScore ??
-                          "Not calculated"}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/60">
-                        Services % score
-                      </p>
-                      <p>
-                        {form.supplyOfServices?.percentageScore ??
-                          "Not calculated"}
-                      </p>
-                    </div>
+
+                    {(form.requestedBySignatureImage ||
+                      form.forAccountsSignSignatureImage) && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-xs text-white/60">
+                            Requested By – Signature
+                          </p>
+                          {form.requestedBySignatureImage ? (
+                            <div className="inline-block rounded-md border border-white/15 bg-white p-1">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={form.requestedBySignatureImage}
+                                alt="Requested by signature"
+                                className="h-20 w-auto max-w-full object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <p className="text-xs text-white/50 italic">
+                              No signature uploaded
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-white/60">
+                            For Accounts – Signature
+                          </p>
+                          {form.forAccountsSignSignatureImage ? (
+                            <div className="inline-block rounded-md border border-white/15 bg-white p-1">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={form.forAccountsSignSignatureImage}
+                                alt="For accounts signature"
+                                className="h-20 w-auto max-w-full object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <p className="text-xs text-white/50 italic">
+                              No signature uploaded
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

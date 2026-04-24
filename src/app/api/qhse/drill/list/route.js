@@ -37,6 +37,12 @@ export async function GET(req) {
           quarter: q,
           planItem: plan.planItems?.find((p) => p.quarter === q) || null,
           report: null,
+          quarterFile: plan.quarterFiles?.[q]
+            ? {
+                fileName: plan.quarterFiles[q].fileName,
+                hasFile: Boolean(plan.quarterFiles[q].filePath),
+              }
+            : null,
         })),
       });
     });
@@ -59,6 +65,7 @@ export async function GET(req) {
             quarter: q,
             planItem: null,
             report: null,
+            quarterFile: null,
           })),
         });
       }

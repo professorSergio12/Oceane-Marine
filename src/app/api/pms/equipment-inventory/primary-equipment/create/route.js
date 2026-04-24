@@ -143,8 +143,22 @@ export async function POST(req) {
   } catch (error) {
     console.error("Create Equipment Error:", error);
 
+    if (error?.name === "ValidationError") {
+      const messages = Object.values(error.errors || {}).map((e) => e.message);
+      return NextResponse.json(
+        { message: messages.join(", ") || "Validation error" },
+        { status: 400 }
+      );
+    }
+    if (error?.code === 11000) {
+      return NextResponse.json(
+        { message: "Equipment with the same unique key already exists" },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: error?.message || "Internal server error" },
       { status: 500 }
     );
   }

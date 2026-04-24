@@ -522,9 +522,9 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
             className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]"
           >
           {/* STATUS — Top of form */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-slate-200">Status:</span>
+          <div className="flex flex-col gap-3 p-4 rounded-xl bg-white/5 border border-white/10 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-sm font-semibold text-slate-200 shrink-0">Status:</span>
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                   form.status === "COMPLETED"
@@ -532,8 +532,10 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                     : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${form.status === "COMPLETED" ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {form.status === "COMPLETED" ? "Completed" : "Not Completed"}
+                <span className={`w-2 h-2 rounded-full shrink-0 ${form.status === "COMPLETED" ? "bg-emerald-400" : "bg-amber-400"}`} />
+                <span className="whitespace-nowrap">
+                  {form.status === "COMPLETED" ? "Completed" : "Not Completed"}
+                </span>
               </span>
             </div>
             <OperationsSelectField
@@ -545,8 +547,8 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                 { value: "NOT_COMPLETED", label: "Not Completed" },
                 { value: "COMPLETED", label: "Completed" },
               ]}
-              className="min-w-[11rem]"
-              triggerClassName="ops-select-trigger w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm"
+              className="w-full sm:w-auto sm:min-w-[11rem]"
+              triggerClassName="ops-select-trigger w-full rounded-lg border border-white/10 bg-white/5 pl-4 py-2 text-sm pr-3!"
             />
           </div>
 

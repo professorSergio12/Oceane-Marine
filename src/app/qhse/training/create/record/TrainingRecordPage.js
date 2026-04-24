@@ -71,6 +71,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
   const [downloadingPlanPdf, setDownloadingPlanPdf] = useState(false);
   const [downloadingRecordDocxId, setDownloadingRecordDocxId] = useState(null);
   const [downloadingRecordPdfId, setDownloadingRecordPdfId] = useState(null);
+  const [expandedAttendanceId, setExpandedAttendanceId] = useState(null);
 
   /* ---------------- effects ---------------- */
 
@@ -1086,9 +1087,72 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                               {record.status || "—"}
                             </div>
                             {record.attendance && record.attendance.length > 0 && (
-                              <div>
-                                <span className="text-slate-400">Trainees:</span>{" "}
-                                {record.attendance.length}
+                              <div className="space-y-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedAttendanceId((prev) =>
+                                      prev === record._id ? null : record._id
+                                    )
+                                  }
+                                  className="inline-flex items-center gap-1 text-sky-300 hover:text-sky-200"
+                                >
+                                  <span className="text-slate-400">Trainees:</span>
+                                  <span>{record.attendance.length}</span>
+                                  <span className="text-[10px]">
+                                    {expandedAttendanceId === record._id ? "▲ Hide" : "▼ View signatures"}
+                                  </span>
+                                </button>
+                                {expandedAttendanceId === record._id && (
+                                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-white/10 bg-slate-900/40 p-2">
+                                    {record.attendance.map((t, idx) => {
+                                      const sig = (t.signature || "").trim();
+                                      const isImage =
+                                        sig.startsWith("data:image") ||
+                                        sig.startsWith("/signature/") ||
+                                        sig.startsWith("/uploads/") ||
+                                        /^https?:\/\//.test(sig);
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className="rounded-md border border-white/10 bg-white/5 p-2"
+                                        >
+                                          <p className="text-xs font-semibold text-white">
+                                            {t.traineeName || "—"}
+                                          </p>
+                                          {(t.designation || t.department) && (
+                                            <p className="text-[10px] text-slate-400">
+                                              {[t.designation, t.department]
+                                                .filter(Boolean)
+                                                .join(" • ")}
+                                            </p>
+                                          )}
+                                          <div className="mt-1">
+                                            {isImage ? (
+                                              <div className="inline-block rounded-sm border border-white/15 bg-white p-0.5">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                  src={sig}
+                                                  alt={`${t.traineeName || "trainee"} signature`}
+                                                  className="h-12 w-auto max-w-[160px] object-contain"
+                                                  loading="lazy"
+                                                />
+                                              </div>
+                                            ) : sig ? (
+                                              <p className="text-[11px] italic text-slate-200">
+                                                {sig}
+                                              </p>
+                                            ) : (
+                                              <p className="text-[10px] italic text-slate-500">
+                                                No signature
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             )}
                             <div className="mt-2 flex flex-wrap items-center gap-2">

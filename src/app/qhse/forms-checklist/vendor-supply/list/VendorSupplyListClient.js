@@ -501,13 +501,37 @@ export default function VendorSupplyListClient() {
                     <p className="text-xs text-slate-400 mb-1">Year</p>
                     <p className="text-sm text-white">{selectedForm.year || "—"}</p>
                   </div>
+                </div>
+
+                {/* Requested By / For Accounts – names + signatures in one row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-slate-400 mb-1">Requested By</p>
                     <p className="text-sm text-white">{selectedForm.requestedBy || "—"}</p>
+                    {selectedForm.requestedBySignatureImage && (
+                      <div className="mt-2 inline-block rounded-md border border-white/15 bg-white/95 p-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={selectedForm.requestedBySignatureImage}
+                          alt="Requested by signature"
+                          className="h-16 w-auto max-w-[220px] object-contain"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 mb-1">For Accounts (Sign)</p>
                     <p className="text-sm text-white">{selectedForm.forAccountsSign || "—"}</p>
+                    {selectedForm.forAccountsSignSignatureImage && (
+                      <div className="mt-2 inline-block rounded-md border border-white/15 bg-white/95 p-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={selectedForm.forAccountsSignSignatureImage}
+                          alt="For accounts signature"
+                          className="h-16 w-auto max-w-[220px] object-contain"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -608,6 +632,48 @@ export default function VendorSupplyListClient() {
                     </div>
                   </div>
                 </div>
+
+                {/* Signatures */}
+                {(selectedForm.requestedBySignatureImage ||
+                  selectedForm.forAccountsSignSignatureImage) && (
+                  <div className="border-t border-white/10 pt-4 space-y-3">
+                    <h3 className="text-base font-semibold text-white">Signatures</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-xl border border-white/10 p-4" style={{ backgroundColor: "#153d59" }}>
+                        <p className="text-xs text-slate-400 mb-1">Requested By (Sign)</p>
+                        <p className="text-sm text-white mb-2">{selectedForm.requestedBy || "—"}</p>
+                        {selectedForm.requestedBySignatureImage ? (
+                          <div className="inline-block rounded-md border border-white/15 bg-white p-1">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={selectedForm.requestedBySignatureImage}
+                              alt="Requested by signature"
+                              className="h-20 w-auto max-w-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">No signature uploaded</p>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-white/10 p-4" style={{ backgroundColor: "#153d59" }}>
+                        <p className="text-xs text-slate-400 mb-1">For Accounts (Sign)</p>
+                        <p className="text-sm text-white mb-2">{selectedForm.forAccountsSign || "—"}</p>
+                        {selectedForm.forAccountsSignSignatureImage ? (
+                          <div className="inline-block rounded-md border border-white/15 bg-white p-1">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={selectedForm.forAccountsSignSignatureImage}
+                              alt="For accounts signature"
+                              className="h-20 w-auto max-w-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">No signature uploaded</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Additional Info */}
                 {selectedForm.approvedBy && (

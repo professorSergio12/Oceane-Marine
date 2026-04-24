@@ -616,22 +616,111 @@ function ViewOperationPage() {
                 </div>
               </div>
 
-              {/* Attached Documents — same as form: System Generated + Other Documents */}
+              {/* Attached Documents — System Generated + Manual Uploads + Other Documents */}
               {(() => {
                 const linkedFormCodes = new Set(linkedForms.map(f => f.formCode));
-                const systemDocs = (op.documents || []).filter(doc => !linkedFormCodes.has(doc.documentType));
+                const allDocs = op.documents || [];
+                const manualDocs = allDocs.filter(
+                  (doc) => doc?.source === "MANUAL_UPLOAD" && doc?.filePath
+                );
+                const systemDocs = allDocs.filter(
+                  (doc) =>
+                    doc?.source !== "MANUAL_UPLOAD" &&
+                    !linkedFormCodes.has(doc.documentType)
+                );
                 const otherDocs = [
                   { label: "Standing Order", path: op.standingOrder },
                   { label: "Checklist 1", path: op.checklist1 },
                 ].filter((d) => d.path);
-                const hasAny = systemDocs.length > 0 || otherDocs.length > 0;
+                const hasAny =
+                  systemDocs.length > 0 ||
+                  otherDocs.length > 0 ||
+                  manualDocs.length > 0;
                 if (!hasAny) return null;
                 const downloadIcon = (
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 );
+                const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"]);
+                const getExt = (name) =>
+                  (name || "").split(".").pop()?.toLowerCase() || "";
                 return (
                   <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Attached Documents</h3>
+                    {manualDocs.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-sm font-semibold text-white/80 mb-3">
+                          Manual Uploads
+                          <span className="ml-2 text-[11px] font-normal text-white/50">
+                            ({manualDocs.length} file{manualDocs.length > 1 ? "s" : ""})
+                          </span>
+                        </h4>
+                        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                          {manualDocs.map((doc, idx) => {
+                            const name = doc.documentType || doc.filePath?.split("/").pop() || `attachment-${idx}`;
+                            const ext = getExt(name) || getExt(doc.filePath);
+                            const isImage = IMAGE_EXT.has(ext);
+                            return (
+                              <div
+                                key={`${doc.filePath || "manual"}-${idx}`}
+                                className="rounded-xl border border-emerald-500/30 bg-emerald-900/10 overflow-hidden flex flex-col"
+                              >
+                                {isImage ? (
+                                  <a
+                                    href={doc.filePath}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block h-32 bg-white/5 hover:bg-white/10 border-b border-white/10"
+                                    title={name}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={doc.filePath}
+                                      alt={name}
+                                      className="h-full w-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  </a>
+                                ) : (
+                                  <div className="flex h-32 items-center justify-center border-b border-white/10 bg-white/5">
+                                    <span className="rounded-md bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70">
+                                      {ext || "file"}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="p-3 flex-1 flex flex-col gap-2">
+                                  <p className="text-xs font-semibold text-white truncate" title={name}>
+                                    {name}
+                                  </p>
+                                  <div className="mt-auto flex items-center justify-between gap-2">
+                                    <a
+                                      href={doc.filePath}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[11px] text-sky-300 hover:text-sky-200 underline"
+                                    >
+                                      View
+                                    </a>
+                                    <a
+                                      href={doc.filePath}
+                                      download={name}
+                                      className="inline-flex items-center gap-1 text-[11px] text-orange-300 hover:text-orange-200"
+                                    >
+                                      {downloadIcon}
+                                      Download
+                                    </a>
+                                  </div>
+                                  {doc.uploadedAt && (
+                                    <p className="text-[10px] text-white/50">
+                                      {formatDate(doc.uploadedAt)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     {systemDocs.length > 0 && (
                       <div className="mb-6">
                         <h4 className="text-sm font-semibold text-white/80 mb-3">System Generated Documents</h4>

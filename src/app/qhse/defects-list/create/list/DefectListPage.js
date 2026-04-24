@@ -626,6 +626,64 @@ export default function DefectListPage() {
                   <p className="mt-1">{formatDate(viewDefect.completionDate)}</p>
                 </div>
               </div>
+              {viewDefect.attachments?.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Attachments ({viewDefect.attachments.length})
+                  </p>
+                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {viewDefect.attachments.map((att, idx) => {
+                      const name = att.originalName || `attachment-${idx}`;
+                      const ext = (name.split(".").pop() || "").toLowerCase();
+                      const isImage = ["png", "jpg", "jpeg", "gif", "webp"].includes(ext);
+                      const inlineUrl = `/api/qhse/defects-list/${viewDefect._id}/download?index=${idx}&inline=1`;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex flex-col gap-1 rounded-lg border border-white/10 bg-slate-900/40 p-2"
+                        >
+                          {isImage ? (
+                            <a
+                              href={inlineUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block overflow-hidden rounded-md border border-white/10 bg-white/5 hover:border-sky-500/60"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={inlineUrl}
+                                alt={name}
+                                className="h-24 w-full object-cover"
+                                loading="lazy"
+                              />
+                            </a>
+                          ) : (
+                            <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-white/15 bg-white/5 text-[10px] uppercase tracking-wider text-slate-400">
+                              {ext || "file"}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="truncate text-[11px] text-slate-300" title={name}>
+                              {name}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDownload(viewDefect._id, idx, name)
+                              }
+                              disabled={downloading === viewDefect._id}
+                              className="shrink-0 rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-sky-300 hover:bg-white/10 disabled:opacity-50"
+                              title="Download"
+                            >
+                              {downloading === viewDefect._id ? "…" : "Download"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="border-t border-white/10 px-5 py-4">
               {canApprove && viewDefect.status !== "Closed" ? (

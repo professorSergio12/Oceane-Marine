@@ -255,7 +255,14 @@ export default function ViewFormPage() {
           {entries.map(([key, value]) => {
             const label = labelFromKey(key);
             if (key === 'signatureBlock' && value && typeof value === 'object') {
-              const sigSrc = value.signature ?? value.signatureImage ?? value.mooringMasterSignature;
+              const sigSrc =
+                value.signature ??
+                value.signatureImage ??
+                value.mooringMasterSignature;
+              const stampSrc = value.stampImage ?? value.shipStampImage;
+              const hasSignature =
+                value.signature || value.signatureImage || value.mooringMasterSignature;
+              const hasStamp = value.stampImage || value.shipStampImage;
               return (
                 <div key={key} className="border-b border-gray-600 pb-4">
                   <div className="font-semibold text-gray-300 mb-2">{label}</div>
@@ -263,16 +270,38 @@ export default function ViewFormPage() {
                     {value.name != null && (
                       <div><span className="text-gray-400">Name:</span> <span className="text-white/90">{value.name}</span></div>
                     )}
+                    {value.masterName != null && (
+                      <div><span className="text-gray-400">Master Name:</span> <span className="text-white/90">{value.masterName}</span></div>
+                    )}
+                    {value.vesselName != null && (
+                      <div><span className="text-gray-400">Vessel Name:</span> <span className="text-white/90">{value.vesselName}</span></div>
+                    )}
                     {value.rank != null && (
                       <div><span className="text-gray-400">Rank:</span> <span className="text-white/90">{value.rank}</span></div>
                     )}
                     {value.date != null && (
                       <div><span className="text-gray-400">Date:</span> <span className="text-white/90">{formatDateOnly(value.date)}</span></div>
                     )}
-                    {(value.signature || value.signatureImage || value.mooringMasterSignature) && (
-                      <div className="col-span-2">
-                        <span className="text-gray-400 block mb-1">Signature:</span>
-                        {renderSignatureImage(sigSrc)}
+                    {value.signedDate != null && (
+                      <div><span className="text-gray-400">Signed Date:</span> <span className="text-white/90">{formatDateOnly(value.signedDate)}</span></div>
+                    )}
+                    {value.signedTime != null && (
+                      <div><span className="text-gray-400">Signed Time:</span> <span className="text-white/90">{value.signedTime}</span></div>
+                    )}
+                    {(hasSignature || hasStamp) && (
+                      <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {hasSignature && (
+                          <div>
+                            <span className="text-gray-400 block mb-1">Signature:</span>
+                            {renderSignatureImage(sigSrc, 'Signature')}
+                          </div>
+                        )}
+                        {hasStamp && (
+                          <div>
+                            <span className="text-gray-400 block mb-1">Stamp:</span>
+                            {renderSignatureImage(stampSrc, 'Stamp')}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

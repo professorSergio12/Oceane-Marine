@@ -11,6 +11,19 @@ function toDateInputValue(value) {
   return d.toISOString().slice(0, 10);
 }
 
+const PMS_MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // keep under proxyClientMaxBodySize (30mb)
+
+function pickValidPmsFile(file, setError) {
+  if (!file) return null;
+  if (file.size > PMS_MAX_UPLOAD_BYTES) {
+    setError(
+      `File "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MB. Maximum allowed is 25 MB.`
+    );
+    return null;
+  }
+  return file;
+}
+
 const defaultFormState = () => ({
   equipmentNo: "",
   equipmentName: "",
@@ -54,6 +67,8 @@ export default function Accessories({ view: controlledView, onViewChange }) {
   const [error, setError] = useState(null);
   const [manufacturingCertificateFile, setManufacturingCertificateFile] = useState(null);
   const [testCertificateFile, setTestCertificateFile] = useState(null);
+  const [existingManufacturingCert, setExistingManufacturingCert] = useState(null);
+  const [existingTestCert, setExistingTestCert] = useState(null);
 
   // Fetch locations
   useEffect(() => {
@@ -103,6 +118,8 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     setForm(defaultFormState());
     setManufacturingCertificateFile(null);
     setTestCertificateFile(null);
+    setExistingManufacturingCert(null);
+    setExistingTestCert(null);
     const manufacturingInput = document.querySelector(
       'input[type="file"][name="manufacturingCertificate"]'
     );
@@ -132,6 +149,23 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     });
     setManufacturingCertificateFile(null);
     setTestCertificateFile(null);
+    setExistingManufacturingCert(
+      item.manufacturingCertificate?.fileUrl
+        ? {
+            fileUrl: item.manufacturingCertificate.fileUrl,
+            originalFileName:
+              item.manufacturingCertificate.originalFileName || "",
+          }
+        : null
+    );
+    setExistingTestCert(
+      item.testCertificate?.fileUrl
+        ? {
+            fileUrl: item.testCertificate.fileUrl,
+            originalFileName: item.testCertificate.originalFileName || "",
+          }
+        : null
+    );
     const manufacturingInput = document.querySelector(
       'input[type="file"][name="manufacturingCertificate"]'
     );
@@ -222,12 +256,27 @@ export default function Accessories({ view: controlledView, onViewChange }) {
         : "/api/pms/equipment-inventory/accessories/create";
       const method = editingAccessoryId ? "PATCH" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        body: formData,
-      });
+      let res;
+      try {
+        res = await fetch(url, {
+          method,
+          body: formData,
+        });
+      } catch (networkErr) {
+        throw new Error(
+          `Upload request failed before the server responded${
+            networkErr?.message ? `: ${networkErr.message}` : ""
+          }. If a file was attached, try a smaller file or retry.`
+        );
+      }
 
-      const data = await res.json();
+      const rawText = await res.text();
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = { message: rawText?.slice(0, 300) };
+      }
 
       if (res.ok) {
         setMessage(
@@ -238,13 +287,15 @@ export default function Accessories({ view: controlledView, onViewChange }) {
         setSelectedLocation("");
         setTimeout(() => setMessage(null), 5000);
       } else {
-        setError(data.message || "Failed to save accessory");
-        setTimeout(() => setError(null), 5000);
+        setError(
+          data.message || `Failed to save accessory (status ${res.status})`
+        );
+        setTimeout(() => setError(null), 8000);
       }
     } catch (err) {
       setError(err.message || "An error occurred while saving. Please try again.");
       console.error("Save error:", err);
-      setTimeout(() => setError(null), 5000);
+      setTimeout(() => setError(null), 8000);
     } finally {
       setSaving(false);
     }
@@ -575,25 +626,108 @@ export default function Accessories({ view: controlledView, onViewChange }) {
             <label className="block text-sm font-semibold text-white/90">
               Manufacturing Certificate:
             </label>
+            {existingManufacturingCert?.fileUrl &&
+              !manufacturingCertificateFile && (
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                  <span className="text-[11px] uppercase tracking-wider text-emerald-300 shrink-0">
+                    Current
+                  </span>
+                  <a
+                    href={existingManufacturingCert.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 truncate text-xs text-emerald-200 hover:text-emerald-100 underline"
+                    title={
+                      existingManufacturingCert.originalFileName ||
+                      existingManufacturingCert.fileUrl
+                    }
+                  >
+                    {existingManufacturingCert.originalFileName ||
+                      existingManufacturingCert.fileUrl.split("/").pop()}
+                  </a>
+                  <a
+                    href={existingManufacturingCert.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-semibold text-sky-300 hover:text-sky-200 underline shrink-0"
+                  >
+                    View / Download
+                  </a>
+                </div>
+              )}
             <input
               type="file"
               name="manufacturingCertificate"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              onChange={(e) => setManufacturingCertificateFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const picked = e.target.files?.[0] || null;
+                const valid = pickValidPmsFile(picked, setError);
+                if (picked && !valid) e.target.value = "";
+                setManufacturingCertificateFile(valid);
+                if (valid) setError(null);
+              }}
               className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
             />
+            {existingManufacturingCert?.fileUrl && (
+              <p className="text-[10px] text-slate-400">
+                {manufacturingCertificateFile
+                  ? "New upload will replace the current certificate on save."
+                  : "Leave empty to keep the current certificate."}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-white/90">
               Test Certificate:
             </label>
+            {existingTestCert?.fileUrl && !testCertificateFile && (
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                <span className="text-[11px] uppercase tracking-wider text-emerald-300 shrink-0">
+                  Current
+                </span>
+                <a
+                  href={existingTestCert.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 truncate text-xs text-emerald-200 hover:text-emerald-100 underline"
+                  title={
+                    existingTestCert.originalFileName ||
+                    existingTestCert.fileUrl
+                  }
+                >
+                  {existingTestCert.originalFileName ||
+                    existingTestCert.fileUrl.split("/").pop()}
+                </a>
+                <a
+                  href={existingTestCert.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-semibold text-sky-300 hover:text-sky-200 underline shrink-0"
+                >
+                  View / Download
+                </a>
+              </div>
+            )}
             <input
               type="file"
               name="testCertificate"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              onChange={(e) => setTestCertificateFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const picked = e.target.files?.[0] || null;
+                const valid = pickValidPmsFile(picked, setError);
+                if (picked && !valid) e.target.value = "";
+                setTestCertificateFile(valid);
+                if (valid) setError(null);
+              }}
               className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"
             />
+            {existingTestCert?.fileUrl && (
+              <p className="text-[10px] text-slate-400">
+                {testCertificateFile
+                  ? "New upload will replace the current certificate on save."
+                  : "Leave empty to keep the current certificate."}
+              </p>
+            )}
           </div>
         </div>
 

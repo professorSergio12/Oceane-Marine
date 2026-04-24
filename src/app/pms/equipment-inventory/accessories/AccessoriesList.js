@@ -10,6 +10,34 @@ import {
 } from "@/app/components/RecordActionIcons";
 import { usePmsRole } from "@/hooks/usePmsRole";
 
+function CertLink({ cert, label }) {
+  if (!cert?.fileUrl) return null;
+  return (
+    <a
+      href={cert.fileUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={cert.originalFileName || label}
+      className="inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-200 hover:bg-emerald-500/20 transition"
+    >
+      <svg
+        className="h-3 w-3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656L5.757 10.586a6 6 0 108.486 8.486L20 13"
+        />
+      </svg>
+      {label}
+    </a>
+  );
+}
+
 function getYears() {
   const currentYear = new Date().getFullYear();
   const years = [];
@@ -201,6 +229,7 @@ export default function AccessoriesList({ onEditItem }) {
                     <th className="px-4 py-3">Equipment Name</th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Certificates</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -236,6 +265,23 @@ export default function AccessoriesList({ onEditItem }) {
                         >
                           {item.status || "—"}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {item.manufacturingCertificate?.fileUrl ||
+                        item.testCertificate?.fileUrl ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <CertLink
+                              cert={item.manufacturingCertificate}
+                              label="Mfg"
+                            />
+                            <CertLink
+                              cert={item.testCertificate}
+                              label="Test"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-white/40">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-2 justify-end">

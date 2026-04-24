@@ -206,24 +206,47 @@ export default function StsDocumentationMultiUpload({ existingDocuments = [] }) 
       )}
 
       {manualExisting.length > 0 && (
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/3 p-3">
+        <div className="space-y-3 rounded-lg border border-white/10 bg-white/3 p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Previously uploaded
+            Previously uploaded ({manualExisting.length})
           </p>
-          <ul className="space-y-1 text-sm">
-            {manualExisting.map((doc, i) => (
-              <li key={`${doc.filePath}-${i}`}>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {manualExisting.map((doc, i) => {
+              const name =
+                doc.documentType || doc.filePath?.split("/").pop() || "attachment";
+              const ext = (name.split(".").pop() || "").toLowerCase();
+              const isImage = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(
+                ext
+              );
+              return (
                 <a
+                  key={`${doc.filePath}-${i}`}
                   href={doc.filePath}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-300 hover:underline"
+                  title={name}
+                  className="flex flex-col overflow-hidden rounded-lg border border-white/10 bg-white/5 hover:border-sky-400/40 hover:bg-white/10 transition"
                 >
-                  {doc.documentType || doc.filePath.split("/").pop()}
+                  {isImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={doc.filePath}
+                      alt={name}
+                      className="h-20 w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-20 items-center justify-center bg-white/5 text-[10px] font-bold uppercase tracking-wider text-white/60">
+                      {ext || "file"}
+                    </div>
+                  )}
+                  <div className="px-2 py-1.5">
+                    <p className="truncate text-[11px] text-slate-200">{name}</p>
+                  </div>
                 </a>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
