@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 
@@ -106,6 +107,9 @@ DrillPlanSchema.pre("validate", function () {
     }));
   }
 });
+
+
+DrillPlanSchema.plugin(qhseArchivePlugin);
 
 // Ensure the model is properly exported
 const DrillPlan = mongoose.models.DrillPlan || mongoose.model("DrillPlan", DrillPlanSchema);

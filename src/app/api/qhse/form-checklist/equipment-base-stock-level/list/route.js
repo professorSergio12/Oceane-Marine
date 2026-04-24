@@ -13,6 +13,9 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const useCursor = searchParams.get("paged") === "cursor";
     const year = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     const allRecords = await StsEquipmentBaseStockLevel.find({})
       .select("serialNumber year")
@@ -39,6 +42,9 @@ export async function GET(req) {
       const limit = searchParams.get("limit");
 
       const parts = [];
+      if (!includeArchived) {
+        parts.push({ isArchived: { $ne: true } });
+      }
       if (year) {
         const yearNum = Number.parseInt(year, 10);
         if (!Number.isNaN(yearNum)) {
@@ -83,6 +89,9 @@ export async function GET(req) {
     }
 
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     if (year) {
       const yearNum = Number.parseInt(year, 10);
       if (!Number.isNaN(yearNum)) {

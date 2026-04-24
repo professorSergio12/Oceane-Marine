@@ -57,6 +57,9 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
     const useCursor = searchParams.get("paged") === "cursor";
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     if (useCursor) {
       const statusParam = searchParams.get("status");
@@ -65,6 +68,9 @@ export async function GET(req) {
       const limit = searchParams.get("limit");
 
       const parts = [];
+      if (!includeArchived) {
+        parts.push({ isArchived: { $ne: true } });
+      }
       const yf = buildYearFilter(year);
       if (yf) parts.push(yf);
       if (statusParam && statusParam !== "All") {
@@ -105,6 +111,9 @@ export async function GET(req) {
     }
 
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     if (year) {
       const yf = buildYearFilter(year);
       if (yf) Object.assign(query, yf);

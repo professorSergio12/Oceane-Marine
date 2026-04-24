@@ -8,9 +8,15 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
     const locationName = searchParams.get("location");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     // Build query
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     
     // Filter by year if provided
     if (year) {

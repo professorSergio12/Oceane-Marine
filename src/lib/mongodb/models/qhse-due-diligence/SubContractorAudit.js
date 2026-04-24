@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -157,6 +158,9 @@ SubContractorAuditSchema.pre("save", async function () {
     throw error;
   }
 });
+
+
+SubContractorAuditSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.SubContractorAudit ||
   mongoose.model("SubContractorAudit", SubContractorAuditSchema);

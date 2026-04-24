@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -208,6 +209,9 @@ VendorApprovalSchema.pre("save", async function () {
     throw error;
   }
 });
+
+
+VendorApprovalSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.VendorApproval ||
   mongoose.model("VendorApproval", VendorApprovalSchema);

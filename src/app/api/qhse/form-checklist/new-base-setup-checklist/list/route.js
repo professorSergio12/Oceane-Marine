@@ -7,9 +7,15 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     // Build query
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     
     // Filter by year if provided
     if (year) {

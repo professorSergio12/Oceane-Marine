@@ -28,6 +28,9 @@ export async function GET(req) {
     const limit = searchParams.get("limit");
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     const allForms = await HseInductionChecklist.find({
       dateOfInduction: { $exists: true, $ne: null },
@@ -47,6 +50,9 @@ export async function GET(req) {
 
     if (useCursor) {
       const parts = [];
+      if (!includeArchived) {
+        parts.push({ isArchived: { $ne: true } });
+      }
       if (year) {
         const yearNum = Number.parseInt(year, 10);
         const startDate = new Date(`${yearNum}-01-01T00:00:00.000Z`);
@@ -91,6 +97,9 @@ export async function GET(req) {
     }
 
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     if (year) {
       const yearNum = Number.parseInt(year, 10);
       const startDate = new Date(`${yearNum}-01-01T00:00:00.000Z`);

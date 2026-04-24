@@ -10,9 +10,13 @@ export async function GET(req) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
+    const archivedFilter = includeArchived ? {} : { isArchived: { $ne: true } };
 
     if (year === "all") {
-      const records = await TrainingRecord.find()
+      const records = await TrainingRecord.find(archivedFilter)
         .sort({ plannedDate: -1 })
         .lean();
       return NextResponse.json({ success: true, data: records });
@@ -22,6 +26,7 @@ export async function GET(req) {
       const yr = Number.parseInt(year, 10);
     if (!Number.isNaN(yr)) {
       const records = await TrainingRecord.find({
+        ...archivedFilter,
         plannedDate: {
           $gte: new Date(`${yr}-01-01T00:00:00.000Z`),
           $lte: new Date(`${yr}-12-31T23:59:59.999Z`),
@@ -34,7 +39,7 @@ export async function GET(req) {
     }
     }
 
-    const all = await TrainingRecord.find().select("plannedDate").lean();
+    const all = await TrainingRecord.find(archivedFilter).select("plannedDate").lean();
     const years = [
       ...new Set(
         all

@@ -12,6 +12,9 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const useCursor = searchParams.get("paged") === "cursor";
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     if (useCursor) {
       const yearParam = searchParams.get("year");
@@ -22,6 +25,9 @@ export async function GET(req) {
       const limit = searchParams.get("limit");
 
       const parts = [];
+      if (!includeArchived) {
+        parts.push({ isArchived: { $ne: true } });
+      }
       if (yearParam) {
         const y = Number.parseInt(yearParam, 10);
         if (!Number.isNaN(y)) {
@@ -65,7 +71,11 @@ export async function GET(req) {
 
     const yearParam = searchParams.get("year");
 
-    let forms = await VendorSupplierApproval.find()
+    const nonCursorQuery = includeArchived
+      ? {}
+      : { isArchived: { $ne: true } };
+
+    let forms = await VendorSupplierApproval.find(nonCursorQuery)
       .sort({ createdAt: -1 })
       .lean();
 

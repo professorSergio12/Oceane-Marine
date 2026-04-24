@@ -366,7 +366,9 @@ export default function NearMissListPage() {
               <div>
                 <h2 className="text-lg font-bold text-white">Report Details</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {selectedReport?.formCode || "Select a report to view details"}
+                  {selectedReport?.serialNumber
+                    ? `Serial ${selectedReport.serialNumber} · ${selectedReport?.formCode || ""}`
+                    : selectedReport?.formCode || "Select a report to view details"}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -404,7 +406,15 @@ export default function NearMissListPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
-                    ID
+                    Serial No.
+                  </label>
+                  <div className="text-sm font-semibold text-white font-mono">
+                    {selectedReport?.serialNumber || "—"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    Form Code
                   </label>
                   <div className="text-sm font-semibold text-white font-mono">
                     {selectedReport?.formCode || "—"}
@@ -587,6 +597,7 @@ export default function NearMissListPage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="text-left text-slate-200 border-b border-white/10">
+                        <th className="py-3 pr-4 font-semibold">Serial</th>
                         <th className="py-3 pr-4 font-semibold">Form Code</th>
                         <th className="py-3 pr-4 font-semibold">Job Ref #</th>
                         <th className="py-3 pr-4 font-semibold">Vessel Name</th>
@@ -609,6 +620,11 @@ export default function NearMissListPage() {
                               : ""
                           }`}
                         >
+                          <td className="py-3 pr-4">
+                            <span className="font-mono text-emerald-300">
+                              {report.serialNumber || "—"}
+                            </span>
+                          </td>
                           <td className="py-3 pr-4">
                             <span className="font-mono text-sky-300">
                               {report.formCode || "—"}

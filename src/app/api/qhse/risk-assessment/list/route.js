@@ -18,8 +18,14 @@ export async function GET(req) {
     const search = searchParams.get("search");
     const cursor = searchParams.get("cursor");
     const limit = searchParams.get("limit");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     if (location && location.trim()) {
       query.locationName = location.trim();
     }

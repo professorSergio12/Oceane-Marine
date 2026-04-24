@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -91,4 +92,7 @@ EquipmentDefectSchema.pre("save", async function () {
 if (mongoose.models.EquipmentDefect) {
   delete mongoose.models.EquipmentDefect;
 }
+
+EquipmentDefectSchema.plugin(qhseArchivePlugin);
+
 export default mongoose.model("EquipmentDefect", EquipmentDefectSchema);

@@ -20,11 +20,18 @@ export async function GET(req) {
     const year = searchParams.get("year");
     const useCursor = searchParams.get("paged") === "cursor";
     const cursor = searchParams.get("cursor");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     /* =========================
        BUILD FILTER
        ========================= */
     const filter = {};
+
+    if (!includeArchived) {
+      filter.isArchived = { $ne: true };
+    }
 
     if (latestOnly) {
       filter.isLatest = true;

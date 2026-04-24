@@ -12,9 +12,17 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const useCursor = searchParams.get("paged") === "cursor";
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     if (!useCursor) {
-      const supplierDueDiligences = await SupplierDueDiligence.find()
+      const nonCursorQuery = includeArchived
+        ? {}
+        : { isArchived: { $ne: true } };
+      const supplierDueDiligences = await SupplierDueDiligence.find(
+        nonCursorQuery
+      )
         .sort({ _id: -1 })
         .lean();
       return NextResponse.json({ supplierDueDiligences });
@@ -26,6 +34,9 @@ export async function GET(req) {
     const search = searchParams.get("search");
 
     const parts = [];
+    if (!includeArchived) {
+      parts.push({ isArchived: { $ne: true } });
+    }
     if (status && status !== "All") {
       parts.push({ status });
     }

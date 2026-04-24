@@ -426,6 +426,11 @@ export default function VendorSupplyAdminPage() {
                       <h2 className="text-sm font-semibold text-white/90 truncate max-w-sm">
                         {form.vendorName || "Unnamed Vendor"}
                       </h2>
+                      {form.serialNumber && (
+                        <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 font-mono">
+                          {form.serialNumber}
+                        </span>
+                      )}
                       {getStatusBadge(form.status)}
                       {typeof form.overallPercentageScore === "number" && (
                         <span className="text-xs text-sky-300 font-semibold">

@@ -12,6 +12,9 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const useCursor = searchParams.get("paged") === "cursor";
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     if (useCursor) {
       const status = searchParams.get("status");
@@ -20,6 +23,9 @@ export async function GET(req) {
       const limit = searchParams.get("limit");
 
       const parts = [];
+      if (!includeArchived) {
+        parts.push({ isArchived: { $ne: true } });
+      }
       if (status && status !== "All") {
         parts.push({ status });
       }
@@ -51,7 +57,12 @@ export async function GET(req) {
       });
     }
 
-    const subContractorAudits = await SubContractorAudit.find().lean({
+    const nonCursorQuery = includeArchived
+      ? {}
+      : { isArchived: { $ne: true } };
+    const subContractorAudits = await SubContractorAudit.find(
+      nonCursorQuery
+    ).lean({
       getters: true,
       virtuals: false,
     });

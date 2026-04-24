@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -38,6 +39,9 @@ KpiUploadSchema.pre("save", async function () {
     throw error;
   }
 });
+
+
+KpiUploadSchema.plugin(qhseArchivePlugin);
 
 const KpiUpload =
   mongoose.models.KpiUpload || mongoose.model("KpiUpload", KpiUploadSchema);

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -47,5 +48,8 @@ BestPracticeSchema.pre("save", async function () {
     throw error;
   }
 });
+
+
+BestPracticeSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.BestPractice || mongoose.model("BestPractice", BestPracticeSchema);

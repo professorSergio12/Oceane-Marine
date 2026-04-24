@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -33,6 +34,9 @@ RiskAssessmentSchema.pre("save", async function () {
     }
   }
 });
+
+
+RiskAssessmentSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.RiskAssessment ||
   mongoose.model("RiskAssessment", RiskAssessmentSchema);

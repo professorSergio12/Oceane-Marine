@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -188,6 +189,9 @@ HSEInductionChecklistSchema.pre("save", async function () {
     throw error;
   }
 });
+
+
+HSEInductionChecklistSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.HSEInductionChecklist ||
   mongoose.model("HSEInductionChecklist", HSEInductionChecklistSchema);

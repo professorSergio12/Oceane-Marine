@@ -9,9 +9,14 @@ export async function GET(req) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
+    const archivedFilter = includeArchived ? {} : { isArchived: { $ne: true } };
 
     if (year) {
       const plan = await TrainingPlan.findOne({
+        ...archivedFilter,
         year: Number.parseInt(year, 10),
         status: "Approved",
       }).sort({ createdAt: -1 });
@@ -25,9 +30,10 @@ export async function GET(req) {
       });
     }
 
-    const plans = await TrainingPlan.find({ status: "Approved" }).select(
-      "year"
-    );
+    const plans = await TrainingPlan.find({
+      ...archivedFilter,
+      status: "Approved",
+    }).select("year");
 
     const years = [...new Set(plans.map((p) => p.year))].sort((a, b) => b - a);
 

@@ -9,6 +9,9 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     const all = await TargetKpi.find()
       .select("year formCode serialNumber createdAt")
@@ -21,14 +24,16 @@ export async function GET(req) {
       ),
     ].sort((a, b) => b - a);
 
+    const baseQuery = includeArchived ? {} : { isArchived: { $ne: true } };
+
     let items;
     if (year) {
       const yr = Number.parseInt(year, 10);
-      items = await TargetKpi.find({ year: yr })
+      items = await TargetKpi.find({ ...baseQuery, year: yr })
         .sort({ createdAt: -1 })
         .lean();
     } else {
-      items = await TargetKpi.find().sort({ createdAt: -1 }).lean();
+      items = await TargetKpi.find(baseQuery).sort({ createdAt: -1 }).lean();
     }
 
     // Backfill formCode for existing records (HSE-001A)

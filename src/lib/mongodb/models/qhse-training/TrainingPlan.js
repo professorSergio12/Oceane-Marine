@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 
@@ -113,6 +114,9 @@ TrainingPlanSchema.pre("save", async function () {
     }
   }
 });
+
+
+TrainingPlanSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.TrainingPlan ||
   mongoose.model("TrainingPlan", TrainingPlanSchema);

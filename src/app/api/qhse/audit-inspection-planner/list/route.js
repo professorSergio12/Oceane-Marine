@@ -8,8 +8,14 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     if (year) {
       const yearNum = Number.parseInt(year, 10);
       if (!Number.isNaN(yearNum)) {

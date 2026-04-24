@@ -28,6 +28,36 @@ const ARCHIVE_MODULES = {
 };
 
 /**
+ * Maps human-readable module labels (ARCHIVE_MODULES values) to
+ * the stable registry key used by the generic archive-record API.
+ * Lets the server also flip `isArchived = true` on the source document
+ * so the record disappears from its module's active list after archiving.
+ * Modules not listed here (e.g. Drills, Training) only create an archive
+ * catalog entry and are NOT removed from their active lists.
+ */
+const ARCHIVE_LABEL_TO_MODULE_KEY = {
+  "Equipment Defects": "equipment-defect",
+  "Best Practice": "best-practice",
+  "Risk Assessment": "risk-assessment",
+  "POAC Cross Competency": "poac-cross-competency",
+  "Target KPI": "target-kpi",
+  KPI: "kpi-upload",
+  "MOC Management Change": "moc-management-change",
+  "MOC Risk Assessment": "moc-risk-assessment",
+  "Base Audit": "base-audit",
+  "Transfer Audit": "transfer-audit",
+  "Transfer Location Questionnaire": "transfer-location-quest",
+  "New Base Setup": "new-base-setup",
+  "HSE Induction Checklist": "hse-induction-checklist",
+  "Equipment Base Stock Level": "equipment-base-stock",
+  "Audit & Inspection Planner": "audit-inspection-planner",
+  "Near Miss": "near-miss",
+  "Due Diligence Questionnaire": "due-diligence-questionnaire",
+  "Audit Sub Contractor": "audit-sub-contractor",
+  "Vendor Supply": "vendor-supply",
+};
+
+/**
  * Build payload for archive create API.
  * @param {string} moduleName - One of ARCHIVE_MODULES values or custom label
  * @param {object} item - The list row document (must have _id)
@@ -46,16 +76,19 @@ export function buildArchivePayload(moduleName, item, title = "", formCode = "")
     firstAtt?.path ||
     "";
   const fileUrl = item?.fileUrl || item?.attachment?.fileUrl || "";
+  const label = String(moduleName).trim();
   return {
     year,
-    module: String(moduleName).trim(),
-    documentType: String(moduleName).trim(),
+    module: label,
+    documentType: label,
     formCode: formCode || item?.formCode || "",
     title: title || item?.equipmentDefect || item?.description || item?.locationName || item?.nameOfPOAC || item?.proposedChange || item?.formCode || originalId || "Archived document",
     originalId,
     filePath: filePath ? String(filePath).trim() : "",
     fileUrl: fileUrl ? String(fileUrl).trim() : "",
     metadata: item ? { ...item } : undefined,
+    // Registry key used by the server to flip isArchived on the source doc.
+    sourceModuleKey: ARCHIVE_LABEL_TO_MODULE_KEY[label] || null,
   };
 }
 
@@ -77,4 +110,4 @@ export async function archiveDocument(payload) {
   return { success: true };
 }
 
-export { ARCHIVE_MODULES };
+export { ARCHIVE_MODULES, ARCHIVE_LABEL_TO_MODULE_KEY };

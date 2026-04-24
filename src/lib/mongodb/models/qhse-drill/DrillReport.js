@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -120,6 +121,9 @@ DrillReportSchema.pre("save", async function () {
     }
   }
 });
+
+
+DrillReportSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.DrillReport ||
   mongoose.model("DrillReport", DrillReportSchema);

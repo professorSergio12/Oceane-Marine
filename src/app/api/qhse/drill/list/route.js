@@ -16,14 +16,24 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url || "", `http://localhost`);
     const yearParam = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
+
+    const planQuery = { "planItems.status": "Approved" };
+    const reportQuery = {};
+    if (!includeArchived) {
+      planQuery.isArchived = { $ne: true };
+      reportQuery.isArchived = { $ne: true };
+    }
 
     // Only include Approved plan items (per requirement) but keep the plan container
-    const plans = await DrillPlan.find({ "planItems.status": "Approved" })
+    const plans = await DrillPlan.find(planQuery)
       .sort({ year: -1 })
       .lean();
 
     // All reports (latest drillDate wins)
-    const reports = await DrillReport.find({}).sort({ drillDate: -1 }).lean();
+    const reports = await DrillReport.find(reportQuery).sort({ drillDate: -1 }).lean();
 
     // Build a year → quarter map seeded from plans
     const yearMap = new Map();

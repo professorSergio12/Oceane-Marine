@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -159,6 +160,9 @@ SupplierDueDiligenceSchema.pre("save", async function () {
     throw error;
   }
 });
+
+
+SupplierDueDiligenceSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.SupplierDueDiligence ||
   mongoose.model("SupplierDueDiligence", SupplierDueDiligenceSchema);

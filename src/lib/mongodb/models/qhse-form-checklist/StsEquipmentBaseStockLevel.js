@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -127,6 +128,9 @@ STSEquipmentBaseStockSchema.pre("findOneAndUpdate", function (next) {
 
   next();
 });
+
+
+STSEquipmentBaseStockSchema.plugin(qhseArchivePlugin);
 
 export default mongoose.models.STSEquipmentBaseStock ||
   mongoose.model("STSEquipmentBaseStock", STSEquipmentBaseStockSchema);

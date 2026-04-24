@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -157,6 +158,9 @@ PoacCrossCompetencySchema.pre("save", async function () {
  * updates (e.g. adding "Rejected") are ignored until the process restarts unless
  * we drop the cached model before re-registering.
  */
+
+PoacCrossCompetencySchema.plugin(qhseArchivePlugin);
+
 if (process.env.NODE_ENV !== "production" && mongoose.models.PoacCrossCompetency) {
   delete mongoose.models.PoacCrossCompetency;
 }

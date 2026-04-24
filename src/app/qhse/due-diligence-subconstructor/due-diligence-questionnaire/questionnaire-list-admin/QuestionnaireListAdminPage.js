@@ -372,10 +372,18 @@ export default function QuestionnaireListAdminPage() {
                     <h2 className="text-xl font-bold text-sky-50 tracking-wide">
                       Form Details
                     </h2>
-                    <p className="text-xs text-slate-300 mt-1">
-                      FORM CODE:{" "}
-                      <span className="font-mono text-sky-300">
-                        {selectedForm.formCode || "—"}
+                    <p className="text-xs text-slate-300 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span>
+                        FORM CODE:{" "}
+                        <span className="font-mono text-sky-300">
+                          {selectedForm.formCode || "—"}
+                        </span>
+                      </span>
+                      <span>
+                        SERIAL:{" "}
+                        <span className="font-mono text-emerald-300">
+                          {selectedForm.serialNumber || "—"}
+                        </span>
                       </span>
                     </p>
                   </div>

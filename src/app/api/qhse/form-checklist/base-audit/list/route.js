@@ -9,9 +9,15 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
     const locationId = searchParams.get("locationId");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     // Build query
     const query = {};
+    if (!includeArchived) {
+      query.isArchived = { $ne: true };
+    }
     
     // Filter by year if provided (use serialNumber year, e.g. 2028-001 -> 2028)
     if (year) {

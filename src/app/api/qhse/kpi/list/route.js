@@ -21,6 +21,9 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
+    const includeArchivedParam = searchParams.get("includeArchived");
+    const includeArchived =
+      includeArchivedParam === "1" || includeArchivedParam === "true";
 
     // Always compute available years
     const all = await KpiUpload.find().select("year createdAt").lean();
@@ -32,14 +35,16 @@ export async function GET(req) {
       ),
     ].sort((a, b) => b - a);
 
+    const baseQuery = includeArchived ? {} : { isArchived: { $ne: true } };
+
     let items;
     if (year) {
       const yr = Number.parseInt(year, 10);
-      items = await KpiUpload.find({ year: yr }, LIST_PROJECTION)
+      items = await KpiUpload.find({ ...baseQuery, year: yr }, LIST_PROJECTION)
         .sort({ createdAt: -1 })
         .lean();
     } else {
-      items = await KpiUpload.find({}, LIST_PROJECTION)
+      items = await KpiUpload.find(baseQuery, LIST_PROJECTION)
         .sort({ createdAt: -1 })
         .lean();
     }
