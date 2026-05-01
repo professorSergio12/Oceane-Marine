@@ -47,6 +47,7 @@ export async function PUT(req, { params }) {
         primaryFenders: Number(getField("primaryFenders") || 0),
         secondaryFenders: Number(getField("secondaryFenders") || 0),
         hoses: Number(getField("hoses") || 0),
+        additionalEquipments: getField("additionalEquipments"),
         ownership: getField("ownership"),
         status: getField("status") || "NOT_COMPLETED",
         equipment: getField("equipment"),
@@ -128,6 +129,7 @@ export async function PUT(req, { params }) {
     existing.primaryFenders = Number(body.primaryFenders) || 0;
     existing.secondaryFenders = Number(body.secondaryFenders) || 0;
     existing.hoses = Number(body.hoses) || 0;
+    existing.additionalEquipments = body.additionalEquipments || "";
     existing.ownership = body.ownership;
     existing.status = body.status || "NOT_COMPLETED";
     if (existing.status === "COMPLETED") {

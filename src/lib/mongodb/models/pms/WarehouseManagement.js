@@ -47,6 +47,8 @@ const WarehouseManagementSchema = new mongoose.Schema(
     primaryFenders: { type: Number, default: 0 },
     secondaryFenders: { type: Number, default: 0 },
     hoses: { type: Number, default: 0 },
+    /** Free-text description of any extra/spare equipment beyond the counted items above. */
+    additionalEquipments: { type: String, trim: true, default: "" },
 
     ownership: {
       type: String,

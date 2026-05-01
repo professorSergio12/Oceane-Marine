@@ -17,12 +17,38 @@ function formatDate(value) {
   });
 }
 
+/** Inventory placement options match Equipment schema (placedInOffice/Base/Bay). */
+const LOCATION_OPTIONS = [
+  { value: "ALL", label: "All locations" },
+  { value: "OFFICE", label: "Office" },
+  { value: "BASE", label: "Base" },
+  { value: "BAY", label: "Bay" },
+];
+
+const MONTH_OPTIONS = [
+  { value: "ALL", label: "All months" },
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
 export default function EquipmentTesting() {
   const { canCreate } = usePmsRole();
   const canPlan = canCreate;
 
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [month, setMonth] = useState("ALL");
+  const [location, setLocation] = useState("ALL");
   const [equipments, setEquipments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -82,7 +108,26 @@ export default function EquipmentTesting() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
 
-  const testingPagination = useOperationsClientPagination(equipments, `${year}|${equipments.length}`);
+  /** Apply month + location filters client-side (year is already fetched server-side). */
+  const filteredEquipments = equipments.filter((eq) => {
+    if (month !== "ALL") {
+      const m = eq.nextTestDate ? new Date(eq.nextTestDate).getMonth() + 1 : null;
+      if (m !== Number(month)) return false;
+    }
+    if (location !== "ALL") {
+      const matches =
+        (location === "OFFICE" && eq.placedInOffice) ||
+        (location === "BASE" && eq.placedInBase) ||
+        (location === "BAY" && eq.placedInBay);
+      if (!matches) return false;
+    }
+    return true;
+  });
+
+  const testingPagination = useOperationsClientPagination(
+    filteredEquipments,
+    `${year}|${month}|${location}|${filteredEquipments.length}`
+  );
   const {
     paginatedItems: paginatedEquipments,
     ...testingPaginationFooterProps
@@ -183,28 +228,59 @@ export default function EquipmentTesting() {
       )}
 
       {/* Filters — z-40 so open menus paint above the inventory card (backdrop-blur stacking) */}
-      <div className="relative z-40 flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-[#0b2740]/70 backdrop-blur-[2px] px-4 py-3 shadow-xl">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="shrink-0 text-xs text-slate-300">Select Year</span>
-          <OperationsSelectField
-            variant="pill"
-            ariaLabel="Select year"
-            value={String(year)}
-            onChange={(v) => setYear(Number(v))}
-            options={yearOptions.map((y) => ({ value: String(y), label: String(y) }))}
-            className="min-w-0 w-[6.25rem] sm:w-28"
-            triggerClassName="ops-select-trigger w-full rounded-lg px-3 py-1.5 text-xs"
-          />
-        </div>
+      <div className="relative z-40 rounded-3xl border border-white/10 bg-[#0b2740]/70 backdrop-blur-[2px] px-4 py-3 shadow-xl">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-xs text-slate-300">Select Year</span>
+            <OperationsSelectField
+              variant="pill"
+              ariaLabel="Select year"
+              value={String(year)}
+              onChange={(v) => setYear(Number(v))}
+              options={yearOptions.map((y) => ({
+                value: String(y),
+                label: String(y),
+              }))}
+              className="min-w-0 w-[6.25rem] sm:w-28"
+              triggerClassName="ops-select-trigger w-full rounded-lg px-3 py-1.5 text-xs"
+            />
+          </div>
 
-        <button
-          type="button"
-          onClick={() => loadEquipments(year)}
-          disabled={loading}
-          className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? "Loading..." : "Refresh"}
-        </button>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-xs text-slate-300">Month</span>
+            <OperationsSelectField
+              variant="pill"
+              ariaLabel="Filter by month"
+              value={month}
+              onChange={(v) => setMonth(v)}
+              options={MONTH_OPTIONS}
+              className="min-w-0 w-[8rem] sm:w-36"
+              triggerClassName="ops-select-trigger w-full rounded-lg px-3 py-1.5 text-xs"
+            />
+          </div>
+
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-xs text-slate-300">Location</span>
+            <OperationsSelectField
+              variant="pill"
+              ariaLabel="Filter by location"
+              value={location}
+              onChange={(v) => setLocation(v)}
+              options={LOCATION_OPTIONS}
+              className="min-w-0 w-[8rem] sm:w-36"
+              triggerClassName="ops-select-trigger w-full rounded-lg px-3 py-1.5 text-xs"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => loadEquipments(year)}
+            disabled={loading}
+            className="ml-auto text-xs px-3 py-1.5 rounded-lg border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {/* Alerts */}
@@ -264,13 +340,15 @@ export default function EquipmentTesting() {
               </tr>
             </thead>
             <tbody>
-              {equipments.length === 0 && !loading && (
+              {filteredEquipments.length === 0 && !loading && (
                 <tr>
                   <td
                     colSpan={8}
                     className="px-4 py-6 text-center text-slate-400"
                   >
-                    No equipment found for {year}. Try a different year.
+                    {equipments.length === 0
+                      ? `No equipment found for ${year}. Try a different year.`
+                      : "No equipment matches the selected filters."}
                   </td>
                 </tr>
               )}

@@ -10,13 +10,20 @@ import {
 } from "@/app/components/RecordActionIcons";
 import { usePmsRole } from "@/hooks/usePmsRole";
 
-function CertLink({ cert, label }) {
-  if (!cert?.fileUrl) return null;
+/**
+ * MFG / TEST cert chip.
+ *
+ * Always opens through `/api/.../[id]/certificate/[type]` so the server can:
+ * - send the right Content-Type (PDFs render inline instead of downloading as binary)
+ * - re-attach the original filename on records whose stored fileUrl lost the extension.
+ */
+function CertLink({ accessoryId, type, cert, label }) {
+  if (!cert?.fileUrl || !accessoryId) return null;
+  const href = `/api/pms/equipment-inventory/accessories/${accessoryId}/certificate/${type}`;
   return (
     <a
-      href={cert.fileUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={href}
+      download={cert.originalFileName || `${type}-certificate`}
       title={cert.originalFileName || label}
       className="inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-200 hover:bg-emerald-500/20 transition"
     >
@@ -50,24 +57,32 @@ function getYears() {
   return years;
 }
 
-export default function AccessoriesList({ onEditItem }) {
+export default function AccessoriesList({
+  listCategory = "REGULAR",
+  onListCategoryChange,
+  onEditItem,
+}) {
   const { canEdit, canDelete } = usePmsRole();
   const [accessories, setAccessories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [years, setYears] = useState([]);
   const [year, setYear] = useState(new Date().getFullYear());
-  const [activeTab, setActiveTab] = useState("ALL");
   const [deletingId, setDeletingId] = useState(null);
+
+  const showEquipmentNo = listCategory === "REGULAR";
+
+  const setListCategory = (next) => {
+    if (typeof onListCategoryChange === "function") {
+      onListCategoryChange(next);
+    }
+  };
 
   const loadAccessories = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const category = activeTab !== "ALL" ? activeTab : null;
-      const url = `/api/pms/equipment-inventory/accessories/list?year=${year}${
-        category ? `&category=${category}` : ""
-      }`;
+      const url = `/api/pms/equipment-inventory/accessories/list?year=${year}&category=${listCategory}`;
       const res = await fetch(url);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to load accessories");
@@ -77,7 +92,7 @@ export default function AccessoriesList({ onEditItem }) {
     } finally {
       setLoading(false);
     }
-  }, [year, activeTab]);
+  }, [year, listCategory]);
 
   useEffect(() => {
     const fetchYears = async () => {
@@ -101,7 +116,7 @@ export default function AccessoriesList({ onEditItem }) {
 
   const accessoriesPagination = useOperationsClientPagination(
     accessories,
-    `${year}|${activeTab}`
+    `${year}|${listCategory}`
   );
   const {
     paginatedItems: paginatedAccessories,
@@ -138,12 +153,42 @@ export default function AccessoriesList({ onEditItem }) {
 
   return (
     <div className="space-y-6">
-      <div className="relative z-40 flex items-start justify-between border-b border-white/10 pb-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
-            Accessories Inventory
-          </h2>
-          <p className="text-sm text-white/60">List View</p>
+      <div className="relative z-40 flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-3 min-w-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
+              Accessories Inventory
+            </h2>
+            <p className="text-sm text-white/60">
+              List View · {listCategory === "OCCASIONAL" ? "Occasional" : "Regular"}
+            </p>
+          </div>
+          {typeof onListCategoryChange === "function" && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setListCategory("REGULAR")}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+                  listCategory === "REGULAR"
+                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
+                    : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
+                }`}
+              >
+                Regular
+              </button>
+              <button
+                type="button"
+                onClick={() => setListCategory("OCCASIONAL")}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+                  listCategory === "OCCASIONAL"
+                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
+                    : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
+                }`}
+              >
+                Occasional
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex min-w-0 items-center gap-2">
@@ -166,42 +211,6 @@ export default function AccessoriesList({ onEditItem }) {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("ALL")}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            activeTab === "ALL"
-              ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
-              : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
-          }`}
-        >
-          All
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("REGULAR")}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            activeTab === "REGULAR"
-              ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
-              : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
-          }`}
-        >
-          Regular
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("OCCASIONAL")}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            activeTab === "OCCASIONAL"
-              ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40"
-              : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10"
-          }`}
-        >
-          Occasional
-        </button>
-      </div>
-
       {error && (
         <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
           {error}
@@ -216,7 +225,8 @@ export default function AccessoriesList({ onEditItem }) {
         ) : accessories.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-white/60">
-              No accessories found for the selected year and category.
+              No accessories found for the selected year
+              {listCategory === "OCCASIONAL" ? " (occasional)" : " (regular)"}.
             </p>
           </div>
         ) : (
@@ -225,7 +235,9 @@ export default function AccessoriesList({ onEditItem }) {
               <table className="min-w-[520px] w-full text-sm text-left">
                 <thead className="text-xs uppercase tracking-wide text-slate-300 border-b border-white/10">
                   <tr>
-                    <th className="px-4 py-3">Equipment No</th>
+                    {showEquipmentNo && (
+                      <th className="px-4 py-3">Equipment No</th>
+                    )}
                     <th className="px-4 py-3">Equipment Name</th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Status</th>
@@ -236,11 +248,11 @@ export default function AccessoriesList({ onEditItem }) {
                 <tbody className="divide-y divide-white/5">
                   {paginatedAccessories.map((item) => (
                     <tr key={item._id} className="hover:bg-white/5">
-                      <td className="px-4 py-3 font-medium text-white">
-                        {item.category === "REGULAR"
-                          ? item.equipmentNo || "—"
-                          : "—"}
-                      </td>
+                      {showEquipmentNo && (
+                        <td className="px-4 py-3 font-medium text-white">
+                          {item.equipmentNo || "—"}
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-white/90">
                         {item.equipmentName || "—"}
                       </td>
@@ -271,10 +283,14 @@ export default function AccessoriesList({ onEditItem }) {
                         item.testCertificate?.fileUrl ? (
                           <div className="flex flex-wrap items-center gap-1.5">
                             <CertLink
+                              accessoryId={item._id}
+                              type="manufacturing"
                               cert={item.manufacturingCertificate}
                               label="Mfg"
                             />
                             <CertLink
+                              accessoryId={item._id}
+                              type="test"
                               cert={item.testCertificate}
                               label="Test"
                             />

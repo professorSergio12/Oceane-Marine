@@ -32,6 +32,7 @@ export async function POST(req) {
         primaryFenders: Number(getField("primaryFenders") || 0),
         secondaryFenders: Number(getField("secondaryFenders") || 0),
         hoses: Number(getField("hoses") || 0),
+        additionalEquipments: getField("additionalEquipments"),
         ownership: getField("ownership"),
         status: getField("status") || "NOT_COMPLETED",
         equipment: getField("equipment"),

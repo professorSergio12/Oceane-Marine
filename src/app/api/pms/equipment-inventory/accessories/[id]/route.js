@@ -9,6 +9,19 @@ import { NOTIFICATION_MODULES, notifyDelete, notifyEdit } from "@/lib/notificati
 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
 
+/** Preserve the file extension so the static server can send the correct Content-Type. */
+const sanitizeFileName = (fileName) => {
+  const lastDot = fileName.lastIndexOf(".");
+  if (lastDot <= 0 || lastDot === fileName.length - 1) {
+    return sanitize(fileName);
+  }
+  const base = fileName.slice(0, lastDot);
+  const ext = fileName.slice(lastDot + 1);
+  const safeBase = sanitize(base);
+  const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "");
+  return safeExt ? `${safeBase}.${safeExt.toLowerCase()}` : safeBase;
+};
+
 export async function PATCH(req, { params }) {
   const guard = await assertPmsPermission("canEdit");
   if (!guard.ok) return guard.response;
@@ -205,7 +218,7 @@ export async function PATCH(req, { params }) {
       );
       await fs.mkdir(baseDir, { recursive: true });
       const buffer = Buffer.from(await manufacturingCertFile.arrayBuffer());
-      const fileName = `${Date.now()}-${sanitize(manufacturingCertFile.name)}`;
+      const fileName = `${Date.now()}-${sanitizeFileName(manufacturingCertFile.name)}`;
       await fs.writeFile(path.join(baseDir, fileName), buffer);
       updatePayload.manufacturingCertificate = {
         fileUrl: `/uploads/pms/accessories/${identifier}/manufacturing-certificate/${fileName}`,
@@ -232,7 +245,7 @@ export async function PATCH(req, { params }) {
       );
       await fs.mkdir(baseDir, { recursive: true });
       const buffer = Buffer.from(await testCertFile.arrayBuffer());
-      const fileName = `${Date.now()}-${sanitize(testCertFile.name)}`;
+      const fileName = `${Date.now()}-${sanitizeFileName(testCertFile.name)}`;
       await fs.writeFile(path.join(baseDir, fileName), buffer);
       updatePayload.testCertificate = {
         fileUrl: `/uploads/pms/accessories/${identifier}/test-certificate/${fileName}`,

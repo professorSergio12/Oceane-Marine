@@ -101,6 +101,12 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     };
   }, [showLocationDropdown]);
 
+  /** Banners are for the current tab only — avoid showing Regular save success under Occasional (and vice versa) */
+  useEffect(() => {
+    setMessage(null);
+    setError(null);
+  }, [category]);
+
   // Get current date for "Last updated"
   const getLastUpdatedDate = () => {
     const today = new Date();
@@ -111,10 +117,14 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     });
   };
 
-  const resetAccessoryForm = () => {
+  /** @param {{ preserveCategoryAndStatus?: boolean }} [opts] */
+  const resetAccessoryForm = (opts = {}) => {
+    const preserve = opts.preserveCategoryAndStatus === true;
     setEditingAccessoryId(null);
-    setCategory("REGULAR");
-    setStatus("ACTIVE");
+    if (!preserve) {
+      setCategory("REGULAR");
+      setStatus("ACTIVE");
+    }
     setForm(defaultFormState());
     setManufacturingCertificateFile(null);
     setTestCertificateFile(null);
@@ -183,6 +193,10 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     setSaving(true);
     setMessage(null);
     setError(null);
+
+    /** Snapshot so async flow cannot leave user on the wrong category tab after save */
+    const categoryAtSubmit = category;
+    const statusAtSubmit = status;
 
     try {
       if (category === "REGULAR") {
@@ -283,7 +297,11 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           data.message ||
             (editingAccessoryId ? "Accessory updated successfully!" : "Accessory saved successfully!")
         );
-        resetAccessoryForm();
+        resetAccessoryForm({ preserveCategoryAndStatus: true });
+        setCategory(categoryAtSubmit);
+        if (categoryAtSubmit === "OCCASIONAL") {
+          setStatus(statusAtSubmit);
+        }
         setSelectedLocation("");
         setTimeout(() => setMessage(null), 5000);
       } else {
@@ -303,7 +321,13 @@ export default function Accessories({ view: controlledView, onViewChange }) {
 
   // If list view, render list component
   if (view === "list") {
-    return <AccessoriesList onEditItem={startEditFromItem} />;
+    return (
+      <AccessoriesList
+        listCategory={category}
+        onListCategoryChange={setCategory}
+        onEditItem={startEditFromItem}
+      />
+    );
   }
 
   let saveButtonText = "SAVE";
@@ -412,7 +436,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
             <p className="text-sm text-amber-100">Editing an existing accessory.</p>
             <button
               type="button"
-              onClick={resetAccessoryForm}
+              onClick={() => resetAccessoryForm({ preserveCategoryAndStatus: true })}
               className="text-xs px-3 py-1.5 rounded-lg border border-amber-400/50 text-amber-200 hover:bg-amber-500/15"
             >
               Cancel edit

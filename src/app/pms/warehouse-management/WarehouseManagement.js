@@ -8,6 +8,7 @@ import {
   ActionViewIcon,
   ActionEditIcon,
   ActionDownloadIcon,
+  ActionDeleteIcon,
 } from "@/app/components/RecordActionIcons";
 import { usePmsRole } from "@/hooks/usePmsRole";
 
@@ -138,6 +139,7 @@ function getWarehouseRecordExportColumns() {
     { label: "Primary Fenders", getValue: (r) => (r?.primaryFenders != null ? String(r.primaryFenders) : "0") },
     { label: "Secondary Fenders", getValue: (r) => (r?.secondaryFenders != null ? String(r.secondaryFenders) : "0") },
     { label: "Hoses", getValue: (r) => (r?.hoses != null ? String(r.hoses) : "0") },
+    { label: "Additional Equipments", getValue: (r) => r?.additionalEquipments ?? "" },
     { label: "From Location", getValue: (r) => r?.fromLocation ?? "" },
     { label: "Stopover", getValue: (r) => r?.stopover ?? "" },
     { label: "To Location", getValue: (r) => r?.toLocation ?? "" },
@@ -198,6 +200,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
   // View modal state
   const [viewRecord, setViewRecord] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const warehouseListPagination = useOperationsClientPagination(
     view === "list" ? records : [],
@@ -216,6 +219,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     primaryFenders: "",
     secondaryFenders: "",
     hoses: "",
+    additionalEquipments: "",
     ownership: "OWNED",
     nos: "",
     startDate: "",
@@ -309,6 +313,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
       primaryFenders: "",
       secondaryFenders: "",
       hoses: "",
+      additionalEquipments: "",
       ownership: "OWNED",
       nos: "",
       startDate: "",
@@ -352,6 +357,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
       formData.append("primaryFenders", form.primaryFenders || "0");
       formData.append("secondaryFenders", form.secondaryFenders || "0");
       formData.append("hoses", form.hoses || "0");
+      formData.append("additionalEquipments", form.additionalEquipments || "");
       formData.append("ownership", form.ownership);
       formData.append("nos", form.nos);
       if (form.startDate) formData.append("startDate", form.startDate);
@@ -390,6 +396,38 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     window.open(url, "_blank");
   };
 
+  const handleDelete = async (record) => {
+    if (!record?._id || !canDelete) return;
+    const label = record.equipment || record.location || "this record";
+    if (
+      !confirm(
+        `Delete warehouse record "${label}"? This will also remove its attachments and cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeletingId(record._id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(
+        `/api/pms/warehouse-management/${record._id}/delete`,
+        { method: "DELETE" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete record");
+      }
+      setSuccess("Record deleted successfully");
+      await fetchList();
+      setTimeout(() => setSuccess(null), 1500);
+    } catch (err) {
+      setError(err.message || "Failed to delete record");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleEdit = (record) => {
     const formatDate = (date) => {
       if (!date) return "";
@@ -406,6 +444,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
       primaryFenders: record.primaryFenders || "",
       secondaryFenders: record.secondaryFenders || "",
       hoses: record.hoses || "",
+      additionalEquipments: record.additionalEquipments || "",
       ownership: record.ownership || "OWNED",
       nos: record.nos || "",
       startDate: formatDate(record.startDate),
@@ -463,34 +502,26 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               />
             </div>
           )}
-          <div
-            className={`flex min-w-0 items-center gap-1 md:gap-1.5 ${
-              view === "form"
-                ? "w-full max-w-sm justify-center md:w-auto md:max-w-none md:justify-end"
-                : "max-w-[48%] flex-1 md:max-w-none md:flex-initial"
-            }`}
-          >
-            <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]">
-              <span className="md:hidden">Loc</span>
-              <span className="hidden md:inline">Location</span>
-            </span>
-            <OperationsSelectField
-              variant="pill"
-              ariaLabel="Location"
-              value={selectedLocation}
-              onChange={setSelectedLocation}
-              options={LOCATIONS.map((loc) => ({
-                value: loc.value,
-                label: loc.label,
-              }))}
-              className={`min-w-0 ${
-                view === "form"
-                  ? "w-full max-w-48 flex-1 md:w-36 md:max-w-none md:flex-initial"
-                  : "flex-1 md:w-36 md:flex-initial"
-              }`}
-              triggerClassName="ops-select-trigger w-full rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 text-[10px] leading-tight md:rounded-full md:py-1 md:pl-2.5 md:text-[11px]"
-            />
-          </div>
+          {view === "list" && (
+            <div className="flex min-w-0 items-center gap-1 md:gap-1.5 max-w-[48%] flex-1 md:max-w-none md:flex-initial">
+              <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 md:text-[10px]">
+                <span className="md:hidden">Loc</span>
+                <span className="hidden md:inline">Location</span>
+              </span>
+              <OperationsSelectField
+                variant="pill"
+                ariaLabel="Location"
+                value={selectedLocation}
+                onChange={setSelectedLocation}
+                options={LOCATIONS.map((loc) => ({
+                  value: loc.value,
+                  label: loc.label,
+                }))}
+                className="min-w-0 flex-1 md:w-36 md:flex-initial"
+                triggerClassName="ops-select-trigger w-full rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 text-[10px] leading-tight md:rounded-full md:py-1 md:pl-2.5 md:text-[11px]"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -600,6 +631,21 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
             <Input label="Primary Fenders" name="primaryFenders" type="number" value={form.primaryFenders} onChange={handleChange} />
             <Input label="Secondary Fenders" name="secondaryFenders" type="number" value={form.secondaryFenders} onChange={handleChange} />
             <Input label="Hoses" name="hoses" type="number" value={form.hoses} onChange={handleChange} />
+          </div>
+
+          {/* ROW 2b: Additional Equipments — free text for spares / extras not counted above */}
+          <div>
+            <label className="text-xs font-medium text-slate-200">
+              Additional Equipments
+            </label>
+            <textarea
+              name="additionalEquipments"
+              rows={2}
+              value={form.additionalEquipments}
+              onChange={handleChange}
+              placeholder="e.g. 2 spare 4-inch hoses, 1 backup primary fender"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+            />
           </div>
 
           {/* ROW 3: Ownership, Nos */}
@@ -761,6 +807,14 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                               title="Download attachment"
                             />
                           )}
+                          {canDelete && (
+                            <ActionDeleteIcon
+                              onClick={() => handleDelete(r)}
+                              disabled={deletingId === r._id}
+                              loading={deletingId === r._id}
+                              title="Delete record"
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -857,6 +911,16 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                       <p className="text-lg font-bold text-white">{item.value || 0}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* Additional Equipments — free-text extras */}
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">
+                    Additional Equipments
+                  </p>
+                  <p className="text-sm text-white whitespace-pre-line">
+                    {viewRecord.additionalEquipments || "—"}
+                  </p>
                 </div>
 
                 {/* Movement */}
