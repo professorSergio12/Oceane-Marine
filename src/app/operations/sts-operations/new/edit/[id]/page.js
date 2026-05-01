@@ -10,7 +10,11 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { ActionDownloadIcon } from "@/app/components/RecordActionIcons";
-import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
+import {
+  resolveLinkedFormFilePath,
+  resolveChecklistHardcopyPath,
+} from "@/lib/utils/sts-linked-form-file";
+import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import SelectField from "@/app/operations/components/OperationsSelectField";
 import StsDocumentationMultiUpload from "../../StsDocumentationMultiUpload";
 
@@ -1042,18 +1046,17 @@ export default function EditOperationPage() {
                             <td className="py-2 pr-4 text-white/70">{ra.version || "—"}</td>
                             <td className="py-2 pr-4">
                               {ra.filePath ? (
-                                <a
-                                  href={ra.filePath}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open or download"
-                                  aria-label="Open or download file"
+                                <button
+                                  type="button"
+                                  onClick={() => downloadFileFromUrl(ra.filePath, `${ra.formCode || "risk-assessment"}-${(ra.filePath.split("/").pop() || "file")}`)}
+                                  title="Download file"
+                                  aria-label="Download file"
                                   className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-1.5 transition"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                   </svg>
-                                </a>
+                                </button>
                               ) : "—"}
                             </td>
                           </tr>
@@ -1210,7 +1213,7 @@ export default function EditOperationPage() {
             </div>
 
             <StsDocumentationMultiUpload
-              key={operationData?._id || "op"}
+              key={`${operationData?._id || "op"}-docs`}
               existingDocuments={operationData?.documents}
             />
 
@@ -1420,8 +1423,8 @@ function FileField({ name, resetKey, defaultValue }) {
         />
         {fileUrl && (
           <ActionDownloadIcon
-            onClick={() => fileUrl && window.open(fileUrl, "_blank")}
-            title="Open or download"
+            onClick={() => fileUrl && downloadFileFromUrl(fileUrl)}
+            title="Download file"
             className="!rounded-xl !p-3"
           />
         )}
@@ -1505,22 +1508,22 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
 
       {/* Show existing file if available and no new file chosen */}
       {existing && !fileName ? (
-        <div className={`flex items-center gap-2 rounded-xl border ${borderColor} ${accentBg} px-3 py-2`}>
+        <div className={`flex flex-wrap items-center gap-2 rounded-xl border ${borderColor} ${accentBg} px-3 py-2`}>
           <span className="text-emerald-300 text-xs">✓</span>
-          <span className="flex-1 text-sm text-white/70 truncate">
+          <span className="min-w-0 flex-1 text-sm text-white/70 truncate">
             {existing.split("/").pop() || "Uploaded file"}
           </span>
           <ActionDownloadIcon
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (existing) window.open(existing, "_blank");
+              if (existing) downloadFileFromUrl(existing);
             }}
-            title="Open or download"
-            className="!p-1.5"
+            title="Download file"
+            className="!p-1.5 shrink-0"
           />
-          <label className={`cursor-pointer rounded-lg px-2 py-1 text-xs font-semibold transition ${btnBg}`}>
-            Replace
+          <label className={`cursor-pointer shrink-0 rounded-lg px-2 py-1 text-xs font-semibold transition ${btnBg}`}>
+            Replace file
             <input
               ref={inputRef}
               type="file"
@@ -1533,7 +1536,7 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
           <button
             type="button"
             onClick={handleClear}
-            className="text-red-400 hover:text-red-300 text-sm font-bold px-1"
+            className="shrink-0 text-red-400 hover:text-red-300 text-sm font-bold px-1"
             title="Remove file"
           >
             ✕
@@ -1541,11 +1544,11 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
         </div>
       ) : (
         /* Upload area */
-        <div className={`flex items-center gap-2 rounded-xl border ${borderColor} ${accentBg} px-3 py-2`}>
+        <div className={`flex flex-wrap items-center gap-2 rounded-xl border ${borderColor} ${accentBg} px-3 py-2`}>
           <label
-            className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition ${btnBg}`}
+            className={`cursor-pointer shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${btnBg}`}
           >
-            Choose File
+            Upload file
             <input
               ref={inputRef}
               type="file"
@@ -1555,14 +1558,14 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
             />
           </label>
-          <span className="flex-1 text-sm text-white/60 truncate">
+          <span className="min-w-0 flex-1 text-sm text-white/60 truncate">
             {fileName || "No file chosen"}
           </span>
           {fileName && (
             <button
               type="button"
               onClick={handleClear}
-              className="text-red-400 hover:text-red-300 text-sm font-bold px-1"
+              className="shrink-0 text-red-400 hover:text-red-300 text-sm font-bold px-1"
               title="Remove file"
             >
               ✕
@@ -1575,40 +1578,56 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
 }
 
 function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onClear }) {
-  const [fileUrl, setFileUrl] = useState(defaultValue || "");
+  const [fileUrl, setFileUrl] = useState("");
   const [isAutoFetched, setIsAutoFetched] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [userDismissed, setUserDismissed] = useState(false);
+  const lastExternalRef = useRef("");
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (resetKey === 0 && defaultValue) {
-      setFileUrl(defaultValue);
-    } else if (resetKey > 0) {
+    if (resetKey > 0) {
       setFileUrl("");
       setIsAutoFetched(false);
       setUploadedFileName("");
+      setUserDismissed(false);
+      lastExternalRef.current = "";
       if (inputRef.current) inputRef.current.value = "";
       if (fileInputRef.current) fileInputRef.current.value = "";
+    } else {
+      const initial = defaultValue || "";
+      setFileUrl(initial);
+      setIsAutoFetched(false);
+      setUploadedFileName("");
+      setUserDismissed(false);
+      if (inputRef.current) inputRef.current.value = initial;
     }
   }, [resetKey, defaultValue]);
 
   useEffect(() => {
     if (externalValue !== undefined && externalValue !== null && externalValue !== "") {
-      setFileUrl(externalValue);
-      setIsAutoFetched(true);
-      setUploadedFileName("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      const changed = externalValue !== lastExternalRef.current;
+      lastExternalRef.current = externalValue;
+      if (changed) setUserDismissed(false);
+      if (!userDismissed || changed) {
+        setFileUrl(externalValue);
+        setIsAutoFetched(true);
+        setUploadedFileName("");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     } else if (externalValue === "") {
+      lastExternalRef.current = "";
       if (isAutoFetched) {
         setFileUrl(defaultValue || "");
         setIsAutoFetched(false);
       }
     }
-  }, [externalValue]);
+  }, [externalValue, defaultValue, isAutoFetched, userDismissed]);
 
-  const handleClear = (e) => {
+  const handleDismiss = (e) => {
     e.preventDefault();
+    setUserDismissed(true);
     setFileUrl("");
     setIsAutoFetched(false);
     setUploadedFileName("");
@@ -1616,9 +1635,22 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
     onClear?.();
   };
 
+  const handleRestore = () => {
+    const val = lastExternalRef.current || externalValue || defaultValue;
+    if (!val) return;
+    setUserDismissed(false);
+    setFileUrl(val);
+    setIsAutoFetched(!!(lastExternalRef.current || externalValue));
+    setUploadedFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
-    if (file) setUploadedFileName(file.name);
+    if (file) {
+      setUploadedFileName(file.name);
+      setUserDismissed(false);
+    }
   };
 
   const handleClearUpload = (e) => {
@@ -1627,13 +1659,14 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const linkedFileAvailable =
+    !!(lastExternalRef.current || (externalValue && externalValue !== ""));
+
   return (
     <div className="flex flex-col gap-2">
       <label className="block text-sm font-medium text-white/90">{label}</label>
 
-      {!uploadedFileName && (
-        <input type="hidden" name={name} value={fileUrl} />
-      )}
+      {!uploadedFileName && <input type="hidden" name={name} value={fileUrl} />}
 
       <input
         ref={fileInputRef}
@@ -1645,14 +1678,14 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
       />
 
       {uploadedFileName ? (
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-[12rem] flex-1 items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3">
             <span className="text-sky-300 text-sm truncate">📄 {uploadedFileName}</span>
           </div>
           {fileUrl && (
             <ActionDownloadIcon
-              onClick={() => window.open(fileUrl, "_blank")}
-              title="Download original"
+              onClick={() => downloadFileFromUrl(fileUrl)}
+              title="Download previous file"
               className="!rounded-xl !p-3"
             />
           )}
@@ -1660,56 +1693,85 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
             type="button"
             onClick={handleClearUpload}
             className="px-3 py-3 rounded-xl bg-red-500/20 text-red-300 text-sm font-semibold hover:bg-red-500/30 transition"
-            title="Remove uploaded file"
+            title="Cancel this upload"
           >
             ✕
           </button>
         </div>
-      ) : (isAutoFetched || defaultValue) && fileUrl ? (
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3">
-            <span className="text-emerald-300 text-sm">
-              {isAutoFetched ? "✓ File linked from location" : "✓ Existing file"}
+      ) : fileUrl ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className={`flex min-w-[12rem] flex-1 items-center gap-2 rounded-xl border px-4 py-3 ${
+              isAutoFetched
+                ? "border-emerald-400/30 bg-emerald-500/10"
+                : "border-white/10 bg-white/5"
+            }`}
+          >
+            <span
+              className={`text-sm font-medium ${isAutoFetched ? "text-emerald-300" : "text-white/80"}`}
+            >
+              {isAutoFetched ? "✓ File linked from location" : "✓ File attached"}
             </span>
           </div>
           <ActionDownloadIcon
-            onClick={() => fileUrl && window.open(fileUrl, "_blank")}
-            title="Open or download"
+            onClick={() => fileUrl && downloadFileFromUrl(fileUrl)}
+            title="Download file"
             className="!rounded-xl !p-3"
           />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="px-3 py-3 rounded-xl bg-sky-500/20 text-sky-300 text-xs font-semibold hover:bg-sky-500/30 transition whitespace-nowrap"
-            title="Upload replacement file"
+            title="Replace with a new file from your computer"
           >
-            ↑ Replace
+            Replace file
           </button>
           <button
             type="button"
-            onClick={handleClear}
+            onClick={handleDismiss}
             className="px-3 py-3 rounded-xl bg-red-500/20 text-red-300 text-sm font-semibold hover:bg-red-500/30 transition"
-            title="Remove"
+            title="Remove link"
           >
             ✕
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={fileUrl}
-            onChange={(e) => setFileUrl(e.target.value)}
-            placeholder="Enter file URL/path"
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
-          />
-          {fileUrl && (
-            <ActionDownloadIcon
-              onClick={() => fileUrl && window.open(fileUrl, "_blank")}
-              title="Open or download"
-              className="!rounded-xl !p-3"
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={fileUrl}
+              onChange={(e) => setFileUrl(e.target.value)}
+              placeholder="Enter file URL/path"
+              className="min-w-[10rem] flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
             />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="shrink-0 rounded-xl bg-sky-500/20 px-4 py-3 text-xs font-semibold text-sky-200 hover:bg-sky-500/30 transition whitespace-nowrap"
+            >
+              Upload file
+            </button>
+            {fileUrl && (
+              <ActionDownloadIcon
+                onClick={() => fileUrl && downloadFileFromUrl(fileUrl)}
+                title="Download file"
+                className="!rounded-xl !p-3"
+              />
+            )}
+          </div>
+          {userDismissed && linkedFileAvailable && (
+            <button
+              type="button"
+              onClick={handleRestore}
+              className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Restore linked file
+            </button>
           )}
         </div>
       )}
@@ -1720,17 +1782,22 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
 function LinkedFormCard({ form, operationDocuments = [] }) {
   const { formCode, label, filled, count, docs } = form;
   const latestDoc = docs?.[0];
-  const filePath =
+  const hardcopyPath = resolveChecklistHardcopyPath(operationDocuments, formCode);
+  const systemPath =
     filled && latestDoc
       ? resolveLinkedFormFilePath(operationDocuments, formCode, latestDoc._id)
       : null;
+  const filePath = systemPath || hardcopyPath;
+  const hasHardcopyOnly = Boolean(hardcopyPath && !systemPath);
 
   return (
     <div
       className={`rounded-xl border p-4 transition-all ${
         filled
           ? "border-emerald-500/30 bg-emerald-900/10 hover:bg-emerald-900/20"
-          : "border-white/10 bg-white/5 hover:bg-white/10"
+          : hasHardcopyOnly
+            ? "border-amber-500/35 bg-amber-900/10 hover:bg-amber-900/20"
+            : "border-white/10 bg-white/5 hover:bg-white/10"
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -1742,23 +1809,34 @@ function LinkedFormCard({ form, operationDocuments = [] }) {
           className={`flex-shrink-0 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
             filled
               ? "bg-emerald-500/20 text-emerald-300"
-              : "bg-slate-500/20 text-slate-400"
+              : hasHardcopyOnly
+                ? "bg-amber-500/20 text-amber-200"
+                : "bg-slate-500/20 text-slate-400"
           }`}
         >
-          {filled ? `Filled (${count})` : "Pending"}
+          {filled ? `Filled (${count})` : hasHardcopyOnly ? "Hardcopy" : "Pending"}
         </span>
       </div>
 
-      {filled && latestDoc && (
+      {(filled && latestDoc) || filePath ? (
         <div className="mt-2 space-y-1 text-[11px] text-white/60">
-          <p>Seq: <span className="text-sky-300 font-mono">{latestDoc.sequenceNumber || "—"}</span></p>
-          <p>Status: <span className={
-            latestDoc.status === "SUBMITTED" || latestDoc.status === "APPROVED"
-              ? "text-emerald-300" : "text-amber-300"
-          }>{latestDoc.status}</span></p>
-          <p>Date: {latestDoc.createdAt
-            ? new Date(latestDoc.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-            : "—"}</p>
+          {filled && latestDoc && (
+            <>
+              <p>Seq: <span className="text-sky-300 font-mono">{latestDoc.sequenceNumber || "—"}</span></p>
+              <p>Status: <span className={
+                latestDoc.status === "SUBMITTED" || latestDoc.status === "APPROVED"
+                  ? "text-emerald-300" : "text-amber-300"
+              }>{latestDoc.status}</span></p>
+              <p>Date: {latestDoc.createdAt
+                ? new Date(latestDoc.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                : "—"}</p>
+            </>
+          )}
+          {hasHardcopyOnly && (
+            <p className="text-amber-200/90">
+              Physical hardcopy uploaded — no digital submission yet.
+            </p>
+          )}
           <p className="mt-1">
             File:{" "}
             <span className={filePath ? "text-emerald-400 font-medium" : "text-white/50"}>
@@ -1766,20 +1844,20 @@ function LinkedFormCard({ form, operationDocuments = [] }) {
             </span>
           </p>
           {filePath && (
-            <a
-              href={filePath}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => downloadFileFromUrl(filePath, `${formCode || "form"}-${(filePath.split("/").pop() || "file")}`)}
               className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+              title="Download file"
             >
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               Download
-            </a>
+            </button>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

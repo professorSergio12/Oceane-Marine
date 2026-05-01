@@ -61,7 +61,8 @@ const documentSchema = new mongoose.Schema(
       enum: [
         "SYSTEM_GENERATED",   // PDF from Agenda
         "MANUAL_UPLOAD",      // Admin Upload
-        "AUTO_LOCATION"       // Auto from Location Master
+        "AUTO_LOCATION",      // Auto from Location Master
+        "CHECKLIST_HARDCOPY", // Paper form scanned / uploaded from STS Checklist dashboard
       ],
       default: "SYSTEM_GENERATED"
     },

@@ -136,9 +136,13 @@ export async function PUT(req, { params }) {
     }
 
     /* =====================
-       OPTIONAL MULTI-FILE DOCUMENTATION (append to documents[])
+       OPTIONAL MULTI-FILE DOCUMENTATION
+       - Brand-new files: documentationFiles[]
+       - Keep set (manual uploads): documentationKeepEnabled + documentationKeepPaths[]
+       - Replace pairs (zipped): documentationReplaceFor[] + documentationReplaceFile[]
     ====================== */
     const newManualDocumentationEntries = [];
+
     const documentationFiles = formData
       .getAll("documentationFiles")
       .filter((f) => f && typeof f !== "string" && f.name && f.size > 0);
@@ -152,10 +156,44 @@ export async function PUT(req, { params }) {
         source: "MANUAL_UPLOAD",
       });
     }
+
+    // Process replacement pairs (one new file per existing path)
+    const replaceForRaw = formData.getAll("documentationReplaceFor");
+    const replaceFilesRaw = formData.getAll("documentationReplaceFile");
+    /** @type {Map<string, string>} oldPath → newPath (after upload) */
+    const replacedMap = new Map();
+    for (let i = 0; i < replaceForRaw.length; i += 1) {
+      const oldPath = typeof replaceForRaw[i] === "string" ? replaceForRaw[i] : "";
+      const file = replaceFilesRaw[i];
+      if (!oldPath) continue;
+      if (!file || typeof file === "string" || !file.name || !file.size) continue;
+      const newFilePath = await saveUploadedFile(file, "documentation-extra");
+      const displayName =
+        file.name.replace(/[^\w.\- ]/g, "_").slice(0, 200) || "attachment";
+      replacedMap.set(oldPath, newFilePath);
+      newManualDocumentationEntries.push({
+        documentType: displayName,
+        filePath: newFilePath,
+        source: "MANUAL_UPLOAD",
+      });
+    }
+
+    const keepEnabled = body.documentationKeepEnabled === "true";
+    const keepPaths = new Set(formData.getAll("documentationKeepPaths").filter((v) => typeof v === "string"));
+
     const priorDocuments = Array.isArray(existing.documents)
       ? existing.documents.map((d) => ({ ...d }))
       : [];
-    const mergedDocuments = [...priorDocuments, ...newManualDocumentationEntries];
+
+    // Apply keep/remove + replacement deletions only to MANUAL_UPLOAD entries.
+    const filteredPrior = priorDocuments.filter((d) => {
+      if (d?.source !== "MANUAL_UPLOAD") return true;
+      if (replacedMap.has(d.filePath)) return false; // replaced → drop old version
+      if (keepEnabled) return keepPaths.has(d.filePath);
+      return true;
+    });
+
+    const mergedDocuments = [...filteredPrior, ...newManualDocumentationEntries];
 
     // GET LAST VERSION OF THIS OPERATION
     const lastVersion = await StsOperation.findOne({

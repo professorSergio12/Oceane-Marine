@@ -9,7 +9,11 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
-import { resolveLinkedFormFilePath } from "@/lib/utils/sts-linked-form-file";
+import {
+  resolveLinkedFormFilePath,
+  HARDCOPY_DOC_PREFIX,
+} from "@/lib/utils/sts-linked-form-file";
+import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 
 /** Map every OPS-OFD code to a human-readable form name */
 const FORM_NAME_MAP = {
@@ -75,6 +79,190 @@ function formatDateOnly(date) {
     month: "short",
     year: "numeric",
   });
+}
+
+function manualDocKey(doc) {
+  if (!doc) return "";
+  return `${doc.filePath}|${doc.documentType}|${doc.uploadedAt || ""}`;
+}
+
+/** MANUAL_UPLOAD rows that belong on a linked-form card (by documentType). */
+function findManualUploadDocForLinkedForm(documents, formCode) {
+  if (!documents?.length || !formCode) return null;
+  const aliases = new Set([formCode]);
+  if (formCode === "OPS-OFD-001-A") aliases.add("OPS-OFD-001A");
+  const norm = (s) => String(s || "").replace(/-/g, "").toUpperCase();
+  const targetNorm = norm(formCode);
+  const manual = documents.filter((d) => d?.source === "MANUAL_UPLOAD" && d?.filePath);
+  return (
+    manual.find((d) => aliases.has(d.documentType)) ||
+    manual.find((d) => norm(d.documentType) === targetNorm) ||
+    null
+  );
+}
+
+function getLatestHardcopyDocForForm(documents, formCode) {
+  if (!documents?.length || !formCode) return null;
+  const keys = new Set([`${HARDCOPY_DOC_PREFIX}${formCode}`]);
+  if (formCode === "OPS-OFD-014-B" || formCode === "OPS-OFD-014-A") {
+    keys.add(`${HARDCOPY_DOC_PREFIX}OPS-OFD-014`);
+  }
+  const list = documents.filter(
+    (d) =>
+      d?.source === "CHECKLIST_HARDCOPY" &&
+      d?.filePath &&
+      keys.has(d.documentType)
+  );
+  if (!list.length) return null;
+  return [...list].sort(
+    (a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0)
+  )[0];
+}
+
+function LinkedFormStatusCard({ form: f, documents }) {
+  const latest = f.docs?.[0];
+  const hasDigitalRow = Boolean(f.filled && latest);
+  const digitalPath = hasDigitalRow
+    ? resolveLinkedFormFilePath(documents, f.formCode, latest._id)
+    : null;
+
+  const hardcopyDoc = getLatestHardcopyDocForForm(documents, f.formCode);
+  const manualDoc = findManualUploadDocForLinkedForm(documents, f.formCode);
+  const manualAttachments = [hardcopyDoc, manualDoc].filter(Boolean);
+  const primaryManualDoc =
+    manualAttachments.length === 0
+      ? null
+      : [...manualAttachments].sort(
+          (a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0)
+        )[0];
+  const primaryManualPath = primaryManualDoc?.filePath || null;
+
+  const manualOnly = !hasDigitalRow && Boolean(primaryManualPath);
+  const pillText = f.filled ? `Filled (${f.count})` : manualOnly ? "Manual" : "Pending";
+  const pillClass = f.filled
+    ? "bg-emerald-500/20 text-emerald-300"
+    : manualOnly
+      ? "bg-amber-500/20 text-amber-200"
+      : "bg-slate-500/20 text-slate-400";
+
+  const borderClass = f.filled
+    ? "border-emerald-500/30 bg-emerald-900/10"
+    : manualOnly
+      ? "border-amber-500/35 bg-amber-900/10"
+      : "border-white/10 bg-white/5";
+
+  const downloadIcon = (
+    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+  );
+
+  const extraManualPaths = [];
+  if (hasDigitalRow && hardcopyDoc?.filePath && hardcopyDoc.filePath !== digitalPath) {
+    extraManualPaths.push({ path: hardcopyDoc.filePath, label: "Manual hardcopy" });
+  }
+  if (hasDigitalRow && manualDoc?.filePath && manualDoc.filePath !== digitalPath) {
+    const already = extraManualPaths.some((e) => e.path === manualDoc.filePath);
+    if (!already) extraManualPaths.push({ path: manualDoc.filePath, label: "Manual file" });
+  }
+
+  return (
+    <div className={`rounded-xl border p-4 transition-all ${borderClass}`}>
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
+          <p className="text-sm font-semibold text-white truncate">{f.label}</p>
+        </div>
+        <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${pillClass}`}>
+          {pillText}
+        </span>
+      </div>
+
+      {hasDigitalRow && (
+        <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+          <p>
+            Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "—"}</span>
+          </p>
+          <p>
+            Status:{" "}
+            <span
+              className={
+                latest.status === "SUBMITTED" || latest.status === "APPROVED"
+                  ? "text-emerald-300"
+                  : "text-amber-300"
+              }
+            >
+              {latest.status}
+            </span>
+          </p>
+          <p>
+            Date:{" "}
+            {latest.createdAt
+              ? new Date(latest.createdAt).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "-"}
+          </p>
+          <p className="mt-1">
+            File:{" "}
+            <span className={digitalPath ? "text-emerald-400 font-medium" : "text-white/50"}>
+              {digitalPath ? "Yes" : "No"}
+            </span>
+          </p>
+          {digitalPath && (
+            <button
+              type="button"
+              onClick={() => downloadFileFromUrl(digitalPath, `${f.formCode || "form"}-${(digitalPath.split("/").pop() || "file")}`)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+              title="Download file"
+            >
+              {downloadIcon}
+              Download
+            </button>
+          )}
+          {extraManualPaths.map((ex) => (
+            <div key={ex.path} className="mt-2 border-t border-white/10 pt-2">
+              <p className="text-[10px] font-semibold text-amber-200/90 uppercase tracking-wide">{ex.label}</p>
+              <button
+                type="button"
+                onClick={() => downloadFileFromUrl(ex.path, `${ex.label || "document"}-${(ex.path.split("/").pop() || "file")}`)}
+                className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-amber-400/35 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20 transition"
+                title="Download file"
+              >
+                {downloadIcon}
+                Download
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {manualOnly && primaryManualPath && (
+        <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
+          <p>
+            Status: <span className="text-amber-300 font-semibold">manual</span>
+          </p>
+          {primaryManualDoc?.uploadedAt && (
+            <p>Date: {formatDateOnly(primaryManualDoc.uploadedAt)}</p>
+          )}
+          <p className="mt-1">
+            File: <span className="text-emerald-400 font-medium">Yes</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => downloadFileFromUrl(primaryManualPath, `${f.formCode || "form"}-${(primaryManualPath.split("/").pop() || "file")}`)}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
+            title="Download file"
+          >
+            {downloadIcon}
+            Download
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ViewOperationPage() {
@@ -517,10 +705,14 @@ function ViewOperationPage() {
                         </p>
                         <div className={`p-3 ${boxClass}`}>
                           {path ? (
-                            <a href={path} target="_blank" rel="noopener noreferrer" download className={btnClass}>
+                            <button
+                              type="button"
+                              onClick={() => downloadFileFromUrl(path, `${label || "document"}-${(path.split("/").pop() || "file")}`)}
+                              className={btnClass}
+                            >
                               {downloadIcon}
                               Download
-                            </a>
+                            </button>
                           ) : (
                             <span className="text-white/70 text-sm">No file chosen</span>
                           )}
@@ -595,16 +787,14 @@ function ViewOperationPage() {
                       </label>
                       {doc.path ? (
                         <div className="rounded-xl border border-white/10 bg-slate-800/80 shadow-md px-4 py-3 min-h-[44px] flex items-center w-full">
-                          <a
-                            href={doc.path}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download
+                          <button
+                            type="button"
+                            onClick={() => downloadFileFromUrl(doc.path, `${doc.label || "document"}-${(doc.path.split("/").pop() || "file")}`)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg shadow border border-white/10 bg-slate-700/80 text-sm font-medium transition hover:bg-slate-600/80 shrink-0"
                           >
                             <svg className="w-4 h-4 shrink-0 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             <span className="text-[#d8964e]">Download</span>
-                          </a>
+                          </button>
                         </div>
                       ) : (
                         <div className="rounded-xl border border-white/10 bg-[#2b4961] shadow px-4 py-3 min-h-[44px] flex items-center w-full">
@@ -618,109 +808,42 @@ function ViewOperationPage() {
 
               {/* Attached Documents — System Generated + Manual Uploads + Other Documents */}
               {(() => {
-                const linkedFormCodes = new Set(linkedForms.map(f => f.formCode));
+                const linkedFormCodes = new Set(linkedForms.map((f) => f.formCode));
                 const allDocs = op.documents || [];
-                const manualDocs = allDocs.filter(
-                  (doc) => doc?.source === "MANUAL_UPLOAD" && doc?.filePath
+                const consumedManualKeys = new Set();
+                for (const lf of linkedForms) {
+                  const m = findManualUploadDocForLinkedForm(allDocs, lf.formCode);
+                  if (m) consumedManualKeys.add(manualDocKey(m));
+                }
+                const manualDocsRemaining = allDocs.filter(
+                  (doc) =>
+                    doc?.source === "MANUAL_UPLOAD" &&
+                    doc?.filePath &&
+                    !consumedManualKeys.has(manualDocKey(doc))
                 );
                 const systemDocs = allDocs.filter(
                   (doc) =>
                     doc?.source !== "MANUAL_UPLOAD" &&
+                    doc?.source !== "CHECKLIST_HARDCOPY" &&
                     !linkedFormCodes.has(doc.documentType)
                 );
                 const otherDocs = [
                   { label: "Standing Order", path: op.standingOrder },
                   { label: "Checklist 1", path: op.checklist1 },
+                  ...manualDocsRemaining.map((d, idx) => ({
+                    label: d.documentType || `Additional file ${idx + 1}`,
+                    path: d.filePath,
+                  })),
                 ].filter((d) => d.path);
                 const hasAny =
-                  systemDocs.length > 0 ||
-                  otherDocs.length > 0 ||
-                  manualDocs.length > 0;
+                  systemDocs.length > 0 || otherDocs.length > 0;
                 if (!hasAny) return null;
                 const downloadIcon = (
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 );
-                const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"]);
-                const getExt = (name) =>
-                  (name || "").split(".").pop()?.toLowerCase() || "";
                 return (
                   <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Attached Documents</h3>
-                    {manualDocs.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-white/80 mb-3">
-                          Manual Uploads
-                          <span className="ml-2 text-[11px] font-normal text-white/50">
-                            ({manualDocs.length} file{manualDocs.length > 1 ? "s" : ""})
-                          </span>
-                        </h4>
-                        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                          {manualDocs.map((doc, idx) => {
-                            const name = doc.documentType || doc.filePath?.split("/").pop() || `attachment-${idx}`;
-                            const ext = getExt(name) || getExt(doc.filePath);
-                            const isImage = IMAGE_EXT.has(ext);
-                            return (
-                              <div
-                                key={`${doc.filePath || "manual"}-${idx}`}
-                                className="rounded-xl border border-emerald-500/30 bg-emerald-900/10 overflow-hidden flex flex-col"
-                              >
-                                {isImage ? (
-                                  <a
-                                    href={doc.filePath}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block h-32 bg-white/5 hover:bg-white/10 border-b border-white/10"
-                                    title={name}
-                                  >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                      src={doc.filePath}
-                                      alt={name}
-                                      className="h-full w-full object-cover"
-                                      loading="lazy"
-                                    />
-                                  </a>
-                                ) : (
-                                  <div className="flex h-32 items-center justify-center border-b border-white/10 bg-white/5">
-                                    <span className="rounded-md bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70">
-                                      {ext || "file"}
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="p-3 flex-1 flex flex-col gap-2">
-                                  <p className="text-xs font-semibold text-white truncate" title={name}>
-                                    {name}
-                                  </p>
-                                  <div className="mt-auto flex items-center justify-between gap-2">
-                                    <a
-                                      href={doc.filePath}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-[11px] text-sky-300 hover:text-sky-200 underline"
-                                    >
-                                      View
-                                    </a>
-                                    <a
-                                      href={doc.filePath}
-                                      download={name}
-                                      className="inline-flex items-center gap-1 text-[11px] text-orange-300 hover:text-orange-200"
-                                    >
-                                      {downloadIcon}
-                                      Download
-                                    </a>
-                                  </div>
-                                  {doc.uploadedAt && (
-                                    <p className="text-[10px] text-white/50">
-                                      {formatDate(doc.uploadedAt)}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                     {systemDocs.length > 0 && (
                       <div className="mb-6">
                         <h4 className="text-sm font-semibold text-white/80 mb-3">System Generated Documents</h4>
@@ -740,10 +863,14 @@ function ViewOperationPage() {
                                 </span>
                               </div>
                               {doc.filePath && (
-                                <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-orange-400 hover:text-orange-300 underline">
+                                <button
+                                  type="button"
+                                  onClick={() => downloadFileFromUrl(doc.filePath, `${doc.documentType || "document"}-${(doc.filePath.split("/").pop() || "file")}`)}
+                                  className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-orange-400 hover:text-orange-300 underline"
+                                >
                                   {downloadIcon}
-                                  View Document
-                                </a>
+                                  Download
+                                </button>
                               )}
                               {doc.uploadedAt && <p className="text-[11px] text-white/60 mt-1">Uploaded: {formatDate(doc.uploadedAt)}</p>}
                               {doc.source && <p className="text-[11px] text-white/60">Source: {doc.source}</p>}
@@ -759,10 +886,14 @@ function ViewOperationPage() {
                           {otherDocs.map((doc) => (
                             <div key={doc.path} className="rounded-xl border border-white/10 bg-white/5 p-4">
                               <p className="text-sm font-medium text-white mb-2">{doc.label}</p>
-                              <a href={doc.path} target="_blank" rel="noopener noreferrer" download className="inline-flex items-center gap-1.5 text-sm text-orange-400 hover:text-orange-300 underline">
+                              <button
+                                type="button"
+                                onClick={() => downloadFileFromUrl(doc.path, `${doc.label || "document"}-${(doc.path.split("/").pop() || "file")}`)}
+                                className="inline-flex items-center gap-1.5 text-sm text-orange-400 hover:text-orange-300 underline"
+                              >
                                 {downloadIcon}
                                 Download
-                              </a>
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -789,55 +920,7 @@ function ViewOperationPage() {
                         <h4 className="text-sm font-semibold text-white/80 mb-3">Checklists</h4>
                         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {linkedForms.filter((f) => f.category === "checklist").map((f) => (
-                            <div
-                              key={f.formCode}
-                              className={`rounded-xl border p-4 transition-all ${
-                                f.filled
-                                  ? "border-emerald-500/30 bg-emerald-900/10"
-                                  : "border-white/10 bg-white/5"
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
-                                  <p className="text-sm font-semibold text-white truncate">{f.label}</p>
-                                </div>
-                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  f.filled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"
-                                }`}>
-                                  {f.filled ? `Filled (${f.count})` : "Pending"}
-                                </span>
-                              </div>
-                              {f.filled && f.docs?.[0] && (() => {
-                                const latest = f.docs[0];
-                                const filePath = resolveLinkedFormFilePath(op.documents, f.formCode, latest._id);
-                                const hasPdf = Boolean(filePath);
-                                const dateStr = latest.createdAt
-                                  ? new Date(latest.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                                  : "-";
-                                return (
-                                  <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                    <p>Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "-"}</span></p>
-                                    <p>Status: <span className={latest.status === "SUBMITTED" || latest.status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{latest.status}</span></p>
-                                    <p>Date: {dateStr}</p>
-                                    <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
-                                    {filePath && (
-                                      <a
-                                        href={filePath}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
-                                      >
-                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        Download
-                                      </a>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
+                            <LinkedFormStatusCard key={f.formCode} form={f} documents={op.documents} />
                           ))}
                         </div>
                       </div>
@@ -849,51 +932,7 @@ function ViewOperationPage() {
                         <h4 className="text-sm font-semibold text-white/80 mb-3">STS Equipment</h4>
                         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {linkedForms.filter((f) => f.category === "equipment").map((f) => (
-                            <div
-                              key={f.formCode}
-                              className={`rounded-xl border p-4 transition-all ${
-                                f.filled
-                                  ? "border-emerald-500/30 bg-emerald-900/10"
-                                  : "border-white/10 bg-white/5"
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
-                                  <p className="text-sm font-semibold text-white truncate">{f.label}</p>
-                                </div>
-                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  f.filled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"
-                                }`}>
-                                  {f.filled ? `Filled (${f.count})` : "Pending"}
-                                </span>
-                              </div>
-                              {f.filled && f.docs?.[0] && (() => {
-                                const latest = f.docs[0];
-                                const filePath = resolveLinkedFormFilePath(op.documents, f.formCode, latest._id);
-                                const hasPdf = Boolean(filePath);
-                                return (
-                                  <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                    <p>Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "-"}</span></p>
-                                    <p>Status: <span className={latest.status === "SUBMITTED" || latest.status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{latest.status}</span></p>
-                                    <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
-                                    {filePath && (
-                                      <a
-                                        href={filePath}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
-                                      >
-                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        Download
-                                      </a>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
+                            <LinkedFormStatusCard key={f.formCode} form={f} documents={op.documents} />
                           ))}
                         </div>
                       </div>
@@ -905,51 +944,7 @@ function ViewOperationPage() {
                         <h4 className="text-sm font-semibold text-white/80 mb-3">Feedback & Logs</h4>
                         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {linkedForms.filter((f) => f.category === "feedback").map((f) => (
-                            <div
-                              key={f.formCode}
-                              className={`rounded-xl border p-4 transition-all ${
-                                f.filled
-                                  ? "border-emerald-500/30 bg-emerald-900/10"
-                                  : "border-white/10 bg-white/5"
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
-                                  <p className="text-sm font-semibold text-white truncate">{f.label}</p>
-                                </div>
-                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  f.filled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"
-                                }`}>
-                                  {f.filled ? `Filled (${f.count})` : "Pending"}
-                                </span>
-                              </div>
-                              {f.filled && f.docs?.[0] && (() => {
-                                const latest = f.docs[0];
-                                const filePath = resolveLinkedFormFilePath(op.documents, f.formCode, latest._id);
-                                const hasPdf = Boolean(filePath);
-                                return (
-                                  <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-                                    <p>Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "-"}</span></p>
-                                    <p>Status: <span className={latest.status === "SUBMITTED" || latest.status === "APPROVED" ? "text-emerald-300" : "text-amber-300"}>{latest.status}</span></p>
-                                    <p className="mt-1">File: <span className={hasPdf ? "text-emerald-400 font-medium" : "text-white/50"}>{hasPdf ? "Yes" : "No"}</span></p>
-                                    {filePath && (
-                                      <a
-                                        href={filePath}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
-                                      >
-                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        Download
-                                      </a>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
+                            <LinkedFormStatusCard key={f.formCode} form={f} documents={op.documents} />
                           ))}
                         </div>
                       </div>

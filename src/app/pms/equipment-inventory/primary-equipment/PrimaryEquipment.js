@@ -1155,9 +1155,6 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 placeholder="E.g., EQ-001"
                 required
               />
-              <p className="mt-1 text-[11px] text-slate-400">
-                Serial code (year-counter, e.g. 2026-001) is generated automatically when you save; it identifies this physical record when the same equipment code is used more than once.
-              </p>
               {editingEquipmentId && editingSerialCode && (
                 <p className="mt-1 text-[11px] text-sky-200/90">
                   Current serial code:{" "}
