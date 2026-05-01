@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Counter from "@/lib/mongodb/models/generateFormCode";
+import { formatStsOperationRef } from "@/lib/operations/formatStsOperationRef";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,8 +40,7 @@ export async function GET(req) {
       { new: true, upsert: true }
     );
 
-    const seqNumber = String(counter.seq).padStart(3, "0");
-    const operationRef = `${year}-${seqNumber}`;
+    const operationRef = formatStsOperationRef(year, counter.seq);
 
     return NextResponse.json(
       {

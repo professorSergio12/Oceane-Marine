@@ -288,13 +288,6 @@ export default function NewOperationPage() {
 
       if (data.success && data.operationRef) {
         setOperationRef(data.operationRef);
-        // Update the input field
-        if (formRef.current) {
-          const refInput = formRef.current.querySelector('input[name="Operation_Ref_No"]');
-          if (refInput) {
-            refInput.value = data.operationRef;
-          }
-        }
       } else {
         throw new Error(data.error || "Failed to generate operation ref");
       }
@@ -1070,11 +1063,13 @@ export default function NewOperationPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
-                name="Operation_Ref_No"
+                    name="Operation_Ref_No"
                     value={operationRef}
-                    onChange={(e) => setOperationRef(e.target.value)}
-                    placeholder="Click generate or enter manually"
-                    className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
+                    readOnly
+                    aria-readonly="true"
+                    placeholder="Click ⚡ to generate"
+                    title="Reference is generated only via the button — not editable"
+                    className="flex-1 cursor-default rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:ring-0 focus:border-white/10"
                   />
                   <button
                     type="button"

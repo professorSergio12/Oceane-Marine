@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
-import { ActionDeleteIcon } from "@/app/components/RecordActionIcons";
+import { ActionDeleteIcon, ActionEditIcon } from "@/app/components/RecordActionIcons";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
@@ -19,6 +19,9 @@ export default function MooringMasterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
   const [expandedModules, setExpandedModules] = useState(new Set());
   const sidebarRef = useRef(null);
@@ -81,6 +84,37 @@ export default function MooringMasterPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startEdit = (item) => {
+    setError("");
+    setEditingId(item._id);
+    setEditName(item.name || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editName.trim()) return;
+    try {
+      setEditSaving(true);
+      const res = await fetch(`/api/master/mooring-master/${editingId}/update`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update");
+      cancelEdit();
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -501,7 +535,26 @@ export default function MooringMasterPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-white">{item.name}</div>
+                    {editingId === item._id ? (
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") cancelEdit();
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            saveEdit();
+                          }
+                        }}
+                        disabled={editSaving}
+                        autoFocus
+                        className="w-full max-w-md rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white placeholder:text-white/40 focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/30 outline-none disabled:opacity-60"
+                        aria-label="Edit mooring master name"
+                      />
+                    ) : (
+                      <div className="font-semibold text-white">{item.name}</div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div
@@ -524,14 +577,41 @@ export default function MooringMasterPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {canManageMasterData && (
-                      <ActionDeleteIcon
-                        onClick={() => handleDelete(item._id)}
-                        disabled={!!actionLoading[item._id]}
-                        loading={!!actionLoading[item._id]}
-                        title="Delete"
-                      />
-                    )}
+                    {canManageMasterData &&
+                      (editingId === item._id ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={saveEdit}
+                            disabled={editSaving || !editName.trim()}
+                            className="rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {editSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            disabled={editSaving}
+                            className="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <ActionEditIcon
+                            onClick={() => startEdit(item)}
+                            disabled={!!actionLoading[item._id] || editSaving}
+                            title="Edit name"
+                          />
+                          <ActionDeleteIcon
+                            onClick={() => handleDelete(item._id)}
+                            disabled={!!actionLoading[item._id] || !!editingId}
+                            loading={!!actionLoading[item._id]}
+                            title="Delete"
+                          />
+                        </div>
+                      ))}
                   </td>
                 </tr>
               ))}

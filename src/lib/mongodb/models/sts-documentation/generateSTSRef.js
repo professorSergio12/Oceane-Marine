@@ -1,7 +1,7 @@
-import Counter from "@/models/generateFormCode";
+import Counter from "@/lib/mongodb/models/generateFormCode";
+import { formatStsOperationRef } from "@/lib/operations/formatStsOperationRef";
 
 export async function generateSTSRef(operationStartTime) {
-
   const year = new Date(operationStartTime).getFullYear();
 
   const counter = await Counter.findOneAndUpdate(
@@ -10,7 +10,5 @@ export async function generateSTSRef(operationStartTime) {
     { new: true, upsert: true }
   );
 
-  const seqNumber = String(counter.seq).padStart(3, "0");
-
-  return `${year}-${seqNumber}`;
+  return formatStsOperationRef(year, counter.seq);
 }

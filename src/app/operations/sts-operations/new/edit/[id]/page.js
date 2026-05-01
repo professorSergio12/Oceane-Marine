@@ -676,8 +676,9 @@ export default function EditOperationPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <TextField
                 label="Operation Ref No"
-                placeholder="Enter reference"
+                placeholder="Reference number"
                 name="Operation_Ref_No"
+                readOnly
               />
               <SelectField
                   label="Type of operation"
@@ -1329,7 +1330,7 @@ function BaseInput({ children }) {
   );
 }
 
-function TextField({ label, placeholder, name }) {
+function TextField({ label, placeholder, name, readOnly }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -1337,8 +1338,10 @@ function TextField({ label, placeholder, name }) {
         <input
           type="text"
           name={name}
-          className="w-full bg-transparent outline-none"
+          readOnly={readOnly}
+          className={`w-full bg-transparent outline-none ${readOnly ? "cursor-default text-white/90" : ""}`}
           placeholder={placeholder}
+          title={readOnly ? "Reference number cannot be changed" : undefined}
         />
       </BaseInput>
     </div>
