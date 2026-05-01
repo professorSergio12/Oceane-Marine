@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useId } from "react";
+import { useState, useEffect, useRef, useId, useMemo } from "react";
 
 const nativeInputValueSetter =
   typeof globalThis.window !== "undefined"
@@ -30,6 +30,7 @@ const PILL_TRIGGER =
  * - variant "form": documentation-style field with label.
  * - variant "pill": ops-select-trigger filters in list headers (no CSS chevron; SVG only).
  * - Pass value + onChange for controlled usage; pass name (+ optional defaultValue) for FormData / draft restore.
+ * - searchable (default true): filter options by label/value when the panel is open (set false for tiny lists e.g. rows-per-page).
  */
 export default function OperationsSelectField({
   label,
@@ -49,14 +50,18 @@ export default function OperationsSelectField({
   listClassName,
   className = "",
   disabled = false,
+  searchable = true,
 }) {
   const baseId = useId();
   const labelId = `${baseId}-label`;
   const triggerId = idProp ?? `${baseId}-trigger`;
+  const searchInputId = `${baseId}-search`;
   const isControlled = valueProp !== undefined;
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const hideRef = useRef(null);
   const rootRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [internalSelected, setInternalSelected] = useState(() =>
     defaultValue === undefined || defaultValue === null ? "" : String(defaultValue)
   );
@@ -105,13 +110,43 @@ export default function OperationsSelectField({
     };
   }, [open]);
 
-  const normalized = options.map((opt) => {
-    if (typeof opt === "object" && opt !== null) {
-      return { value: String(opt.value ?? ""), label: String(opt.label ?? "") };
-    }
-    const s = String(opt);
-    return { value: s, label: s };
-  });
+  useEffect(() => {
+    if (!open) setSearchQuery("");
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !searchable || loading) return;
+    const id = requestAnimationFrame(() => {
+      const el = searchInputRef.current;
+      if (el) {
+        el.focus();
+        el.select();
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open, searchable, loading]);
+
+  const normalized = useMemo(
+    () =>
+      options.map((opt) => {
+        if (typeof opt === "object" && opt !== null) {
+          return { value: String(opt.value ?? ""), label: String(opt.label ?? "") };
+        }
+        const s = String(opt);
+        return { value: s, label: s };
+      }),
+    [options]
+  );
+
+  const filteredNormalized = useMemo(() => {
+    if (!searchable) return normalized;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return normalized;
+    return normalized.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
+    );
+  }, [normalized, searchQuery, searchable]);
 
   const commit = (val) => {
     const str = val == null ? "" : String(val);
@@ -149,11 +184,14 @@ export default function OperationsSelectField({
     ? ""
     : `${placeholderLike ? "font-normal text-white/60" : "font-semibold text-white"}`;
 
-  const listBase =
+  const dropdownPanelClass =
     listClassName ??
     (variant === "pill"
-      ? "ops-select-list-scroll absolute left-0 right-0 top-full z-[200] mt-1 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-[#0b2740] py-1 text-xs shadow-xl"
-      : "ops-select-list-scroll absolute left-0 right-0 top-full z-[200] mt-1 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-[#0b2740] py-1 shadow-xl");
+      ? "absolute left-0 right-0 top-full z-[200] mt-1 flex max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] text-xs shadow-xl"
+      : "absolute left-0 right-0 top-full z-[200] mt-1 flex max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] shadow-xl");
+
+  const listScrollClass =
+    "ops-select-list-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1";
 
   const optionBtn =
     variant === "pill"
@@ -244,31 +282,64 @@ export default function OperationsSelectField({
           </svg>
         </button>
         {open && !loading && (
-          <ul
-            className={listBase}
-            role="listbox"
-            aria-labelledby={showLabel ? labelId : undefined}
-            aria-label={!showLabel ? ariaLabel : undefined}
-          >
-            {normalized.map((opt) => (
-              <li key={opt.value === "" ? "__empty" : opt.value} role="none">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selected === opt.value}
-                  className={`${optionBtn} ${
-                    selected === opt.value ? "bg-[#1b3d5c]/90 text-white" : "text-slate-200"
-                  }`}
-                  onClick={() => {
-                    commit(opt.value);
-                    setOpen(false);
+          <div className={dropdownPanelClass} role="presentation">
+            {searchable && (
+              <div className="shrink-0 border-b border-white/10 p-2">
+                <label htmlFor={searchInputId} className="sr-only">
+                  Search options
+                </label>
+                <input
+                  ref={searchInputRef}
+                  id={searchInputId}
+                  type="search"
+                  autoComplete="off"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search…"
+                  className="w-full rounded-lg border border-white/15 bg-[#071f33] px-3 py-2 text-sm text-white placeholder:text-white/40 outline-none focus:border-orange-400/50 focus:ring-1 focus:ring-orange-500/30"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.preventDefault();
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setOpen(false);
+                    }
                   }}
-                >
-                  {opt.label}
-                </button>
-              </li>
-            ))}
-          </ul>
+                />
+              </div>
+            )}
+            <ul
+              className={listScrollClass}
+              role="listbox"
+              aria-labelledby={showLabel ? labelId : undefined}
+              aria-label={!showLabel ? ariaLabel : undefined}
+            >
+              {filteredNormalized.length === 0 ? (
+                <li className="px-3 py-2 text-left text-sm text-white/50" role="presentation">
+                  No matches
+                </li>
+              ) : (
+                filteredNormalized.map((opt) => (
+                  <li key={opt.value === "" ? "__empty" : opt.value} role="none">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selected === opt.value}
+                      className={`${optionBtn} ${
+                        selected === opt.value ? "bg-[#1b3d5c]/90 text-white" : "text-slate-200"
+                      }`}
+                      onClick={() => {
+                        commit(opt.value);
+                        setOpen(false);
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
         )}
       </div>
     </div>

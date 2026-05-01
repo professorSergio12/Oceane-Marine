@@ -37,6 +37,7 @@ export default function OperationsListPaginationFooter({
           <span className="shrink-0 text-white/50">Rows per page</span>
           <OperationsSelectField
             variant="pill"
+            searchable={false}
             ariaLabel="Rows per page"
             value={String(pageSize)}
             onChange={(v) => {
