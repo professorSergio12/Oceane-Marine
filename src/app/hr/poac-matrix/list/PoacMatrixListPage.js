@@ -133,14 +133,13 @@ function pdfCellValue(row, k) {
 }
 
 /* ── PDF Generator (client-side, landscape) ── */
-async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
+async function generatePoacMatrixPDF(allRows, providerName) {
   const { default: jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
 
   const doc = new jsPDF("l", "mm", "a4"); // landscape
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const displayYear = recordYear || new Date().getFullYear();
   const safeProvider = providerName || "POAC";
   const margin = 6;
   const headerHeight = 28;
@@ -181,15 +180,15 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255); // White text
   const titleCenterX = logoDividerX + (pageWidth - margin - logoDividerX) / 2;
-  doc.text(`POAC Certification Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+  doc.text("POAC Certification Matrix", titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
   doc.setFontSize(10);
   doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
   doc.setFontSize(20);
 
-  const pdfColumns = DETAIL_COLUMNS.map((col) => col.label.replace(/ /g, "\n"));
+  const pdfColumns = PDF_DETAIL_COLUMNS.map((col) => col.label.replace(/ /g, "\n"));
   pdfColumns.unshift("S.N");
 
-  const pdfKeys = DETAIL_COLUMNS.map((col) => col.key);
+  const pdfKeys = PDF_DETAIL_COLUMNS.map((col) => col.key);
 
   const body = allRows.map((row, idx) => [
     idx + 1,
@@ -240,7 +239,7 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
         doc.setFontSize(20);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(`POAC Certification Matrix - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+        doc.text("POAC Certification Matrix", titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
         doc.setFontSize(10);
         doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
         doc.setFontSize(20);
@@ -264,7 +263,7 @@ async function generatePoacMatrixPDF(allRows, providerName, recordYear) {
   });
 
   const safeName = safeProvider.replace(/[^a-zA-Z0-9_-]/g, "_");
-  doc.save(`POAC_Certification_Matrix_${safeName}_${displayYear}.pdf`);
+  doc.save(`POAC_Certification_Matrix_${safeName}.pdf`);
 }
 
 /* ── Column headers for the full detail table ── */
@@ -296,6 +295,11 @@ const DETAIL_COLUMNS = [
   { key: "remarks", label: "Remarks: Locations / etc" },
 ];
 
+/** PDF export: no expiry columns, no visa column (on-screen list/view unchanged) */
+const PDF_DETAIL_COLUMNS = DETAIL_COLUMNS.filter(
+  (col) => col.key !== "visaEntries" && !col.key.endsWith("Expiry")
+);
+
 /* ── Overall PDF Generator (combines multiple records into one file) ── */
 async function generateOverallPoacPDF(allRows) {
   const { default: jsPDF } = await import("jspdf");
@@ -304,7 +308,6 @@ async function generateOverallPoacPDF(allRows) {
   const doc = new jsPDF("l", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const displayYear = new Date().getFullYear();
   const margin = 6;
   const headerHeight = 28;
 
@@ -340,15 +343,15 @@ async function generateOverallPoacPDF(allRows) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
   const titleCenterX = logoDividerX + (pageWidth - margin - logoDividerX) / 2;
-  doc.text(`POAC Certification Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+  doc.text("POAC Certification Matrix - Overall", titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
   doc.setFontSize(10);
   doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
   doc.setFontSize(20);
 
-  const pdfColumns = DETAIL_COLUMNS.map((col) => col.label.replace(/ /g, "\n"));
+  const pdfColumns = PDF_DETAIL_COLUMNS.map((col) => col.label.replace(/ /g, "\n"));
   pdfColumns.unshift("S.N");
 
-  const pdfKeys = DETAIL_COLUMNS.map((col) => col.key);
+  const pdfKeys = PDF_DETAIL_COLUMNS.map((col) => col.key);
 
   const body = allRows.map((row, idx) => [
     idx + 1,
@@ -399,7 +402,7 @@ async function generateOverallPoacPDF(allRows) {
         doc.setFontSize(20);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(`POAC Certification Matrix - Overall - ${displayYear}`, titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
+        doc.text("POAC Certification Matrix - Overall", titleCenterX, 4 + headerHeight / 2 + 3, { align: "center" });
         doc.setFontSize(10);
         doc.text(`Form No: QAF-OFD-046`, titleCenterX, 4 + headerHeight / 2 + 8, { align: "center" });
         doc.setFontSize(20);
@@ -421,7 +424,7 @@ async function generateOverallPoacPDF(allRows) {
     },
   });
 
-  doc.save(`POAC_Certification_Matrix_Overall_${displayYear}.pdf`);
+  doc.save("POAC_Certification_Matrix_Overall.pdf");
 }
 
 /* ── Main list component ── */
@@ -539,8 +542,7 @@ export default function PoacMatrixListPage({ onRefresh }) {
     try {
       setPdfDownloadingId(record._id);
       const provider = rows[0]?.stsServiceProvider || "POAC";
-      const recordYear = record.createdAt ? new Date(record.createdAt).getFullYear() : new Date().getFullYear();
-      await generatePoacMatrixPDF(rows, provider, recordYear);
+      await generatePoacMatrixPDF(rows, provider);
     } catch (err) {
       setError(err.message || "PDF download failed");
       setTimeout(() => setError(""), 5000);

@@ -20,6 +20,17 @@ const YES_NO_OPTIONS = [
   { key: "validMedicals", label: "Valid Medicals", required: false },
 ];
 
+/** No expiry date field when "Yes" — certificate-only items */
+const NO_EXPIRY_WHEN_YES_KEYS = new Set([
+  "dangerousCargoEndorsementOil",
+  "dangerousCargoEndorsementChem",
+  "dangerousCargoEndorsementGas",
+  "oilSpillResponseTraining",
+  "stsSimulatorTraining",
+  "vesselSizeLimitations",
+  "underwayOperations",
+]);
+
 /** Migrate legacy visaLocation + visaValidity into per-location entries */
 function normalizeVisaEntriesFromRow(row) {
   if (Array.isArray(row.visaEntries) && row.visaEntries.length > 0) {
@@ -153,9 +164,13 @@ export default function PoacMatrixFormPage({ onSuccess }) {
     const newRows = [...rows];
     newRows[index] = { ...newRows[index], [field]: value };
 
-    if (YES_NO_OPTIONS.some((o) => o.key === field) && value === "No") {
-      newRows[index][`${field}File`] = null;
-      newRows[index][`${field}Expiry`] = "";
+    if (YES_NO_OPTIONS.some((o) => o.key === field)) {
+      if (value === "No") {
+        newRows[index][`${field}File`] = null;
+        newRows[index][`${field}Expiry`] = "";
+      } else if (value === "Yes" && NO_EXPIRY_WHEN_YES_KEYS.has(field)) {
+        newRows[index][`${field}Expiry`] = "";
+      }
     }
     setRows(newRows);
   };
@@ -188,7 +203,8 @@ export default function PoacMatrixFormPage({ onSuccess }) {
 
         YES_NO_OPTIONS.forEach(({ key }) => {
           formData.append(`row_${i}_${key}`, row[key] || "No");
-          formData.append(`row_${i}_${key}Expiry`, (row[`${key}Expiry`] || "").trim());
+          const expiryVal = NO_EXPIRY_WHEN_YES_KEYS.has(key) ? "" : (row[`${key}Expiry`] || "").trim();
+          formData.append(`row_${i}_${key}Expiry`, expiryVal);
           const file = row[`${key}File`];
           if (file) formData.append(`row_${i}_${key}File`, file);
         });
@@ -288,18 +304,20 @@ export default function PoacMatrixFormPage({ onSuccess }) {
 
         {value === "Yes" && (
           <div className="mt-2 pl-3 border-l-2 border-orange-500/30 space-y-2">
-            {/* Expiry date */}
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-orange-300/80">
-                Date of Expiry
-              </label>
-              <input
-                type="date"
-                value={row[`${key}Expiry`] || ""}
-                onChange={(e) => updateRow(rowIndex, `${key}Expiry`, e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all [color-scheme:dark]"
-              />
-            </div>
+            {/* Expiry date (not used for NO_EXPIRY_WHEN_YES_KEYS) */}
+            {!NO_EXPIRY_WHEN_YES_KEYS.has(key) && (
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-orange-300/80">
+                  Date of Expiry
+                </label>
+                <input
+                  type="date"
+                  value={row[`${key}Expiry`] || ""}
+                  onChange={(e) => updateRow(rowIndex, `${key}Expiry`, e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all [color-scheme:dark]"
+                />
+              </div>
+            )}
 
             {/* Attachment */}
             <label className="block text-xs font-medium text-orange-300/80">
