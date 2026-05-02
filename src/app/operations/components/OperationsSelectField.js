@@ -187,11 +187,13 @@ export default function OperationsSelectField({
   const dropdownPanelClass =
     listClassName ??
     (variant === "pill"
-      ? "absolute left-0 right-0 top-full z-[200] mt-1 flex max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] text-xs shadow-xl"
-      : "absolute left-0 right-0 top-full z-[200] mt-1 flex max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] shadow-xl");
+      ? "absolute left-0 right-0 top-full z-[1] mt-1 flex min-h-0 max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] text-xs shadow-xl"
+      : "absolute left-0 right-0 top-full z-[1] mt-1 flex min-h-0 max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] shadow-xl");
 
+  /* Explicit list max-height when a search row is present — flex-1 alone inside max-h-only parents often collapses the scroll area to ~one row. */
   const listScrollClass =
-    "ops-select-list-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1";
+    "ops-select-list-scroll min-h-0 overflow-y-auto overflow-x-hidden py-1 " +
+    (searchable ? "max-h-[11.25rem]" : "flex-1");
 
   const optionBtn =
     variant === "pill"
@@ -244,7 +246,7 @@ export default function OperationsSelectField({
 
   return (
     <div
-      className={`${showLabel ? "space-y-2" : ""} ${className} ${open ? "relative z-[1000]" : ""}`.trim()}
+      className={`${showLabel ? "space-y-2" : ""} ${className} ${open ? "relative z-[9999]" : ""}`.trim()}
       ref={rootRef}
     >
       {showLabel && (

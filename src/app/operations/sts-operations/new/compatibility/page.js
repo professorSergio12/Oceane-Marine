@@ -20,6 +20,9 @@ const emptyShip = () => ({
   ManifoldToRail: "",
 });
 
+/** STS ops that can be tied to compatibility (matches common workflow before / during transfer). */
+const COMPATIBILITY_STS_STATUSES = ["INPROGRESS", "Lined Up"];
+
 function CompatibilityPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -48,20 +51,47 @@ function CompatibilityPageContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const messageTopRef = useRef(null);
+  const inProgressOpsRef = useRef(inProgressOps);
+  inProgressOpsRef.current = inProgressOps;
 
-  /* Fetch INPROGRESS STS operations for the dropdown */
+  /* Fetch latest STS operations for the dropdown (same searchable UI as other ops selects). */
   useEffect(() => {
     setOpsLoading(true);
-    fetch("/api/operations/sts/list?status=INPROGRESS")
+    fetch("/api/operations/sts/list")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.data) {
-          setInProgressOps(data.data);
+        if (data.success && Array.isArray(data.data)) {
+          const eligible = data.data.filter((op) =>
+            COMPATIBILITY_STS_STATUSES.includes(op.operationStatus)
+          );
+          setInProgressOps(eligible);
         }
       })
       .catch(() => {})
       .finally(() => setOpsLoading(false));
   }, []);
+
+  /* Editing: ensure the saved operation appears even if status is e.g. COMPLETED */
+  useEffect(() => {
+    if (!selectedOperationId) return;
+    const id = String(selectedOperationId);
+    if (inProgressOpsRef.current.some((o) => String(o._id) === id)) return;
+    let cancelled = false;
+    fetch(`/api/operations/sts/${encodeURIComponent(id)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled || !data.success || !data.data) return;
+        const row = data.data;
+        setInProgressOps((prev) => {
+          if (prev.some((o) => String(o._id) === String(row._id))) return prev;
+          return [...prev, row];
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOperationId]);
 
   /* When user selects an operation from dropdown, auto-fill fields */
   const handleOperationSelect = (opId) => {
@@ -419,8 +449,8 @@ function CompatibilityPageContent() {
             <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-white/60">Loading operation...</div>
           ) : (
             <div className="space-y-6">
-              {/* Operation info - shared */}
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-xl">
+              {/* Operation info - shared (z-30: dropdown panel extends below card; backdrop-blur stacks above later siblings without this) */}
+              <div className="relative z-30 overflow-visible rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-xl">
                 <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-4">Operation</h2>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className={fieldWrapClass}>
@@ -436,7 +466,7 @@ function CompatibilityPageContent() {
                         },
                         ...inProgressOps.map((op) => ({
                           value: String(op._id),
-                          label: op.Operation_Ref_No,
+                          label: op.Operation_Ref_No?.trim() || String(op._id),
                         })),
                       ]}
                       triggerClassName={operationSelectTriggerClass}
