@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
-import { useRouter, usePathname, useParams, useSearchParams } from "next/navigation";
-import { buildDocumentHtml030, buildDocumentHtml030B, buildDocumentHtmlPOAC, getFormNoLineForPdf } from "./documentTemplate";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import { useOperationsRole } from "@/hooks/useOperationsRole";
 import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
@@ -52,6 +51,8 @@ const emptyForm = () => ({
   acceptanceTelephone: "",
   authorizedSignatoryFor: "",
   acceptanceDate030B: "",
+  serviceOverviewFrom: "",
+  serviceOverviewTo: "",
 });
 
 function toFormData(record) {
@@ -100,6 +101,8 @@ function toFormData(record) {
     acceptanceTelephone: d.acceptanceTelephone ?? "",
     authorizedSignatoryFor: d.authorizedSignatoryFor ?? "",
     acceptanceDate030B: d.acceptanceDate030B ? new Date(d.acceptanceDate030B).toISOString().split("T")[0] : "",
+    serviceOverviewFrom: d.serviceOverviewFrom ?? "",
+    serviceOverviewTo: d.serviceOverviewTo ?? "",
   };
 }
 
@@ -120,7 +123,6 @@ const labelClass = "block text-sm font-medium text-white/90 mb-1.5";
 export default function StsQuotationFormPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const params = useParams();
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -141,6 +143,17 @@ export default function StsQuotationFormPage() {
       .then((data) => setLocations(data.locations || []))
       .catch(() => {});
   }, []);
+
+  const locationSelectOptions = useMemo(
+    () => [
+      { value: "", label: "Select location" },
+      ...locations.map((loc) => ({
+        value: loc.name,
+        label: loc.name,
+      })),
+    ],
+    [locations]
+  );
 
   useEffect(() => {
     if (!editId) return;
@@ -186,49 +199,6 @@ export default function StsQuotationFormPage() {
     }
   };
 
-  const [downloading, setDownloading] = useState(false);
-
-  const handleDownload = async () => {
-    const payload = toPayload(form);
-    let html;
-    let defaultFormNo;
-    if (form.formType === "OPS-OFD-030B") {
-      html = buildDocumentHtml030B(payload);
-      defaultFormNo = "OPS-OFD-030B";
-    } else if (form.formType === "POAC") {
-      html = buildDocumentHtmlPOAC(payload);
-      defaultFormNo = "Form No. OPS-OFD-30A / Rev 1.2 / Issue Date: 20 Aug 2023";
-    } else {
-      html = buildDocumentHtml030(payload);
-      defaultFormNo = "Form No. OPS-OFD-30 / Rev 1.1 / Issue Date: 20 Aug 2023";
-    }
-    const formNoLine = getFormNoLineForPdf(form, defaultFormNo);
-    setDownloading(true);
-    try {
-      const res = await fetch("/api/operations/form-checklist/sts-quotation-form/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, formNoLine }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `PDF failed (${res.status})`);
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `quotation-${(form.clientName || "quotation").replace(/\s+/g, "-")}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error(e);
-      alert(e.message || "Failed to generate PDF. Try Print from the browser if the dialog opens.");
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-transparent text-white flex items-center justify-center">
@@ -239,19 +209,23 @@ export default function StsQuotationFormPage() {
 
   return (
     <div className="min-h-screen bg-transparent text-white flex">
-      {/* Sidebar */}
+      {/* Sidebar - width/visuals match the Quotation List sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-[260px] sm:w-[300px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-white/20 shadow-2xl backdrop-blur-md z-50 transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-orange-500/10 to-transparent">
-            <h2 className="text-lg font-bold text-white">Operations</h2>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30">
+                <span className="text-white text-xl">⚡</span>
+              </div>
+              <h2 className="text-lg font-bold text-white">Operations Modules</h2>
+            </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition"
               aria-label="Close sidebar"
             >
               <span className="text-white text-lg">×</span>
@@ -307,6 +281,11 @@ export default function StsQuotationFormPage() {
                 )
               )}
             </div>
+          </div>
+          <div className="p-4 border-t border-white/10 bg-slate-800/50">
+            <p className="text-[10px] text-slate-400 text-center">
+              Operations Management System
+            </p>
           </div>
         </div>
       </div>
@@ -426,9 +405,36 @@ export default function StsQuotationFormPage() {
 
             {/* Common fields */}
             <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 md:p-8">
-              <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3 mb-6">
-                Client & Proposal (First page / Cover)
-              </h2>
+              <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-6 gap-3">
+                <h2 className="text-lg font-semibold text-white">
+                  Client & Proposal (First page / Cover)
+                </h2>
+                {editId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push("/operations/sts-operations/new/form-checklist/quotations/list")
+                    }
+                    aria-label="Cancel edit and return to quotation list"
+                    title="Cancel edit"
+                    className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/5 text-white/80 hover:bg-white/15 hover:text-white transition"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                ) : null}
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>Form No</label>
@@ -487,6 +493,32 @@ export default function StsQuotationFormPage() {
                     className={inputClass}
                   />
                 </div>
+                {form.formType === "OPS-OFD-030B" && (
+                  <>
+                    <div>
+                      <label className={labelClass}>From</label>
+                      <OperationsSelectField
+                        ariaLabel="From location"
+                        value={form.serviceOverviewFrom}
+                        onChange={(v) => setField("serviceOverviewFrom", v)}
+                        options={locationSelectOptions}
+                        triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>To</label>
+                      <OperationsSelectField
+                        ariaLabel="To location"
+                        value={form.serviceOverviewTo}
+                        onChange={(v) => setField("serviceOverviewTo", v)}
+                        options={locationSelectOptions}
+                        triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
+                        className="w-full"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -520,13 +552,7 @@ export default function StsQuotationFormPage() {
                         ariaLabel="Location"
                         value={form.location}
                         onChange={(v) => setField("location", v)}
-                        options={[
-                          { value: "", label: "Select location" },
-                          ...locations.map((loc) => ({
-                            value: loc.name,
-                            label: loc.name,
-                          })),
-                        ]}
+                        options={locationSelectOptions}
                         triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
                         className="w-full"
                       />
@@ -596,7 +622,14 @@ export default function StsQuotationFormPage() {
                     </div>
                     <div className="sm:col-span-2">
                       <label className={labelClass}>Base info / Location</label>
-                      <input type="text" value={form.baseInfoLocation} onChange={(e) => setField("baseInfoLocation", e.target.value)} className={inputClass} />
+                      <OperationsSelectField
+                        ariaLabel="Base info / Location"
+                        value={form.baseInfoLocation}
+                        onChange={(v) => setField("baseInfoLocation", v)}
+                        options={locationSelectOptions}
+                        triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 </section>
@@ -652,13 +685,7 @@ export default function StsQuotationFormPage() {
                         ariaLabel="Location"
                         value={form.location}
                         onChange={(v) => setField("location", v)}
-                        options={[
-                          { value: "", label: "Select location" },
-                          ...locations.map((loc) => ({
-                            value: loc.name,
-                            label: loc.name,
-                          })),
-                        ]}
+                        options={locationSelectOptions}
                         triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
                         className="w-full"
                       />
@@ -700,7 +727,14 @@ export default function StsQuotationFormPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
                       <label className={labelClass}>Base info / Location</label>
-                      <input type="text" value={form.baseInfoLocation} onChange={(e) => setField("baseInfoLocation", e.target.value)} className={inputClass} placeholder="e.g. Nacala Anchorage" />
+                      <OperationsSelectField
+                        ariaLabel="Base info / Location"
+                        value={form.baseInfoLocation}
+                        onChange={(v) => setField("baseInfoLocation", v)}
+                        options={locationSelectOptions}
+                        triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
+                        className="w-full"
+                      />
                     </div>
                     <div className="sm:col-span-2">
                       <label className={labelClass}>Primary Fenders</label>
@@ -832,14 +866,6 @@ export default function StsQuotationFormPage() {
                   View-only access
                 </span>
               )}
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={downloading}
-                className="px-6 py-2.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {downloading ? "Generating PDF…" : "Download PDF"}
-              </button>
             </div>
           </form>
         </div>

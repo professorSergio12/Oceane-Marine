@@ -10,6 +10,7 @@ import {
   ActionDownloadIcon,
   ActionEditIcon,
   ActionDeleteIcon,
+  ActionViewIcon,
 } from "@/app/components/RecordActionIcons";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
 import {
@@ -54,9 +55,10 @@ export default function QuotationListPage() {
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [year, setYear] = useState(() => new Date().getFullYear());
-  const [quotationTab, setQuotationTab] = useState("all");
+  const [quotationTab, setQuotationTab] = useState("OPS-OFD-030");
   const [searchTerm, setSearchTerm] = useState("");
   const [downloadingId, setDownloadingId] = useState(null);
+  const [viewingRecord, setViewingRecord] = useState(null);
   const { setPageLoading } = useOperationsLoading();
   const { isOpsAdmin, canEditForm, canDeleteForm } = useOperationsRole();
   const sidebarTabs = getSidebarTabs(isOpsAdmin);
@@ -161,13 +163,11 @@ export default function QuotationListPage() {
   };
 
   const filteredForms =
-    quotationTab === "all"
-      ? stsForms
-      : quotationTab === "POAC"
-        ? stsForms.filter((r) => r.formType === "POAC")
-        : quotationTab === "OPS-OFD-030B"
-          ? stsForms.filter((r) => r.formType === "OPS-OFD-030B")
-          : stsForms.filter((r) => r.formType === "OPS-OFD-030");
+    quotationTab === "POAC"
+      ? stsForms.filter((r) => r.formType === "POAC")
+      : quotationTab === "OPS-OFD-030B"
+        ? stsForms.filter((r) => r.formType === "OPS-OFD-030B")
+        : stsForms.filter((r) => r.formType === "OPS-OFD-030");
 
   const searchFiltered = !searchTerm.trim()
     ? filteredForms
@@ -405,7 +405,6 @@ export default function QuotationListPage() {
         <div className="w-full overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] lg:overflow-visible">
           <div className="inline-flex min-w-max flex-nowrap rounded-xl border border-white/15 bg-white/5 lg:inline-flex lg:min-w-0 lg:w-full lg:flex-wrap lg:max-w-full">
             {[
-              { key: "all", label: "All Quotations" },
               { key: "OPS-OFD-030", label: "STS Proposal (030)" },
               { key: "OPS-OFD-030B", label: "STS Advisor (030B)" },
               { key: "POAC", label: "POAC Quotation" },
@@ -429,22 +428,18 @@ export default function QuotationListPage() {
         {/* Quotation list */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
-            {quotationTab === "all"
-              ? "All Quotations"
-              : quotationTab === "POAC"
-                ? "POAC Quotations"
-                : quotationTab === "OPS-OFD-030B"
-                  ? "STS Advisor Quotations"
-                  : "STS Proposal Quotations"}
+            {quotationTab === "POAC"
+              ? "POAC Quotations"
+              : quotationTab === "OPS-OFD-030B"
+                ? "STS Advisor Quotations"
+                : "STS Proposal Quotations"}
           </h2>
           {loading ? (
             <p className="text-white/60 text-sm">Loading quotations…</p>
           ) : filteredForms.length === 0 ? (
             <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
               <p className="text-white/60 mb-4">
-                {quotationTab === "all"
-                  ? "No quotations for the selected year."
-                  : `No ${quotationTab === "POAC" ? "POAC" : quotationTab === "OPS-OFD-030B" ? "STS Advisor" : "STS Proposal"} quotations for the selected year.`}
+                {`No ${quotationTab === "POAC" ? "POAC" : quotationTab === "OPS-OFD-030B" ? "STS Advisor" : "STS Proposal"} quotations for the selected year.`}
               </p>
               <Link
                 href="/operations/sts-operations/new/form-checklist/quotations/sts-form"
@@ -485,6 +480,10 @@ export default function QuotationListPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
+                            <ActionViewIcon
+                              onClick={() => setViewingRecord(row)}
+                              title="View details"
+                            />
                             <ActionDownloadIcon
                               onClick={() => handleDownloadSts(row)}
                               disabled={downloadingId === row._id}
@@ -516,6 +515,244 @@ export default function QuotationListPage() {
         </QhseListPageContainer>
         </div>
       </div>
+
+      {viewingRecord ? (
+        <QuotationViewModal
+          record={viewingRecord}
+          onClose={() => setViewingRecord(null)}
+          onEdit={
+            canEditForm
+              ? () => {
+                  const r = viewingRecord;
+                  setViewingRecord(null);
+                  handleEditSts(r);
+                }
+              : null
+          }
+          onDownload={() => handleDownloadSts(viewingRecord)}
+          downloading={downloadingId === viewingRecord._id}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/* ============================================================ *
+ * Read-only quotation details modal (eye-icon action target).  *
+ * ============================================================ */
+
+function QuotationViewModal({ record, onClose, onEdit, onDownload, downloading }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  const formType = record.formType || "—";
+  const isAdvisor = formType === "OPS-OFD-030B";
+  const isPoac = formType === "POAC";
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 sm:p-8 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Quotation details"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative my-4 w-full max-w-3xl rounded-2xl border border-white/15 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-sky-300">Quotation</p>
+            <h2 className="text-lg font-semibold text-white truncate">
+              {record.clientName || "—"}{" "}
+              <span className="ml-2 align-middle text-xs font-mono text-orange-300">
+                {formType}
+              </span>
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {onDownload ? (
+              <button
+                type="button"
+                onClick={onDownload}
+                disabled={downloading}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-60"
+              >
+                {downloading ? "Generating…" : "Download PDF"}
+              </button>
+            ) : null}
+            {onEdit ? (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20"
+              >
+                Edit
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              title="Close"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/5 text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[75vh] overflow-y-auto px-6 py-5 text-sm text-white/90">
+          <ViewSection title="Client & Proposal (First page / Cover)">
+            <ViewField label="Form No" value={record.formNo} />
+            <ViewField label="Issue Date" value={formatDate(record.issueDate)} />
+            <ViewField label="Client Name" value={record.clientName} />
+            <ViewField label="Attn" value={record.attn} />
+            <ViewField label="Proposal Date" value={formatDate(record.proposalDate)} />
+            <ViewField label="Project Name" value={record.projectName} />
+            {isAdvisor ? (
+              <>
+                <ViewField label="From" value={record.serviceOverviewFrom} />
+                <ViewField label="To" value={record.serviceOverviewTo} />
+              </>
+            ) : null}
+          </ViewSection>
+
+          {!isAdvisor ? (
+            <>
+              <ViewSection title="Cost of Operation">
+                <ViewField label="Job Ref #" value={record.jobRef} />
+                <ViewField label="Discharging ship(s)" value={record.dischargingShip} />
+                <ViewField label="Receiving ship(s)" value={record.receivingShip} />
+                <ViewField label="Date" value={formatDate(record.operationDate)} />
+                <ViewField label="Location" value={record.location} />
+                <ViewField label="Cargo" value={record.cargo} />
+                <ViewField
+                  label="Quantity"
+                  value={
+                    record.quantity
+                      ? `${record.quantity} ${record.quantityUnit || ""}`.trim()
+                      : ""
+                  }
+                />
+                {!isPoac ? (
+                  <>
+                    <ViewField label="Lump sum (USD)" value={record.lumpSum} />
+                    <ViewField label="Thereafter (USD/HR)" value={record.thereafter} />
+                    <ViewField label="Free time" value={record.freeTime} />
+                    <ViewField label="Availability" value={record.availability} />
+                  </>
+                ) : (
+                  <>
+                    <ViewField label="Day Rate (USD)" value={record.dailyRate} />
+                    <ViewField
+                      label="Flight & Out of Pocket"
+                      value={record.flightsTravel}
+                    />
+                    <ViewField label="Coordination Fee" value={record.managementFee} />
+                  </>
+                )}
+                <ViewField label="Payment terms" value={record.paymentTerms} full />
+              </ViewSection>
+
+              <ViewSection title="STS Equipment">
+                <ViewField label="Base info / Location" value={record.baseInfoLocation} full />
+                <ViewField label="Primary Fenders" value={record.primaryFenders} full />
+                <ViewField label="Secondary Fenders" value={record.secondaryFenders} full />
+                <ViewField label="Fender Moorings" value={record.fenderMoorings} full />
+                <ViewField label="Hoses" value={record.hoses} full />
+                <ViewField label="Support Craft" value={record.supportCraft} />
+                <ViewField
+                  label="Personnel Transfer Basket"
+                  value={record.personnelTransferBasket}
+                />
+              </ViewSection>
+
+              <ViewSection title="Acceptance (Client)">
+                <ViewField label="Client Name (Company)" value={record.acceptanceClientName} />
+                <ViewField label="Person In Charge" value={record.personInCharge} />
+                <ViewField label="Acceptance Date" value={formatDate(record.acceptanceDate)} />
+              </ViewSection>
+            </>
+          ) : (
+            <>
+              <ViewSection title="POAC Service Charges">
+                <ViewField label="Designated STS Advisor" value={record.designatedAdvisor} />
+                <ViewField label="Daily Rate (USD)" value={record.dailyRate} />
+                <ViewField label="Management Fee (USD)" value={record.managementFee} />
+                <ViewField label="Flights & Travel" value={record.flightsTravel} />
+                <ViewField label="Local Logistics (UAE)" value={record.localLogistics} />
+                <ViewField
+                  label="Communication Charges"
+                  value={record.communicationCharges}
+                />
+              </ViewSection>
+
+              <ViewSection title="Acceptance">
+                <ViewField label="Name" value={record.acceptanceName} />
+                <ViewField label="Date" value={formatDate(record.acceptanceDate030B)} />
+                <ViewField label="Address" value={record.acceptanceAddress} full />
+                <ViewField label="Email" value={record.acceptanceEmail} />
+                <ViewField label="Telephone" value={record.acceptanceTelephone} />
+                <ViewField
+                  label="Authorized signatory for"
+                  value={record.authorizedSignatoryFor}
+                  full
+                />
+              </ViewSection>
+            </>
+          )}
+
+          <ViewSection title="Record Info">
+            <ViewField label="Created" value={formatDate(record.createdAt)} />
+            <ViewField label="Last Updated" value={formatDate(record.updatedAt)} />
+          </ViewSection>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ViewSection({ title, children }) {
+  return (
+    <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
+      <h3 className="mb-3 border-b border-white/10 pb-2 text-sm font-semibold uppercase tracking-wider text-sky-300">
+        {title}
+      </h3>
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+function ViewField({ label, value, full = false }) {
+  const display =
+    value == null || value === "" ? <span className="text-white/40">—</span> : String(value);
+  return (
+    <div className={full ? "sm:col-span-2" : ""}>
+      <p className="text-[11px] uppercase tracking-wider text-white/50">{label}</p>
+      <p className="mt-0.5 break-words text-sm text-white/90">{display}</p>
     </div>
   );
 }

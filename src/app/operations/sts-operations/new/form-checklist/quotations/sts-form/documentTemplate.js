@@ -3,6 +3,9 @@
  * First page matches the provided PDF layout; all components are dynamic from form data.
  */
 
+/** Served from `public/image/pdf_logo.png` (Puppeteer PDF uses `public` as base URL). */
+const PDF_COVER_LOGO_SRC = "/image/pdf_logo.png";
+
 function fmtDate(d) {
   if (!d) return "";
   const x = new Date(d);
@@ -128,7 +131,7 @@ function buildCoverPage(d, options) {
   return `
   <div class="cover-template-page">
     <div class="cover-template-logo-band">
-      <img src="/images/quotation/logo-oceane-group.png" alt="Oceane Group" class="cover-template-logo-img" />
+      <img src="${PDF_COVER_LOGO_SRC}" alt="Oceane Group" class="cover-template-logo-img" />
     </div>
     <div class="cover-template-blue-block">
       <div class="cover-template-title">${mainTitle}</div>
@@ -332,6 +335,8 @@ function pageFormNo030B(d) {
 export function buildDocumentHtml030B(data) {
   const d = data || {};
   const formNo = pageFormNo030B(d);
+  const svcFrom = escapeHtml(val(d, "serviceOverviewFrom", "Fujairah"));
+  const svcTo = escapeHtml(val(d, "serviceOverviewTo", "Iraq"));
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -370,7 +375,7 @@ export function buildDocumentHtml030B(data) {
     ${COMPANY_HEADER}
     <h2>1.1 Service Overview</h2>
     <ul class="gap-md">
-      <li>Our STS Advisor will board the designated vessel at a mutually agreed location—typically off Fujairah—prior to sailing to the load port off Iraq.</li>
+      <li>Our STS Advisor will board the designated vessel at a mutually agreed location—typically off ${svcFrom}—prior to sailing to the load port off ${svcTo}.</li>
       <li>The Advisor will monitor the entire STS operation, including vessel approach, maneuvering, mooring, cargo transfer (loading/unloading), and unmooring activities.</li>
       <li>A comprehensive operational report will be compiled, covering:
         <ul>
@@ -400,7 +405,7 @@ export function buildDocumentHtml030B(data) {
     <h2>1.3 Ongoing Commitments &amp; Conflicts</h2>
     <p class="gap-md">Should we have other active commitments that may impact on the proposed service schedule, the Company will be informed prior to any contractual engagement.</p>
     <h2>1.4 Regional Permits &amp; Notifications</h2>
-    <p class="gap-md">For operations in Iraq, any permits, approvals, or regulatory notifications required by local authorities must be arranged directly by the Company, in line with regional compliance requirements. All related expenses will be borne by the Company.</p>
+    <p class="gap-md">For operations in ${svcTo}, any permits, approvals, or regulatory notifications required by local authorities must be arranged directly by the Company, in line with regional compliance requirements. All related expenses will be borne by the Company.</p>
     <h2>1.5 Cargo Documentation Disclaimer</h2>
     <p class="gap-md">Please note that Oceane does not provide cargo surveying services. Any cargo documentation duties must be handled by the Vessel's Master, nominated cargo surveyors, or assigned agents.</p>
     <h2>1.6 Confirmation Requirements for STS Operations</h2>

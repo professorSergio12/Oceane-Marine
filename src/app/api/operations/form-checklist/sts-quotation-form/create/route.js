@@ -49,6 +49,8 @@ export async function POST(req) {
       acceptanceTelephone,
       authorizedSignatoryFor,
       acceptanceDate030B,
+      serviceOverviewFrom,
+      serviceOverviewTo,
     } = body;
 
     if (!formType || !["OPS-OFD-030", "OPS-OFD-030B", "POAC"].includes(formType)) {
@@ -101,6 +103,8 @@ export async function POST(req) {
       acceptanceTelephone: acceptanceTelephone ?? "",
       authorizedSignatoryFor: authorizedSignatoryFor ?? "",
       acceptanceDate030B: acceptanceDate030B ? new Date(acceptanceDate030B) : null,
+      serviceOverviewFrom: serviceOverviewFrom ?? "",
+      serviceOverviewTo: serviceOverviewTo ?? "",
     });
 
     return NextResponse.json({ success: true, data: doc });

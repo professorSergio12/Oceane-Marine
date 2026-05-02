@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import path from "path";
+import { promises as fs } from "fs";
 import puppeteer from "puppeteer";
 
 export const maxDuration = 60;
@@ -13,6 +14,44 @@ function escapeForHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+const MIME_BY_EXT = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+};
+
+/** Inline absolute-rooted asset URLs (`src="/foo/bar.png"`) as data: URLs.
+ * Required because `page.setContent()` resolves relative URLs against `about:blank`,
+ * so /public/* would otherwise 404 inside the headless page. */
+async function inlinePublicAssets(html) {
+  const publicDir = path.join(process.cwd(), "public");
+  const cache = new Map();
+  const re = /(src|href)\s*=\s*"\/([^"#?]+\.(?:png|jpe?g|gif|svg|webp))"/gi;
+  const matches = [...html.matchAll(re)];
+  for (const m of matches) {
+    const rel = m[2];
+    if (cache.has(rel)) continue;
+    cache.set(rel, null);
+    try {
+      const filePath = path.join(publicDir, rel);
+      if (!filePath.startsWith(publicDir)) continue;
+      const buf = await fs.readFile(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mime = MIME_BY_EXT[ext] || "application/octet-stream";
+      cache.set(rel, `data:${mime};base64,${buf.toString("base64")}`);
+    } catch {
+      // ignored: leave the original src so the page still renders broken-image alt
+    }
+  }
+  return html.replace(re, (full, attr, rel) => {
+    const data = cache.get(rel);
+    return data ? `${attr}="${data}"` : full;
+  });
+}
+
 export async function POST(req) {
   let browser;
   try {
@@ -22,6 +61,7 @@ export async function POST(req) {
     }
 
     const footerText = formNoLine != null ? escapeForHtml(String(formNoLine)) : "";
+    const htmlForPdf = await inlinePublicAssets(html);
 
     browser = await puppeteer.launch({
       headless: true,
@@ -30,11 +70,9 @@ export async function POST(req) {
 
     const page = await browser.newPage();
 
-    const baseUrl = "file://" + path.join(process.cwd(), "public").replace(/\\/g, "/");
-    await page.setContent(html, {
+    await page.setContent(htmlForPdf, {
       waitUntil: "networkidle0",
       timeout: 30000,
-      baseURL: baseUrl,
     });
 
     const pdfBuffer = await page.pdf({

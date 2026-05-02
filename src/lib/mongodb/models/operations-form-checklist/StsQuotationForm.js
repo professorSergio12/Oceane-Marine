@@ -41,6 +41,10 @@ const StsQuotationFormSchema = new mongoose.Schema(
     personInCharge: { type: String, default: "" },
     acceptanceDate: { type: Date, default: null },
 
+    // OPS-OFD-030B (STS Advisor): section 1.1 Service Overview locations in PDF
+    serviceOverviewFrom: { type: String, default: "" },
+    serviceOverviewTo: { type: String, default: "" },
+
     // OPS-OFD-030B (STS Advisor) fields
     designatedAdvisor: { type: String, default: "" },
     dailyRate: { type: String, default: "" },
