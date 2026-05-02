@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { buildDocumentHtml030, buildDocumentHtml030B, buildDocumentHtmlPOAC, getFormNoLineForPdf } from "../sts-form/documentTemplate";
@@ -542,6 +543,14 @@ export default function QuotationListPage() {
  * ============================================================ */
 
 function QuotationViewModal({ record, onClose, onEdit, onDownload, downloading }) {
+  /* Portal target: avoids ancestor `backdrop-filter` (e.g. cards using `backdrop-blur-*`)
+   * which would otherwise become the containing block for this `position: fixed` overlay. */
+  const [portalTarget, setPortalTarget] = useState(null);
+
+  useEffect(() => {
+    setPortalTarget(typeof document !== "undefined" ? document.body : null);
+  }, []);
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -555,13 +564,15 @@ function QuotationViewModal({ record, onClose, onEdit, onDownload, downloading }
     };
   }, [onClose]);
 
+  if (!portalTarget) return null;
+
   const formType = record.formType || "—";
   const isAdvisor = formType === "OPS-OFD-030B";
   const isPoac = formType === "POAC";
 
-  return (
+  const overlay = (
     <div
-      className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 sm:p-8 backdrop-blur-sm"
+      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 sm:p-8 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Quotation details"
@@ -624,7 +635,7 @@ function QuotationViewModal({ record, onClose, onEdit, onDownload, downloading }
           </div>
         </div>
 
-        <div className="max-h-[75vh] overflow-y-auto px-6 py-5 text-sm text-white/90">
+        <div className="max-h-[75vh] overflow-y-auto px-6 py-5 text-sm text-white/90 styled-scrollbar">
           <ViewSection title="Client & Proposal (First page / Cover)">
             <ViewField label="Form No" value={record.formNo} />
             <ViewField label="Issue Date" value={formatDate(record.issueDate)} />
@@ -733,6 +744,8 @@ function QuotationViewModal({ record, onClose, onEdit, onDownload, downloading }
       </div>
     </div>
   );
+
+  return createPortal(overlay, portalTarget);
 }
 
 function ViewSection({ title, children }) {

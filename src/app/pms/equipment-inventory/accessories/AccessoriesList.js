@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
 import {
+  ActionViewIcon,
   ActionEditIcon,
   ActionDeleteIcon,
 } from "@/app/components/RecordActionIcons";
@@ -45,6 +47,17 @@ function CertLink({ accessoryId, type, cert, label }) {
   );
 }
 
+function formatDetailDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function getYears() {
   const currentYear = new Date().getFullYear();
   const years = [];
@@ -69,6 +82,7 @@ export default function AccessoriesList({
   const [years, setYears] = useState([]);
   const [year, setYear] = useState(new Date().getFullYear());
   const [deletingId, setDeletingId] = useState(null);
+  const [viewingItem, setViewingItem] = useState(null);
 
   const showEquipmentNo = listCategory === "REGULAR";
 
@@ -301,6 +315,10 @@ export default function AccessoriesList({
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-2 justify-end">
+                          <ActionViewIcon
+                            onClick={() => setViewingItem(item)}
+                            title="View details"
+                          />
                           {canEdit && onEditItem && (
                             <ActionEditIcon
                               onClick={() => onEditItem(item)}
@@ -328,6 +346,196 @@ export default function AccessoriesList({
           </>
         )}
       </div>
+
+      {viewingItem ? (
+        <AccessoryViewModal
+          item={viewingItem}
+          showEquipmentNo={showEquipmentNo}
+          onClose={() => setViewingItem(null)}
+          onEdit={
+            canEdit && onEditItem
+              ? () => {
+                  const row = viewingItem;
+                  setViewingItem(null);
+                  onEditItem(row);
+                }
+              : null
+          }
+        />
+      ) : null}
     </div>
   );
+}
+
+function DetailRow({ label, value, full }) {
+  const display =
+    value == null || value === "" ? (
+      <span className="text-white/40">—</span>
+    ) : (
+      String(value)
+    );
+  return (
+    <div className={full ? "sm:col-span-2" : ""}>
+      <p className="text-[11px] uppercase tracking-wider text-white/50">{label}</p>
+      <p className="mt-0.5 break-words text-sm text-white/90">{display}</p>
+    </div>
+  );
+}
+
+function AccessoryViewModal({ item, showEquipmentNo, onClose, onEdit }) {
+  /* Portal target: avoids ancestor `backdrop-filter` (the inventory card uses `backdrop-blur-[2px]`)
+   * which would otherwise become the containing block for this `position: fixed` overlay,
+   * trapping it inside the card instead of the viewport. */
+  const [portalTarget, setPortalTarget] = useState(null);
+
+  useEffect(() => {
+    setPortalTarget(typeof document !== "undefined" ? document.body : null);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  if (!portalTarget) return null;
+
+  const title = item.equipmentName || item.equipmentNo || "Accessory";
+
+  const overlay = (
+    <div
+      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 sm:p-8 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Accessory details"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative my-4 w-full max-w-3xl rounded-2xl border border-white/15 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-sky-300">
+              Accessory
+            </p>
+            <h2 className="text-lg font-semibold text-white truncate">{title}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {onEdit ? (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20"
+              >
+                Edit
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              title="Close"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/5 text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[75vh] overflow-y-auto px-6 py-5 text-sm text-white/90 styled-scrollbar">
+          <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
+            <h3 className="mb-3 border-b border-white/10 pb-2 text-sm font-semibold uppercase tracking-wider text-sky-300">
+              Details
+            </h3>
+            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {showEquipmentNo ? (
+                <DetailRow label="Equipment No" value={item.equipmentNo} />
+              ) : null}
+              <DetailRow label="Equipment Name" value={item.equipmentName} />
+              <DetailRow label="Category" value={item.category} />
+              <DetailRow label="Status" value={item.status} />
+              <DetailRow label="Placed In" value={item.placedIn} />
+              <DetailRow label="Purchase Date" value={formatDetailDate(item.purchaseDate)} />
+              <DetailRow label="Specification" value={item.specification} full />
+              <DetailRow label="Remarks" value={item.remarks} full />
+              {item.category === "OCCASIONAL" ? (
+                <>
+                  <DetailRow label="Quantity" value={item.quantity != null ? String(item.quantity) : ""} />
+                  <DetailRow
+                    label="Track test schedule"
+                    value={item.occasionalTrackTestSchedule ? "Yes" : "No"}
+                  />
+                  <DetailRow
+                    label="Occasional test date"
+                    value={formatDetailDate(item.occasionalTestDate)}
+                  />
+                  <DetailRow
+                    label="Next due date"
+                    value={formatDetailDate(item.occasionalNextDueDate)}
+                  />
+                </>
+              ) : null}
+              <DetailRow label="Put in use" value={item.putInUse ? "Yes" : "No"} />
+              <DetailRow label="Put in use date" value={formatDetailDate(item.putInUseDate)} />
+            </div>
+          </div>
+
+          <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
+            <h3 className="mb-3 border-b border-white/10 pb-2 text-sm font-semibold uppercase tracking-wider text-sky-300">
+              Certificates
+            </h3>
+            {item.manufacturingCertificate?.fileUrl || item.testCertificate?.fileUrl ? (
+              <div className="flex flex-wrap gap-2">
+                <CertLink
+                  accessoryId={item._id}
+                  type="manufacturing"
+                  cert={item.manufacturingCertificate}
+                  label="Mfg"
+                />
+                <CertLink
+                  accessoryId={item._id}
+                  type="test"
+                  cert={item.testCertificate}
+                  label="Test"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-white/40">No certificates uploaded.</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <h3 className="mb-3 border-b border-white/10 pb-2 text-sm font-semibold uppercase tracking-wider text-sky-300">
+              Record
+            </h3>
+            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <DetailRow label="Created" value={formatDetailDate(item.createdAt)} />
+              <DetailRow label="Last updated" value={formatDetailDate(item.updatedAt)} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(overlay, portalTarget);
 }
