@@ -1,9 +1,25 @@
 "use client";
 
 import { useQhseSidebar } from "../../../QhseSidebarContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useQhseRole } from "@/hooks/useQhseRole";
+
+// Limit per-file size to keep the upload responsive. Matches the inline
+// guidance shown beneath the picker.
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function formatBytes(bytes) {
+  if (typeof bytes !== "number" || Number.isNaN(bytes)) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function isImageName(name) {
+  const ext = (name?.split(".").pop() || "").toLowerCase();
+  return ["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext);
+}
 
 export default function DefectPlanPage() {
   const { contentClassName } = useQhseSidebar();
@@ -21,6 +37,7 @@ export default function DefectPlanPage() {
   const [error, setError] = useState(null);
   const [locations, setLocations] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetch("/api/master/locations/list")
@@ -35,6 +52,44 @@ export default function DefectPlanPage() {
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleFilePick = (event) => {
+    const incoming = Array.from(event.target.files || []);
+    // Reset the underlying input so the user can re-pick the same file later
+    // after removing it from the selection.
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!incoming.length) return;
+
+    setError(null);
+    setSelectedFiles((prev) => {
+      // Append-style picker — clicking "Choose files" again grows the list
+      // instead of replacing it, so users aren't forced to select everything
+      // in a single picker dialog.
+      const merged = [...prev];
+      const seen = new Set(prev.map((f) => `${f.name}|${f.size}`));
+      let rejectedTooLarge = 0;
+      for (const file of incoming) {
+        if (file.size > MAX_FILE_BYTES) {
+          rejectedTooLarge += 1;
+          continue;
+        }
+        const key = `${file.name}|${file.size}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(file);
+      }
+      if (rejectedTooLarge > 0) {
+        setError(
+          `${rejectedTooLarge} file${rejectedTooLarge === 1 ? "" : "s"} skipped (over 10 MB limit).`
+        );
+      }
+      return merged;
+    });
+  };
+
+  const handleRemoveSelectedFile = (index) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -74,8 +129,8 @@ export default function DefectPlanPage() {
       setMessage("Equipment defect created successfully with status OPEN!");
       setError(null);
       setSelectedFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
 
-      // Reset form
       setForm({
         equipmentDefect: "",
         base: "",
@@ -221,26 +276,93 @@ export default function DefectPlanPage() {
                 </div>
               </div>
 
-              {/* Photos / Files */}
+              {/* Photos / Files — supports multiple uploads */}
               <div>
-                <label
-                  htmlFor="files"
-                  className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5"
-                >
-                  Photos / Files (optional)
-                </label>
+                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
+                  <label
+                    htmlFor="files"
+                    className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100"
+                  >
+                    Photos / Files (optional)
+                  </label>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                    Multiple files allowed &middot; max 10 MB each
+                  </span>
+                </div>
+
                 <input
                   id="files"
+                  ref={fileInputRef}
                   type="file"
                   multiple
                   accept="image/*,.pdf,.doc,.docx"
                   className="w-full rounded-xl bg-slate-900/40 border border-white/15 px-3 py-2 text-sm text-white file:mr-3 file:py-1.5 file:rounded-full file:border-0 file:bg-sky-500/20 file:text-sky-200 file:text-xs"
-                  onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                  onChange={handleFilePick}
                 />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Tip: hold Ctrl / Cmd (or Shift) while picking to select multiple
+                  files at once. You can also click &ldquo;Choose files&rdquo;
+                  again to add more &mdash; they&apos;ll be appended to the list
+                  below.
+                </p>
+
                 {selectedFiles.length > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    {selectedFiles.length} file(s) selected
-                  </p>
+                  <div className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/5 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+                        Ready to upload ({selectedFiles.length})
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFiles([])}
+                        className="text-[11px] text-slate-300 hover:text-white"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <ul className="flex flex-wrap gap-2">
+                      {selectedFiles.map((file, idx) => (
+                        <li
+                          key={`${file.name}-${file.size}-${idx}`}
+                          className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white"
+                        >
+                          <span aria-hidden className="text-[10px]">
+                            {isImageName(file.name) ? "🖼" : "📎"}
+                          </span>
+                          <span
+                            className="max-w-[18ch] truncate"
+                            title={file.name}
+                          >
+                            {file.name}
+                          </span>
+                          <span className="text-[10px] text-slate-300">
+                            {formatBytes(file.size)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSelectedFile(idx)}
+                            className="ml-1 rounded-full p-0.5 text-slate-200 hover:bg-white/20 hover:text-white"
+                            title="Remove from upload list"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
 

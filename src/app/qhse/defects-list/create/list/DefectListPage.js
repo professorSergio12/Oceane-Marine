@@ -416,12 +416,12 @@ export default function DefectListPage() {
                   onClick={handleBulkDownloadPdf}
                   disabled={bulkDownloading}
                   className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50 sm:px-3 sm:text-xs"
-                  title="Download all records as a single PDF"
+                  title="Download overall defects as a single PDF"
                 >
                   <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
                   </svg>
-                  {bulkDownloading ? "Generating..." : "Download All PDF"}
+                  {bulkDownloading ? "Generating..." : "Download overall defects"}
                 </button>
               </div>
             </>
@@ -456,7 +456,6 @@ export default function DefectListPage() {
                       <th className="py-2 pr-4">Target Date</th>
                       <th className="py-2 pr-4">Status</th>
                       <th className="py-2 pr-4">Completion Date</th>
-                      <th className="py-2 pr-4">Photos / Files</th>
                       <th className="py-2 pr-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -491,23 +490,6 @@ export default function DefectListPage() {
                         </td>
                         <td className="py-2 pr-4">
                           {formatDate(defect.completionDate)}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {defect.attachments?.length > 0 ? (
-                            <div className="flex flex-wrap items-center gap-1">
-                              {defect.attachments.map((att, idx) => (
-                                <DownloadIconButton
-                                  key={idx}
-                                  onClick={() => handleDownload(defect._id, idx, att.originalName)}
-                                  disabled={downloading === defect._id}
-                                  loading={downloading === defect._id}
-                                  title="Download attached file"
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-slate-500 text-xs">—</span>
-                          )}
                         </td>
                         <td className="whitespace-nowrap py-2 pr-3 text-right sm:pr-4">
                           <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">

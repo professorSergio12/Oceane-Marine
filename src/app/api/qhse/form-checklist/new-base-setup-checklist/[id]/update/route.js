@@ -12,9 +12,13 @@ function getNextVersion(latestVersion) {
 }
 
 export async function POST(req) {
-  await connectDB();
-
+  // NOTE: Everything (including `connectDB`) runs inside one try/catch so we
+  // ALWAYS return JSON. Throwing above the try block causes Next.js to render
+  // an HTML error page, which then surfaces on the client as
+  // "Unexpected token '<', '<html><b'... is not valid JSON".
   try {
+    await connectDB();
+
     const formData = await req.formData();
 
     const file = formData.get("file");
@@ -23,23 +27,43 @@ export async function POST(req) {
     const uploadedByUserId = formData.get("uploadedByUserId");
     const dateInput = formData.get("date");
 
-    if (!file || !baseName) {
+    if (!file || typeof file === "string") {
       return NextResponse.json(
-        { error: "File and baseName are required" },
+        { success: false, error: "Please attach a .docx file." },
         { status: 400 }
       );
     }
 
-    if (!file.name.endsWith(".docx")) {
+    if (!baseName || typeof baseName !== "string" || !baseName.trim()) {
       return NextResponse.json(
-        { error: "Only .docx files are allowed" },
+        { success: false, error: "Base Name is required." },
         { status: 400 }
+      );
+    }
+
+    const trimmedBaseName = baseName.trim();
+
+    if (!file.name || !file.name.toLowerCase().endsWith(".docx")) {
+      return NextResponse.json(
+        { success: false, error: "Only Word (.docx) files are allowed." },
+        { status: 400 }
+      );
+    }
+
+    // 25 MB hard limit (mirrors the client-side check).
+    const MAX_BYTES = 25 * 1024 * 1024;
+    if (typeof file.size === "number" && file.size > MAX_BYTES) {
+      return NextResponse.json(
+        { success: false, error: "File exceeds the 25 MB limit." },
+        { status: 413 }
       );
     }
 
     const latest = await NewBaseSetupChecklist.findOne({
-      baseName,
-    }).sort({ uploadedAt: -1 });
+      baseName: trimmedBaseName,
+    })
+      .sort({ uploadedAt: -1 })
+      .lean();
 
     const nextVersion = getNextVersion(latest?.version);
 
@@ -53,16 +77,21 @@ export async function POST(req) {
 
     const filePath = await saveQhseFile({
       formCode: "QAF-OFD-051",
-      location: baseName,
+      location: trimmedBaseName,
       date: recordDate,
-      title: baseName,
+      title: trimmedBaseName,
       fileType: "documents",
       fileName: file.name,
       buffer,
     });
 
+    const userIdValue =
+      typeof uploadedByUserId === "string" && uploadedByUserId.trim()
+        ? uploadedByUserId.trim()
+        : null;
+
     const record = await NewBaseSetupChecklist.create({
-      baseName,
+      baseName: trimmedBaseName,
       filePath,
       version: nextVersion,
       // Mirror the file version into the record-level revision so the audit
@@ -70,21 +99,40 @@ export async function POST(req) {
       revNo: nextVersion,
       date: recordDate,
       uploadedBy: {
-        userId: uploadedByUserId || null,
-        name: uploadedByName || null,
+        userId: userIdValue,
+        name:
+          typeof uploadedByName === "string" && uploadedByName.trim()
+            ? uploadedByName.trim()
+            : null,
       },
     });
 
-    void notifyEdit("QHSE", "form-checklist · new-base-setup-checklist · update", record._id);
+    // Fire-and-forget notification — never let it crash the request.
+    try {
+      void notifyEdit(
+        "QHSE",
+        "form-checklist · new-base-setup-checklist · update",
+        record._id
+      );
+    } catch (notifyError) {
+      console.error(
+        "New Base Setup Checklist – notifyEdit failed:",
+        notifyError
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: "New Base Setup Checklist uploaded successfully",
+      message: "New Base Setup Checklist updated successfully",
       data: record,
     });
   } catch (error) {
-    console.error("New Base Setup Upload Error:", error);
+    console.error("New Base Setup Checklist – update error:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      {
+        success: false,
+        error: error?.message || "Failed to update checklist.",
+      },
       { status: 500 }
     );
   }

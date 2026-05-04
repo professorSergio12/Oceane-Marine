@@ -177,10 +177,31 @@ export default function NewBaseSetupChecklistFormPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      // The server can occasionally return an HTML error page (e.g. Next.js
+      // dev overlay or a proxy timeout). Read it as text first and try JSON
+      // ourselves so the user sees a clean message instead of the raw
+      // "Unexpected token '<'..." JSON-parse error.
+      const responseText = await res.text();
+      let data = null;
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        data = null;
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to upload file");
+        const message =
+          (data && (data.error || data.message)) ||
+          (responseText && responseText.length < 300
+            ? responseText
+            : `Upload failed (HTTP ${res.status}). Please try again.`);
+        throw new Error(message);
+      }
+
+      if (!data) {
+        throw new Error(
+          "Upload finished but the server response was empty. Please refresh the list."
+        );
       }
 
       setSuccess(

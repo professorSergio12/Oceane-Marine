@@ -4,10 +4,26 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 import { useQhseRole } from "@/hooks/useQhseRole";
 
 import { useQhseSidebar } from "../../QhseSidebarContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../components/TemplateDownloadLink";
 import { useSearchParams } from "next/navigation";
+
+// Limit per-file size to keep the upload responsive. Matches the inline
+// guidance shown beneath the picker.
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function formatBytes(bytes) {
+  if (typeof bytes !== "number" || Number.isNaN(bytes)) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function isImageName(name) {
+  const ext = (name?.split(".").pop() || "").toLowerCase();
+  return ["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext);
+}
 
 export default function DefectCreatePage() {
   const { setPageLoading } = useQhseLoading();
@@ -31,8 +47,10 @@ export default function DefectCreatePage() {
   const [locations, setLocations] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [existingAttachments, setExistingAttachments] = useState([]);
+  const [removingAttachmentIdx, setRemovingAttachmentIdx] = useState(null);
   const [displayFormCode, setDisplayFormCode] = useState(null);
   const [displaySerialNumber, setDisplaySerialNumber] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetch("/api/master/locations/list")
@@ -77,6 +95,66 @@ export default function DefectCreatePage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleFilePick = (event) => {
+    const incoming = Array.from(event.target.files || []);
+    // Reset the underlying input so the user can re-pick the same file later
+    // after removing it from the selection.
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!incoming.length) return;
+
+    setError(null);
+    setSelectedFiles((prev) => {
+      // Keep an append-style picker so users can build the list across
+      // multiple "Choose files" clicks instead of being forced to select
+      // everything at once.
+      const merged = [...prev];
+      const seen = new Set(prev.map((f) => `${f.name}|${f.size}`));
+      let rejectedTooLarge = 0;
+      for (const file of incoming) {
+        if (file.size > MAX_FILE_BYTES) {
+          rejectedTooLarge += 1;
+          continue;
+        }
+        const key = `${file.name}|${file.size}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(file);
+      }
+      if (rejectedTooLarge > 0) {
+        setError(
+          `${rejectedTooLarge} file${rejectedTooLarge === 1 ? "" : "s"} skipped (over 10 MB limit).`
+        );
+      }
+      return merged;
+    });
+  };
+
+  const handleRemoveSelectedFile = (index) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingAttachment = async (index) => {
+    if (!editId) return;
+    if (!confirm("Remove this attachment? This cannot be undone.")) return;
+    setRemovingAttachmentIdx(index);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/qhse/defects-list/${editId}/attachments/${index}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || "Failed to remove attachment");
+      }
+      setExistingAttachments((prev) => prev.filter((_, i) => i !== index));
+    } catch (err) {
+      setError(err.message || "Failed to remove attachment");
+    } finally {
+      setRemovingAttachmentIdx(null);
+    }
+  };
+
   const uploadFiles = async (defectId) => {
     if (!selectedFiles.length) return;
     const fd = new FormData();
@@ -89,6 +167,8 @@ export default function DefectCreatePage() {
       const data = await res.json();
       throw new Error(data.error || "Failed to upload files");
     }
+    const data = await res.json().catch(() => ({}));
+    return data?.data;
   };
 
   const handleSubmit = async (e) => {
@@ -125,8 +205,9 @@ export default function DefectCreatePage() {
       }
 
       const defectId = data.data?._id || data.data?.id || editId;
+      let uploadedRecord = null;
       if (defectId && selectedFiles.length > 0) {
-        await uploadFiles(defectId);
+        uploadedRecord = await uploadFiles(defectId);
       }
 
       if (data.data?.formCode) setDisplayFormCode(data.data.formCode);
@@ -134,7 +215,16 @@ export default function DefectCreatePage() {
       setMessage(editId ? "Defect updated successfully!" : "Equipment defect created successfully with status OPEN!");
       setError(null);
       setSelectedFiles([]);
-      if (editId) setExistingAttachments((prev) => prev || []);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      // Reflect freshly uploaded attachments in the edit form so the user can
+      // see exactly what's now attached without needing a page refresh.
+      if (editId) {
+        const latestAttachments =
+          uploadedRecord?.attachments || data?.data?.attachments;
+        if (Array.isArray(latestAttachments)) {
+          setExistingAttachments(latestAttachments);
+        }
+      }
 
       if (!editId) {
         setForm({
@@ -206,19 +296,43 @@ export default function DefectCreatePage() {
             </div>
             )}
 
-            {(displayFormCode || displaySerialNumber) && (
-              <div className="flex flex-wrap items-center gap-6 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm">
-                {displayFormCode && (
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-xs">Form Code</span>
-                    <p className="font-mono font-semibold text-sky-300">{displayFormCode}</p>
-                  </div>
-                )}
-                {displaySerialNumber && (
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-xs">Serial</span>
-                    <p className="font-mono font-semibold text-slate-200">{displaySerialNumber}</p>
-                  </div>
+            {(displayFormCode || displaySerialNumber || editId) && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center gap-6">
+                  {displayFormCode && (
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-xs">Form Code</span>
+                      <p className="font-mono font-semibold text-sky-300">{displayFormCode}</p>
+                    </div>
+                  )}
+                  {displaySerialNumber && (
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-xs">Serial</span>
+                      <p className="font-mono font-semibold text-slate-200">{displaySerialNumber}</p>
+                    </div>
+                  )}
+                </div>
+                {editId && (
+                  <Link
+                    href="/qhse/defects-list/create/list"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-slate-200 hover:border-rose-400/60 hover:bg-rose-500/15 hover:text-rose-200 transition"
+                    title="Cancel editing"
+                    aria-label="Cancel editing and return to defect list"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </Link>
                 )}
               </div>
             )}
@@ -293,31 +407,150 @@ export default function DefectCreatePage() {
                 </div>
               </div>
 
-              {/* Photos / Files */}
+              {/* Photos / Files — supports multiple uploads */}
               <div>
-                <label
-                  htmlFor="files"
-                  className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5"
-                >
-                  Photos / Files (optional)
-                </label>
+                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
+                  <label
+                    htmlFor="files"
+                    className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100"
+                  >
+                    Photos / Files (optional)
+                  </label>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                    Multiple files allowed · max 10 MB each
+                  </span>
+                </div>
+
                 <input
                   id="files"
+                  ref={fileInputRef}
                   type="file"
                   multiple
                   accept="image/*,.pdf,.doc,.docx"
                   className="w-full rounded-xl bg-slate-900/40 border border-white/15 px-3 py-2 text-sm text-white file:mr-3 file:py-1.5 file:rounded-full file:border-0 file:bg-sky-500/20 file:text-sky-200 file:text-xs"
-                  onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                  onChange={handleFilePick}
                 />
-                {selectedFiles.length > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    {selectedFiles.length} file(s) selected
-                  </p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Tip: hold Ctrl / Cmd (or Shift) while picking to select multiple
+                  files at once. You can also click &ldquo;Choose files&rdquo; again
+                  to add more &mdash; they&apos;ll be appended to the list below.
+                </p>
+
+                {/* Already-saved attachments (edit mode) */}
+                {editId && existingAttachments.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-slate-900/30 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+                        Already attached ({existingAttachments.length})
+                      </p>
+                    </div>
+                    <ul className="flex flex-wrap gap-2">
+                      {existingAttachments.map((att, idx) => (
+                        <li
+                          key={`${att.path || att.originalName}-${idx}`}
+                          className="inline-flex max-w-full items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-xs text-sky-100"
+                        >
+                          <span aria-hidden className="text-[10px]">
+                            {isImageName(att.originalName) ? "🖼" : "📎"}
+                          </span>
+                          <span
+                            className="max-w-[18ch] truncate"
+                            title={att.originalName}
+                          >
+                            {att.originalName || `attachment-${idx + 1}`}
+                          </span>
+                          {canSubmit && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveExistingAttachment(idx)}
+                              disabled={removingAttachmentIdx === idx}
+                              className="ml-1 rounded-full p-0.5 text-sky-200 hover:bg-sky-500/30 hover:text-white disabled:opacity-50"
+                              title="Remove this attachment"
+                              aria-label={`Remove ${att.originalName || `attachment ${idx + 1}`}`}
+                            >
+                              {removingAttachmentIdx === idx ? (
+                                <span className="px-1 text-[10px]">…</span>
+                              ) : (
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-                {editId && existingAttachments?.length > 0 && (
-                  <p className="text-xs text-sky-300 mt-1">
-                    {existingAttachments.length} file(s) already attached. Add more above.
-                  </p>
+
+                {/* Files staged for the next upload */}
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/5 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+                        Ready to upload ({selectedFiles.length})
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFiles([])}
+                        className="text-[11px] text-slate-300 hover:text-white"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <ul className="flex flex-wrap gap-2">
+                      {selectedFiles.map((file, idx) => (
+                        <li
+                          key={`${file.name}-${file.size}-${idx}`}
+                          className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white"
+                        >
+                          <span aria-hidden className="text-[10px]">
+                            {isImageName(file.name) ? "🖼" : "📎"}
+                          </span>
+                          <span
+                            className="max-w-[18ch] truncate"
+                            title={file.name}
+                          >
+                            {file.name}
+                          </span>
+                          <span className="text-[10px] text-slate-300">
+                            {formatBytes(file.size)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSelectedFile(idx)}
+                            className="ml-1 rounded-full p-0.5 text-slate-200 hover:bg-white/20 hover:text-white"
+                            title="Remove from upload list"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
 
