@@ -59,6 +59,19 @@ export default function TargetKpiFormPage() {
   const [formCode, setFormCode] = useState("HSE-001A");
   const [serialNumber, setSerialNumber] = useState(null);
 
+  /* ─── Tracker auto-load state ───
+   * The Target KPI form is a single live "tracker" per year. On mount and on
+   * every year change we fetch the year's existing record and pre-populate
+   * the rows so the user can append to it instead of creating a new sheet. */
+  const [loadingTracker, setLoadingTracker] = useState(false);
+  /** True once we've successfully loaded a tracker (existing record) for the
+   * current year — drives the banner copy and the save button label. */
+  const [trackerExists, setTrackerExists] = useState(false);
+  /** How many non-empty rows were already in the tracker when we loaded it.
+   * Counted as rows that have at least a title or any non-zero quarter
+   * value — purely cosmetic for the banner. */
+  const [trackerRowCount, setTrackerRowCount] = useState(0);
+
   /* ─── Feedback rating auto-populate state ─── */
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackDetails, setFeedbackDetails] = useState(null);
@@ -81,6 +94,72 @@ export default function TargetKpiFormPage() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  // Helper used by the tracker loader and the post-save refresh. Counts rows
+  // that look "non-empty" so the banner can show e.g. "7 saved entries".
+  const countMeaningfulRows = (rs) =>
+    rs.filter(
+      (r) =>
+        (r.title && String(r.title).trim() !== "") ||
+        Number(r.targetForYear) ||
+        Number(r.quarter1) ||
+        Number(r.quarter2) ||
+        Number(r.quarter3) ||
+        Number(r.quarter4) ||
+        Number(r.targetsAchieved)
+    ).length;
+
+  // Tracker auto-load: whenever the selected year changes we look up that
+  // year's live KPI record. If it exists, hydrate the table with its rows so
+  // every previously-saved entry shows up alongside any new ones the user
+  // adds. If no tracker exists yet, fall back to the 13 default KPI titles.
+  useEffect(() => {
+    let cancelled = false;
+    const loadTracker = async () => {
+      setLoadingTracker(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/qhse/kpi/target/by-year/${year}`);
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok || data.success === false) {
+          throw new Error(data?.error || "Failed to load KPI tracker");
+        }
+
+        if (data.data && Array.isArray(data.data.rows) && data.data.rows.length > 0) {
+          const loadedRows = data.data.rows.map((r) => ({
+            title: r.title || "",
+            targetForYear: Number(r.targetForYear) || 0,
+            quarter1: Number(r.quarter1) || 0,
+            quarter2: Number(r.quarter2) || 0,
+            quarter3: Number(r.quarter3) || 0,
+            quarter4: Number(r.quarter4) || 0,
+            targetsAchieved: Number(r.targetsAchieved) || 0,
+          }));
+          setRows(loadedRows);
+          setTrackerExists(true);
+          setTrackerRowCount(countMeaningfulRows(loadedRows));
+          if (data.data.formCode) setFormCode(data.data.formCode);
+          if (data.data.serialNumber) setSerialNumber(data.data.serialNumber);
+        } else {
+          // No tracker for this year yet — start with the default KPI titles
+          // so the user has a sensible starting point.
+          setRows(DEFAULT_KPI_TITLES.map((t) => emptyRow(t)));
+          setTrackerExists(false);
+          setTrackerRowCount(0);
+          setSerialNumber(null);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Failed to load KPI tracker");
+      } finally {
+        if (!cancelled) setLoadingTracker(false);
+      }
+    };
+    loadTracker();
+    return () => {
+      cancelled = true;
+    };
+  }, [year]);
 
   /**
    * Auto-fetch OPS-OFD-020 quarterly ratings for the selected year
@@ -250,10 +329,27 @@ export default function TargetKpiFormPage() {
       if (!res.ok) throw new Error(data.error || "Failed to save");
       const savedCode = data.data?.formCode || null;
       const savedSerial = data.data?.serialNumber || null;
+      const mode = data.mode; // "created" | "updated"
       if (savedCode) setFormCode(savedCode);
       if (savedSerial) setSerialNumber(savedSerial);
       const displayCode = savedCode || formCode || "HSE-001A";
-      setMessage("Target KPI saved successfully. Form code: " + displayCode);
+
+      // Refresh the local snapshot so the banner and counters reflect the
+      // freshly-persisted state.
+      if (Array.isArray(data.data?.rows)) {
+        setTrackerRowCount(countMeaningfulRows(data.data.rows));
+      }
+      setTrackerExists(true);
+
+      if (mode === "updated") {
+        setMessage(
+          `Target KPI tracker for ${year} updated. New entries are now part of the main tracker (Serial: ${savedSerial || "—"}).`
+        );
+      } else {
+        setMessage(
+          `Target KPI tracker for ${year} created. Form code: ${displayCode}${savedSerial ? ` • Serial: ${savedSerial}` : ""}.`
+        );
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -382,6 +478,30 @@ export default function TargetKpiFormPage() {
             You do not have permission to create records. Form is view-only.
           </div>
         )}
+
+        {/* Tracker mode banner — explains that this form is the live master
+            sheet for the chosen year and that any new entries are appended to
+            the existing ones rather than spawning a separate record. */}
+        <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+          {loadingTracker ? (
+            <span className="text-sky-200">Loading {year} KPI tracker…</span>
+          ) : trackerExists ? (
+            <>
+              <span className="font-semibold">Tracker for {year}.</span>{" "}
+              Showing <span className="font-semibold">{trackerRowCount}</span>{" "}
+              previously saved {trackerRowCount === 1 ? "entry" : "entries"}.
+              Add new rows below — saving will append them to the same Target
+              KPI tracker, not create a new record.
+            </>
+          ) : (
+            <>
+              <span className="font-semibold">Tracker for {year}.</span>{" "}
+              No KPI tracker exists for {year} yet. The 13 default KPI titles
+              are pre-loaded so you can fill them in — saving will create the
+              tracker and every future entry for {year} will be appended to it.
+            </>
+          )}
+        </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -527,10 +647,14 @@ export default function TargetKpiFormPage() {
               </button>
               <button
                 type="submit"
-                disabled={!canSubmit || submitting}
+                disabled={!canSubmit || submitting || loadingTracker}
                 className="inline-flex items-center rounded-full bg-orange-500 hover:bg-orange-400 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {submitting ? "Saving…" : "Save Target KPI"}
+                {submitting
+                  ? "Saving…"
+                  : trackerExists
+                    ? "Save to Tracker"
+                    : "Start Tracker"}
               </button>
             </div>
             </fieldset>

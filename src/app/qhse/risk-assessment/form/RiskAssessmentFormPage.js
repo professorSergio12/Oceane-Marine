@@ -3,10 +3,19 @@
 import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 
 import { useQhseSidebar } from "../../QhseSidebarContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQhseRole } from "@/hooks/useQhseRole";
+
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB — matches dropzone hint
+
+function formatBytes(bytes) {
+  if (typeof bytes !== "number" || Number.isNaN(bytes)) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
 
 export default function RiskAssessmentFormPage() {
   const { setPageLoading } = useQhseLoading();
@@ -25,6 +34,41 @@ export default function RiskAssessmentFormPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
+
+  /**
+   * Defensive file-pick handler.
+   *
+   * The previous implementation called `setFile(e.target.files?.[0] || null)`,
+   * which meant any time the change event fired without a file in the picker
+   * (cancel pressed, picker re-opened, browser quirk on re-click of the label,
+   * etc.) the previously attached document was wiped. We now only overwrite
+   * the file when the user actually picks a new one, validate the size, and
+   * always reset the input's value so the same filename can be re-picked
+   * after a manual remove.
+   */
+  const handleFilePick = (event) => {
+    const picked = event.target.files?.[0];
+    // Reset the underlying input so re-picking the same file later still
+    // fires onChange.
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!picked) return; // user cancelled — keep the existing file as-is
+    if (picked.size > MAX_FILE_BYTES) {
+      setError(`File "${picked.name}" exceeds the 25 MB limit.`);
+      return;
+    }
+    setError("");
+    setFile(picked);
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const triggerFilePicker = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
 
   useEffect(() => {
     fetch("/api/master/locations/list")
@@ -77,6 +121,7 @@ export default function RiskAssessmentFormPage() {
       setAssessmentDate(new Date().toISOString().slice(0, 10));
       setVersion("");
       setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setTimeout(() => router.push("/qhse/risk-assessment/list"), 800);
     } catch (err) {
       setError(err.message);
@@ -199,17 +244,24 @@ export default function RiskAssessmentFormPage() {
           <div className="space-y-2">
             <label className="text-sm text-slate-200">Upload File</label>
             <div className="space-y-3">
-              <div className="relative">
-                <input
-                  id="risk-file"
-                  type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                />
-                <label
-                  htmlFor="risk-file"
-                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-slate-900/20 cursor-pointer hover:bg-slate-900/30 hover:border-sky-400/40 transition group"
+              {/* Hidden input — triggered programmatically by the dropzone or
+                  the "Replace file" button so the label/click area can't be
+                  hit accidentally once a file is already attached. */}
+              <input
+                id="risk-file"
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFilePick}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+              />
+
+              {!file ? (
+                // Empty state — show the big dashed dropzone.
+                <button
+                  type="button"
+                  onClick={triggerFilePicker}
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl bg-slate-900/20 hover:bg-slate-900/30 hover:border-sky-400/40 transition group cursor-pointer"
                 >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <svg
@@ -226,17 +278,64 @@ export default function RiskAssessmentFormPage() {
                       />
                     </svg>
                     <p className="mb-2 text-sm text-slate-300">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
+                      <span className="font-semibold">Click to upload</span>
                     </p>
                     <p className="text-xs text-slate-400">
                       PDF, Excel (.xlsx, .xls), CSV, Word, Images (MAX. 25MB)
                     </p>
                   </div>
-                </label>
-              </div>
-              {file && (
-                <div className="text-xs text-emerald-200 bg-emerald-900/30 border border-emerald-500/30 rounded-lg px-3 py-2">
-                  Selected: {file.name}
+                </button>
+              ) : (
+                // File is already attached — render a compact card with
+                // explicit Replace / Remove buttons. The dropzone is hidden
+                // so re-clicking it can't accidentally wipe the selection.
+                <div className="flex flex-col gap-3 rounded-xl border border-emerald-500/30 bg-emerald-950/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-300">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <p
+                        className="truncate text-sm font-semibold text-emerald-100"
+                        title={file.name}
+                      >
+                        {file.name}
+                      </p>
+                      <p className="text-[11px] text-emerald-300/80">
+                        {formatBytes(file.size)} · attached, ready to save
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-2 self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={triggerFilePicker}
+                      className="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition"
+                      title="Pick a different file"
+                    >
+                      Replace file
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/20 transition"
+                      title="Remove attached file"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

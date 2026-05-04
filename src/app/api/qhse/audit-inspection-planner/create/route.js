@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/config/connection";
 import AuditInspectionPlanner from "@/lib/mongodb/models/qhse-audit-inspection/AuditInspectionPlanner";
 import { getNextYearwiseSerial } from "@/lib/mongodb/models/YearwiseSerialCounter";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,16 @@ const ALLOWED_EXT = new Set([
 
 const MAX_SIZE = 25 * 1024 * 1024;
 
+/**
+ * POST /api/qhse/audit-inspection-planner/create
+ *
+ * Tracker-style upsert: each year has a single "main" planner that grows over
+ * time. If a planner already exists for the requested year, this endpoint
+ * UPDATES that record (replacing categories with the merged set the form just
+ * sent — which already contains every previously-saved row plus any newly
+ * added rows). If no planner exists for the year yet, a brand new one is
+ * created with a fresh year-wise serial.
+ */
 export async function POST(req) {
   await connectDB();
 
@@ -34,6 +45,9 @@ export async function POST(req) {
     const yearNum = year != null && !Number.isNaN(Number(year)) ? Number(year) : undefined;
     const recordDate = issueDate ? new Date(issueDate) : new Date();
 
+    // Persist any newly attached files (keyed by row id). Rows without a new
+    // file in the multipart payload keep whatever fileUrl / fileName they
+    // already had on the client (the form re-submits the loaded row data).
     for (const cat of categories) {
       for (const row of cat.rows) {
         const file = formData.get(`file_${row.rowId}`);
@@ -72,6 +86,34 @@ export async function POST(req) {
       }
     }
 
+    // Look for an existing tracker for this year (most recently updated wins
+    // if legacy data left more than one). Archived planners are intentionally
+    // ignored so a fresh tracker can be started after archival.
+    const existing = yearNum != null
+      ? await AuditInspectionPlanner.findOne({
+          year: yearNum,
+          isArchived: { $ne: true },
+        }).sort({ updatedAt: -1, createdAt: -1 })
+      : null;
+
+    if (existing) {
+      // Update-in-place: the form already merges old rows + new rows in the UI
+      // before submitting, so we can replace the categories array verbatim.
+      existing.issueDate = issueDate;
+      existing.approvedBy = approvedBy;
+      existing.categories = categories;
+      // Bump rev/version on each tracker save so the audit trail reflects
+      // every appended batch of entries.
+      existing.version = getNextRevisionNumber(existing.version);
+      existing.revNo = getNextRevisionNumber(existing.revNo);
+      await existing.save();
+      return NextResponse.json(
+        { success: true, data: existing, mode: "updated" },
+        { status: 200 }
+      );
+    }
+
+    // No tracker yet for this year — create one with a fresh year-wise serial.
     const serialNumber = await getNextYearwiseSerial(
       "AUDIT_INSPECTION_PLANNER",
       yearNum
@@ -106,7 +148,10 @@ export async function POST(req) {
       }
     }
 
-    return NextResponse.json({ success: true, data: record }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: record, mode: "created" },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Create Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

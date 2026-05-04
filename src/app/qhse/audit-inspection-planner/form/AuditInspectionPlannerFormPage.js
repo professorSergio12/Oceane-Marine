@@ -53,6 +53,13 @@ export default function AuditInspectionPlannerFormPage() {
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(!!editId);
+  // True while we're fetching the existing tracker for the chosen year so the
+  // form can show old + new entries together. Only used in tracker mode (no
+  // explicit editId in the URL).
+  const [loadingTracker, setLoadingTracker] = useState(false);
+  // Existing rows count per category at the moment the tracker was loaded —
+  // used to render the small "previously saved" hint.
+  const [trackerSnapshotCount, setTrackerSnapshotCount] = useState(0);
   const [rowsByCategory, setRowsByCategory] = useState(() =>
     Object.fromEntries(defaultCategories.map((c) => [c.key, []]))
   );
@@ -85,6 +92,41 @@ export default function AuditInspectionPlannerFormPage() {
     fetchCode();
   }, []);
 
+  // Hydrates the row state + form meta from a planner document returned by the
+  // API. Used by both the edit-by-id loader and the tracker (load-by-year)
+  // flow so they stay consistent.
+  const hydrateFromPlanner = (p) => {
+    setFormMeta({
+      issueDate: p.issueDate
+        ? new Date(p.issueDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
+      approvedBy: p.approvedBy || "JS",
+    });
+    if (p.formCode) setFormCode(p.formCode);
+    if (p.serialNumber) setSerialNumber(p.serialNumber);
+    if (p.version) setVersion(p.version);
+    if (p.year != null) setYear(Number(p.year));
+    if (p.status) setStatus(p.status);
+    if (Array.isArray(p.categories) && p.categories.length > 0) {
+      const next = {};
+      let totalRows = 0;
+      defaultCategories.forEach((cat) => {
+        const found = p.categories.find((c) => c.key === cat.key);
+        const rows = (found?.rows || []).map((r) => ({
+          ...r,
+          id: r.rowId || r.id || crypto.randomUUID(),
+          rowId: r.rowId || r.id,
+        }));
+        next[cat.key] = rows;
+        totalRows += rows.length;
+      });
+      setRowsByCategory(next);
+      setTrackerSnapshotCount(totalRows);
+    } else {
+      setTrackerSnapshotCount(0);
+    }
+  };
+
   useEffect(() => {
     if (!editId) {
       setLoadingEdit(false);
@@ -97,28 +139,7 @@ export default function AuditInspectionPlannerFormPage() {
         const res = await fetch(`/api/qhse/audit-inspection-planner/${editId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load planner");
-        const p = data.data;
-        setFormMeta({
-          issueDate: p.issueDate ? new Date(p.issueDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-          approvedBy: p.approvedBy || "JS",
-        });
-        if (p.formCode) setFormCode(p.formCode);
-        if (p.serialNumber) setSerialNumber(p.serialNumber);
-        if (p.version) setVersion(p.version);
-        if (p.year != null) setYear(Number(p.year));
-        if (p.status) setStatus(p.status);
-        if (Array.isArray(p.categories) && p.categories.length > 0) {
-          const next = {};
-          defaultCategories.forEach((cat) => {
-            const found = p.categories.find((c) => c.key === cat.key);
-            next[cat.key] = (found?.rows || []).map((r) => ({
-              ...r,
-              id: r.rowId || r.id || crypto.randomUUID(),
-              rowId: r.rowId || r.id,
-            }));
-          });
-          setRowsByCategory(next);
-        }
+        hydrateFromPlanner(data.data);
       } catch (err) {
         setError(err.message || "Failed to load planner");
       } finally {
@@ -127,6 +148,51 @@ export default function AuditInspectionPlannerFormPage() {
     };
     loadPlanner();
   }, [editId]);
+
+  // Tracker mode: when the user opens the planner form without an explicit
+  // edit id, we treat it as the live "tracker sheet" for the chosen year.
+  // Switching the year reloads that year's tracker so old entries always
+  // appear together with whatever the user is about to add.
+  useEffect(() => {
+    if (editId) return; // edit-by-id flow owns the rows in that case
+    let cancelled = false;
+    const loadTracker = async () => {
+      setLoadingTracker(true);
+      setError("");
+      try {
+        const res = await fetch(
+          `/api/qhse/audit-inspection-planner/by-year/${year}`
+        );
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok || data.success === false) {
+          throw new Error(data?.error || "Failed to load tracker for year");
+        }
+        if (data.data) {
+          hydrateFromPlanner(data.data);
+        } else {
+          // No tracker for this year yet — start with empty rows so the user
+          // can add the first entries. Keep formCode/version from the code
+          // bootstrap effect.
+          setRowsByCategory(
+            Object.fromEntries(defaultCategories.map((c) => [c.key, []]))
+          );
+          setSerialNumber("");
+          setStatus("Draft");
+          setTrackerSnapshotCount(0);
+        }
+        setFilesByRowId({});
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Failed to load tracker");
+      } finally {
+        if (!cancelled) setLoadingTracker(false);
+      }
+    };
+    loadTracker();
+    return () => {
+      cancelled = true;
+    };
+  }, [year, editId]);
 
   const addRow = (catKey) => {
     const rowId = crypto.randomUUID();
@@ -249,18 +315,26 @@ export default function AuditInspectionPlannerFormPage() {
 
       const savedCode = data?.data?.formCode || "—";
       const savedSerial = data?.data?.serialNumber || "—";
+      const mode = data?.mode; // "created" | "updated" | undefined (legacy edit)
       setSuccess(
         editId
           ? "Planner updated successfully."
-          : savedSerial !== "—"
-            ? `Planner saved successfully. Form code: ${savedCode} • Serial: ${savedSerial}`
-            : `Planner saved successfully. Form code: ${savedCode}`
+          : mode === "updated"
+            ? `Tracker updated for ${year}. New entries are now part of the main tracker (Serial: ${savedSerial}).`
+            : savedSerial !== "—"
+              ? `Tracker started for ${year}. Form code: ${savedCode} • Serial: ${savedSerial}`
+              : `Tracker started for ${year}. Form code: ${savedCode}`
       );
       if (data?.data?.formCode) setFormCode(data.data.formCode);
       if (data?.data?.serialNumber) setSerialNumber(data.data.serialNumber);
       if (data?.data?.version) setVersion(data.data.version);
+      if (data?.data?.categories) {
+        // After saving, refresh the local snapshot count so the
+        // "previously saved" hint and row data reflect what the server now
+        // holds (including freshly persisted file URLs).
+        hydrateFromPlanner(data.data);
+      }
 
-      // Clear files after successful submission
       setFilesByRowId({});
 
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -343,6 +417,35 @@ export default function AuditInspectionPlannerFormPage() {
               }`}
             >
               {error || success}
+            </div>
+          )}
+
+          {/* Tracker mode banner — explains that this form is the live master
+              sheet for the chosen year and that any new entries are appended
+              to the existing ones rather than spawning a new record. */}
+          {!editId && (
+            <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+              {loadingTracker ? (
+                <span className="text-sky-200">Loading {year} tracker…</span>
+              ) : (
+                <>
+                  <span className="font-semibold">Tracker for {year}.</span>{" "}
+                  {trackerSnapshotCount > 0 ? (
+                    <>
+                      Showing <span className="font-semibold">{trackerSnapshotCount}</span>{" "}
+                      previously saved {trackerSnapshotCount === 1 ? "entry" : "entries"}.
+                      Add new rows below — saving will append them to the same
+                      tracker, not create a new record.
+                    </>
+                  ) : (
+                    <>
+                      No entries yet for {year}. Add the first rows below — the
+                      tracker will be created on save and every future entry for
+                      this year will be appended to it.
+                    </>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -489,10 +592,16 @@ export default function AuditInspectionPlannerFormPage() {
             </Link>
             <button
               type="submit"
-              disabled={!canSubmit || submitting}
+              disabled={!canSubmit || submitting || (!editId && loadingTracker)}
               className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? "Saving..." : "Save Planner"}
+              {submitting
+                ? "Saving..."
+                : editId
+                  ? "Update Planner"
+                  : trackerSnapshotCount > 0
+                    ? "Save to Tracker"
+                    : "Start Tracker"}
             </button>
           </div>
         </form>
