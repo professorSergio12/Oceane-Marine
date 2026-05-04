@@ -53,43 +53,52 @@ export default function BaseAuditFormPage() {
     fetchLocations();
   }, []);
 
-  // Fetch existing report data if editing
+  // Fetch existing report data if editing (single-record GET — avoids relying
+  // on the full list response shape / pagination and fixes flaky empty forms).
   useEffect(() => {
-    if (editId) {
-      const fetchReport = async () => {
-        setLoading(true);
-        setPageLoading(true);
-        try {
-          const res = await fetch(`/api/qhse/form-checklist/base-audit/list`);
-          const data = await res.json();
-          if (res.ok && data.data) {
-            const report = data.data.find((r) => String(r._id) === String(editId));
-            if (report) {
-              setExistingReport(report);
-              const yearFromSerial = report.serialNumber
-                ? Number(report.serialNumber.split("-")[0])
-                : currentYear;
-              setForm({
-                year: Number.isNaN(yearFromSerial) ? currentYear : yearFromSerial,
-                description: report.description || "",
-                uploadedBy: report.uploadedBy?.name || "",
-                locationId: report.location?.locationId ? String(report.location.locationId) : "",
-              });
-            } else {
-              setError("Report not found");
-            }
-          } else {
-            setError("Failed to load report data");
-          }
-        } catch (err) {
-          setError(err.message || "Failed to load report data");
-        } finally {
-          setLoading(false);
-          setPageLoading(false);
-        }
-      };
-      fetchReport();
+    if (!editId) {
+      return;
     }
+    const fetchReport = async () => {
+      setLoading(true);
+      setPageLoading(true);
+      setError("");
+      try {
+        const res = await fetch(`/api/qhse/form-checklist/base-audit/${editId}`);
+        const responseText = await res.text();
+        let payload = null;
+        try {
+          payload = responseText ? JSON.parse(responseText) : null;
+        } catch {
+          payload = null;
+        }
+        if (!res.ok || !payload?.success || !payload.data) {
+          throw new Error(
+            (payload && (payload.error || payload.message)) ||
+              `Failed to load report (HTTP ${res.status}).`
+          );
+        }
+        const report = payload.data;
+        setExistingReport(report);
+        const yearFromSerial = report.serialNumber
+          ? Number(String(report.serialNumber).split("-")[0])
+          : currentYear;
+        setForm({
+          year: Number.isNaN(yearFromSerial) ? currentYear : yearFromSerial,
+          description: report.description || "",
+          uploadedBy: report.uploadedBy?.name || "",
+          locationId: report.location?.locationId
+            ? String(report.location.locationId)
+            : "",
+        });
+      } catch (err) {
+        setError(err.message || "Failed to load report data");
+      } finally {
+        setLoading(false);
+        setPageLoading(false);
+      }
+    };
+    fetchReport();
   }, [editId]);
 
   const handleChange = (e) => {
@@ -101,17 +110,24 @@ export default function BaseAuditFormPage() {
   };
 
   const handleFileSelect = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      // Validate file size (max 25MB)
-      if (selectedFile.size > 25 * 1024 * 1024) {
-        setError("File size exceeds 25MB limit");
-        return;
-      }
-
-      setFile(selectedFile);
-      setError("");
+    const selectedFile = e.target.files?.[0];
+    // Reset the input so the same filename can be chosen again after Remove,
+    // and so cancelling the picker does not leave the input in a bad state.
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
+    // If the user re-opens the picker and cancels, some browsers still fire
+    // onChange with no file — do NOT clear an already-selected attachment.
+    if (!selectedFile) {
+      return;
+    }
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      setError("File size exceeds 25MB limit");
+      return;
+    }
+
+    setFile(selectedFile);
+    setError("");
   };
 
   const handleRemoveFile = () => {
@@ -238,13 +254,30 @@ export default function BaseAuditFormPage() {
         body: formData,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save record");
+      const responseText = await res.text();
+      let data = null;
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        data = null;
       }
 
-      const versionLabel = data.version ? ` Version: ${data.version}` : "";
+      if (!res.ok) {
+        throw new Error(
+          (data && (data.error || data.message)) ||
+            (responseText && responseText.length < 320
+              ? responseText
+              : `Save failed (HTTP ${res.status}). Please try again.`)
+        );
+      }
+
+      const versionLabel =
+        data.version != null && data.version !== ""
+          ? ` Version: ${data.version}`
+          : data.data?.version != null
+            ? ` Version: ${data.data.version}`
+            : "";
+
       setSuccess(
         editId
           ? `Report updated successfully!${versionLabel}`
@@ -265,13 +298,16 @@ export default function BaseAuditFormPage() {
         setExistingReport((prev) => ({ ...(prev || {}), ...data.data }));
       }
 
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // First-time create: move into edit mode for this id so the next save
+      // hits the update endpoint instead of creating duplicate records.
+      if (!editId && data.data?._id) {
+        router.replace(
+          `/qhse/forms-checklist/base-audit/form?edit=${data.data._id}`,
+          { scroll: false }
+        );
+      }
 
-      // Redirect to the list after a short pause so the user sees the
-      // confirmation banner.
-      setTimeout(() => {
-        router.push("/qhse/forms-checklist/base-audit/list");
-      }, 1500);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err.message);
       window.scrollTo({ top: 0, behavior: "smooth" });

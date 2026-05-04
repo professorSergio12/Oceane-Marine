@@ -7,26 +7,60 @@ import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
 
 export const runtime = "nodejs";
 
-export async function POST(req) {
-  await connectDB();
+const MAX_BYTES = 25 * 1024 * 1024;
 
+export async function POST(req) {
+  // Everything (including connectDB) stays inside try/catch so we always
+  // return JSON — never an HTML error page that breaks the client's JSON
+  // parser and looks like a failed upload with no explanation.
   try {
+    await connectDB();
+
     const formData = await req.formData();
 
     const file = formData.get("file");
     const yearRaw = formData.get("year");
     const description = formData.get("description");
     const uploadedByName = formData.get("uploadedBy");
-    const locationId = formData.get("locationId");
+    const locationIdRaw = formData.get("locationId");
 
     const year =
       yearRaw != null && yearRaw !== ""
         ? Number(yearRaw)
         : new Date().getFullYear();
 
-    if (!file) {
-      return NextResponse.json({ error: "File is required" }, { status: 400 });
+    if (Number.isNaN(year)) {
+      return NextResponse.json(
+        { error: "Valid year is required." },
+        { status: 400 }
+      );
     }
+
+    if (!file || typeof file === "string") {
+      return NextResponse.json(
+        { error: "Please attach a valid file." },
+        { status: 400 }
+      );
+    }
+
+    if (typeof file.size === "number" && file.size > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "File exceeds the 25 MB limit." },
+        { status: 413 }
+      );
+    }
+
+    const trimmedName =
+      typeof uploadedByName === "string" ? uploadedByName.trim() : "";
+    if (!trimmedName) {
+      return NextResponse.json(
+        { error: "Uploaded by name is required." },
+        { status: 400 }
+      );
+    }
+
+    const descriptionStr =
+      typeof description === "string" ? description.trim() : "";
 
     const version = "1.0";
 
@@ -34,8 +68,12 @@ export async function POST(req) {
     const buffer = Buffer.from(bytes);
 
     let locationData = null;
-    if (locationId) {
-      const locationDoc = await Location.findById(locationId).lean();
+    const locId =
+      typeof locationIdRaw === "string" && locationIdRaw.trim()
+        ? locationIdRaw.trim()
+        : null;
+    if (locId) {
+      const locationDoc = await Location.findById(locId).lean();
       if (locationDoc) {
         locationData = { locationId: locationDoc._id, name: locationDoc.name };
       }
@@ -46,7 +84,7 @@ export async function POST(req) {
       formCode: "QAF-OFD-004",
       location: locationData?.name || null,
       date: recordDate,
-      title: description || "Base-Audit",
+      title: descriptionStr || "Base-Audit",
       fileType: "documents",
       fileName: file.name,
       buffer,
@@ -56,20 +94,25 @@ export async function POST(req) {
 
     const record = await StsBaseAuditReport.create({
       serialNumber,
-      description,
+      description: descriptionStr,
       filePath,
       version,
       date: new Date(),
       ...(locationData && { location: locationData }),
-      uploadedBy: { name: uploadedByName },
+      uploadedBy: { name: trimmedName },
     });
 
     return NextResponse.json({
+      success: true,
       message: "File uploaded successfully",
       version,
       data: record,
     });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("STS Base Audit create error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to upload report." },
+      { status: 500 }
+    );
   }
 }

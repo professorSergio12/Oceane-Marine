@@ -23,9 +23,9 @@ export const runtime = "nodejs";
  * stays consistent.
  */
 export async function POST(req, { params }) {
-  await connectDB();
-
   try {
+    await connectDB();
+
     const { id } = await params;
     if (!id) {
       return NextResponse.json(
@@ -117,9 +117,14 @@ export async function POST(req, { params }) {
 
     await existing.save();
 
-    void notifyEdit("QHSE", "form-checklist · base-audit", existing._id);
+    try {
+      void notifyEdit("QHSE", "form-checklist · base-audit", existing._id);
+    } catch (notifyErr) {
+      console.warn("STS Base Audit notifyEdit:", notifyErr?.message || notifyErr);
+    }
 
     return NextResponse.json({
+      success: true,
       message: hasNewFile
         ? "Report updated and new version created"
         : "Report metadata updated",
@@ -128,6 +133,9 @@ export async function POST(req, { params }) {
     });
   } catch (error) {
     console.error("STS Base Audit Update Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message || "Update failed" },
+      { status: 500 }
+    );
   }
 }
