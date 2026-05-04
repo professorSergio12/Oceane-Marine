@@ -314,7 +314,17 @@ export default function BaseAuditListPage() {
     if (!searchTerm.trim()) return reports;
     const s = searchTerm.toLowerCase();
     return reports.filter((r) => {
-      const locName = (locations.find((l) => l._id === r.locationId) || {}).name || "";
+      // Location is denormalised onto the record (`r.location.name`); fall
+      // back to the master list lookup using the correct `r.location.locationId`
+      // path so that a search like "fujairah" still matches even if the
+      // record's name was empty when it was saved.
+      const locName =
+        (r.location?.name || "").trim() ||
+        (locations.find(
+          (l) =>
+            String(l._id) === String(r.location?.locationId || "")
+        ) || {}).name ||
+        "";
       return (
         (r.serialNumber || "").toLowerCase().includes(s) ||
         (r.formCode || "").toLowerCase().includes(s) ||

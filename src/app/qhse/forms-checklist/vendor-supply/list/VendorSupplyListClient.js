@@ -68,7 +68,10 @@ export default function VendorSupplyListClient() {
   const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
 
   const currentYear = new Date().getFullYear();
+  const initialYears = useMemo(() => getYears(), []);
   const [year, setYear] = useState("");
+  const [availableYears, setAvailableYears] = useState(initialYears);
+  const [loadingYears, setLoadingYears] = useState(true);
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -96,6 +99,13 @@ export default function VendorSupplyListClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load forms");
       setForms(data.data || []);
+      // Merge dynamic years from API so the dropdown surfaces every record
+      // year, not just the rolling window the client computes locally.
+      if (Array.isArray(data.years)) {
+        setAvailableYears((prev) =>
+          Array.from(new Set([...prev, ...data.years])).sort((a, b) => b - a)
+        );
+      }
       // Update selected form if it exists
       if (selectedForm) {
         const updated = (data.data || []).find(
@@ -108,6 +118,7 @@ export default function VendorSupplyListClient() {
     } finally {
       setLoading(false);
       setPageLoading(false);
+      setLoadingYears(false);
     }
   };
 
@@ -375,11 +386,16 @@ export default function VendorSupplyListClient() {
                   const v = e.target.value;
                   setYear(v === "" ? "" : Number(v));
                 }}
+                disabled={loadingYears}
               >
                 <option value="">All years</option>
-                {getYears().map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
+                {loadingYears ? (
+                  <option disabled>Loading…</option>
+                ) : (
+                  availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))
+                )}
               </select>
               {["DRAFT", "UNDER_REVIEW", "APPROVED", "REJECTED", "ALL"].map((key) => {
                 const labelMap = { DRAFT: "Draft", UNDER_REVIEW: "Under Review", APPROVED: "Approved", REJECTED: "Rejected", ALL: "All" };

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import AuditInspectionPlanner from "@/lib/mongodb/models/qhse-audit-inspection/AuditInspectionPlanner";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function OPTIONS() {
@@ -27,9 +28,17 @@ export async function PATCH(req) {
       );
     }
 
+    const existing = await AuditInspectionPlanner.findById(id);
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Planner not found" },
+        { status: 404, headers: { "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
     const updated = await AuditInspectionPlanner.findByIdAndUpdate(
       id,
-      { status },
+      { status, revNo: getNextRevisionNumber(existing.revNo) },
       { new: true }
     );
 

@@ -113,15 +113,19 @@ export default function DrillsPlanPage({ hideSidebar = false }) {
     setError(null);
 
     try {
-      // Filter out quarters where topic or instructor is empty
+      // Map first to preserve the original quarter index, then filter out empty quarters.
+      // This prevents a Q3/Q4 entry from being mis-labelled as Q1/Q2 when earlier
+      // quarters are blank (since the API would otherwise infer the quarter from the
+      // plannedDate, which the user may have edited).
       const planItems = quarterData
-        .filter((item) => item.topic.trim() && item.instructor.trim())
-        .map((item) => ({
+        .map((item, quarterIndex) => ({
           plannedDate: item.plannedDate,
-          topic: item.topic.trim(),
-          instructor: item.instructor.trim(),
-          description: item.description.trim() || undefined,
-        }));
+          quarter: QUARTERS[quarterIndex],
+          topic: (item.topic || "").trim(),
+          instructor: (item.instructor || "").trim(),
+          description: (item.description || "").trim() || undefined,
+        }))
+        .filter((item) => item.topic && item.instructor);
 
       if (!planItems.length) {
         setError("Please fill at least one quarter with Topic and Instructor.");

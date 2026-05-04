@@ -202,7 +202,9 @@ export default function BaseAuditFormPage() {
     e.preventDefault();
     if (!canSubmit) return;
 
-    if (!file) {
+    // For new records the file is required; for edits it's optional —
+    // a metadata-only update (description / location / uploaded by) is allowed.
+    if (!editId && !file) {
       setError("Please select a file to upload");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -220,13 +222,18 @@ export default function BaseAuditFormPage() {
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      if (file) formData.append("file", file);
       formData.append("year", String(form.year || currentYear));
       formData.append("description", form.description?.trim() || "");
       formData.append("uploadedBy", form.uploadedBy.trim());
-      if (form.locationId) formData.append("locationId", form.locationId);
+      // Always send locationId (empty string clears it on update).
+      formData.append("locationId", form.locationId || "");
 
-      const res = await fetch("/api/qhse/form-checklist/base-audit/create", {
+      const endpoint = editId
+        ? `/api/qhse/form-checklist/base-audit/${editId}/update`
+        : `/api/qhse/form-checklist/base-audit/create`;
+
+      const res = await fetch(endpoint, {
         method: "POST",
         body: formData,
       });
@@ -234,26 +241,37 @@ export default function BaseAuditFormPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to upload file");
+        throw new Error(data.error || "Failed to save record");
       }
 
-      setSuccess(`File uploaded successfully! Version: ${data.version}`);
+      const versionLabel = data.version ? ` Version: ${data.version}` : "";
+      setSuccess(
+        editId
+          ? `Report updated successfully!${versionLabel}`
+          : `File uploaded successfully!${versionLabel}`
+      );
+
+      // Only clear the file input — preserve the typed metadata so the user
+      // can confirm what was saved (and so re-edits don't surprise them with
+      // an empty form).
       setFile(null);
-      setForm({
-        year: currentYear,
-        description: "",
-        uploadedBy: "",
-        locationId: "",
-      });
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+
+      // Refresh the local copy of the existing report so subsequent edits
+      // see the latest version / file path.
+      if (editId && data.data) {
+        setExistingReport((prev) => ({ ...(prev || {}), ...data.data }));
+      }
+
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Redirect after 2 seconds
+      // Redirect to the list after a short pause so the user sees the
+      // confirmation banner.
       setTimeout(() => {
         router.push("/qhse/forms-checklist/base-audit/list");
-      }, 2000);
+      }, 1500);
     } catch (err) {
       setError(err.message);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -423,7 +441,9 @@ export default function BaseAuditFormPage() {
                 </p>
                 <p className="text-sky-300/80 text-xs mt-1">
                   Uploading a new file will create version{" "}
-                  {(Number.parseFloat(existingReport.version) + 0.1).toFixed(1)}
+                  {(Number.parseFloat(existingReport.version) + 0.1).toFixed(1)}.
+                  Leave the file empty to update only the metadata
+                  (description, location, uploaded by) on the current version.
                 </p>
               </div>
             )}
@@ -444,7 +464,7 @@ export default function BaseAuditFormPage() {
                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                   disabled={loadingLocations}
                 >
-                  <option value="">Select location (optional)</option>
+                  <option value="">Select location</option>
                   {locations.map((loc) => (
                     <option key={loc._id} value={loc._id}>
                       {loc.name}
@@ -495,7 +515,11 @@ export default function BaseAuditFormPage() {
           {/* File Upload Section */}
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 space-y-6">
             <h2 className="text-lg font-semibold text-white border-b border-white/10 pb-3">
-              File Upload
+              File Upload {editId && (
+                <span className="ml-2 text-xs font-normal text-slate-300">
+                  (optional — only attach a file to bump the version)
+                </span>
+              )}
             </h2>
 
             <div className="space-y-4">
@@ -614,16 +638,24 @@ export default function BaseAuditFormPage() {
             <button
               type="submit"
               disabled={
-                !canSubmit || uploading || loading || !file || !form.uploadedBy?.trim()
+                !canSubmit ||
+                uploading ||
+                loading ||
+                (!editId && !file) ||
+                !form.uploadedBy?.trim()
               }
               className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading
                 ? editId
-                  ? "Creating New Version..."
+                  ? file
+                    ? "Creating New Version..."
+                    : "Updating..."
                   : "Uploading..."
                 : editId
-                ? "Create New Version"
+                ? file
+                  ? "Create New Version"
+                  : "Update Report"
                 : "Upload File"}
             </button>
           </div>

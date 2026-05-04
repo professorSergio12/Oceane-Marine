@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import SubContractorAudit from "@/lib/mongodb/models/qhse-due-diligence/SubContractorAudit";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
@@ -38,11 +39,20 @@ export async function PUT(req, { params }) {
     } else {
       // Regular field updates for Pending forms
       Object.keys(body).forEach((key) => {
-        if (key !== "status" && key !== "approvedBy" && key !== "approvedAt" && key !== "formCode" && key !== "createdBy" && key !== "createdAt") {
+        if (
+          key !== "status" &&
+          key !== "approvedBy" &&
+          key !== "approvedAt" &&
+          key !== "formCode" &&
+          key !== "createdBy" &&
+          key !== "createdAt" &&
+          key !== "revNo"
+        ) {
           subContractorAudit[key] = body[key];
         }
       });
     }
+    subContractorAudit.revNo = getNextRevisionNumber(subContractorAudit.revNo);
     await subContractorAudit.save();
     void notifyEdit("QHSE", "due-diligence · audit-sub-contractor · update", id);
     return NextResponse.json(

@@ -66,6 +66,7 @@ export default function VendorSupplyAdminPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
   const { canApprove, canDelete, canDownload, isQhseAdmin } = useQhseRole();
+  const initialYears = getYears();
   const [searchDebounced, setSearchDebounced] = useState("");
   const [actionId, setActionId] = useState(null); // approving
   const [filter, setFilter] = useState("UNDER_REVIEW"); // UNDER_REVIEW, APPROVED, REJECTED, ALL
@@ -78,6 +79,8 @@ export default function VendorSupplyAdminPage() {
   const [downloadingDocx, setDownloadingDocx] = useState(null);
   const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [year, setYear] = useState("");
+  const [availableYears, setAvailableYears] = useState(initialYears);
+  const [loadingYears, setLoadingYears] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -107,6 +110,13 @@ export default function VendorSupplyAdminPage() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to load vendor approvals");
       }
+      // Merge dynamic years from API so historical records stay selectable.
+      if (Array.isArray(data.years)) {
+        setAvailableYears((prev) =>
+          Array.from(new Set([...prev, ...data.years])).sort((a, b) => b - a)
+        );
+      }
+      setLoadingYears(false);
       return {
         items: data.data || [],
         hasNext: !!data.hasNext,
@@ -348,11 +358,16 @@ export default function VendorSupplyAdminPage() {
                   const v = e.target.value;
                   setYear(v === "" ? "" : Number(v));
                 }}
+                disabled={loadingYears}
               >
                 <option value="">All years</option>
-                {getYears().map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
+                {loadingYears ? (
+                  <option disabled>Loading…</option>
+                ) : (
+                  availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))
+                )}
               </select>
               {["UNDER_REVIEW", "APPROVED", "REJECTED", "ALL"].map((key) => {
                 const labelMap = {

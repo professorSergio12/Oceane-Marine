@@ -51,6 +51,21 @@ const formatDateInput = (year, monthIndex, day = 1) => {
   return `${year}-${mm}-${dd}`;
 };
 
+/** Pull the day-of-month out of a YYYY-MM-DD input value WITHOUT building a Date
+ *  (avoids the UTC parsing shift that converts e.g. 2026-11-01 → 2026-10-31 in IST). */
+const dayFromDateInput = (value, fallback = 1) => {
+  if (!value || typeof value !== "string") return fallback;
+  const parts = value.split("-");
+  const day = Number.parseInt(parts[2], 10);
+  return Number.isFinite(day) && day >= 1 && day <= 31 ? day : fallback;
+};
+
+const yearFromDateInput = (value) => {
+  if (!value || typeof value !== "string") return null;
+  const y = Number.parseInt(value.split("-")[0], 10);
+  return Number.isFinite(y) ? y : null;
+};
+
 export default function TrainingPlanPage({ hideSidebar = false }) {
   const currentYear = new Date().getFullYear();
   const initialYear = currentYear;
@@ -83,11 +98,9 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
     setMonthData((prev) =>
       prev.map((data, index) => {
         const pair = MONTH_PAIRS[index];
-        // If plannedDate exists, preserve the day, shift year, keep month from the pair's first month
-        const day =
-          data.plannedDate && !isNaN(new Date(data.plannedDate).getTime())
-            ? new Date(data.plannedDate).getDate()
-            : 1;
+        // Preserve the day, shift the year, keep month anchored to the pair's first month.
+        // Read the day from the YYYY-MM-DD string directly to dodge timezone shifts.
+        const day = dayFromDateInput(data.plannedDate, 1);
         return {
           ...data,
           plannedDate: formatDateInput(newYear, pair.months[0], day),
@@ -103,14 +116,11 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
       const next = [...prev];
       next[selectedPair] = { ...next[selectedPair], [field]: value };
 
-      // If plannedDate is changed, sync the year
+      // If plannedDate is changed, sync the year (string-parsed to avoid TZ shifts)
       if (field === "plannedDate" && value) {
-        const dateObj = new Date(value);
-        if (!isNaN(dateObj.getTime())) {
-          const newYear = dateObj.getFullYear();
-          if (newYear !== year) {
-            setYear(newYear);
-          }
+        const newYear = yearFromDateInput(value);
+        if (newYear && newYear !== year) {
+          setYear(newYear);
         }
       }
 
@@ -145,21 +155,24 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
     setError(null);
 
     try {
-      // One plan item per pair (use first month as the representative date)
+      // IMPORTANT: map FIRST (so the original month-pair index survives), THEN filter.
+      // Earlier `.filter().map()` re-indexed survivors from 0, which silently re-parented
+      // entries to the wrong MONTH_PAIRS slot — e.g. a Nov-Dec submission landed in Jan-Feb.
       const planItems = monthData
-        .filter((item) => item.topic.trim() && item.instructor.trim())
-        .map((item, idx) => {
-          const pair = MONTH_PAIRS[idx];
-          const baseDate = new Date(item.plannedDate);
-          const day = !isNaN(baseDate.getTime()) ? baseDate.getDate() : 1;
+        .map((item, pairIdx) => {
+          const pair = MONTH_PAIRS[pairIdx];
+          const day = dayFromDateInput(item.plannedDate, 1);
           return {
+            pairIdx,
             plannedDate: formatDateInput(year, pair.months[0], day),
             topic: item.topic.trim(),
             instructor: item.instructor.trim(),
             description: item.description.trim() || undefined,
             status: "Approved", // carry approval intent
           };
-        });
+        })
+        .filter((item) => item.topic && item.instructor)
+        .map(({ pairIdx, ...rest }) => rest);
 
       if (!planItems.length) {
         setError("Please fill at least one month with Topic and Instructor.");

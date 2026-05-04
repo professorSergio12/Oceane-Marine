@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
+import qhseRevisionPlugin from "../../plugins/qhseRevisionPlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -68,6 +69,7 @@ NewBaseSetupChecklistSchema.pre("save", async function (next) {
 
 
 NewBaseSetupChecklistSchema.plugin(qhseArchivePlugin);
+NewBaseSetupChecklistSchema.plugin(qhseRevisionPlugin);
 
 export default mongoose.models.NewBaseSetupChecklist ||
   mongoose.model("NewBaseSetupChecklist", NewBaseSetupChecklistSchema);

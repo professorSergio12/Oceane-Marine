@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
+import qhseRevisionPlugin from "../../plugins/qhseRevisionPlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -160,6 +161,7 @@ PoacCrossCompetencySchema.pre("save", async function () {
  */
 
 PoacCrossCompetencySchema.plugin(qhseArchivePlugin);
+PoacCrossCompetencySchema.plugin(qhseRevisionPlugin);
 
 if (process.env.NODE_ENV !== "production" && mongoose.models.PoacCrossCompetency) {
   delete mongoose.models.PoacCrossCompetency;

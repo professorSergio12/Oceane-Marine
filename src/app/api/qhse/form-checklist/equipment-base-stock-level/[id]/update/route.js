@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsEquipmentBaseStockLevel from "@/lib/mongodb/models/qhse-form-checklist/StsEquipmentBaseStockLevel";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
@@ -41,6 +42,7 @@ export async function PUT(req, { params }) {
     });
 
     record.updatedAt = new Date();
+    record.revNo = getNextRevisionNumber(record.revNo);
 
     await record.save();
 

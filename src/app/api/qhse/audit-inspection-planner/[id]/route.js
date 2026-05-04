@@ -3,6 +3,7 @@ import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import AuditInspectionPlanner from "@/lib/mongodb/models/qhse-audit-inspection/AuditInspectionPlanner";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 const ALLOWED_EXT = new Set([
@@ -91,11 +92,8 @@ export async function PUT(req, { params }) {
     existing.categories = categories;
     if (yearNum !== undefined) existing.year = yearNum;
     // Bump rev on edit: 1.0 -> 1.1, 1.1 -> 1.2, etc.
-    const prev = String(existing.version || "1.0").trim();
-    const parts = prev.split(".");
-    const major = parseInt(parts[0], 10) || 1;
-    const minor = parseInt(parts[1], 10) || 0;
-    existing.version = `${major}.${minor + 1}`;
+    existing.version = getNextRevisionNumber(existing.version);
+    existing.revNo = getNextRevisionNumber(existing.revNo);
     await existing.save();
 
     void notifyEdit("QHSE", "audit-inspection-planner", existing._id);

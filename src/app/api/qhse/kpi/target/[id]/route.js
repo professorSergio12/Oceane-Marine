@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import TargetKpi from "@/lib/mongodb/models/qhse-kpi/TargetKpi";
 import mongoose from "mongoose";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit, notifyDelete } from "@/lib/notifications/moduleNotify";
 
 export async function GET(req, { params }) {
@@ -74,8 +75,10 @@ export async function PATCH(req, { params }) {
       }));
     }
 
+    doc.revNo = getNextRevisionNumber(doc.revNo);
     await doc.save();
 
+    void notifyEdit("QHSE", "kpi · target · update", id);
     return NextResponse.json({
       success: true,
       message: "Target KPI updated",

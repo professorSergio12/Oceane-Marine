@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
+import qhseRevisionPlugin from "../../plugins/qhseRevisionPlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -52,6 +53,7 @@ TargetKpiSchema.pre("save", async function () {
 
 
 TargetKpiSchema.plugin(qhseArchivePlugin);
+TargetKpiSchema.plugin(qhseRevisionPlugin);
 
 export default mongoose.models.TargetKpi ||
   mongoose.model("TargetKpi", TargetKpiSchema);

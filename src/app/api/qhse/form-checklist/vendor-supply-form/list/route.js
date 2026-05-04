@@ -16,6 +16,24 @@ export async function GET(req) {
     const includeArchived =
       includeArchivedParam === "1" || includeArchivedParam === "true";
 
+    // Build the year list once — covers both the explicit `year` field and
+    // the `date` field — so the year filter dropdown reflects every record
+    // that exists, not just the rolling window the client computes locally.
+    const allRecords = await VendorSupplierApproval.find({})
+      .select("year date")
+      .lean();
+    const yearsSet = new Set();
+    allRecords.forEach((rec) => {
+      if (rec.year && !Number.isNaN(Number(rec.year))) {
+        yearsSet.add(Number(rec.year));
+      }
+      if (rec.date) {
+        const dateYear = new Date(rec.date).getFullYear();
+        if (!Number.isNaN(dateYear)) yearsSet.add(dateYear);
+      }
+    });
+    const years = Array.from(yearsSet).sort((a, b) => b - a);
+
     if (useCursor) {
       const yearParam = searchParams.get("year");
       const statusParam = searchParams.get("status");
@@ -64,7 +82,12 @@ export async function GET(req) {
       );
 
       return NextResponse.json(
-        { success: true, data: items, hasNext },
+        {
+          success: true,
+          data: items,
+          hasNext,
+          years: years.length > 0 ? years : [new Date().getFullYear()],
+        },
         { status: 200 }
       );
     }
@@ -102,7 +125,14 @@ export async function GET(req) {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
-    return NextResponse.json({ success: true, data: forms }, { status: 200 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: forms,
+        years: years.length > 0 ? years : [new Date().getFullYear()],
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Vendor Supplier Approval List Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import NearMiss from "@/lib/mongodb/models/qhse-near-miss/NearMiss";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 import { sendResendEmail } from "@/lib/services/email/sendResendEmail";
 import { buildNearMissReviewedSubmitterEmail } from "@/lib/services/email/templates/QHSE/nearMissReviewedSubmitterEmail";
@@ -45,7 +46,8 @@ export async function PUT(req, { params }) {
     if (remarksByReviewer !== undefined) {
       nearMiss.remarksByReviewer = remarksByReviewer || "";
     }
-    
+    nearMiss.revNo = getNextRevisionNumber(nearMiss.revNo);
+
     await nearMiss.save();
 
     void notifyEdit("QHSE", "update", id);

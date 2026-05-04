@@ -60,6 +60,12 @@ export default function DrillsReportClient() {
   const [downloadingPlanDocx, setDownloadingPlanDocx] = useState(false);
   const [downloadingPlanPdf, setDownloadingPlanPdf] = useState(false);
 
+  // Reports for the currently selected year, indexed by quarter (Q1..Q4).
+  // Each entry holds the latest report for that quarter (used for download / status).
+  const [reportsByQuarter, setReportsByQuarter] = useState({});
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [downloadingReport, setDownloadingReport] = useState(null); // `${quarter}-docx` | `${quarter}-pdf`
+
   /* ---------------- effects ---------------- */
 
   useEffect(() => {
@@ -108,6 +114,39 @@ export default function DrillsReportClient() {
     return () => {
       active = false;
     };
+  }, [year]);
+
+  // Load existing reports for the selected year (latest per quarter).
+  const loadReportsForYear = async (targetYear) => {
+    if (!targetYear) {
+      setReportsByQuarter({});
+      return;
+    }
+    setReportsLoading(true);
+    try {
+      const res = await fetch(`/api/qhse/drill/list?year=${targetYear}`);
+      const data = await res.json();
+      const next = {};
+      if (res.ok && data.success && Array.isArray(data.data)) {
+        const yearRow = data.data.find((row) => row.year === targetYear);
+        if (yearRow && Array.isArray(yearRow.quarters)) {
+          yearRow.quarters.forEach((entry) => {
+            if (entry?.report && entry.quarter) {
+              next[entry.quarter] = entry.report;
+            }
+          });
+        }
+      }
+      setReportsByQuarter(next);
+    } catch {
+      setReportsByQuarter({});
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReportsForYear(year);
   }, [year]);
 
   /* ---------------- handlers ---------------- */
@@ -162,23 +201,33 @@ export default function DrillsReportClient() {
     setMessage(null);
 
     try {
-      const validParticipants = formData.participants.filter(
-        (p) => p.name.trim() && p.role.trim()
-      );
+      const validParticipants = (formData.participants || [])
+        .map((p) => ({
+          name: (p?.name || "").trim(),
+          role: (p?.role || "").trim(),
+        }))
+        .filter((p) => p.name && p.role);
 
       if (
-        !formData.drillNo ||
-        !formData.drillScenario ||
+        !(formData.drillNo || "").trim() ||
+        !(formData.drillScenario || "").trim() ||
+        !formData.drillDate ||
         validParticipants.length === 0
       ) {
-        throw new Error("Please fill all required fields.");
+        throw new Error(
+          "Please fill all required fields (Drill No, Date, Scenario, and at least one Participant with name & role)."
+        );
       }
 
       const res = await fetch("/api/qhse/drill/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          drillNo: (formData.drillNo || "").trim(),
+          drillDate: formData.drillDate,
+          location: (formData.location || "").trim(),
+          drillScenario: (formData.drillScenario || "").trim(),
+          incidentProgression: (formData.incidentProgression || "").trim(),
           participants: validParticipants,
           year,
           quarter: QUARTERS[selectedQuarter],
@@ -190,12 +239,46 @@ export default function DrillsReportClient() {
         throw new Error(data.error || "Failed to create drill report");
       }
 
-      setMessage("Drill report saved successfully!");
+      setMessage(
+        `Drill report for ${year} ${QUARTERS[selectedQuarter]} saved successfully!`
+      );
+      // Reset the form, close it, and refresh the per-quarter report list
+      setFormData(getInitialFormData());
+      setCreatingFor(null);
+      await loadReportsForYear(year);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDownloadReport = async (quarter, format) => {
+    const report = reportsByQuarter[quarter];
+    const reportId = report?.id || report?._id;
+    if (!reportId) return;
+    const key = `${quarter}-${format}`;
+    setDownloadingReport(key);
+    try {
+      const res = await fetch(
+        `/api/qhse/drill/report/${reportId}/download/${format}`
+      );
+      if (!res.ok) throw new Error("Failed to download report");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const ext = format === "pdf" ? "pdf" : "docx";
+      a.download = `Drill-Report-${report?.serialNumber || reportId}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      alert(err.message || "Failed to download report");
+    } finally {
+      setDownloadingReport(null);
     }
   };
 
@@ -268,7 +351,7 @@ export default function DrillsReportClient() {
                 </select>
               </div>
             </div>
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2 gap-3 flex-wrap">
               <h2 className="text-lg font-semibold">Quarterly Drill Plan</h2>
               <div className="flex items-center gap-3 flex-wrap">
                 {plan && (
@@ -281,6 +364,9 @@ export default function DrillsReportClient() {
                         {[plan.formCode, plan.serialNumber].filter(Boolean).join(" • ")}
                       </span>
                     )}
+                    <span className="text-[11px] uppercase tracking-[0.18em] text-slate-300 ml-1">
+                      Drill Matrix:
+                    </span>
                     <button
                       type="button"
                       onClick={async () => {
@@ -293,7 +379,7 @@ export default function DrillsReportClient() {
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement("a");
                           a.href = url;
-                          a.download = `Drill-Plan-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.docx`;
+                          a.download = `Drill-Matrix-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.docx`;
                           document.body.appendChild(a);
                           a.click();
                           URL.revokeObjectURL(url);
@@ -306,6 +392,7 @@ export default function DrillsReportClient() {
                       }}
                       disabled={downloadingPlanDocx || downloadingPlanPdf}
                       className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                      title="Download Drill Matrix as Word"
                     >
                       {downloadingPlanDocx ? "…" : "Word"}
                     </button>
@@ -321,7 +408,7 @@ export default function DrillsReportClient() {
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement("a");
                           a.href = url;
-                          a.download = `Drill-Plan-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.pdf`;
+                          a.download = `Drill-Matrix-${plan.year ?? "plan"}-${plan.serialNumber ?? plan._id}.pdf`;
                           document.body.appendChild(a);
                           a.click();
                           URL.revokeObjectURL(url);
@@ -334,6 +421,7 @@ export default function DrillsReportClient() {
                       }}
                       disabled={downloadingPlanDocx || downloadingPlanPdf}
                       className="text-xs px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                      title="Download Drill Matrix as PDF"
                     >
                       {downloadingPlanPdf ? "…" : "PDF"}
                     </button>
@@ -362,6 +450,10 @@ export default function DrillsReportClient() {
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {QUARTERS.map((q) => {
                   const item = plan.planItems.find((p) => p.quarter === q);
+                  const savedReport = reportsByQuarter[q];
+                  const reportId = savedReport?.id || savedReport?._id;
+                  const docxKey = `${q}-docx`;
+                  const pdfKey = `${q}-pdf`;
                   return (
                     <div
                       key={q}
@@ -379,17 +471,71 @@ export default function DrillsReportClient() {
                       <p className="text-xs text-slate-300">
                         {item?.instructor || ""}
                       </p>
+
+                      {/* Saved drill report (if any) for this quarter */}
+                      {savedReport && (
+                        <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/5 p-2 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] uppercase tracking-[0.18em] text-emerald-200">
+                              Drill Report
+                            </span>
+                            {savedReport.serialNumber && (
+                              <span className="text-[11px] text-emerald-100/90 truncate">
+                                {savedReport.serialNumber}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-300 truncate">
+                            {savedReport.drillNo
+                              ? `No: ${savedReport.drillNo}`
+                              : ""}
+                            {savedReport.drillDate
+                              ? ` • ${toDateInputValue(savedReport.drillDate)}`
+                              : ""}
+                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadReport(q, "docx")}
+                              disabled={!reportId || !!downloadingReport}
+                              className="flex-1 text-[11px] px-2 py-1 rounded border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50 transition"
+                              title="Download Drill Report as Word"
+                            >
+                              {downloadingReport === docxKey ? "…" : "Word"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadReport(q, "pdf")}
+                              disabled={!reportId || !!downloadingReport}
+                              className="flex-1 text-[11px] px-2 py-1 rounded border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 disabled:opacity-50 transition"
+                              title="Download Drill Report as PDF"
+                            >
+                              {downloadingReport === pdfKey ? "…" : "PDF"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         type="button"
                         disabled={!item}
                         onClick={() => item && applyPlanItem(item)}
                         className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-orange-400/60 text-orange-200 hover:bg-orange-500/10 disabled:opacity-50"
                       >
-                        {item ? "Create report" : "Not planned"}
+                        {item
+                          ? savedReport
+                            ? "Add another report"
+                            : "Create report"
+                          : "Not planned"}
                       </button>
                     </div>
                   );
                 })}
+                {reportsLoading && (
+                  <p className="text-[11px] text-slate-400 col-span-full text-right">
+                    Loading reports…
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -457,6 +603,22 @@ export default function DrillsReportClient() {
                 <p className="text-xs text-slate-400 text-center py-4">
                   No drill matrix files uploaded for this plan.
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Top-level save messages — shown above the form so they remain visible after the form closes */}
+          {(message || error) && (
+            <div className="space-y-3">
+              {error && (
+                <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
+                  {error}
+                </div>
+              )}
+              {message && (
+                <div className="text-base text-emerald-300 bg-emerald-950/40 border-2 border-emerald-500/60 rounded-lg px-6 py-4 shadow-lg shadow-emerald-500/20">
+                  <span className="font-semibold">{message}</span>
+                </div>
               )}
             </div>
           )}
@@ -651,18 +813,6 @@ export default function DrillsReportClient() {
                   />
                 </div>
               </div>
-
-              {/* Messages */}
-              {error && (
-                <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
-                  {error}
-                </div>
-              )}
-              {message && (
-                <div className="text-base text-emerald-300 bg-emerald-950/40 border-2 border-emerald-500/60 rounded-lg px-6 py-4 shadow-lg shadow-emerald-500/20">
-                  <span className="font-semibold">{message}</span>
-                </div>
-              )}
 
               {/* Submit Button */}
               <div className="flex justify-end gap-3 pt-4 border-t border-white/10">

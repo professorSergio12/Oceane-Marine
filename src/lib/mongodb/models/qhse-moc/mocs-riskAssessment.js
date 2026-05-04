@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
+import qhseRevisionPlugin from "../../plugins/qhseRevisionPlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 
 const mocRiskAssessmentFileSchema = new mongoose.Schema({
@@ -101,6 +102,7 @@ MOCRiskAssessmentSchema.pre("save", async function () {
 
 
 MOCRiskAssessmentSchema.plugin(qhseArchivePlugin);
+MOCRiskAssessmentSchema.plugin(qhseRevisionPlugin);
 
 const MOCRiskAssessment =
   mongoose.models.MOCRiskAssessment ||

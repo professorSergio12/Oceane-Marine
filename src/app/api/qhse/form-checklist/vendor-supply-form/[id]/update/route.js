@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import VendorSupplierApproval from "@/lib/mongodb/models/qhse-form-checklist/VendorSupplierApproval";
 import { saveBase64AsFile, isBase64DataUrl } from "@/lib/utils/qhse-file-storage";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 const isValidRating = (value) =>
@@ -141,6 +142,9 @@ export async function PUT(req, { params }) {
     if (body.status) {
       record.status = body.status;
     }
+
+    // Bump record revision (1.0 -> 1.1 -> 1.2 -> ...) on every edit.
+    record.revNo = getNextRevisionNumber(record.revNo);
 
     await record.save();
 

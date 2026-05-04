@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
+import qhseRevisionPlugin from "../../plugins/qhseRevisionPlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -117,6 +118,7 @@ TrainingRecordSchema.pre("save", async function () {
 
 
 TrainingRecordSchema.plugin(qhseArchivePlugin);
+TrainingRecordSchema.plugin(qhseRevisionPlugin);
 
 export default mongoose.models.TrainingRecord ||
   mongoose.model("TrainingRecord", TrainingRecordSchema);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import MOCManagementChange from "@/lib/mongodb/models/qhse-moc/mocs-managementChange";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
@@ -88,6 +89,10 @@ export async function PUT(req, { params }) {
     delete updateData.initiationDate;
     delete updateData.createdAt;
     delete updateData.updatedAt;
+    delete updateData.revNo;
+
+    // Bump record revision (1.0 -> 1.1 -> 1.2 -> ...) on every edit.
+    updateData.revNo = getNextRevisionNumber(mocdoc.revNo);
 
     const moc = await MOCManagementChange.findByIdAndUpdate(id, updateData, {
       new: true,

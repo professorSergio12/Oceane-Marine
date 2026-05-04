@@ -65,6 +65,10 @@ export async function POST(req) {
       locationName,
       filePath,
       version: nextVersion,
+      // Mirror the file version into the record-level revision so the audit
+      // trail shows the same number on the list/PDF (1.0 for the first
+      // upload, 1.1 / 1.2 / ... for each subsequent edit of the same record).
+      revNo: nextVersion,
       date: recordDate,
       uploadedBy: {
         userId: uploadedByUserId || null,

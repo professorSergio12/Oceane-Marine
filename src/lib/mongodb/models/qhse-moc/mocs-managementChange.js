@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
+import qhseRevisionPlugin from "../../plugins/qhseRevisionPlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -198,6 +199,7 @@ MOCSchemaManagementChange.pre("save", async function () {
 
 
 MOCSchemaManagementChange.plugin(qhseArchivePlugin);
+MOCSchemaManagementChange.plugin(qhseRevisionPlugin);
 
 export default mongoose.models.MOCManagementChange ||
   mongoose.model("MOCManagementChange", MOCSchemaManagementChange);

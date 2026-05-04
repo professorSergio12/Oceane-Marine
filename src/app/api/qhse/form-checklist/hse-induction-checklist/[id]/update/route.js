@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import HseInductionChecklist from "@/lib/mongodb/models/qhse-form-checklist/HseInductionChecklist";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
 export async function PUT(req, { params }) {
@@ -19,8 +20,10 @@ export async function PUT(req, { params }) {
       );
     }
 
-    body
-    Object.assign(record, body);
+    // Strip system fields and apply the rest. revNo is owned by the server.
+    const { revNo: _ignoreRevNo, ...safeBody } = body || {};
+    Object.assign(record, safeBody);
+    record.revNo = getNextRevisionNumber(record.revNo);
     await record.save();
     void notifyEdit("QHSE", "form-checklist · hse-induction-checklist · update", id);
     return NextResponse.json({ success: true, data: record }, { status: 200 });

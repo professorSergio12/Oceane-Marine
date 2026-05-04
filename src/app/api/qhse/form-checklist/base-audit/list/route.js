@@ -19,11 +19,19 @@ export async function GET(req) {
       query.isArchived = { $ne: true };
     }
     
-    // Filter by year if provided (use serialNumber year, e.g. 2028-001 -> 2028)
+    // Filter by year — match either the serialNumber prefix (e.g.
+    // "2028-001" -> 2028) OR the report `date` falling within that calendar
+    // year. The date fallback covers legacy/imported records that don't
+    // carry a yearwise serial.
     if (year) {
       const yearNum = Number.parseInt(year, 10);
       if (!Number.isNaN(yearNum)) {
-        query.serialNumber = new RegExp(`^${yearNum}-`);
+        const startDate = new Date(`${yearNum}-01-01T00:00:00.000Z`);
+        const endDate = new Date(`${yearNum + 1}-01-01T00:00:00.000Z`);
+        query.$or = [
+          { serialNumber: new RegExp(`^${yearNum}-`) },
+          { date: { $gte: startDate, $lt: endDate } },
+        ];
       }
     }
 
@@ -35,9 +43,11 @@ export async function GET(req) {
       .sort({ date: -1, uploadedAt: -1 })
       .lean();
 
-    // Get available years from serialNumber (e.g. 2028-001 -> 2028)
-    const allReports = await StsBaseAuditReport.find({ serialNumber: { $exists: true, $ne: null, $ne: "" } })
-      .select("serialNumber")
+    // Build the year list from both the serialNumber prefix and the report
+    // date so that records imported without a yearwise serial still surface
+    // their year in the dropdown.
+    const allReports = await StsBaseAuditReport.find({})
+      .select("serialNumber date")
       .lean();
 
     const yearsSet = new Set();
@@ -45,6 +55,10 @@ export async function GET(req) {
       if (report.serialNumber && /^\d{4}-/.test(report.serialNumber)) {
         const reportYear = Number(report.serialNumber.split("-")[0]);
         if (!Number.isNaN(reportYear)) yearsSet.add(reportYear);
+      }
+      if (report.date) {
+        const dateYear = new Date(report.date).getFullYear();
+        if (!Number.isNaN(dateYear)) yearsSet.add(dateYear);
       }
     });
 

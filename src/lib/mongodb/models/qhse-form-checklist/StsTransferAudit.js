@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import qhseArchivePlugin from "../../plugins/qhseArchivePlugin.js";
+import qhseRevisionPlugin from "../../plugins/qhseRevisionPlugin.js";
 import { getNextYearwiseSerial } from "../YearwiseSerialCounter";
 import { getQhseFormCode } from "../../../constants/qhse-form-codes";
 
@@ -137,6 +138,7 @@ STSTransferAuditSchema.pre("save", async function () {
 
 
 STSTransferAuditSchema.plugin(qhseArchivePlugin);
+STSTransferAuditSchema.plugin(qhseRevisionPlugin);
 
 export default mongoose.models.STSTransferAudit ||
   mongoose.model("STSTransferAudit", STSTransferAuditSchema);

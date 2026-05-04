@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import EquipmentDefect from "@/lib/mongodb/models/qhse-defect/EquipmentDefect";
+import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 import { sendResendEmail } from "@/lib/services/email/sendResendEmail";
 import {
@@ -72,6 +73,7 @@ export async function PUT(req, { params }) {
       }
       equipmentDefect.status = "Closed";
       equipmentDefect.completionDate = new Date();
+      equipmentDefect.revNo = getNextRevisionNumber(equipmentDefect.revNo);
       await equipmentDefect.save();
       await sendDefectClosedTeamEmailIfNeeded(equipmentDefect, prevStatus);
       return NextResponse.json(
@@ -97,6 +99,7 @@ export async function PUT(req, { params }) {
       }
     }
 
+    equipmentDefect.revNo = getNextRevisionNumber(equipmentDefect.revNo);
     await equipmentDefect.save();
     void notifyEdit("QHSE", "defects-list · update", id);
     await sendDefectClosedTeamEmailIfNeeded(equipmentDefect, prevStatus);
