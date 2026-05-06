@@ -79,6 +79,9 @@ const AccessoriesSchema = new mongoose.Schema(
       required: true,
     },
 
+    /** Label from PMS → Location master (dropdown) */
+    locationName: { type: String, trim: true, default: "" },
+
     // Certificates
     manufacturingCertificate: {
       fileUrl: { type: String, default: "" },

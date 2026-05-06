@@ -5,21 +5,10 @@ import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 import { NOTIFICATION_MODULES, notifyCreate } from "@/lib/notifications/moduleNotify";
-
-const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
-
-/** Preserve the file extension so the static server can send the correct Content-Type. */
-const sanitizeFileName = (fileName) => {
-  const lastDot = fileName.lastIndexOf(".");
-  if (lastDot <= 0 || lastDot === fileName.length - 1) {
-    return sanitize(fileName);
-  }
-  const base = fileName.slice(0, lastDot);
-  const ext = fileName.slice(lastDot + 1);
-  const safeBase = sanitize(base);
-  const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "");
-  return safeExt ? `${safeBase}.${safeExt.toLowerCase()}` : safeBase;
-};
+import {
+  sanitizePmsPathSegment as sanitize,
+  sanitizePmsUploadedFileName as sanitizeFileName,
+} from "@/lib/utils/pms-upload-filename";
 
 export async function POST(req) {
   const guard = await assertPmsPermission("canCreate");
@@ -40,6 +29,8 @@ export async function POST(req) {
     const putInUse = formData.get("putInUse") === "true";
     const putInUseDate = formData.get("putInUseDate");
     const placedIn = formData.get("placedIn");
+    const locationName =
+      (formData.get("locationName") && String(formData.get("locationName"))) || "";
     const occasionalTrackTestSchedule =
       formData.get("occasionalTrackTestSchedule") === "true";
     const occasionalTestDate = formData.get("occasionalTestDate");
@@ -146,6 +137,7 @@ export async function POST(req) {
       status: category === "OCCASIONAL" ? status : "ACTIVE",
       equipmentName: equipmentName.trim(),
       placedIn,
+      locationName: locationName.trim(),
       putInUse: putInUse || false
     };
 

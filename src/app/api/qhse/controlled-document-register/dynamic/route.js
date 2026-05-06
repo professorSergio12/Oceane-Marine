@@ -81,7 +81,7 @@ const REGISTER_ENTRIES = [
   { formCode: "QAF-OFD-040", title: "Drill Plan", model: DrillPlan, href: "/qhse/drills/create/plan", department: "QHSE", revno: "1.1" },
   { formCode: "QAF-OFD-040", title: "Drill Report", model: DrillReport, href: "/qhse/drills/list", department: "QHSE", revno: "1.0" },
   { formCode: "QAF-OFD-043", title: "Supplier Due Diligence Questionnaire", model: SupplierDueDiligence, href: "/qhse/due-diligence-subconstructor/due-diligence-questionnaire/questionnaire-list-admin", department: "QHSE", revno: "1.1" },
-  { formCode: "QAF-OFD-048", title: "Audit & Inspection Plan", model: AuditInspectionPlanner, href: "/qhse/audit-inspection-planner/list", department: "QHSE", revno: "2.1" },
+  { formCode: "QAF-OFD-048", title: "Audit & Inspection Plan", model: AuditInspectionPlanner, href: "/qhse/audit-inspection-planner/form", department: "QHSE", revno: "2.1" },
   { formCode: "QAF-OFD-049", title: "STS Transfer Location Questionnaire", model: STSTransferLocationQuest, href: "/qhse/forms-checklist/transfer-location-quest/list", department: "QHSE", revno: "1.1" },
   { formCode: "QAF-OFD-051", title: "New Base Setup Checklist", model: NewBaseSetupChecklist, href: "/qhse/forms-checklist/new-base-setup-checklist/list", department: "QHSE", revno: "1.1" },
   { formCode: "QAF-OFD-055", title: "Audit Form - Sub Contractor", model: SubContractorAudit, href: "/qhse/due-diligence-subconstructor/audit-sub-contractor/list-admin", department: "QHSE", revno: "1.1" },

@@ -253,6 +253,7 @@ export default function AccessoriesList({
                       <th className="px-4 py-3">Equipment No</th>
                     )}
                     <th className="px-4 py-3">Equipment Name</th>
+                    <th className="px-4 py-3">Location</th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Certificates</th>
@@ -269,6 +270,9 @@ export default function AccessoriesList({
                       )}
                       <td className="px-4 py-3 text-white/90">
                         {item.equipmentName || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-white/80 max-w-[140px] truncate" title={item.locationName || ""}>
+                        {item.locationName?.trim() ? item.locationName : "—"}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -474,6 +478,7 @@ function AccessoryViewModal({ item, showEquipmentNo, onClose, onEdit }) {
               <DetailRow label="Category" value={item.category} />
               <DetailRow label="Status" value={item.status} />
               <DetailRow label="Placed In" value={item.placedIn} />
+              <DetailRow label="Location" value={item.locationName} />
               <DetailRow label="Purchase Date" value={formatDetailDate(item.purchaseDate)} />
               <DetailRow label="Specification" value={item.specification} full />
               <DetailRow label="Remarks" value={item.remarks} full />

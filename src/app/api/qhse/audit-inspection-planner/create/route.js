@@ -73,7 +73,7 @@ export async function POST(req) {
           const filePath = await saveQhseFile({
             formCode: "QAF-OFD-048",
             date: recordDate,
-            title: cat.category || "Audit-Inspection",
+            title: cat.title || cat.key || "Audit-Inspection",
             fileType: "documents",
             fileName: file.name,
             buffer,

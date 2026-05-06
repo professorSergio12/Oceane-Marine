@@ -659,10 +659,13 @@ export default function PoacMatrixListPage({ onRefresh }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-200 border-b border-white/10 bg-white/5">
-                      <th className="px-4 py-4 font-semibold w-[8%]">S.No</th>
-                      <th className="px-4 py-4 font-semibold w-[50%]">STS Service Provider</th>
-                      <th className="px-4 py-4 font-semibold text-center w-[15%]">No. of POACs</th>
-                      <th className="px-4 py-4 font-semibold text-right w-[27%]">Actions</th>
+                      <th className="px-4 py-4 font-semibold w-[7%]">S.No</th>
+                      <th className="px-4 py-4 font-semibold min-w-[140px] w-[22%]">
+                        STS Service Provider
+                      </th>
+                      <th className="px-4 py-4 font-semibold min-w-[160px] w-[28%]">POAC Name</th>
+                      <th className="px-4 py-4 font-semibold text-center w-[12%]">No. of POACs</th>
+                      <th className="px-4 py-4 font-semibold text-right w-[31%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -676,6 +679,18 @@ export default function PoacMatrixListPage({ onRefresh }) {
                         >
                           <td className="px-4 py-4 text-white/70 font-mono">{rowNum}</td>
                           <td className="px-4 py-4 text-white font-medium">{provider}</td>
+                          <td className="px-4 py-4 text-white/90 text-sm align-top">
+                            {poacNames.length > 0 ? (
+                              <span
+                                className="line-clamp-3 break-words"
+                                title={poacNames.join(", ")}
+                              >
+                                {poacNames.join(", ")}
+                              </span>
+                            ) : (
+                              <span className="text-white/40">—</span>
+                            )}
+                          </td>
                           <td className="px-4 py-4 text-center">
                             <span className="inline-flex items-center justify-center bg-orange-500/20 text-orange-300 text-xs font-bold px-2.5 py-1 rounded-full min-w-[28px]">
                               {poacCount}

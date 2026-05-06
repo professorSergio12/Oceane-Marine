@@ -72,6 +72,18 @@ function toDateInputValue(value) {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Certificate download via API so Save As uses the stored original file name and correct Content-Type.
+ * Direct `/uploads/...` links use the on-disk name (legacy `_docx` / `_pdf`).
+ */
+function primaryEquipmentCertificateDownloadUrl(equipmentId, kind) {
+  const id =
+    equipmentId != null && equipmentId !== "" ? String(equipmentId) : "";
+  if (!id) return "";
+  const type = kind === "manufacturing" ? "manufacturing" : "test";
+  return `/api/pms/equipment-inventory/primary-equipment/${id}/certificate/${type}`;
+}
+
 /** Export columns for one Primary Equipment record, in the order they appear in the detail view. */
 function getPrimaryEquipmentExportColumns() {
   return [
@@ -190,6 +202,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
   });
   const [pmsLocations, setPmsLocations] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  /** 'manufacturing' | 'test' while a single-cert archive request is in flight */
+  const [archivingCertScope, setArchivingCertScope] = useState(null);
   const [formError, setFormError] = useState(null);
   const [formSuccess, setFormSuccess] = useState(null);
   const [manufacturingCertificateFile, setManufacturingCertificateFile] = useState(null);
@@ -463,6 +477,43 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     setFormError(null);
     setFormSuccess(null);
     setActiveTab("form");
+  };
+
+  const handleArchiveCertificate = async (scope) => {
+    if (!editingEquipmentId || !canEdit) return;
+    const scopeLabel =
+      scope === "manufacturing"
+        ? "manufacturing certificate"
+        : "test certificate";
+    if (
+      !confirm(
+        `Archive the current ${scopeLabel} to QHSE Archive? A snapshot with equipment details and archive time will be stored. The equipment record will not change.`
+      )
+    ) {
+      return;
+    }
+    setArchivingCertScope(scope);
+    setFormError(null);
+    setFormSuccess(null);
+    try {
+      const res = await fetch(
+        `/api/pms/equipment-inventory/primary-equipment/${editingEquipmentId}/archive-certificates`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to archive certificate");
+      }
+      setFormSuccess(data.message || "Archived to QHSE Archive.");
+    } catch (err) {
+      setFormError(err.message || "Failed to archive certificate");
+    } finally {
+      setArchivingCertScope(null);
+    }
   };
 
   const handleDeleteEquipment = async (eq) => {
@@ -1056,7 +1107,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                               </div>
                               {canDownload ? (
                               <a
-                                href={selectedEquipmentDetail.manufacturingCertificate.fileUrl}
+                                href={
+                                  primaryEquipmentCertificateDownloadUrl(
+                                    selectedEquipmentDetail._id,
+                                    "manufacturing"
+                                  ) || selectedEquipmentDetail.manufacturingCertificate.fileUrl
+                                }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="Open or download"
@@ -1086,7 +1142,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                               </div>
                               {canDownload ? (
                               <a
-                                href={selectedEquipmentDetail.testCertificate.fileUrl}
+                                href={
+                                  primaryEquipmentCertificateDownloadUrl(
+                                    selectedEquipmentDetail._id,
+                                    "test"
+                                  ) || selectedEquipmentDetail.testCertificate.fileUrl
+                                }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="Open or download"
@@ -1454,6 +1515,11 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           </div>
 
           {/* Certificates */}
+          <p className="text-[11px] text-slate-400">
+            Uploading a new file and saving archives the previous file to QHSE Archive automatically.
+            Use the buttons below to archive the current manufacturing or test certificate without
+            replacing it.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-1">
@@ -1466,7 +1532,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       Current
                     </span>
                     <a
-                      href={existingManufacturingCert.fileUrl}
+                      href={
+                        primaryEquipmentCertificateDownloadUrl(
+                          editingEquipmentId,
+                          "manufacturing"
+                        ) || existingManufacturingCert.fileUrl
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 truncate text-xs text-emerald-200 hover:text-emerald-100 underline"
@@ -1479,13 +1550,34 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                         existingManufacturingCert.fileUrl.split("/").pop()}
                     </a>
                     <a
-                      href={existingManufacturingCert.fileUrl}
+                      href={
+                        primaryEquipmentCertificateDownloadUrl(
+                          editingEquipmentId,
+                          "manufacturing"
+                        ) || existingManufacturingCert.fileUrl
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] font-semibold text-sky-300 hover:text-sky-200 underline shrink-0"
                     >
                       View / Download
                     </a>
+                  </div>
+                )}
+              {editingEquipmentId &&
+                canEdit &&
+                existingManufacturingCert?.fileUrl && (
+                  <div className="mb-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleArchiveCertificate("manufacturing")}
+                      disabled={archivingCertScope !== null}
+                      className="rounded-lg border border-amber-400/45 bg-amber-500/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {archivingCertScope === "manufacturing"
+                        ? "Archiving…"
+                        : "Archive manufacturing cert"}
+                    </button>
                   </div>
                 )}
               <input
@@ -1504,7 +1596,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
               {existingManufacturingCert?.fileUrl && (
                 <p className="mt-1 text-[10px] text-slate-400">
                   {manufacturingCertificateFile
-                    ? "New upload will replace the current certificate on save."
+                    ? "New upload replaces the current file on save; the previous version is saved to QHSE Archive first."
                     : "Leave empty to keep the current certificate."}
                 </p>
               )}
@@ -1519,7 +1611,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                     Current
                   </span>
                   <a
-                    href={existingTestCert.fileUrl}
+                    href={
+                      primaryEquipmentCertificateDownloadUrl(
+                        editingEquipmentId,
+                        "test"
+                      ) || existingTestCert.fileUrl
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 truncate text-xs text-emerald-200 hover:text-emerald-100 underline"
@@ -1532,13 +1629,32 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       existingTestCert.fileUrl.split("/").pop()}
                   </a>
                   <a
-                    href={existingTestCert.fileUrl}
+                    href={
+                      primaryEquipmentCertificateDownloadUrl(
+                        editingEquipmentId,
+                        "test"
+                      ) || existingTestCert.fileUrl
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] font-semibold text-sky-300 hover:text-sky-200 underline shrink-0"
                   >
                     View / Download
                   </a>
+                </div>
+              )}
+              {editingEquipmentId && canEdit && existingTestCert?.fileUrl && (
+                <div className="mb-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleArchiveCertificate("test")}
+                    disabled={archivingCertScope !== null}
+                    className="rounded-lg border border-amber-400/45 bg-amber-500/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {archivingCertScope === "test"
+                      ? "Archiving…"
+                      : "Archive test cert"}
+                  </button>
                 </div>
               )}
               <input
@@ -1557,7 +1673,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
               {existingTestCert?.fileUrl && (
                 <p className="mt-1 text-[10px] text-slate-400">
                   {testCertificateFile
-                    ? "New upload will replace the current certificate on save."
+                    ? "New upload replaces the current file on save; the previous version is saved to QHSE Archive first."
                     : "Leave empty to keep the current certificate."}
                 </p>
               )}

@@ -1,23 +1,6 @@
-import { Suspense } from "react";
-import QhseSidebar from "../../components/QhseSidebar";
-import SideBarSkeleton from "../../components/SideBarSkeleton";
-import AuditInspectionPlannerListPage from "./AuditInspectionPlannerListPage";
+import { redirect } from "next/navigation";
 
-import QhseSuspenseFallback from "@/app/qhse/components/QhseSuspenseFallback";
-export default function AuditInspectionPlannerListPageWrapper() {
-  return (
-    <div className="min-h-screen bg-transparent text-white flex">
-      {/* Sidebar */}
-      <Suspense fallback={<SideBarSkeleton />}>
-        <QhseSidebar />
-      </Suspense>
-
-      {/* Main content */}
-      <Suspense
-        fallback={<QhseSuspenseFallback />}
-      >
-        <AuditInspectionPlannerListPage />
-      </Suspense>
-    </div>
-  );
+/** List UI removed — planner is edited only from the year-based form. */
+export default function AuditInspectionPlannerListRedirectPage() {
+  redirect("/qhse/audit-inspection-planner/form");
 }

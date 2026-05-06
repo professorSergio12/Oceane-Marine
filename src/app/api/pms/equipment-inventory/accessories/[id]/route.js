@@ -6,21 +6,14 @@ import Accessories from "@/lib/mongodb/models/pms/Accessories.js";
 import { connectDB } from "@/lib/config/connection.js";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 import { NOTIFICATION_MODULES, notifyDelete, notifyEdit } from "@/lib/notifications/moduleNotify";
-
-const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
-
-/** Preserve the file extension so the static server can send the correct Content-Type. */
-const sanitizeFileName = (fileName) => {
-  const lastDot = fileName.lastIndexOf(".");
-  if (lastDot <= 0 || lastDot === fileName.length - 1) {
-    return sanitize(fileName);
-  }
-  const base = fileName.slice(0, lastDot);
-  const ext = fileName.slice(lastDot + 1);
-  const safeBase = sanitize(base);
-  const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "");
-  return safeExt ? `${safeBase}.${safeExt.toLowerCase()}` : safeBase;
-};
+import {
+  createPmsInventoryCertificateArchiveEntry,
+  PMS_ACCESSORIES_CERT_ARCHIVE_MODULE,
+} from "@/lib/pms/createPmsInventoryCertificateArchiveEntry";
+import {
+  sanitizePmsPathSegment as sanitize,
+  sanitizePmsUploadedFileName as sanitizeFileName,
+} from "@/lib/utils/pms-upload-filename";
 
 export async function PATCH(req, { params }) {
   const guard = await assertPmsPermission("canEdit");
@@ -52,6 +45,8 @@ export async function PATCH(req, { params }) {
     const putInUse = formData.get("putInUse") === "true";
     const putInUseDate = formData.get("putInUseDate");
     const placedIn = formData.get("placedIn");
+    const locationName =
+      (formData.get("locationName") && String(formData.get("locationName"))) || "";
     const occasionalTrackTestSchedule =
       formData.get("occasionalTrackTestSchedule") === "true";
     const occasionalTestDate = formData.get("occasionalTestDate");
@@ -129,6 +124,7 @@ export async function PATCH(req, { params }) {
     const updatePayload = {
       equipmentName: String(equipmentName).trim(),
       placedIn,
+      locationName: locationName.trim(),
       putInUse: putInUse || false,
       status: category === "OCCASIONAL" ? status : "ACTIVE",
     };
@@ -200,12 +196,48 @@ export async function PATCH(req, { params }) {
     }
 
     const manufacturingCertFile = formData.get("manufacturingCertificate");
-    if (
+    const hasNewManufacturingFile =
       manufacturingCertFile &&
       typeof manufacturingCertFile !== "string" &&
       manufacturingCertFile.name &&
-      manufacturingCertFile.size > 0
-    ) {
+      manufacturingCertFile.size > 0;
+
+    const testCertFile = formData.get("testCertificate");
+    const hasNewTestFile =
+      testCertFile &&
+      typeof testCertFile !== "string" &&
+      testCertFile.name &&
+      testCertFile.size > 0;
+
+    const prevManufacturingUrl =
+      existing.manufacturingCertificate?.fileUrl?.trim?.() || "";
+    const prevTestUrl = existing.testCertificate?.fileUrl?.trim?.() || "";
+
+    const shouldArchiveBeforeCertReplace =
+      (hasNewManufacturingFile && prevManufacturingUrl) ||
+      (hasNewTestFile && prevTestUrl);
+
+    if (shouldArchiveBeforeCertReplace) {
+      const parts = [];
+      if (hasNewManufacturingFile && prevManufacturingUrl) {
+        parts.push("manufacturing certificate replaced");
+      }
+      if (hasNewTestFile && prevTestUrl) {
+        parts.push("test certificate replaced");
+      }
+      await createPmsInventoryCertificateArchiveEntry({
+        doc: existing,
+        moduleLabel: PMS_ACCESSORIES_CERT_ARCHIVE_MODULE,
+        inventoryKind: "accessories",
+        archiveReason: parts.join("; ") || "Certificate files replaced",
+        triggeredBy: "replace_on_save",
+        replacedManufacturing: !!(hasNewManufacturingFile && prevManufacturingUrl),
+        replacedTest: !!(hasNewTestFile && prevTestUrl),
+        scope: "both",
+      });
+    }
+
+    if (hasNewManufacturingFile) {
       const identifier =
         category === "REGULAR"
           ? sanitize(String(equipmentNo).trim())
@@ -226,13 +258,7 @@ export async function PATCH(req, { params }) {
       };
     }
 
-    const testCertFile = formData.get("testCertificate");
-    if (
-      testCertFile &&
-      typeof testCertFile !== "string" &&
-      testCertFile.name &&
-      testCertFile.size > 0
-    ) {
+    if (hasNewTestFile) {
       const identifier =
         category === "REGULAR"
           ? sanitize(String(equipmentNo).trim())

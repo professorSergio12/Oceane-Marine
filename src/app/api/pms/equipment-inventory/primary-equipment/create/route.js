@@ -6,8 +6,10 @@ import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 import { NOTIFICATION_MODULES, notifyCreate } from "@/lib/notifications/moduleNotify";
-
-const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
+import {
+  sanitizePmsPathSegment as sanitize,
+  sanitizePmsUploadedFileName,
+} from "@/lib/utils/pms-upload-filename";
 
 export async function POST(req) {
   const guard = await assertPmsPermission("canCreate");
@@ -69,7 +71,7 @@ export async function POST(req) {
       await fs.mkdir(baseDir, { recursive: true });
 
       const buffer = Buffer.from(await manufacturingCertFile.arrayBuffer());
-      const fileName = `${Date.now()}-${sanitize(manufacturingCertFile.name)}`;
+      const fileName = `${Date.now()}-${sanitizePmsUploadedFileName(manufacturingCertFile.name)}`;
       const filePath = path.join(baseDir, fileName);
       await fs.writeFile(filePath, buffer);
 
@@ -88,7 +90,7 @@ export async function POST(req) {
       await fs.mkdir(baseDir, { recursive: true });
 
       const buffer = Buffer.from(await testCertFile.arrayBuffer());
-      const fileName = `${Date.now()}-${sanitize(testCertFile.name)}`;
+      const fileName = `${Date.now()}-${sanitizePmsUploadedFileName(testCertFile.name)}`;
       const filePath = path.join(baseDir, fileName);
       await fs.writeFile(filePath, buffer);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import AccessoriesList from "./AccessoriesList";
 import { usePmsRole } from "@/hooks/usePmsRole";
 
@@ -37,6 +37,7 @@ const defaultFormState = () => ({
   putInUse: false,
   putInUseDate: "",
   placedIn: "OFFICE",
+  locationName: "",
 });
 
 export default function Accessories({ view: controlledView, onViewChange }) {
@@ -63,6 +64,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
   const [form, setForm] = useState(defaultFormState);
 
   const [saving, setSaving] = useState(false);
+  const [archivingCertScope, setArchivingCertScope] = useState(null);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [manufacturingCertificateFile, setManufacturingCertificateFile] = useState(null);
@@ -100,6 +102,20 @@ export default function Accessories({ view: controlledView, onViewChange }) {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showLocationDropdown]);
+
+  const accessoryLocationNames = useMemo(() => {
+    const names = (locations || [])
+      .map((l) => (typeof l?.name === "string" ? l.name.trim() : ""))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    const nameSet = new Set(names);
+    const cur = (form.locationName || "").trim();
+    if (cur && !nameSet.has(cur)) {
+      names.push(cur);
+      names.sort((a, b) => a.localeCompare(b));
+    }
+    return names;
+  }, [locations, form.locationName]);
 
   /** Banners are for the current tab only — avoid showing Regular save success under Occasional (and vice versa) */
   useEffect(() => {
@@ -156,6 +172,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
       putInUse: !!item.putInUse,
       putInUseDate: toDateInputValue(item.putInUseDate),
       placedIn: item.placedIn || "OFFICE",
+      locationName: item.locationName || "",
     });
     setManufacturingCertificateFile(null);
     setTestCertificateFile(null);
@@ -185,6 +202,45 @@ export default function Accessories({ view: controlledView, onViewChange }) {
     setMessage(null);
     setError(null);
     setView("form");
+  };
+
+  const handleArchiveCertificate = async (scope) => {
+    if (!editingAccessoryId || !canEdit) return;
+    const scopeLabel =
+      scope === "manufacturing"
+        ? "manufacturing certificate"
+        : "test certificate";
+    if (
+      !confirm(
+        `Archive the current ${scopeLabel} to QHSE Archive? A snapshot with accessory details and archive time will be stored. This accessory will not change.`
+      )
+    ) {
+      return;
+    }
+    setArchivingCertScope(scope);
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/pms/equipment-inventory/accessories/${editingAccessoryId}/archive-certificates`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to archive certificate");
+      }
+      setMessage(data.message || "Archived to QHSE Archive.");
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err) {
+      setError(err.message || "Failed to archive certificate");
+      setTimeout(() => setError(null), 8000);
+    } finally {
+      setArchivingCertScope(null);
+    }
   };
 
   // Handle save
@@ -240,6 +296,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
       formData.append("putInUse", form.putInUse ? "true" : "false");
       if (form.putInUse && form.putInUseDate) formData.append("putInUseDate", form.putInUseDate);
       formData.append("placedIn", form.placedIn);
+      formData.append("locationName", (form.locationName || "").trim());
 
       if (category === "REGULAR") {
         formData.append("equipmentNo", form.equipmentNo.trim());
@@ -622,29 +679,54 @@ export default function Accessories({ view: controlledView, onViewChange }) {
           )}
         </div>
 
-        {/* Placed In */}
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-white/90">
-            Placed in:
-          </label>
-          <div className="flex gap-4">
-            {["OFFICE", "BAY", "BASE"].map((loc) => (
-              <label key={loc} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="placedIn"
-                  value={loc}
-                  checked={form.placedIn === loc}
-                  onChange={(e) => setForm({ ...form, placedIn: e.target.value })}
-                  className="h-5 w-5 rounded-full border-white/50 bg-transparent text-orange-400 focus:ring-orange-400 cursor-pointer"
-                />
-                <span className="text-sm text-white/90">{loc}</span>
-              </label>
-            ))}
+        {/* Placed In + Location (same row on large screens) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
+          <div className="lg:col-span-7 space-y-3">
+            <label className="block text-sm font-semibold text-white/90">
+              Placed in:
+            </label>
+            <div className="flex flex-wrap gap-4">
+              {["OFFICE", "BAY", "BASE"].map((loc) => (
+                <label key={loc} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="placedIn"
+                    value={loc}
+                    checked={form.placedIn === loc}
+                    onChange={(e) => setForm({ ...form, placedIn: e.target.value })}
+                    className="h-5 w-5 rounded-full border-white/50 bg-transparent text-orange-400 focus:ring-orange-400 cursor-pointer"
+                  />
+                  <span className="text-sm text-white/90">{loc}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="lg:col-span-5 space-y-2">
+            <label className="block text-sm font-semibold text-white/90">
+              Location
+            </label>
+            <select
+              value={form.locationName}
+              onChange={(e) =>
+                setForm({ ...form, locationName: e.target.value })
+              }
+              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition"
+            >
+              <option value="">Select location</option>
+              {accessoryLocationNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
         {/* Certificates */}
+        <p className="text-[11px] text-slate-400">
+          Saving a new upload replaces the file on the server; the previous file is archived to QHSE
+          Archive first. Use the buttons under each certificate to archive without replacing.
+        </p>
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-white/90">
@@ -679,6 +761,22 @@ export default function Accessories({ view: controlledView, onViewChange }) {
                   </a>
                 </div>
               )}
+            {editingAccessoryId &&
+              canEdit &&
+              existingManufacturingCert?.fileUrl && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleArchiveCertificate("manufacturing")}
+                    disabled={archivingCertScope !== null}
+                    className="rounded-lg border border-amber-400/45 bg-amber-500/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {archivingCertScope === "manufacturing"
+                      ? "Archiving…"
+                      : "Archive manufacturing cert"}
+                  </button>
+                </div>
+              )}
             <input
               type="file"
               name="manufacturingCertificate"
@@ -695,7 +793,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
             {existingManufacturingCert?.fileUrl && (
               <p className="text-[10px] text-slate-400">
                 {manufacturingCertificateFile
-                  ? "New upload will replace the current certificate on save."
+                  ? "New upload replaces the current file on save; the previous version is saved to QHSE Archive first."
                   : "Leave empty to keep the current certificate."}
               </p>
             )}
@@ -732,6 +830,20 @@ export default function Accessories({ view: controlledView, onViewChange }) {
                 </a>
               </div>
             )}
+            {editingAccessoryId && canEdit && existingTestCert?.fileUrl && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleArchiveCertificate("test")}
+                  disabled={archivingCertScope !== null}
+                  className="rounded-lg border border-amber-400/45 bg-amber-500/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {archivingCertScope === "test"
+                    ? "Archiving…"
+                    : "Archive test cert"}
+                </button>
+              </div>
+            )}
             <input
               type="file"
               name="testCertificate"
@@ -748,7 +860,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
             {existingTestCert?.fileUrl && (
               <p className="text-[10px] text-slate-400">
                 {testCertificateFile
-                  ? "New upload will replace the current certificate on save."
+                  ? "New upload replaces the current file on save; the previous version is saved to QHSE Archive first."
                   : "Leave empty to keep the current certificate."}
               </p>
             )}

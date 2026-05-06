@@ -5,6 +5,10 @@ import path from "path";
 import fs from "fs/promises";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 import { NOTIFICATION_MODULES, notifyEdit } from "@/lib/notifications/moduleNotify";
+import {
+  sanitizePmsPathSegment,
+  sanitizePmsUploadedFileName,
+} from "@/lib/utils/pms-upload-filename";
 
 export async function PUT(req, ctx) {
     const guard = await assertPmsPermission("canEdit");
@@ -63,13 +67,12 @@ export async function PUT(req, ctx) {
             );
         }
 
-        const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
         const baseDir = path.join(
             process.cwd(),
             "public/uploads/certificates",
-            sanitize(locationName.trim()),
-            sanitize(equipmentName.trim()),
-            sanitize(equipmentType.trim())
+            sanitizePmsPathSegment(locationName.trim()),
+            sanitizePmsPathSegment(equipmentName.trim()),
+            sanitizePmsPathSegment(equipmentType.trim())
         );
         await fs.mkdir(baseDir, { recursive: true });
 
@@ -93,10 +96,10 @@ export async function PUT(req, ctx) {
 
             // Save new file
             const manufacturingBuffer = Buffer.from(await manufacturingFile.arrayBuffer());
-            const manufacturingFileName = `manufacturing-${Date.now()}-${sanitize(manufacturingFile.name)}`;
+            const manufacturingFileName = `manufacturing-${Date.now()}-${sanitizePmsUploadedFileName(manufacturingFile.name)}`;
             const manufacturingFilePath = path.join(baseDir, manufacturingFileName);
             await fs.writeFile(manufacturingFilePath, manufacturingBuffer);
-            const manufacturingFileUrl = `/uploads/certificates/${sanitize(locationName.trim())}/${sanitize(equipmentName.trim())}/${sanitize(equipmentType.trim())}/${manufacturingFileName}`;
+            const manufacturingFileUrl = `/uploads/certificates/${sanitizePmsPathSegment(locationName.trim())}/${sanitizePmsPathSegment(equipmentName.trim())}/${sanitizePmsPathSegment(equipmentType.trim())}/${manufacturingFileName}`;
 
             existing.manufacturingCertificate = {
                 fileUrl: manufacturingFileUrl,
@@ -118,10 +121,10 @@ export async function PUT(req, ctx) {
 
             // Save new file
             const testBuffer = Buffer.from(await testFile.arrayBuffer());
-            const testFileName = `test-${Date.now()}-${sanitize(testFile.name)}`;
+            const testFileName = `test-${Date.now()}-${sanitizePmsUploadedFileName(testFile.name)}`;
             const testFilePath = path.join(baseDir, testFileName);
             await fs.writeFile(testFilePath, testBuffer);
-            const testFileUrl = `/uploads/certificates/${sanitize(locationName.trim())}/${sanitize(equipmentName.trim())}/${sanitize(equipmentType.trim())}/${testFileName}`;
+            const testFileUrl = `/uploads/certificates/${sanitizePmsPathSegment(locationName.trim())}/${sanitizePmsPathSegment(equipmentName.trim())}/${sanitizePmsPathSegment(equipmentType.trim())}/${testFileName}`;
 
             existing.testCertificate = {
                 fileUrl: testFileUrl,

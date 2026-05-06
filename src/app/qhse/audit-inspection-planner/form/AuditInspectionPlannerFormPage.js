@@ -4,8 +4,13 @@ import { useQhseSidebar } from "../../QhseSidebarContext";
 import { useQhseRole } from "@/hooks/useQhseRole";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { TemplateDownloadLink } from "../../components/TemplateDownloadLink";
+import { ActionEditIcon, ActionDeleteIcon } from "@/app/components/RecordActionIcons";
+
+function auditPlannerDescInputId(catKey, rowId) {
+  return `audit-planner-${catKey}-${rowId}-desc`;
+}
 
 const defaultCategories = [
   { key: "stsBaseAudit", title: "STS Base Audit" },
@@ -23,6 +28,7 @@ const columns = [
   { key: "auditorName", label: "Auditor Name" },
   { key: "auditDate", label: "Audit Date" },
   { key: "remarks", label: "Remarks" },
+  { key: "actions", label: "Actions" },
   { key: "file", label: "File Upload" },
 ];
 
@@ -35,10 +41,11 @@ function getYears() {
 
 export default function AuditInspectionPlannerFormPage() {
   const { contentClassName } = useQhseSidebar();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get("edit") || null;
-  const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
-  const canSubmit = editId ? canEdit : canCreate;
+  const legacyEditId = searchParams.get("edit") || null;
+  const { canCreate, canEdit, canDownload, canView } = useQhseRole();
+  const canSubmit = canCreate || canEdit;
 
   const [formMeta, setFormMeta] = useState({
     issueDate: new Date().toISOString().split("T")[0],
@@ -52,10 +59,10 @@ export default function AuditInspectionPlannerFormPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [loadingEdit, setLoadingEdit] = useState(!!editId);
-  // True while we're fetching the existing tracker for the chosen year so the
-  // form can show old + new entries together. Only used in tracker mode (no
-  // explicit editId in the URL).
+  const [loadingLegacyEdit, setLoadingLegacyEdit] = useState(!!legacyEditId);
+  /** Mongo _id of the single tracker document for this year (for row attachment downloads) */
+  const [trackerDocumentId, setTrackerDocumentId] = useState(null);
+  // True while we're fetching the existing tracker for the chosen year.
   const [loadingTracker, setLoadingTracker] = useState(false);
   // Existing rows count per category at the moment the tracker was loaded —
   // used to render the small "previously saved" hint.
@@ -107,54 +114,75 @@ export default function AuditInspectionPlannerFormPage() {
     if (p.version) setVersion(p.version);
     if (p.year != null) setYear(Number(p.year));
     if (p.status) setStatus(p.status);
+    setTrackerDocumentId(p._id ? String(p._id) : null);
     if (Array.isArray(p.categories) && p.categories.length > 0) {
       const next = {};
       let totalRows = 0;
       defaultCategories.forEach((cat) => {
         const found = p.categories.find((c) => c.key === cat.key);
-        const rows = (found?.rows || []).map((r) => ({
-          ...r,
-          id: r.rowId || r.id || crypto.randomUUID(),
-          rowId: r.rowId || r.id,
-        }));
+        const rows = (found?.rows || []).map((r) => {
+          const rowId = r.rowId || r.id || crypto.randomUUID();
+          let auditDateVal = r.auditDate;
+          if (auditDateVal) {
+            const d = new Date(auditDateVal);
+            auditDateVal = Number.isNaN(d.getTime())
+              ? ""
+              : d.toISOString().split("T")[0];
+          } else {
+            auditDateVal = "";
+          }
+          return {
+            ...r,
+            id: rowId,
+            rowId,
+            auditDate: auditDateVal,
+          };
+        });
         next[cat.key] = rows;
         totalRows += rows.length;
       });
       setRowsByCategory(next);
       setTrackerSnapshotCount(totalRows);
     } else {
+      setRowsByCategory(
+        Object.fromEntries(defaultCategories.map((c) => [c.key, []]))
+      );
       setTrackerSnapshotCount(0);
     }
   };
 
+  /** Old bookmarks: ?edit=id → hydrate that doc then continue as year tracker */
   useEffect(() => {
-    if (!editId) {
-      setLoadingEdit(false);
+    if (!legacyEditId) {
+      setLoadingLegacyEdit(false);
       return;
     }
+    let cancelled = false;
     const loadPlanner = async () => {
-      setLoadingEdit(true);
+      setLoadingLegacyEdit(true);
       setError("");
       try {
-        const res = await fetch(`/api/qhse/audit-inspection-planner/${editId}`);
+        const res = await fetch(`/api/qhse/audit-inspection-planner/${legacyEditId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load planner");
+        if (cancelled) return;
         hydrateFromPlanner(data.data);
+        router.replace("/qhse/audit-inspection-planner/form", { scroll: false });
       } catch (err) {
-        setError(err.message || "Failed to load planner");
+        if (!cancelled) setError(err.message || "Failed to load planner");
       } finally {
-        setLoadingEdit(false);
+        if (!cancelled) setLoadingLegacyEdit(false);
       }
     };
     loadPlanner();
-  }, [editId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [legacyEditId, router]);
 
-  // Tracker mode: when the user opens the planner form without an explicit
-  // edit id, we treat it as the live "tracker sheet" for the chosen year.
-  // Switching the year reloads that year's tracker so old entries always
-  // appear together with whatever the user is about to add.
+  // Year drives the tracker: fetch that year's document or show an empty form.
   useEffect(() => {
-    if (editId) return; // edit-by-id flow owns the rows in that case
+    if (legacyEditId) return;
     let cancelled = false;
     const loadTracker = async () => {
       setLoadingTracker(true);
@@ -171,9 +199,7 @@ export default function AuditInspectionPlannerFormPage() {
         if (data.data) {
           hydrateFromPlanner(data.data);
         } else {
-          // No tracker for this year yet — start with empty rows so the user
-          // can add the first entries. Keep formCode/version from the code
-          // bootstrap effect.
+          setTrackerDocumentId(null);
           setRowsByCategory(
             Object.fromEntries(defaultCategories.map((c) => [c.key, []]))
           );
@@ -192,7 +218,7 @@ export default function AuditInspectionPlannerFormPage() {
     return () => {
       cancelled = true;
     };
-  }, [year, editId]);
+  }, [year, legacyEditId]);
 
   const addRow = (catKey) => {
     const rowId = crypto.randomUUID();
@@ -222,6 +248,20 @@ export default function AuditInspectionPlannerFormPage() {
         row.id === rowId ? { ...row, [field]: value } : row
       ),
     }));
+  };
+
+  const removeRow = (catKey, rowId) => {
+    if (!canSubmit) return;
+    if (!confirm("Remove this row from the planner?")) return;
+    setRowsByCategory((prev) => ({
+      ...prev,
+      [catKey]: (prev[catKey] || []).filter((row) => row.id !== rowId),
+    }));
+    setFilesByRowId((prev) => {
+      const next = { ...prev };
+      delete next[rowId];
+      return next;
+    });
   };
 
   const handleFileChange = (rowId, file) => {
@@ -302,28 +342,23 @@ export default function AuditInspectionPlannerFormPage() {
         }
       });
 
-      const url = editId
-        ? `/api/qhse/audit-inspection-planner/${editId}`
-        : "/api/qhse/audit-inspection-planner/create";
-      const res = await fetch(url, {
-        method: editId ? "PUT" : "POST",
+      const res = await fetch("/api/qhse/audit-inspection-planner/create", {
+        method: "POST",
         body: formData,
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || (editId ? "Failed to update planner" : "Failed to save planner"));
+      if (!res.ok) throw new Error(data.error || "Failed to save planner");
 
       const savedCode = data?.data?.formCode || "—";
       const savedSerial = data?.data?.serialNumber || "—";
-      const mode = data?.mode; // "created" | "updated" | undefined (legacy edit)
+      const mode = data?.mode;
       setSuccess(
-        editId
-          ? "Planner updated successfully."
-          : mode === "updated"
-            ? `Tracker updated for ${year}. New entries are now part of the main tracker (Serial: ${savedSerial}).`
-            : savedSerial !== "—"
-              ? `Tracker started for ${year}. Form code: ${savedCode} • Serial: ${savedSerial}`
-              : `Tracker started for ${year}. Form code: ${savedCode}`
+        mode === "updated"
+          ? `Saved planner for ${year} (Serial: ${savedSerial}).`
+          : savedSerial !== "—"
+            ? `Planner started for ${year}. Form code: ${savedCode} • Serial: ${savedSerial}`
+            : `Planner started for ${year}. Form code: ${savedCode}`
       );
       if (data?.data?.formCode) setFormCode(data.data.formCode);
       if (data?.data?.serialNumber) setSerialNumber(data.data.serialNumber);
@@ -346,7 +381,7 @@ export default function AuditInspectionPlannerFormPage() {
     }
   };
 
-  if (loadingEdit) {
+  if (loadingLegacyEdit) {
     return (
       <div className={`${contentClassName} w-full min-w-0 pr-4 flex items-center justify-center py-20`}>
         <p className="text-slate-300">Loading planner…</p>
@@ -368,27 +403,13 @@ export default function AuditInspectionPlannerFormPage() {
             <p className="text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.25em] text-sky-300">
               QHSE / Audit & Inspection Planner
             </p>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">{editId ? "Edit Planner" : "Audit & Inspection Planner"}</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Audit & Inspection Planner</h1>
             <p className="text-xs sm:text-sm text-slate-200 mt-1">
               Form code: <span className="font-mono font-semibold text-sky-300">QAF-OFD-048</span>
             </p>
           </div>
           <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
             <TemplateDownloadLink formCode="QAF-OFD-048" />
-            <div className="inline-flex max-w-full flex-wrap justify-center rounded-lg sm:rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-              <Link
-                href="/qhse/audit-inspection-planner/form"
-                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
-              >
-                Planner Form
-              </Link>
-              <Link
-                href="/qhse/audit-inspection-planner/list"
-                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white/90 hover:bg-white/10 transition"
-              >
-                Planner List
-              </Link>
-            </div>
           </div>
         </header>
 
@@ -420,38 +441,32 @@ export default function AuditInspectionPlannerFormPage() {
             </div>
           )}
 
-          {/* Tracker mode banner — explains that this form is the live master
-              sheet for the chosen year and that any new entries are appended
-              to the existing ones rather than spawning a new record. */}
-          {!editId && (
-            <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
-              {loadingTracker ? (
-                <span className="text-sky-200">Loading {year} tracker…</span>
-              ) : (
-                <>
-                  <span className="font-semibold">Tracker for {year}.</span>{" "}
-                  {trackerSnapshotCount > 0 ? (
-                    <>
-                      Showing <span className="font-semibold">{trackerSnapshotCount}</span>{" "}
-                      previously saved {trackerSnapshotCount === 1 ? "entry" : "entries"}.
-                      Add new rows below — saving will append them to the same
-                      tracker, not create a new record.
-                    </>
-                  ) : (
-                    <>
-                      No entries yet for {year}. Add the first rows below — the
-                      tracker will be created on save and every future entry for
-                      this year will be appended to it.
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+          <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+            {loadingTracker ? (
+              <span className="text-sky-200">Loading {year}…</span>
+            ) : (
+              <>
+                <span className="font-semibold">Year {year}.</span>{" "}
+                {trackerSnapshotCount > 0 ? (
+                  <>
+                    <span className="font-semibold">{trackerSnapshotCount}</span>{" "}
+                    {trackerSnapshotCount === 1 ? "row" : "rows"} loaded — edit, delete
+                    rows, attach files, then save. Change year above to load another year
+                    (empty form if none saved yet).
+                  </>
+                ) : (
+                  <>
+                    No saved planner for {year} yet. Add rows below and save to create
+                    one. Switch year anytime to work on a different year.
+                  </>
+                )}
+              </>
+            )}
+          </div>
 
           {!canSubmit && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-amber-100 text-sm">
-              You do not have permission to {editId ? "edit" : "create"} records. Form is view-only.
+              You do not have permission to edit this planner. Form is view-only.
             </div>
           )}
 
@@ -480,15 +495,54 @@ export default function AuditInspectionPlannerFormPage() {
                       const rowId = row.rowId || row.id;
                       const file = filesByRowId[rowId];
                       return (
-                        <tr key={row.id} className="border-b border-white/5">
+                        <tr key={row.id} className="border-b border-white/5 align-middle">
                           {columns.map((col) => {
-                            if (col.key === "file") {
+                            if (col.key === "actions") {
                               return (
-                                <td key={col.key} className="px-4 py-2 min-w-[180px]">
+                                <td
+                                  key={col.key}
+                                  className="px-4 py-2 align-middle whitespace-nowrap w-[1%]"
+                                >
+                                  {canSubmit ? (
+                                    <div className="flex items-center justify-center gap-1 min-h-[42px]">
+                                      <ActionEditIcon
+                                        title="Focus description field"
+                                        onClick={() => {
+                                          const el = document.getElementById(
+                                            auditPlannerDescInputId(cat.key, row.id)
+                                          );
+                                          el?.focus?.();
+                                          el?.scrollIntoView?.({
+                                            block: "nearest",
+                                            behavior: "smooth",
+                                          });
+                                        }}
+                                      />
+                                      <ActionDeleteIcon
+                                        title="Delete row"
+                                        onClick={() => removeRow(cat.key, row.id)}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center min-h-[42px]">
+                                      <span className="text-white/30 text-xs">—</span>
+                                    </div>
+                                  )}
+                                </td>
+                              );
+                            }
+                            if (col.key === "file") {
+                              const hasSavedFile = Boolean(row.fileUrl && row.fileName);
+                              const downloadHref =
+                                trackerDocumentId && row.fileUrl
+                                  ? `/api/qhse/audit-inspection-planner/${trackerDocumentId}/row-attachment?rowId=${encodeURIComponent(rowId)}`
+                                  : null;
+                              return (
+                                <td key={col.key} className="px-4 py-2 min-w-[200px] align-middle">
                                   <div className="space-y-2">
                                     {file ? (
                                       <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/30">
-                                        <div className="flex-shrink-0">
+                                        <div className="shrink-0">
                                           <svg
                                             className="h-5 w-5 text-emerald-400"
                                             fill="none"
@@ -508,59 +562,89 @@ export default function AuditInspectionPlannerFormPage() {
                                             {file.name}
                                           </p>
                                           <p className="text-[10px] text-slate-400">
-                                            {formatFileSize(file.size)}
+                                            {formatFileSize(file.size)} · replaces file on save
                                           </p>
                                         </div>
                                         <button
                                           type="button"
                                           onClick={() => handleRemoveFile(rowId)}
-                                          className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-400/40 bg-red-500/10 hover:bg-red-500/20 transition flex-shrink-0"
-                                          title="Remove file"
+                                          className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-400/40 bg-red-500/10 hover:bg-red-500/20 transition shrink-0"
+                                          title="Remove new upload"
                                         >
                                           ✕
                                         </button>
                                       </div>
                                     ) : (
-                                      <label className="block">
-                                        <input
-                                          type="file"
-                                          onChange={(e) =>
-                                            handleFileChange(rowId, e.target.files?.[0] || null)
-                                          }
-                                          accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.jpg,.jpeg,.png"
-                                          className="hidden"
-                                        />
-                                        <div className="cursor-pointer px-3 py-2 rounded-lg bg-white/5 border border-dashed border-white/20 hover:bg-white/10 hover:border-white/30 transition text-xs text-white text-center flex items-center justify-center gap-1.5">
-                                          <svg
-                                            className="h-4 w-4"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth={2}
-                                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                      <>
+                                        {hasSavedFile && (
+                                          <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-2 space-y-1.5">
+                                            <p className="text-[11px] text-white/80 truncate" title={row.fileName}>
+                                              {row.fileName}
+                                            </p>
+                                            {(canView || canDownload) && downloadHref ? (
+                                              <a
+                                                href={downloadHref}
+                                                download={row.fileName || "attachment"}
+                                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-300 hover:text-sky-200 underline"
+                                              >
+                                                Download
+                                              </a>
+                                            ) : (
+                                              <span className="text-[10px] text-white/40">
+                                                Save planner once to enable download
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                        {canSubmit ? (
+                                          <label className={`block ${hasSavedFile ? "mt-1" : ""}`}>
+                                            <input
+                                              type="file"
+                                              onChange={(e) =>
+                                                handleFileChange(rowId, e.target.files?.[0] || null)
+                                              }
+                                              accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.jpg,.jpeg,.png"
+                                              className="hidden"
                                             />
-                                          </svg>
-                                          Upload File
-                                        </div>
-                                      </label>
+                                            <div className="cursor-pointer px-3 py-2 rounded-lg bg-white/5 border border-dashed border-white/20 hover:bg-white/10 hover:border-white/30 transition text-xs text-white text-center flex items-center justify-center gap-1.5">
+                                              <svg
+                                                className="h-4 w-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                                />
+                                              </svg>
+                                              {hasSavedFile ? "Replace file" : "Upload file"}
+                                            </div>
+                                          </label>
+                                        ) : null}
+                                      </>
                                     )}
                                   </div>
                                 </td>
                               );
                             }
                             return (
-                              <td key={col.key} className="px-4 py-2">
+                              <td key={col.key} className="px-4 py-2 align-middle">
                                 <input
+                                  id={
+                                    col.key === "description"
+                                      ? auditPlannerDescInputId(cat.key, row.id)
+                                      : undefined
+                                  }
                                   type={col.key === "auditDate" ? "date" : "text"}
-                                  value={row[col.key] || ""}
+                                  value={row[col.key] ?? ""}
                                   onChange={(e) =>
                                     updateCell(cat.key, row.id, col.key, e.target.value)
                                   }
-                                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-xs"
+                                  disabled={!canSubmit}
+                                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                               </td>
                             );
@@ -585,23 +669,17 @@ export default function AuditInspectionPlannerFormPage() {
 
           <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
             <Link
-              href="/qhse/audit-inspection-planner/list"
+              href="/dashboard"
               className="px-6 py-3 rounded-lg border border-white/20 bg-white/5 text-white font-medium hover:bg-white/10 transition"
             >
-              Cancel
+              Back to dashboard
             </Link>
             <button
               type="submit"
-              disabled={!canSubmit || submitting || (!editId && loadingTracker)}
+              disabled={!canSubmit || submitting || loadingTracker}
               className="px-6 py-3 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting
-                ? "Saving..."
-                : editId
-                  ? "Update Planner"
-                  : trackerSnapshotCount > 0
-                    ? "Save to Tracker"
-                    : "Start Tracker"}
+              {submitting ? "Saving…" : "Save planner"}
             </button>
           </div>
         </form>

@@ -8,8 +8,14 @@ import EquipmentTest from "@/lib/mongodb/models/pms/EquipmentTest";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
 import { NOTIFICATION_MODULES, notifyDelete, notifyEdit } from "@/lib/notifications/moduleNotify";
-
-const sanitize = (str) => str.replace(/[^a-zA-Z0-9-_]/g, "_");
+import {
+  createPmsInventoryCertificateArchiveEntry,
+  PMS_PRIMARY_EQUIPMENT_CERT_ARCHIVE_MODULE,
+} from "@/lib/pms/createPmsInventoryCertificateArchiveEntry";
+import {
+  sanitizePmsPathSegment as sanitize,
+  sanitizePmsUploadedFileName,
+} from "@/lib/utils/pms-upload-filename";
 
 export async function PATCH(req, { params }) {
   const guard = await assertPmsPermission("canEdit");
@@ -99,12 +105,48 @@ export async function PATCH(req, { params }) {
     };
 
     const manufacturingCertFile = formData.get("manufacturingCertificate");
-    if (
+    const hasNewManufacturingFile =
       manufacturingCertFile &&
       typeof manufacturingCertFile !== "string" &&
       manufacturingCertFile.name &&
-      manufacturingCertFile.size > 0
-    ) {
+      manufacturingCertFile.size > 0;
+
+    const testCertFile = formData.get("testCertificate");
+    const hasNewTestFile =
+      testCertFile &&
+      typeof testCertFile !== "string" &&
+      testCertFile.name &&
+      testCertFile.size > 0;
+
+    const prevManufacturingUrl =
+      existing.manufacturingCertificate?.fileUrl?.trim?.() || "";
+    const prevTestUrl = existing.testCertificate?.fileUrl?.trim?.() || "";
+
+    const shouldArchiveBeforeCertReplace =
+      (hasNewManufacturingFile && prevManufacturingUrl) ||
+      (hasNewTestFile && prevTestUrl);
+
+    if (shouldArchiveBeforeCertReplace) {
+      const parts = [];
+      if (hasNewManufacturingFile && prevManufacturingUrl) {
+        parts.push("manufacturing certificate replaced");
+      }
+      if (hasNewTestFile && prevTestUrl) {
+        parts.push("test certificate replaced");
+      }
+      await createPmsInventoryCertificateArchiveEntry({
+        doc: existing,
+        moduleLabel: PMS_PRIMARY_EQUIPMENT_CERT_ARCHIVE_MODULE,
+        inventoryKind: "primary_equipment",
+        archiveReason: parts.join("; ") || "Certificate files replaced",
+        triggeredBy: "replace_on_save",
+        replacedManufacturing: !!(hasNewManufacturingFile && prevManufacturingUrl),
+        replacedTest: !!(hasNewTestFile && prevTestUrl),
+        scope: "both",
+      });
+    }
+
+    if (hasNewManufacturingFile) {
       const sanitizedCode = sanitize(String(equipmentCode).trim());
       const baseDir = path.join(
         process.cwd(),
@@ -114,7 +156,7 @@ export async function PATCH(req, { params }) {
       );
       await fs.mkdir(baseDir, { recursive: true });
       const buffer = Buffer.from(await manufacturingCertFile.arrayBuffer());
-      const fileName = `${Date.now()}-${sanitize(manufacturingCertFile.name)}`;
+      const fileName = `${Date.now()}-${sanitizePmsUploadedFileName(manufacturingCertFile.name)}`;
       await fs.writeFile(path.join(baseDir, fileName), buffer);
       updatePayload.manufacturingCertificate = {
         fileUrl: `/uploads/pms/equipment/${sanitizedCode}/manufacturing-certificate/${fileName}`,
@@ -122,13 +164,7 @@ export async function PATCH(req, { params }) {
       };
     }
 
-    const testCertFile = formData.get("testCertificate");
-    if (
-      testCertFile &&
-      typeof testCertFile !== "string" &&
-      testCertFile.name &&
-      testCertFile.size > 0
-    ) {
+    if (hasNewTestFile) {
       const sanitizedCode = sanitize(String(equipmentCode).trim());
       const baseDir = path.join(
         process.cwd(),
@@ -138,7 +174,7 @@ export async function PATCH(req, { params }) {
       );
       await fs.mkdir(baseDir, { recursive: true });
       const buffer = Buffer.from(await testCertFile.arrayBuffer());
-      const fileName = `${Date.now()}-${sanitize(testCertFile.name)}`;
+      const fileName = `${Date.now()}-${sanitizePmsUploadedFileName(testCertFile.name)}`;
       await fs.writeFile(path.join(baseDir, fileName), buffer);
       updatePayload.testCertificate = {
         fileUrl: `/uploads/pms/equipment/${sanitizedCode}/test-certificate/${fileName}`,

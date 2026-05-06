@@ -26,13 +26,11 @@ export default function AuditInspectionPlannerViewPage() {
       setPageLoading(true);
       setError("");
       try {
-        // Reuse list endpoint, then filter client-side (no single-get endpoint yet)
-        const res = await fetch("/api/qhse/audit-inspection-planner/list");
+        const res = await fetch(`/api/qhse/audit-inspection-planner/${id}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load planner");
-        const found = (data.data || []).find((p) => String(p._id) === String(id));
-        if (!found) throw new Error("Planner not found");
-        setItem(found);
+        if (!data.data) throw new Error("Planner not found");
+        setItem(data.data);
       } catch (err) {
         setError(err.message || "Failed to load planner");
       } finally {
@@ -72,10 +70,10 @@ export default function AuditInspectionPlannerViewPage() {
       <div className={`${contentClassName} w-full min-w-0 pr-4`}>
         <div className="mx-auto max-w-[95%] pl-3 sm:pl-4 pr-3 sm:pr-4 py-6 sm:py-10 space-y-3 sm:space-y-4">
           <Link
-            href="/qhse/audit-inspection-planner/list"
+            href="/qhse/audit-inspection-planner/form"
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/15 bg-white/5 text-white text-sm hover:bg-white/10 transition"
           >
-            ← Back to list
+            ← Open planner form
           </Link>
           <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 text-red-200 text-sm font-medium">
             {error || "Planner not found"}
@@ -102,7 +100,7 @@ export default function AuditInspectionPlannerViewPage() {
             <TemplateDownloadLink formCode="QAF-OFD-048" />
             <button
               type="button"
-              onClick={() => router.push("/qhse/audit-inspection-planner/list")}
+              onClick={() => router.push("/qhse/audit-inspection-planner/form")}
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition"
               title="Close"
               aria-label="Close"
@@ -176,16 +174,14 @@ export default function AuditInspectionPlannerViewPage() {
                       </td>
                       <td className="px-4 py-2">{row.remarks || "—"}</td>
                       <td className="px-4 py-2 min-w-[180px]">
-                        {row.fileUrl && row.fileName ? (
+                        {row.fileUrl && row.fileName && row.rowId ? (
                           <a
-                            href={row.fileUrl.startsWith("http") || row.fileUrl.startsWith("/") ? row.fileUrl : `/api/qhse/file/${row.fileUrl}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href={`/api/qhse/audit-inspection-planner/${item._id}/row-attachment?rowId=${encodeURIComponent(row.rowId)}`}
+                            download={row.fileName}
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-400/40 text-blue-200 bg-blue-500/15 hover:bg-blue-500/25 transition"
                           >
                             <span>📎</span>
                             <span className="truncate max-w-[150px]">{row.fileName}</span>
-                            <span>↗</span>
                           </a>
                         ) : (
                           <span className="text-slate-400 text-xs">—</span>

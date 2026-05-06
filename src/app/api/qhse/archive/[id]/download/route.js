@@ -10,6 +10,10 @@ import RiskAssessment from "@/lib/mongodb/models/qhse-risk-assessment/RiskAssess
 import TrainingRecord from "@/lib/mongodb/models/qhse-training/TrainingRecord";
 import KpiUpload from "@/lib/mongodb/models/qhse-kpi/KpiUpload";
 import EquipmentDefect from "@/lib/mongodb/models/qhse-defect/EquipmentDefect";
+import {
+  PMS_ACCESSORIES_CERT_ARCHIVE_MODULE,
+  PMS_PRIMARY_EQUIPMENT_CERT_ARCHIVE_MODULE,
+} from "@/lib/pms/createPmsInventoryCertificateArchiveEntry";
 
 const CONTENT_TYPE_MAP = {
   ".pdf": "application/pdf",
@@ -28,6 +32,53 @@ const CONTENT_TYPE_MAP = {
 };
 
 const cwd = process.cwd();
+
+/** Normalize `/uploads/...` strings for comparison. */
+function normalizeUploadRef(u) {
+  if (!u || typeof u !== "string") return "";
+  return u.trim().replace(/\\/g, "/").replace(/^\/+/, "");
+}
+
+/**
+ * PMS certificate archives store the real client filename on the record; the file on disk may
+ * still use `_pdf` from an older sanitize bug — prefer metadata for Content-Disposition.
+ */
+function pmsCertArchiveDownloadName(doc) {
+  const mod = (doc.module || "").trim();
+  if (
+    mod !== PMS_PRIMARY_EQUIPMENT_CERT_ARCHIVE_MODULE &&
+    mod !== PMS_ACCESSORIES_CERT_ARCHIVE_MODULE
+  ) {
+    return null;
+  }
+  const meta =
+    doc.metadata && typeof doc.metadata === "object" ? doc.metadata : {};
+  const urlKey = normalizeUploadRef(doc.fileUrl || "");
+  const m =
+    meta.manufacturingCertificate &&
+    typeof meta.manufacturingCertificate === "object"
+      ? meta.manufacturingCertificate
+      : {};
+  const t =
+    meta.testCertificate && typeof meta.testCertificate === "object"
+      ? meta.testCertificate
+      : {};
+  const mUrlKey = normalizeUploadRef(m.fileUrl || "");
+  const tUrlKey = normalizeUploadRef(t.fileUrl || "");
+  const mName =
+    typeof m.originalFileName === "string" ? m.originalFileName.trim() : "";
+  const tName =
+    typeof t.originalFileName === "string" ? t.originalFileName.trim() : "";
+
+  const scope = meta.scope;
+  if (scope === "manufacturing" && mName) return mName;
+  if (scope === "test" && tName) return tName;
+
+  if (urlKey && mUrlKey && urlKey === mUrlKey && mName) return mName;
+  if (urlKey && tUrlKey && urlKey === tUrlKey && tName) return tName;
+
+  return mName || tName || null;
+}
 
 function normalizePath(raw) {
   if (!raw || typeof raw !== "string") return null;
@@ -177,7 +228,13 @@ export async function GET(req, { params }) {
 
     if (rawPath) {
       let absolutePath = resolveFilePath(rawPath);
-      let streamName = firstAtt?.originalName || meta?.fileName || null;
+      let streamName =
+        firstAtt?.originalName ||
+        meta?.fileName ||
+        (meta?.attachment && typeof meta.attachment.originalFileName === "string"
+          ? meta.attachment.originalFileName.trim()
+          : null) ||
+        null;
       if (!absolutePath && (doc.module || "").trim() === "Risk Assessment") {
         const toAbs = (p) => (path.isAbsolute(p) ? p : path.join(cwd, (p || "").replace(/\\/g, "/")));
         let absPath = toAbs(rawPath);
@@ -210,7 +267,10 @@ export async function GET(req, { params }) {
         return NextResponse.redirect(url);
       }
       const localPath = resolveFilePath(url.startsWith("/") ? url.slice(1) : url);
-      if (localPath) return streamFile(localPath);
+      if (localPath) {
+        const nameOverride = pmsCertArchiveDownloadName(doc);
+        return streamFile(localPath, nameOverride || undefined);
+      }
     }
 
     const originalId = doc.originalId?.toString?.() || doc.originalId;
