@@ -33,6 +33,9 @@ export async function POST(req) {
     const placedInOffice = formData.get("placedInOffice") === "true";
     const placedInBase = formData.get("placedInBase") === "true";
     const placedInBay = formData.get("placedInBay") === "true";
+    const entity = (formData.get("entity") && String(formData.get("entity"))) || "";
+    const locationName =
+      (formData.get("locationName") && String(formData.get("locationName"))) || "";
 
     if (!equipmentCode || !equipmentName || !ownershipType) {
       return NextResponse.json(
@@ -117,6 +120,9 @@ export async function POST(req) {
       placedInOffice,
       placedInBase,
       placedInBay,
+
+      entity: entity.trim(),
+      locationName: locationName.trim(),
 
       dateOfPurchase: dateOfPurchase ? new Date(dateOfPurchase) : undefined,
       firstUseDate: firstUseDate ? new Date(firstUseDate) : undefined,

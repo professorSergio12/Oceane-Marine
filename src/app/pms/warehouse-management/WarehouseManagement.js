@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
@@ -104,21 +104,6 @@ const SearchableDropdown = ({ label, required, options = [], value, onChange, pl
   );
 };
 
-const LOCATIONS = [
-  { value: "FUJAIRAH", label: "Fujairah" },
-  { value: "DUBAI", label: "Dubai" },
-  { value: "KHORFAKKAN", label: "Khorfakkan" },
-  { value: "AJMAN", label: "Ajman" },
-  { value: "PORT_KHALIFA", label: "Port-Khalifa" },
-  { value: "SOHAR", label: "Sohar" },
-  { value: "MUSCAT", label: "Muscat" },
-  { value: "DUQM", label: "Duqm" },
-  { value: "SALALAH", label: "Salalah" },
-  { value: "TANJUNG_BRUAS", label: "Tanjung-Bruas" },
-  { value: "MOMBASA", label: "Mombasa" },
-  { value: "YEOSU", label: "Yeosu" },
-];
-
 function formatWarehouseDate(value) {
   if (!value) return "";
   const d = new Date(value);
@@ -130,7 +115,7 @@ function formatWarehouseDate(value) {
 function getWarehouseRecordExportColumns() {
   return [
     { label: "Status", getValue: (r) => (r?.status === "COMPLETED" ? "Completed" : "Not Completed") },
-    { label: "Location", getValue: (r) => LOCATIONS.find((l) => l.value === r?.location)?.label || r?.location || "" },
+    { label: "Location", getValue: (r) => r?.location ?? "" },
     { label: "Equipment Name", getValue: (r) => r?.equipment ?? "" },
     { label: "Equipment Type", getValue: (r) => r?.equipmentType ?? "" },
     { label: "Specification", getValue: (r) => r?.specification ?? "" },
@@ -183,7 +168,26 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
   const view = controlledView !== undefined ? controlledView : internalView;
   const setView = onViewChange !== undefined ? onViewChange : setInternalView;
 
-  const [selectedLocation, setSelectedLocation] = useState("FUJAIRAH");
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [pmsLocations, setPmsLocations] = useState([]);
+
+  const locationSelectOptions = useMemo(
+    () =>
+      (pmsLocations || [])
+        .map((loc) => (typeof loc?.name === "string" ? loc.name.trim() : ""))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b))
+        .map((name) => ({ value: name, label: name })),
+    [pmsLocations]
+  );
+
+  const locationOptionsForSelect = useMemo(() => {
+    const opts = [...locationSelectOptions];
+    if (selectedLocation && !opts.some((o) => o.value === selectedLocation)) {
+      opts.push({ value: selectedLocation, label: selectedLocation });
+    }
+    return opts.sort((a, b) => a.label.localeCompare(b.label));
+  }, [locationSelectOptions, selectedLocation]);
   const [records, setRecords] = useState([]);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
@@ -277,6 +281,27 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
 
     fetchDropdownData();
   }, []);
+
+  useEffect(() => {
+    const loadPmsLocations = async () => {
+      try {
+        const res = await fetch("/api/pms/locations/list");
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.locations)) {
+          setPmsLocations(data.locations);
+        }
+      } catch (err) {
+        console.error("Failed to load PMS locations:", err);
+      }
+    };
+    loadPmsLocations();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedLocation && locationSelectOptions.length > 0) {
+      setSelectedLocation(locationSelectOptions[0].value);
+    }
+  }, [locationSelectOptions, selectedLocation]);
 
   /* =========================
      FETCH LIST
@@ -457,6 +482,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
     setAttachmentFile(null);
     setSuccess(null);
     setError(null);
+    if (record.location) setSelectedLocation(record.location);
     setView("form");
   };
 
@@ -513,10 +539,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                 ariaLabel="Location"
                 value={selectedLocation}
                 onChange={setSelectedLocation}
-                options={LOCATIONS.map((loc) => ({
-                  value: loc.value,
-                  label: loc.label,
-                }))}
+                options={locationOptionsForSelect}
                 className="min-w-0 flex-1 md:w-36 md:flex-initial"
                 triggerClassName="ops-select-trigger w-full rounded-lg border border-white/10 bg-slate-900/50 py-1 pl-1.5 text-[10px] leading-tight md:rounded-full md:py-1 md:pl-2.5 md:text-[11px]"
               />
@@ -593,10 +616,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
               }
               value={selectedLocation}
               onChange={setSelectedLocation}
-              options={LOCATIONS.map((loc) => ({
-                value: loc.value,
-                label: loc.label,
-              }))}
+              options={locationOptionsForSelect}
               triggerClassName="w-full min-h-[2.75rem] rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50"
             />
 
@@ -758,8 +778,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                 {records.length === 0 ? (
                   <tr>
                     <td colSpan="9" className="text-center px-4 py-6 text-slate-400">
-                      No records found for{" "}
-                      {LOCATIONS.find((l) => l.value === selectedLocation)?.label || selectedLocation}
+                      No records found for {selectedLocation || "this location"}
                     </td>
                   </tr>
                 ) : (
@@ -880,7 +899,7 @@ export default function WarehouseManagement({ view: controlledView, onViewChange
                 {/* Info Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { label: "Location", value: LOCATIONS.find((l) => l.value === viewRecord.location)?.label || viewRecord.location, icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" },
+                    { label: "Location", value: viewRecord.location || "—", icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" },
                     { label: "Equipment Name", value: viewRecord.equipment, icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
                     { label: "Equipment Type", value: viewRecord.equipmentType, icon: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" },
                     { label: "Specification", value: viewRecord.specification, icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },

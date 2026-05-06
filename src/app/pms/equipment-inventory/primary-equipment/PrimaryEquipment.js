@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActionViewIcon,
   ActionDownloadIcon,
@@ -80,6 +80,8 @@ function getPrimaryEquipmentExportColumns() {
     { label: "Equipment Name", getValue: (eq) => eq?.equipmentName ?? "" },
     { label: "Equipment Type", getValue: (eq) => eq?.equipmentType ?? "" },
     { label: "Placed in", getValue: (eq) => formatPlacedIn(eq) },
+    { label: "Entity", getValue: (eq) => eq?.entity ?? "" },
+    { label: "Location", getValue: (eq) => eq?.locationName ?? "" },
     { label: "Status", getValue: (eq) => eq?.status ?? "" },
     { label: "Ownership", getValue: (eq) => (eq?.ownershipType === "THIRD_PARTY" ? "Third Party" : eq?.ownershipType === "OWNED" ? "Owned" : eq?.ownershipType ?? "") },
     { label: "In Operations", getValue: (eq) => (eq?.isInUse ? "Yes" : "No") },
@@ -183,7 +185,10 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     placedInOffice: true,
     placedInBase: false,
     placedInBay: false,
+    entity: "",
+    locationName: "",
   });
+  const [pmsLocations, setPmsLocations] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const [formSuccess, setFormSuccess] = useState(null);
@@ -231,6 +236,38 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     paginatedItems: paginatedHistoryRows,
     ...historyRowsPaginationFooterProps
   } = historyRowsPagination;
+
+  const primaryEquipmentLocationNames = useMemo(() => {
+    const names = (pmsLocations || [])
+      .map((l) => (typeof l?.name === "string" ? l.name.trim() : ""))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    const set = new Set(names);
+    const cur = (form.locationName || "").trim();
+    if (cur && !set.has(cur)) {
+      names.push(cur);
+      names.sort((a, b) => a.localeCompare(b));
+    }
+    return names;
+  }, [pmsLocations, form.locationName]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/pms/locations/list");
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && Array.isArray(data.locations)) {
+          setPmsLocations(data.locations);
+        }
+      } catch {
+        /* dropdown stays empty */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load equipments list when list or history tab first opened
   useEffect(() => {
@@ -355,6 +392,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       placedInOffice: true,
       placedInBase: false,
       placedInBay: false,
+      entity: "",
+      locationName: "",
     }));
     setManufacturingCertificateFile(null);
     setTestCertificateFile(null);
@@ -393,6 +432,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       placedInOffice: !!eq.placedInOffice,
       placedInBase: !!eq.placedInBase,
       placedInBay: !!eq.placedInBay,
+      entity: eq.entity || "",
+      locationName: eq.locationName || "",
     }));
     setManufacturingCertificateFile(null);
     setTestCertificateFile(null);
@@ -497,6 +538,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       formData.append("placedInOffice", form.placedInOffice ? "true" : "false");
       formData.append("placedInBase", form.placedInBase ? "true" : "false");
       formData.append("placedInBay", form.placedInBay ? "true" : "false");
+      formData.append("entity", (form.entity || "").trim());
+      formData.append("locationName", (form.locationName || "").trim());
 
       // Add certificate files if selected
       if (manufacturingCertificateFile) {
@@ -640,6 +683,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                     <th className="px-4 py-2 font-semibold">Name</th>
                     <th className="px-4 py-2 font-semibold">Type</th>
                     <th className="px-4 py-2 font-semibold">Placed in</th>
+                    <th className="px-4 py-2 font-semibold">Entity</th>
+                    <th className="px-4 py-2 font-semibold">Location</th>
                     <th className="px-4 py-2 font-semibold">Ownership</th>
                     <th className="px-4 py-2 font-semibold">Status</th>
                     <th className="px-4 py-2 font-semibold">In Use</th>
@@ -650,7 +695,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   {equipments.length === 0 && !equipmentsLoading && (
                     <tr>
                       <td
-                        colSpan={9}
+                        colSpan={11}
                         className="px-4 py-4 text-center text-slate-400"
                       >
                         No equipments found
@@ -676,6 +721,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       </td>
                       <td className="px-4 py-2 text-slate-300 text-[11px]">
                         {formatPlacedIn(eq)}
+                      </td>
+                      <td className="px-4 py-2 text-slate-300 max-w-[120px] truncate" title={eq.entity || ""}>
+                        {eq.entity?.trim() ? eq.entity : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-slate-300 max-w-[120px] truncate" title={eq.locationName || ""}>
+                        {eq.locationName?.trim() ? eq.locationName : "—"}
                       </td>
                       <td className="px-4 py-2 text-slate-200">
                         {eq.ownershipType}
@@ -847,6 +898,22 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                           <p className="text-[11px] text-slate-400">Placed in</p>
                           <p className="text-slate-100">
                             {formatPlacedIn(selectedEquipmentDetail)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-slate-400">Entity</p>
+                          <p className="text-slate-100">
+                            {selectedEquipmentDetail.entity?.trim()
+                              ? selectedEquipmentDetail.entity
+                              : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-slate-400">Location</p>
+                          <p className="text-slate-100">
+                            {selectedEquipmentDetail.locationName?.trim()
+                              ? selectedEquipmentDetail.locationName
+                              : "—"}
                           </p>
                         </div>
                         <div>
@@ -1295,32 +1362,66 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
             </div>
           </div>
 
-          {/* Placed in — multi-select */}
-          <div className="space-y-2">
-            <span className="block text-xs font-medium text-slate-200">
-              Placed in<span className="text-red-400">*</span>
-            </span>
-            <p className="text-[11px] text-slate-400">
-              Select one or more: Office, Base, Bay.
-            </p>
-            <div className="flex flex-wrap gap-6">
-              {[
-                { key: "placedInOffice", label: "Office" },
-                { key: "placedInBase", label: "Base" },
-                { key: "placedInBay", label: "Bay" },
-              ].map(({ key, label }) => (
-                <label key={key} className="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-200">
-                  <input
-                    type="checkbox"
-                    checked={!!form[key]}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.checked }))
-                    }
-                    className="h-4 w-4 rounded border-white/30 bg-white/5 text-sky-500 focus:ring-sky-500/50"
-                  />
-                  {label}
-                </label>
-              ))}
+          {/* Placed in + Entity + Location (same row on large screens) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
+            <div className="lg:col-span-5 space-y-2">
+              <span className="block text-xs font-medium text-slate-200">
+                Placed in<span className="text-red-400">*</span>
+              </span>
+              <p className="text-[11px] text-slate-400">
+                Select one or more: Office, Base, Bay.
+              </p>
+              <div className="flex flex-wrap gap-6">
+                {[
+                  { key: "placedInOffice", label: "Office" },
+                  { key: "placedInBase", label: "Base" },
+                  { key: "placedInBay", label: "Bay" },
+                ].map(({ key, label }) => (
+                  <label key={key} className="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!form[key]}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, [key]: e.target.checked }))
+                      }
+                      className="h-4 w-4 rounded border-white/30 bg-white/5 text-sky-500 focus:ring-sky-500/50"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="lg:col-span-3">
+              <label className="block text-xs font-medium text-slate-200 mb-1">
+                Entity
+              </label>
+              <input
+                type="text"
+                name="entity"
+                value={form.entity}
+                onChange={handleInputChange}
+                placeholder="e.g. cost centre / company"
+                autoComplete="off"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+              />
+            </div>
+            <div className="lg:col-span-4">
+              <label className="block text-xs font-medium text-slate-200 mb-1">
+                Location
+              </label>
+              <select
+                name="locationName"
+                value={form.locationName}
+                onChange={handleInputChange}
+                className="w-full min-h-[2.75rem] rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+              >
+                <option value="">Select location</option>
+                {primaryEquipmentLocationNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

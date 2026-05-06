@@ -74,7 +74,7 @@ export default function Accessories({ view: controlledView, onViewChange }) {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const res = await fetch("/api/master/locations/list");
+        const res = await fetch("/api/pms/locations/list");
         const data = await res.json();
         if (data.locations) {
           setLocations(data.locations);

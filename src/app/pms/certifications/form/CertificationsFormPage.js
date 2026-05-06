@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { usePmsRole } from "@/hooks/usePmsRole";
@@ -22,6 +22,39 @@ export default function CertificationsFormPage() {
   const [loadingData, setLoadingData] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pmsLocations, setPmsLocations] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/pms/locations/list");
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && Array.isArray(data.locations)) {
+          setPmsLocations(data.locations);
+        }
+      } catch {
+        /* dropdown stays empty */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const certificationLocationNames = useMemo(() => {
+    const names = (pmsLocations || [])
+      .map((l) => (typeof l?.name === "string" ? l.name.trim() : ""))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    const set = new Set(names);
+    const cur = locationName.trim();
+    if (cur && !set.has(cur)) {
+      names.push(cur);
+      names.sort((a, b) => a.localeCompare(b));
+    }
+    return names;
+  }, [pmsLocations, locationName]);
 
   // Load certificate data if editing
   useEffect(() => {
@@ -201,14 +234,28 @@ export default function CertificationsFormPage() {
           >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm text-slate-200">Location Name *</label>
-              <input
+              <label htmlFor="cert-location-name" className="text-sm text-slate-200">
+                Location Name *
+              </label>
+              <select
+                id="cert-location-name"
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
-                placeholder="Enter location name"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                 required
-              />
+              >
+                <option value="">Select location</option>
+                {certificationLocationNames.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              {certificationLocationNames.length === 0 && (
+                <p className="text-xs text-amber-200/90">
+                  No locations yet. Ask a PMS admin to add them under PMS → Location.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm text-slate-200">Equipment Name *</label>

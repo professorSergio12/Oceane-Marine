@@ -1,43 +1,57 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import EquipmentTesting from "./equipment-testing/EquipmentTesting";
 import PrimaryEquipment from "./equipment-inventory/primary-equipment/PrimaryEquipment";
 import Accessories from "./equipment-inventory/accessories/Accessories";
+import PmsLocationMaster from "./location/PmsLocationMaster";
 import WarehouseManagement from "./warehouse-management/WarehouseManagement";
 import { usePmsRole } from "@/hooks/usePmsRole";
 
-const sidebarTabs = [
-  {
-    key: "equipment-inventory",
-    label: "Equipment Inventory",
-    submodules: [
-      {
-        key: "primary-equipment",
-        label: "Primary Equipment",
-        href: "/pms/primary-equipment",
-      },
-      {
-        key: "accessories",
-        label: "Accessories",
-        href: "/pms/accessories",
-      },
-    ],
-  },
-  {
-    key: "equipment-testing",
-    label: "Equipment Testing",
-    href: "/pms/equipment-testing",
-  },
-  {
-    key: "warehouse-management",
-    label: "Warehouse Management",
-  },
-];
-
 export default function PmsPage() {
-  const { canCreate, canEdit, isPmsAdmin } = usePmsRole();
+  const { isPmsAdmin } = usePmsRole();
+
+  const sidebarTabs = useMemo(
+    () => [
+      {
+        key: "equipment-inventory",
+        label: "Equipment Inventory",
+        submodules: [
+          {
+            key: "primary-equipment",
+            label: "Primary Equipment",
+            href: "/pms/primary-equipment",
+          },
+          {
+            key: "accessories",
+            label: "Accessories",
+            href: "/pms/accessories",
+          },
+        ],
+      },
+      {
+        key: "equipment-testing",
+        label: "Equipment Testing",
+        href: "/pms/equipment-testing",
+      },
+      {
+        key: "warehouse-management",
+        label: "Warehouse Management",
+        href: "/pms/warehouse-management",
+      },
+      ...(isPmsAdmin
+        ? [
+            {
+              key: "location",
+              label: "Location",
+              href: "/pms/location",
+            },
+          ]
+        : []),
+    ],
+    [isPmsAdmin]
+  );
 
   const [activeTab, setActiveTab] = useState("equipment-inventory");
   const [activeSubmodule, setActiveSubmodule] = useState("primary-equipment");
@@ -281,6 +295,7 @@ export default function PmsPage() {
                 onViewChange={setWarehouseView}
               />
             )}
+            {activeTab === "location" && isPmsAdmin && <PmsLocationMaster />}
             {activeTab === "equipment-testing" && <EquipmentTesting />}
           </div>
         </div>

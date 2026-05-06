@@ -12,25 +12,12 @@ const WarehouseManagementSchema = new mongoose.Schema(
     },
 
     /* =========================
-       LOCATION (FROM SIDEBAR)
+       LOCATION (PMS Location master — names from admin Location tab)
     ========================== */
     location: {
       type: String,
       required: true,
-      enum: [
-        "FUJAIRAH",
-        "DUBAI",
-        "KHORFAKKAN",
-        "AJMAN",
-        "PORT_KHALIFA",
-        "SOHAR",
-        "MUSCAT",
-        "DUQM",
-        "SALALAH",
-        "TANJUNG_BRUAS",
-        "MOMBASA",
-        "YEOSU",
-      ],
+      trim: true,
       index: true,
     },
 

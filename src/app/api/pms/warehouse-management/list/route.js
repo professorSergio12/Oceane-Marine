@@ -15,7 +15,7 @@ export async function GET(req) {
 
     const filter = {
       isDeleted: false,
-      ...(location && { location: location.toUpperCase() }),
+      ...(location && { location: location.trim() }),
     };
 
     const yearNum = yearParam ? Number(yearParam) : NaN;

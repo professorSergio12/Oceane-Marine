@@ -37,6 +37,11 @@ const equipmentSchema = new mongoose.Schema(
     placedInBase: { type: Boolean, default: false },
     placedInBay: { type: Boolean, default: false },
 
+    /** Free text (e.g. company / cost centre) */
+    entity: { type: String, trim: true, default: "" },
+    /** Label from PMS → Location master (dropdown) */
+    locationName: { type: String, trim: true, default: "" },
+
     dateOfPurchase: Date,
     firstUseDate: Date,
 

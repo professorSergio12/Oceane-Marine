@@ -1,66 +1,83 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { usePmsRole } from "@/hooks/usePmsRole";
 
-const sidebarTabs = [
-  {
-    key: "equipment-inventory",
-    label: "Equipment Inventory",
-    submodules: [
-      {
-        key: "primary-equipment",
-        label: "Primary Equipment",
-        href: "/pms/primary-equipment",
-      },
-      {
-        key: "accessories",
-        label: "Accessories",
-        href: "/pms/accessories",
-      },
-    ],
-  },
-  {
-    key: "equipment-testing",
-    label: "Equipment Testing",
-    href: "/pms/equipment-testing",
-  },
-  {
-    key: "warehouse-management",
-    label: "Warehouse Management",
-    href: "/pms/warehouse-management",
-  },
-];
+function matchPathToSidebar(pathname) {
+  if (pathname.startsWith("/pms/equipment-testing")) return { tab: "equipment-testing" };
+  if (pathname.startsWith("/pms/warehouse-management")) return { tab: "warehouse-management" };
+  if (pathname.startsWith("/pms/location")) return { tab: "location" };
+  if (pathname.startsWith("/pms/primary-equipment")) {
+    return { tab: "equipment-inventory", sub: "primary-equipment" };
+  }
+  if (pathname.startsWith("/pms/accessories")) {
+    return { tab: "equipment-inventory", sub: "accessories" };
+  }
+  return null;
+}
 
 export default function PmsSidebar() {
+  const { isPmsAdmin } = usePmsRole();
+
+  const sidebarTabs = useMemo(
+    () => [
+      {
+        key: "equipment-inventory",
+        label: "Equipment Inventory",
+        submodules: [
+          {
+            key: "primary-equipment",
+            label: "Primary Equipment",
+            href: "/pms/primary-equipment",
+          },
+          {
+            key: "accessories",
+            label: "Accessories",
+            href: "/pms/accessories",
+          },
+        ],
+      },
+      {
+        key: "equipment-testing",
+        label: "Equipment Testing",
+        href: "/pms/equipment-testing",
+      },
+      {
+        key: "warehouse-management",
+        label: "Warehouse Management",
+        href: "/pms/warehouse-management",
+      },
+      ...(isPmsAdmin
+        ? [
+            {
+              key: "location",
+              label: "Location",
+              href: "/pms/location",
+            },
+          ]
+        : []),
+    ],
+    [isPmsAdmin]
+  );
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState("equipment-inventory");
-  const [activeSubmodule, setActiveSubmodule] = useState("primary-equipment");
+  const [uiTab, setUiTab] = useState("equipment-inventory");
+  const [uiSub, setUiSub] = useState("primary-equipment");
   const sidebarRef = useRef(null);
   const pathname = usePathname();
   const router = useRouter();
 
-  // Derive active tab from current route
-  useEffect(() => {
-    if (pathname.startsWith("/pms/equipment-testing")) {
-      setActiveTab("equipment-testing");
-    } else if (pathname.startsWith("/pms/warehouse-management")) {
-      setActiveTab("warehouse-management");
-    } else if (pathname.startsWith("/pms/primary-equipment") || pathname.startsWith("/pms/accessories")) {
-      setActiveTab("equipment-inventory");
-      if (pathname.startsWith("/pms/primary-equipment")) {
-        setActiveSubmodule("primary-equipment");
-      } else if (pathname.startsWith("/pms/accessories")) {
-        setActiveSubmodule("accessories");
-      }
-    }
-  }, [pathname]);
+  const pathMatch = useMemo(() => matchPathToSidebar(pathname), [pathname]);
+
+  const mergedTab = pathMatch?.tab ?? uiTab;
+  const activeTab =
+    !isPmsAdmin && mergedTab === "location" ? "warehouse-management" : mergedTab;
+  const activeSubmodule = pathMatch?.sub !== undefined ? pathMatch.sub : uiSub;
 
   const handleNavigation = (href) => {
-    if (href) {
-      router.push(href);
-    }
+    if (href) router.push(href);
   };
 
   return (
@@ -86,11 +103,11 @@ export default function PmsSidebar() {
             <div className="space-y-2">
               {sidebarTabs.map((tab) => (
                 <div key={tab.key}>
-                  {tab.href ? (
+                  {tab.href && !tab.submodules ? (
                     <Link
                       href={tab.href}
                       onClick={() => {
-                        setActiveTab(tab.key);
+                        setUiTab(tab.key);
                         handleNavigation(tab.href);
                       }}
                       className={`block w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
@@ -103,10 +120,11 @@ export default function PmsSidebar() {
                     </Link>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => {
-                        setActiveTab(tab.key);
+                        setUiTab(tab.key);
                         if (tab.submodules && tab.submodules.length > 0) {
-                          setActiveSubmodule(tab.submodules[0].key);
+                          setUiSub(tab.submodules[0].key);
                           if (tab.submodules[0].href) {
                             handleNavigation(tab.submodules[0].href);
                           }
@@ -140,7 +158,7 @@ export default function PmsSidebar() {
                           key={sub.key}
                           href={sub.href}
                           onClick={() => {
-                            setActiveSubmodule(sub.key);
+                            setUiSub(sub.key);
                             handleNavigation(sub.href);
                           }}
                           className={`block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 border ${
@@ -164,7 +182,6 @@ export default function PmsSidebar() {
         </div>
       </div>
 
-      {/* Sidebar Toggle Button */}
       {!isSidebarOpen && (
         <button
           onClick={() => setIsSidebarOpen(true)}

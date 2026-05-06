@@ -119,7 +119,7 @@ export async function POST(req) {
 
     const record = await WarehouseManagement.create({
       ...body,
-      location: body.location.toUpperCase(),
+      location: String(body.location).trim(),
       nos: Number(body.nos),
       ...(body.startDate && { startDate: new Date(body.startDate) }),
       ...(body.estimatedEndDate && {

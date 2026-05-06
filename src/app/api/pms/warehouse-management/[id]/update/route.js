@@ -122,7 +122,7 @@ export async function PUT(req, { params }) {
     }
 
     // Update fields
-    existing.location = body.location.toUpperCase();
+    existing.location = String(body.location).trim();
     existing.equipment = body.equipment;
     existing.equipmentType = body.equipmentType || "";
     existing.specification = body.specification || "";

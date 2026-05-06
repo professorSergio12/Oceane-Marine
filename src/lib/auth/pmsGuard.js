@@ -30,3 +30,11 @@ export async function assertPmsPermission(perm) {
   if (!session.perms[perm]) return { ok: false, response: pmsForbidden() };
   return { ok: true, user: session.user, pmsRole: session.pmsRole, perms: session.perms };
 }
+
+/** PMS master-data routes that only the `admin` PMS role may access (see `getPmsPermissions`). */
+export async function assertPmsAdmin() {
+  const session = await requirePmsSession();
+  if (!session.ok) return { ok: false, response: session.response };
+  if (!session.perms.isPmsAdmin) return { ok: false, response: pmsForbidden() };
+  return { ok: true, user: session.user, pmsRole: session.pmsRole, perms: session.perms };
+}

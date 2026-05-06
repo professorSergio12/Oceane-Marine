@@ -20,7 +20,7 @@ export async function GET(req) {
 
     /* ========== WAREHOUSE DATA ========== */
     const warehouseFilter = { isDeleted: false };
-    if (location) warehouseFilter.location = location.toUpperCase();
+    if (location) warehouseFilter.location = location.trim();
 
     const warehouseData = await WarehouseManagement.find(warehouseFilter)
       .sort({ startDate: -1 })
@@ -73,23 +73,12 @@ export async function GET(req) {
       retirementByType[type] = (retirementByType[type] || 0) + 1;
     });
 
-    /* ========== EQUIPMENT BY LOCATION ========== */
-    const locations = [
-      "DUBAI",
-      "SOHAR",
-      "FUJAIRAH",
-      "YEOSU",
-      "MOMBASA",
-      "TANJUNG_BRUAS",
-      "KHORFAKKAN",
-      "AJMAN",
-      "PORT_KHALIFA",
-      "MUSCAT",
-      "DUQM",
-      "SALALAH",
-    ];
+    /* ========== EQUIPMENT BY LOCATION (warehouse records — keys match PMS Location names) ========== */
+    const distinctWarehouseLocs = [
+      ...new Set(warehouseData.map((item) => item.location).filter(Boolean)),
+    ].sort((a, b) => String(a).localeCompare(String(b)));
     const equipmentByLocation = {};
-    locations.forEach((loc) => {
+    distinctWarehouseLocs.forEach((loc) => {
       const locData = warehouseData.filter((item) => item.location === loc);
       if (locData.length > 0) {
         equipmentByLocation[loc] = {
