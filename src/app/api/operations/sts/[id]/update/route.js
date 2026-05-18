@@ -100,6 +100,9 @@ export async function PUT(req, { params }) {
       if (typeof value === "string") body[key] = value;
     });
 
+    /* Form sends equipment IDs as strings; schema expects embedded usage objects. */
+    delete body.equipments;
+
     /* =====================
        HANDLE FILE UPLOADS (CHS/MS vessel documents)
     ====================== */

@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
+import { buildStsCreateDocument } from "@/lib/operations/stsCreatePayload";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import fs from "fs/promises";
@@ -148,16 +149,10 @@ export async function POST(req) {
     /* =====================
        EQUIPMENT VALIDATION
     ====================== */
-    let equipmentIds = [];
-    if (body.equipments) {
-      try {
-        equipmentIds = Array.isArray(body.equipments)
-          ? body.equipments
-          : JSON.parse(body.equipments);
-      } catch (e) {
-        equipmentIds = [body.equipments];
-      }
-    }
+    const equipmentIds = formData
+      .getAll("equipments")
+      .filter((v) => typeof v === "string" && v.trim() !== "")
+      .map((v) => v.trim());
 
     let equipments = [];
     if (equipmentIds.length > 0) {
@@ -201,24 +196,26 @@ export async function POST(req) {
     // Ensure operationStatus is set (default to INPROGRESS for draft)
     const operationStatus = body.operationStatus || "INPROGRESS";
     
-    // Handle submission status
     const isSubmitted = body.isSubmitted === "true" || body.isSubmitted === true;
-    const submittedAt = isSubmitted && body.submittedAt ? new Date(body.submittedAt) : null;
 
-    const stsOperation = await StsOperation.create({
-      ...body,
-      ...uploadedFiles,
+    const { equipments: _omitEquipments, ...bodyWithoutEquipments } = body;
+
+    const createDoc = buildStsCreateDocument({
+      body: {
+        ...bodyWithoutEquipments,
+        operationStatus,
+        isSubmitted,
+        submittedAt: body.submittedAt,
+      },
+      uploadedFiles,
+      equipmentUsage,
+      manualDocumentationEntries,
       parentOperationId,
-      equipments: equipmentUsage,
       operationStartTime,
       operationEndTime,
-      operationStatus,
-      isSubmitted,
-      submittedAt,
-      version: 1,
-      isLatest: true,
-      documents: manualDocumentationEntries,
     });
+
+    const stsOperation = await StsOperation.create(createDoc);
 
     /* =====================
        LOCK EQUIPMENTS
@@ -242,9 +239,10 @@ export async function POST(req) {
     );
   } catch (error) {
     console.error("STS CREATE ERROR:", error);
+    const status = error.statusCode || (error.name === "ValidationError" ? 400 : 500);
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
-      { status: 500 }
+      { status }
     );
   }
 }

@@ -33,10 +33,33 @@ export async function GET(req) {
         );
       }
       const publicRoot = path.join(process.cwd(), "public");
-      const absolute = path.normalize(path.join(publicRoot, rawPath));
-      if (!absolute.startsWith(publicRoot + path.sep)) {
-        return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+      const projectRoot = process.cwd();
+      const relativeFromUploads = rawPath.replace(/^\/+/, "");
+
+      const candidates = [
+        path.normalize(path.join(publicRoot, rawPath)),
+        path.normalize(path.join(projectRoot, relativeFromUploads)),
+      ];
+
+      let absolute = null;
+      for (const candidate of candidates) {
+        const allowed =
+          candidate.startsWith(publicRoot + path.sep) ||
+          candidate.startsWith(path.join(projectRoot, "uploads") + path.sep);
+        if (!allowed) continue;
+        try {
+          await fs.access(candidate);
+          absolute = candidate;
+          break;
+        } catch {
+          /* try next */
+        }
       }
+
+      if (!absolute) {
+        return NextResponse.json({ error: "File not found" }, { status: 404 });
+      }
+
       const data = await fs.readFile(absolute);
       const filename = sanitizeFilename(
         suggestedName || path.basename(rawPath.split("?")[0]) || "download"

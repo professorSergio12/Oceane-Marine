@@ -7,12 +7,22 @@
  * @param {string} url - File URL or `/uploads/...` path served by the app.
  * @param {string} [filename] - Optional suggested filename for the download.
  */
+/** Normalize stored paths (e.g. uploads/QHSE/...) to a URL-safe app path (/uploads/...). */
+export function normalizeUploadUrl(url) {
+  if (!url) return "";
+  const s = String(url).trim();
+  if (!s) return "";
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  return s.startsWith("/") ? s : `/${s}`;
+}
+
 export function downloadFileFromUrl(url, filename) {
   if (!url || typeof window === "undefined") return;
-  const suggestedName = filename || guessFilename(url);
-  const downloadHref = buildDownloadHref(url, suggestedName);
+  const normalized = normalizeUploadUrl(url);
+  const suggestedName = filename || guessFilename(normalized || url);
+  const downloadHref = buildDownloadHref(normalized || url, suggestedName);
   if (!downloadHref) {
-    window.location.assign(url);
+    window.location.assign(normalized || url);
     return;
   }
   triggerAnchorDownload(downloadHref, suggestedName);
@@ -41,12 +51,14 @@ function guessFilename(url) {
 function buildDownloadHref(url, suggestedName) {
   try {
     const params = new URLSearchParams();
-    if (url.startsWith("/")) {
-      params.set("path", url);
+    const normalized = normalizeUploadUrl(url);
+    const pathOrUrl = normalized || url;
+    if (pathOrUrl.startsWith("/")) {
+      params.set("path", pathOrUrl);
     } else {
       let parsed;
       try {
-        parsed = new URL(url, window.location.origin);
+        parsed = new URL(pathOrUrl, window.location.origin);
       } catch {
         return null;
       }

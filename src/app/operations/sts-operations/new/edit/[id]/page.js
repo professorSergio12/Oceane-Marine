@@ -79,14 +79,14 @@ export default function EditOperationPage() {
   const [quantityMT, setQuantityMT] = useState("");
   const [quantityBarrels, setQuantityBarrels] = useState("");
   const [preStsDocs, setPreStsDocs] = useState({ jpo: "", riskAssessment: "" });
-  const [riskAssessments, setRiskAssessments] = useState([]);
   const [nearMissReports, setNearMissReports] = useState([]);
+  const [riskAssessmentFileName, setRiskAssessmentFileName] = useState("");
 
   /* Auto-fetch Pre-STS docs (JPO, Risk Assessment, Near Miss) when location changes */
   const handleLocationChange = async (locationId) => {
     if (!locationId || locationId === "Select") {
       setPreStsDocs({ jpo: "", riskAssessment: "" });
-      setRiskAssessments([]);
+      setRiskAssessmentFileName("");
       setNearMissReports([]);
       return;
     }
@@ -103,7 +103,7 @@ export default function EditOperationPage() {
           jpo: json.data.jpo || "",
           riskAssessment: json.data.riskAssessment || "",
         });
-        setRiskAssessments(json.data.riskAssessments || []);
+        setRiskAssessmentFileName(json.data.riskAssessmentFileName || "");
         setNearMissReports(json.data.nearMissReports || []);
       }
     } catch (err) {
@@ -1003,7 +1003,11 @@ export default function EditOperationPage() {
                 resetKey={formResetKey}
                 defaultValue={operationData?.riskAssessment}
                 externalValue={preStsDocs.riskAssessment}
-                onClear={() => setPreStsDocs((prev) => ({ ...prev, riskAssessment: "" }))}
+                downloadFileName={riskAssessmentFileName}
+                onClear={() => {
+                  setPreStsDocs((prev) => ({ ...prev, riskAssessment: "" }));
+                  setRiskAssessmentFileName("");
+                }}
               />
               <UploadPill
                 label="Mooring Plan"
@@ -1015,58 +1019,6 @@ export default function EditOperationPage() {
               />
             </div>
 
-            {/* QHSE – Risk Assessments for this location */}
-            {riskAssessments.length > 0 && (
-              <>
-                <SectionTitle title={`Risk Assessments — QHSE (${riskAssessments.length})`} />
-                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-900/10 p-4 space-y-2">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead>
-                        <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-slate-400">
-                          <th className="py-2 pr-4">Form Code</th>
-                          <th className="py-2 pr-4">Serial #</th>
-                          <th className="py-2 pr-4">Location</th>
-                          <th className="py-2 pr-4">Date</th>
-                          <th className="py-2 pr-4">Version</th>
-                          <th className="py-2 pr-4">File</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {riskAssessments.map((ra) => (
-                          <tr key={ra._id} className="border-b border-white/5 hover:bg-white/5 transition">
-                            <td className="py-2 pr-4 font-mono text-emerald-300">{ra.formCode || "—"}</td>
-                            <td className="py-2 pr-4 text-white/80">{ra.serialNumber || "—"}</td>
-                            <td className="py-2 pr-4 text-white/80">{ra.locationName || "—"}</td>
-                            <td className="py-2 pr-4 text-white/70">
-                              {ra.assessmentDate
-                                ? new Date(ra.assessmentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                                : "—"}
-                            </td>
-                            <td className="py-2 pr-4 text-white/70">{ra.version || "—"}</td>
-                            <td className="py-2 pr-4">
-                              {ra.filePath ? (
-                                <button
-                                  type="button"
-                                  onClick={() => downloadFileFromUrl(ra.filePath, `${ra.formCode || "risk-assessment"}-${(ra.filePath.split("/").pop() || "file")}`)}
-                                  title="Download file"
-                                  aria-label="Download file"
-                                  className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-1.5 transition"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                  </svg>
-                                </button>
-                              ) : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
-            )}
 
             {/* QHSE – Near Miss Reports for this location */}
             {nearMissReports.length > 0 && (
@@ -1577,7 +1529,24 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
   );
 }
 
-function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onClear }) {
+function ActionUpload({
+  label,
+  name,
+  resetKey,
+  defaultValue,
+  externalValue,
+  onClear,
+  downloadFileName = "",
+}) {
+  const resolveDownloadLabel = (url) =>
+    downloadFileName?.trim() ||
+    (url ? url.split("/").pop()?.split("?")[0] : "") ||
+    "document";
+
+  const handleDownload = (url) => {
+    if (!url) return;
+    downloadFileFromUrl(url, resolveDownloadLabel(url));
+  };
   const [fileUrl, setFileUrl] = useState("");
   const [isAutoFetched, setIsAutoFetched] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
@@ -1684,7 +1653,7 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
           </div>
           {fileUrl && (
             <ActionDownloadIcon
-              onClick={() => downloadFileFromUrl(fileUrl)}
+              onClick={() => handleDownload(fileUrl)}
               title="Download previous file"
               className="!rounded-xl !p-3"
             />
@@ -1714,7 +1683,7 @@ function ActionUpload({ label, name, resetKey, defaultValue, externalValue, onCl
             </span>
           </div>
           <ActionDownloadIcon
-            onClick={() => fileUrl && downloadFileFromUrl(fileUrl)}
+            onClick={() => handleDownload(fileUrl)}
             title="Download file"
             className="!rounded-xl !p-3"
           />

@@ -24,6 +24,7 @@ import OperationsListPaginationFooter from "@/app/operations/components/Operatio
 import SelectField from "@/app/operations/components/OperationsSelectField";
 import StsDocumentationMultiUpload from "./StsDocumentationMultiUpload";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
+import { readJsonFromResponse } from "@/lib/utils/readJsonFromResponse";
 
 const STS_NEW_OP_DRAFT_STORAGE_KEY = "sts-operation-new-documentation-draft-v2";
 
@@ -207,14 +208,36 @@ export default function NewOperationPage() {
   const [operationRef, setOperationRef] = useState("");
   const [generatingRef, setGeneratingRef] = useState(false);
   const [preStsDocs, setPreStsDocs] = useState({ jpo: "", riskAssessment: "" });
-  const [riskAssessments, setRiskAssessments] = useState([]);
   const [nearMissReports, setNearMissReports] = useState([]);
+  const [riskAssessmentFileName, setRiskAssessmentFileName] = useState("");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedOperationType, setSelectedOperationType] = useState("");
+  const [selectedMooringMasterId, setSelectedMooringMasterId] = useState("");
+  const [selectedTypeOfCargoId, setSelectedTypeOfCargoId] = useState("");
+  const [selectedTypeOfOperation, setSelectedTypeOfOperation] = useState("");
+  const [selectedClient, setSelectedClient] = useState("");
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState([]);
+
+  const resetStsSelectFields = useCallback(() => {
+    setSelectedLocationId("");
+    setSelectedOperationType("");
+    setSelectedMooringMasterId("");
+    setSelectedTypeOfCargoId("");
+    setSelectedTypeOfOperation("");
+    setSelectedClient("");
+    setSelectedAgent("");
+    setSelectedEquipmentIds([]);
+    setPreStsDocs({ jpo: "", riskAssessment: "" });
+    setRiskAssessmentFileName("");
+    setNearMissReports([]);
+  }, []);
 
   /* Auto-fetch Pre-STS docs (JPO, Risk Assessment, Near Miss) when location changes */
   const handleLocationChange = useCallback(async (locationId) => {
     if (!locationId || locationId === "Select") {
       setPreStsDocs({ jpo: "", riskAssessment: "" });
-      setRiskAssessments([]);
+      setRiskAssessmentFileName("");
       setNearMissReports([]);
       return;
     }
@@ -231,7 +254,7 @@ export default function NewOperationPage() {
           jpo: json.data.jpo || "",
           riskAssessment: json.data.riskAssessment || "",
         });
-        setRiskAssessments(json.data.riskAssessments || []);
+        setRiskAssessmentFileName(json.data.riskAssessmentFileName || "");
         setNearMissReports(json.data.nearMissReports || []);
       }
     } catch (err) {
@@ -394,6 +417,13 @@ export default function NewOperationPage() {
       ...rawFields,
       Operation_Ref_No: operationRef,
       quantity: quantityMT,
+      location: selectedLocationId || rawFields.location || "",
+      operationType: selectedOperationType || rawFields.operationType || "",
+      mooringMaster: selectedMooringMasterId || rawFields.mooringMaster || "",
+      typeOfCargo: selectedTypeOfCargoId || rawFields.typeOfCargo || "",
+      typeOfOperation: selectedTypeOfOperation || rawFields.typeOfOperation || "",
+      client: selectedClient || rawFields.client || "",
+      agent: selectedAgent || rawFields.agent || "",
     };
     const hasData =
       (quantityMT && String(quantityMT).trim() !== "") ||
@@ -420,7 +450,8 @@ export default function NewOperationPage() {
       operationRef,
       preStsDocs,
       fields,
-      equipments,
+      equipments:
+        selectedEquipmentIds.length > 0 ? selectedEquipmentIds : equipments,
     };
     lastDraftSnapshotRef.current = payload;
     writeStsNewOpDraft(payload);
@@ -440,6 +471,14 @@ export default function NewOperationPage() {
     quantityMT,
     operationRef,
     preStsDocs,
+    selectedLocationId,
+    selectedOperationType,
+    selectedMooringMasterId,
+    selectedTypeOfCargoId,
+    selectedTypeOfOperation,
+    selectedClient,
+    selectedAgent,
+    selectedEquipmentIds,
   ]);
 
   useEffect(() => {
@@ -530,7 +569,17 @@ export default function NewOperationPage() {
 
         const locId = fields.location;
         if (locId && locId !== "Select" && String(locId).trim() !== "") {
+          setSelectedLocationId(String(locId));
           await handleLocationChange(locId);
+        }
+        if (fields.operationType && String(fields.operationType).trim() !== "") {
+          setSelectedOperationType(String(fields.operationType));
+        }
+        if (fields.mooringMaster && String(fields.mooringMaster).trim() !== "") {
+          setSelectedMooringMasterId(String(fields.mooringMaster));
+        }
+        if (fields.typeOfCargo && String(fields.typeOfCargo).trim() !== "") {
+          setSelectedTypeOfCargoId(String(fields.typeOfCargo));
         }
 
         setPreStsDocs((prev) => ({
@@ -552,9 +601,9 @@ export default function NewOperationPage() {
         };
         setActionUploadDraftEpoch((e) => e + 1);
 
-        setRestoredEquipmentIds(
-          Array.isArray(draft.equipments) ? draft.equipments : []
-        );
+        const restoredEq = Array.isArray(draft.equipments) ? draft.equipments : [];
+        setRestoredEquipmentIds(restoredEq);
+        setSelectedEquipmentIds(restoredEq.map(String));
         setEquipmentDraftEpoch((e) => e + 1);
       } finally {
         allowClientDraftPersistRef.current = true;
@@ -632,47 +681,84 @@ export default function NewOperationPage() {
 
   const handleSubmit = async (e, isSubmit = false) => {
     e.preventDefault();
+
+    const opRef = String(operationRef || "").trim();
+    if (!opRef) {
+      alert("Please generate an Operation Ref No (click ⚡) before saving.");
+      return;
+    }
+
+    if (isSubmit && !selectedLocationId) {
+      alert("Please select a Location before submitting. You can save a draft without it and complete details later.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       const formData = new FormData(formRef.current);
 
-      // Add status - always INPROGRESS for draft, keep selected status for submit
-      const finalStatus = isSubmit ? status : "INPROGRESS";
-      formData.append("status", finalStatus);
-      formData.append("operationStatus", finalStatus);
-      
-      // Mark as submitted if submit button clicked
-      if (isSubmit) {
-        formData.append("isSubmitted", "true");
-        formData.append("submittedAt", new Date().toISOString());
-      }
-      
-      // Add flow direction
-      formData.append("flowDirection", flowDir);
+      formData.set("Operation_Ref_No", opRef);
 
-      // Add quantity from state if available
+      const finalStatus = isSubmit ? status : "INPROGRESS";
+      formData.set("operationStatus", finalStatus);
+
+      if (isSubmit) {
+        formData.set("isSubmitted", "true");
+        formData.set("submittedAt", new Date().toISOString());
+      } else {
+        formData.delete("isSubmitted");
+        formData.delete("submittedAt");
+      }
+
+      formData.set("flowDirection", flowDir);
+
       if (quantityMT) {
         formData.set("quantity", quantityMT);
       }
 
-      // IDs are now in option values; drop placeholders
-      const mooringMasterId = formData.get("mooringMaster");
-      if (!mooringMasterId || mooringMasterId === "Select") {
-        formData.delete("mooringMaster");
-      }
-
-      const locationId = formData.get("location");
-      if (!locationId || locationId === "Select") {
+      if (selectedLocationId) {
+        formData.set("location", selectedLocationId);
+      } else {
         formData.delete("location");
       }
 
-      const cargoId = formData.get("typeOfCargo");
-      if (!cargoId || cargoId === "Select") {
+      if (selectedOperationType) {
+        formData.set("operationType", selectedOperationType);
+      } else {
+        formData.delete("operationType");
+      }
+
+      if (selectedMooringMasterId) {
+        formData.set("mooringMaster", selectedMooringMasterId);
+      } else {
+        formData.delete("mooringMaster");
+      }
+
+      if (selectedTypeOfCargoId) {
+        formData.set("typeOfCargo", selectedTypeOfCargoId);
+      } else {
         formData.delete("typeOfCargo");
       }
 
-      // Filter out empty vessel type fields
+      if (selectedTypeOfOperation) {
+        formData.set("typeOfOperation", selectedTypeOfOperation);
+      } else {
+        formData.delete("typeOfOperation");
+      }
+
+      if (selectedClient) {
+        formData.set("client", selectedClient);
+      } else {
+        formData.delete("client");
+      }
+
+      if (selectedAgent) {
+        formData.set("agent", selectedAgent);
+      } else {
+        formData.delete("agent");
+      }
+
       const vesselTypeCHS = formData.get("vesselTypeCHS");
       if (!vesselTypeCHS || vesselTypeCHS === "Select" || vesselTypeCHS === "") {
         formData.delete("vesselTypeCHS");
@@ -683,17 +769,17 @@ export default function NewOperationPage() {
         formData.delete("vesselTypeMS");
       }
 
-      // Equipments multi-select
-      const selectedEquipments = formData.getAll("equipments").filter(Boolean);
       formData.delete("equipments");
-      selectedEquipments.forEach((id) => formData.append("equipments", id));
+      selectedEquipmentIds
+        .filter((id) => id && String(id).trim() !== "")
+        .forEach((id) => formData.append("equipments", String(id)));
 
       const response = await fetch("/api/operations/sts/create", {
         method: "POST",
         body: formData,
       });
 
-      const data = await response.json();
+      const data = await readJsonFromResponse(response);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to create operation");
@@ -774,6 +860,7 @@ export default function NewOperationPage() {
                 formRef.current?.reset();
                 setStatus("INPROGRESS");
                 setFlowDir("left");
+                resetStsSelectFields();
                 setFormResetKey((k) => k + 1);
               }}
               className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white font-medium transition"
@@ -1093,14 +1180,20 @@ export default function NewOperationPage() {
               <SelectField
                   label="Type of operation"
                   name="typeOfOperation"
+                  resetKey={formResetKey}
                   placeholder="Select type of operation"
+                  value={selectedTypeOfOperation}
+                  onChange={setSelectedTypeOfOperation}
                   options={["Ship to Ship", "POAC", "Fender Hire", "Hose hire"]}
                 />
               <SelectField
                 label="Client"
                 name="client"
+                resetKey={formResetKey}
                 placeholder="Select client"
                 loading={loadingMasters}
+                value={selectedClient}
+                onChange={setSelectedClient}
                 options={stsClients.map((c) => ({
                   label: c.name,
                   value: c.name,
@@ -1109,8 +1202,11 @@ export default function NewOperationPage() {
               <SelectField
                 label="Agent"
                 name="agent"
+                resetKey={formResetKey}
                 placeholder="Select agent"
                 loading={loadingMasters}
+                value={selectedAgent}
+                onChange={setSelectedAgent}
                 options={stsAgents.map((a) => ({
                   label: a.name,
                   value: a.name,
@@ -1119,6 +1215,7 @@ export default function NewOperationPage() {
               <SelectField
                 label="Mooring Master"
                 loading={loadingMasters}
+                resetKey={formResetKey}
                 options={[
                   { label: "Select", value: "" },
                   ...mooringMasters
@@ -1126,30 +1223,43 @@ export default function NewOperationPage() {
                     .map((m) => ({ label: m.name, value: m._id })),
                 ]}
                 name="mooringMaster"
+                value={selectedMooringMasterId}
+                onChange={setSelectedMooringMasterId}
               />
               <SelectField
                 label="Location"
                 loading={loadingMasters}
+                resetKey={formResetKey}
                 options={[
                   { label: "Select", value: "" },
                   ...locations.map((l) => ({ label: l.name, value: l._id })),
                 ]}
                 name="location"
-                onChange={handleLocationChange}
+                value={selectedLocationId}
+                onChange={(locationId) => {
+                  setSelectedLocationId(locationId || "");
+                  handleLocationChange(locationId);
+                }}
               />
               <SelectField
                 label="Type of cargo"
                 loading={loadingMasters}
+                resetKey={formResetKey}
                 options={[
                   { label: "Select", value: "" },
                   ...cargoTypes.map((c) => ({ label: c.type, value: c._id })),
                 ]}
                 name="typeOfCargo"
+                value={selectedTypeOfCargoId}
+                onChange={setSelectedTypeOfCargoId}
               />
               <SelectField
                 label="Operation Type"
                 name="operationType"
-                placeholder="Select operation type"
+                resetKey={formResetKey}
+                placeholder="Select operation type (optional for draft)"
+                value={selectedOperationType}
+                onChange={setSelectedOperationType}
                 options={[
                   { label: "Select", value: "" },
                   { label: "underway", value: "underway" },
@@ -1384,7 +1494,11 @@ export default function NewOperationPage() {
                 name="riskAssessment"
                 resetKey={formResetKey}
                 externalValue={preStsDocs.riskAssessment}
-                onClear={() => setPreStsDocs((prev) => ({ ...prev, riskAssessment: "" }))}
+                downloadFileName={riskAssessmentFileName}
+                onClear={() => {
+                  setPreStsDocs((prev) => ({ ...prev, riskAssessment: "" }));
+                  setRiskAssessmentFileName("");
+                }}
                 draftRestoreEpoch={actionUploadDraftEpoch}
                 draftInitialUrl={actionUploadDraftUrlsRef.current.riskAssessment}
               />
@@ -1397,58 +1511,6 @@ export default function NewOperationPage() {
               />
             </div>
 
-            {/* QHSE – Risk Assessments for this location */}
-            {riskAssessments.length > 0 && (
-              <>
-                <SectionTitle title={`Risk Assessments — QHSE (${riskAssessments.length})`} />
-                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-900/10 p-4 space-y-2">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead>
-                        <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-slate-400">
-                          <th className="py-2 pr-4">Form Code</th>
-                          <th className="py-2 pr-4">Serial #</th>
-                          <th className="py-2 pr-4">Location</th>
-                          <th className="py-2 pr-4">Date</th>
-                          <th className="py-2 pr-4">Version</th>
-                          <th className="py-2 pr-4">File</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {riskAssessments.map((ra) => (
-                          <tr key={ra._id} className="border-b border-white/5 hover:bg-white/5 transition">
-                            <td className="py-2 pr-4 font-mono text-emerald-300">{ra.formCode || "—"}</td>
-                            <td className="py-2 pr-4 text-white/80">{ra.serialNumber || "—"}</td>
-                            <td className="py-2 pr-4 text-white/80">{ra.locationName || "—"}</td>
-                            <td className="py-2 pr-4 text-white/70">
-                              {ra.assessmentDate
-                                ? new Date(ra.assessmentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                                : "—"}
-                            </td>
-                            <td className="py-2 pr-4 text-white/70">{ra.version || "—"}</td>
-                            <td className="py-2 pr-4">
-                              {ra.filePath ? (
-                                <button
-                                  type="button"
-                                  onClick={() => downloadFileFromUrl(ra.filePath, `${ra.formCode || "risk-assessment"}-${(ra.filePath.split("/").pop() || "file")}`)}
-                                  title="Download file"
-                                  aria-label="Download file"
-                                  className="inline-flex items-center justify-center rounded-lg border border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/15 p-1.5 transition"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                  </svg>
-                                </button>
-                              ) : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
-            )}
 
             {/* QHSE – Near Miss Reports for this location */}
             {nearMissReports.length > 0 && (
@@ -1590,6 +1652,8 @@ export default function NewOperationPage() {
                 resetKey={formResetKey}
                 equipmentDraftEpoch={equipmentDraftEpoch}
                 restoredEquipmentIds={restoredEquipmentIds}
+                selectedIds={selectedEquipmentIds}
+                onChange={setSelectedEquipmentIds}
               />
               <TextAreaField
                 label="Remarks"
@@ -1620,6 +1684,7 @@ export default function NewOperationPage() {
                   setStatus("INPROGRESS");
                   setFlowDir("left");
                   setOperationRef("");
+                  resetStsSelectFields();
                   setFormResetKey((k) => k + 1);
                 }}
                 className="px-6 py-3 rounded-xl border border-white/20 bg-white/5 text-white hover:bg-white/10 transition"
@@ -2466,7 +2531,17 @@ function ActionUpload({
   onClear,
   draftRestoreEpoch = 0,
   draftInitialUrl = "",
+  downloadFileName = "",
 }) {
+  const resolveDownloadLabel = (url) =>
+    downloadFileName?.trim() ||
+    (url ? url.split("/").pop()?.split("?")[0] : "") ||
+    "document";
+
+  const handleDownload = (url) => {
+    if (!url) return;
+    downloadFileFromUrl(url, resolveDownloadLabel(url));
+  };
   const [fileUrl, setFileUrl] = useState("");
   const [isAutoFetched, setIsAutoFetched] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
@@ -2576,7 +2651,7 @@ function ActionUpload({
           </div>
           {fileUrl && (
             <ActionDownloadIcon
-              onClick={() => downloadFileFromUrl(fileUrl)}
+              onClick={() => handleDownload(fileUrl)}
               title="Download previous file"
               className="!rounded-xl !p-3"
             />
@@ -2604,7 +2679,7 @@ function ActionUpload({
             </span>
           </div>
           <ActionDownloadIcon
-            onClick={() => fileUrl && downloadFileFromUrl(fileUrl)}
+            onClick={() => handleDownload(fileUrl)}
             title="Download file"
             className="!rounded-xl !p-3"
           />
@@ -2693,20 +2768,34 @@ function MultiSelectDropdown({
   resetKey,
   equipmentDraftEpoch = 0,
   restoredEquipmentIds = [],
+  selectedIds,
+  onChange,
 }) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState([]);
+  const isControlled = selectedIds !== undefined;
+  const [internalSelected, setInternalSelected] = useState([]);
+  const selected = isControlled ? selectedIds : internalSelected;
+
+  const setSelected = (next) => {
+    const resolved = typeof next === "function" ? next(selected) : next;
+    if (isControlled) {
+      onChange?.(resolved);
+    } else {
+      setInternalSelected(resolved);
+    }
+  };
 
   const toggle = (val) => {
+    const strVal = String(val);
     setSelected((prev) =>
-      prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
+      prev.includes(strVal) ? prev.filter((v) => v !== strVal) : [...prev, strVal]
     );
   };
 
   const summaryLabel = (() => {
     if (selected.length) {
       const selectedLabels = selected
-        .map((val) => options.find((opt) => opt.value === val)?.label)
+        .map((val) => options.find((opt) => String(opt.value) === String(val))?.label)
         .filter(Boolean);
       return selectedLabels.join(", ") || `${selected.length} selected`;
     }
@@ -2715,14 +2804,20 @@ function MultiSelectDropdown({
   })();
 
   useEffect(() => {
-    setSelected([]);
-  }, [resetKey]);
+    if (isControlled) return;
+    setInternalSelected([]);
+  }, [resetKey, isControlled]);
 
   useEffect(() => {
     if (equipmentDraftEpoch > 0) {
-      setSelected([...restoredEquipmentIds]);
+      const restored = restoredEquipmentIds.map(String);
+      if (isControlled) {
+        onChange?.(restored);
+      } else {
+        setInternalSelected(restored);
+      }
     }
-  }, [equipmentDraftEpoch, restoredEquipmentIds]);
+  }, [equipmentDraftEpoch, restoredEquipmentIds, isControlled, onChange]);
 
   return (
     <div className="space-y-2 relative">
@@ -2770,7 +2865,7 @@ function MultiSelectDropdown({
                   <input
                     type="checkbox"
                     className="h-4 w-4 rounded border-white/50 bg-transparent text-orange-400 focus:ring-orange-400"
-                    checked={selected.includes(opt.value)}
+                    checked={selected.includes(String(opt.value))}
                     onChange={() => toggle(opt.value)}
                   />
                   <span>{opt.label}</span>
@@ -2781,7 +2876,7 @@ function MultiSelectDropdown({
       </div>
       {/* Hidden inputs for form submission */}
       {selected.map((val) => (
-        <input key={val} type="hidden" name={name} value={val} />
+        <input key={val} type="hidden" name={name} value={String(val)} />
       ))}
     </div>
   );

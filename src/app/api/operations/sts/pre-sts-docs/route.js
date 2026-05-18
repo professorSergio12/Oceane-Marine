@@ -166,6 +166,8 @@ export async function GET(req) {
       // Keep backward-compat single field (latest)
       if (allRA.length > 0 && allRA[0]?.filePath) {
         result.riskAssessment = allRA[0].filePath;
+        result.riskAssessmentId = String(allRA[0]._id);
+        result.riskAssessmentFileName = allRA[0].fileName || "";
       }
     }
 

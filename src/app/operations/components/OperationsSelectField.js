@@ -2,11 +2,6 @@
 
 import { useState, useEffect, useRef, useId, useMemo } from "react";
 
-const nativeInputValueSetter =
-  typeof globalThis.window !== "undefined"
-    ? Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set
-    : null;
-
 function FieldLabel({ children, labelId, triggerId }) {
   return (
     <label
@@ -53,6 +48,8 @@ export default function OperationsSelectField({
   searchable = true,
   /** "bottom" (default) or "top" — use "top" in table footers so the list is not clipped. */
   menuPlacement = "bottom",
+  /** Increment to clear selection (e.g. when parent form resets). */
+  resetKey,
 }) {
   const baseId = useId();
   const labelId = `${baseId}-label`;
@@ -78,23 +75,21 @@ export default function OperationsSelectField({
     if (isControlled || !name) return;
     const next =
       defaultValue === undefined || defaultValue === null ? "" : String(defaultValue);
-    const el = hideRef.current;
-    if (!el) return;
-    if (el.value !== next) {
-      if (nativeInputValueSetter) nativeInputValueSetter.call(el, next);
-      else el.value = next;
-      setInternalSelected(next);
-    }
+    setInternalSelected((prev) => (prev === next ? prev : next));
   }, [defaultValue, isControlled, name]);
 
+  useEffect(() => {
+    if (resetKey === undefined || isControlled) return;
+    setInternalSelected("");
+  }, [resetKey, isControlled]);
+
+  /* Notify parent form for draft autosave after React updates the hidden input value. */
   useEffect(() => {
     if (isControlled || !name) return;
     const el = hideRef.current;
     if (!el) return;
-    const sync = () => setInternalSelected(el.value);
-    el.addEventListener("change", sync);
-    return () => el.removeEventListener("change", sync);
-  }, [name, isControlled]);
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }, [internalSelected, isControlled, name]);
 
   useEffect(() => {
     if (!open) return;
@@ -154,12 +149,6 @@ export default function OperationsSelectField({
     const str = val == null ? "" : String(val);
     if (!isControlled) {
       setInternalSelected(str);
-      const el = hideRef.current;
-      if (el) {
-        if (nativeInputValueSetter) nativeInputValueSetter.call(el, str);
-        else el.value = str;
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-      }
     }
     if (onChange) onChange(str);
   };
@@ -262,8 +251,16 @@ export default function OperationsSelectField({
         </FieldLabel>
       )}
       <div className="relative min-w-0">
-        {!isControlled && name ? (
-          <input ref={hideRef} type="hidden" name={name} defaultValue="" />
+        {name ? (
+          <input
+            ref={hideRef}
+            type="hidden"
+            name={name}
+            value={selected}
+            readOnly
+            tabIndex={-1}
+            aria-hidden
+          />
         ) : null}
         <button
           type="button"
