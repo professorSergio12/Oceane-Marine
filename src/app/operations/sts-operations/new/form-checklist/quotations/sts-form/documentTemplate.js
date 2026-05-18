@@ -31,6 +31,42 @@ function val(d, key, fallback = "") {
   return v != null && String(v).trim() !== "" ? String(v).trim() : fallback;
 }
 
+/** Treat common mistaken empty placeholders saved from forms as missing */
+function isNaLikeLocation(s) {
+  const t = String(s).trim().toLowerCase();
+  return t === "na" || t === "n/a" || t === "n.a.";
+}
+
+/**
+ * Paragraph "… operate in this location ___": use dedicated base text if set,
+ * otherwise the Cost of Operation location (users often fill only that field).
+ */
+function resolveBaseInfoLocationDisplay(d, emptyPlaceholder) {
+  const primary = val(d, "baseInfoLocation");
+  if (primary && !isNaLikeLocation(primary)) return primary;
+  const loc = val(d, "location");
+  if (loc && !isNaLikeLocation(loc)) return loc;
+  return emptyPlaceholder;
+}
+
+/** Service overview / regional text: field value, else main operation location, else PDF default */
+function resolveServiceOverviewField(d, key, pdfDefault) {
+  const v = val(d, key);
+  if (v && !isNaLikeLocation(v)) return v;
+  const loc = val(d, "location");
+  if (loc && !isNaLikeLocation(loc)) return loc;
+  return pdfDefault;
+}
+
+/** All quotation types: manual text signature in PDF (no image upload). */
+function buildAcceptanceSignatureBodyHtml(d) {
+  const textSig = val(d, "acceptanceSignatureText");
+  if (textSig) {
+    return `<div class="signature-line-area signature-line-area--typed"><span class="acceptance-signature-text">${escapeHtml(textSig)}</span></div>`;
+  }
+  return `<div class="signature-line-area"></div>`;
+}
+
 const STYLES = `
   body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.35; color: #222; max-width: 210mm; margin: 0 auto; padding: 12mm; }
   /* Oceane quotation cover template – first page; height fits within PDF content area (A4 minus header/footer margins) */
@@ -70,6 +106,41 @@ const STYLES = `
   th { background: #f0f0f0; font-weight: bold; }
   .signature-block { margin-top: 14px; }
   .signature-block p { margin: 3px 0; }
+  /* Writable signature / stamp space for PDF (Puppeteer print) */
+  .signature-line-area {
+    border-bottom: 1.5pt solid #111;
+    min-height: 26mm;
+    margin: 6px 0 12px 0;
+    width: 100%;
+    max-width: 160mm;
+    box-sizing: border-box;
+  }
+  .signature-stamp-box {
+    border: 1pt dashed #333;
+    min-height: 32mm;
+    margin: 8px 0 14px 0;
+    width: 100%;
+    max-width: 85mm;
+    box-sizing: border-box;
+    background: #fafafa;
+  }
+  .signature-date-line {
+    border-bottom: 1pt solid #111;
+    min-height: 10mm;
+    margin: 4px 0 8px 0;
+    max-width: 75mm;
+    box-sizing: border-box;
+  }
+  .signature-line-area--typed {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 4px;
+  }
+  .acceptance-signature-text {
+    font-family: "Segoe Script", "Brush Script MT", "Apple Chancery", cursive;
+    font-size: 17pt;
+    color: #111;
+  }
   .confidential { font-size: 9pt; margin: 8px 0; padding: 8px; border: 1px solid #666; background: #fafafa; }
   .section-page { page-break-before: always; min-height: 0; }
   .section-page:first-of-type { page-break-before: avoid; }
@@ -192,8 +263,8 @@ export function buildDocumentHtml030(data) {
   const d = data || {};
   const formNo = pageFormNo030(d);
   const loc = val(d, "location");
-  const locationDisplay = loc || "Select the location";
-  const baseInfo = val(d, "baseInfoLocation") || "Select the location";
+  const locationDisplay = loc && !isNaLikeLocation(loc) ? loc : "Select the location";
+  const baseInfo = resolveBaseInfoLocationDisplay(d, "Select the location");
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -315,7 +386,8 @@ export function buildDocumentHtml030(data) {
     <div class="signature-block">
       <p>Client Name (Company): ${escapeHtml(val(d, "acceptanceClientName", "Click or tap here to enter text."))}</p>
       <p>Person Incharge: ${escapeHtml(val(d, "personInCharge", "Click or tap here to enter text."))}</p>
-      <p>Signature: _</p>
+      <p style="margin-top:10px;margin-bottom:4px;"><strong>Signature:</strong></p>
+      ${buildAcceptanceSignatureBodyHtml(d)}
       <p>Date: ${escapeHtml(fmtDate(d.acceptanceDate) || "Click or tap here to enter text.")}</p>
     </div>
   </div>
@@ -335,8 +407,8 @@ function pageFormNo030B(d) {
 export function buildDocumentHtml030B(data) {
   const d = data || {};
   const formNo = pageFormNo030B(d);
-  const svcFrom = escapeHtml(val(d, "serviceOverviewFrom", "Fujairah"));
-  const svcTo = escapeHtml(val(d, "serviceOverviewTo", "Iraq"));
+  const svcFrom = escapeHtml(resolveServiceOverviewField(d, "serviceOverviewFrom", "Fujairah"));
+  const svcTo = escapeHtml(resolveServiceOverviewField(d, "serviceOverviewTo", "Iraq"));
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -493,12 +565,16 @@ export function buildDocumentHtml030B(data) {
     <p class="gap-md"><strong>The party agreed upon:</strong></p>
     <div class="signature-block">
       <p>Name: ${escapeHtml(val(d, "acceptanceName", "Click or tap here to enter text."))}</p>
-      <p>Date: _________________________________</p>
+      <p style="margin-top:8px;margin-bottom:4px;"><strong>Date:</strong></p>
+      <div class="signature-date-line" title="Date"></div>
       <p>Address: ${escapeHtml(val(d, "acceptanceAddress", "_________________________________"))}</p>
       <p>Email: ${escapeHtml(val(d, "acceptanceEmail", "_________________________________"))}</p>
       <p>Telephone: ${escapeHtml(val(d, "acceptanceTelephone", "_________________________________"))}</p>
       <p>As authorized signatory for: ${escapeHtml(val(d, "authorizedSignatoryFor", "_________________________________"))}</p>
-      <p>(Company Signature &amp; Stamp)</p>
+      <p style="margin-top:12px;margin-bottom:4px;"><strong>Signature:</strong></p>
+      ${buildAcceptanceSignatureBodyHtml(d)}
+      <p style="margin-top:10px;margin-bottom:4px;"><strong>Company stamp</strong> (if applicable)</p>
+      <div class="signature-stamp-box" title="Company stamp"></div>
     </div>
     <div class="section-content gap-md" style="margin-top: 14px;">
       <p><strong>Company Acknowledgment</strong></p>
@@ -523,7 +599,9 @@ function coverPagePOAC(d) {
 export function buildDocumentHtmlPOAC(data) {
   const d = data || {};
   const formNo = escapeHtml(val(d, "formNo") || "POAC Quotation");
-  const baseInfo = val(d, "baseInfoLocation") || "";
+  const baseInfo = resolveBaseInfoLocationDisplay(d, "Select the location");
+  const poacLoc = val(d, "location");
+  const poacLocationDisplay = poacLoc && !isNaLikeLocation(poacLoc) ? poacLoc : "";
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -563,7 +641,7 @@ export function buildDocumentHtmlPOAC(data) {
       <tr><td>Discharging ship(s)</td><td>${escapeHtml(val(d, "dischargingShip", ""))}</td></tr>
       <tr><td>Receiving ship(s)</td><td>${escapeHtml(val(d, "receivingShip", ""))}</td></tr>
       <tr><td>Date</td><td>${escapeHtml(fmtDate(d.operationDate) || "")}</td></tr>
-      <tr><td>Location</td><td>${escapeHtml(val(d, "location", ""))}</td></tr>
+      <tr><td>Location</td><td>${escapeHtml(poacLocationDisplay)}</td></tr>
       <tr><td>Cargo</td><td>${escapeHtml(val(d, "cargo", ""))}</td></tr>
       <tr><td>Quantity</td><td>${escapeHtml(val(d, "quantity", ""))} ${escapeHtml(val(d, "quantityUnit", "Metric Tons"))}</td></tr>
       <tr><td>Day Rate</td><td>${escapeHtml(val(d, "dailyRate", ""))} USD</td></tr>
@@ -648,7 +726,8 @@ export function buildDocumentHtmlPOAC(data) {
     <div class="signature-block">
       <p>Client Name (Company): ${escapeHtml(val(d, "acceptanceClientName", ""))}</p>
       <p>Person Incharge: ${escapeHtml(val(d, "personInCharge", ""))}</p>
-      <p>Signature: __________________________</p>
+      <p style="margin-top:10px;margin-bottom:4px;"><strong>Signature:</strong></p>
+      ${buildAcceptanceSignatureBodyHtml(d)}
       <p>Date: ${escapeHtml(fmtDate(d.acceptanceDate) || "___________________________")}</p>
     </div>
   </div>

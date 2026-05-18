@@ -134,6 +134,34 @@ function escapeCsvCell(value) {
   return s;
 }
 
+/** Calendar year used for primary list filter / yearly export (purchase → first use → record created). */
+function getPrimaryEquipmentInventoryYear(eq) {
+  const raw = eq?.dateOfPurchase ?? eq?.firstUseDate ?? eq?.createdAt;
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.getFullYear();
+}
+
+/** Download all primary equipment rows for one inventory year as a single CSV. */
+function downloadPrimaryInventoryYearCsv(rows, year) {
+  if (!rows?.length) return;
+  const columns = getPrimaryEquipmentExportColumns();
+  const headers = columns.map((c) => c.label);
+  const headerLine = headers.map(escapeCsvCell).join(",");
+  const lines = rows.map((eq) =>
+    columns.map((c) => escapeCsvCell(c.getValue(eq))).join(",")
+  );
+  const csv = "\uFEFF" + headerLine + "\r\n" + lines.join("\r\n") + "\r\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Primary_Equipment_Inventory_${year}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Download current equipment record as CSV (opens in Excel). One row of headers, one row of data. */
 function downloadEquipmentExcel(equipment) {
   if (!equipment) return;
@@ -226,9 +254,35 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
   // List tab detail view state
   const [selectedEquipmentDetail, setSelectedEquipmentDetail] = useState(null);
 
+  /** Inventory year for list tab + yearly CSV (aligned with date of purchase / first use / created). */
+  const [listYear, setListYear] = useState(() => new Date().getFullYear());
+
+  const primaryInventoryYearOptions = useMemo(() => {
+    const set = new Set();
+    for (const eq of equipments) {
+      const y = getPrimaryEquipmentInventoryYear(eq);
+      if (y != null) set.add(y);
+    }
+    const arr = Array.from(set).sort((a, b) => b - a);
+    return arr.length > 0 ? arr : [new Date().getFullYear()];
+  }, [equipments]);
+
+  const equipmentsForListYear = useMemo(
+    () =>
+      equipments.filter((eq) => getPrimaryEquipmentInventoryYear(eq) === listYear),
+    [equipments, listYear]
+  );
+
+  useEffect(() => {
+    if (activeTab !== "list" || equipments.length === 0) return;
+    if (!primaryInventoryYearOptions.includes(listYear)) {
+      setListYear(primaryInventoryYearOptions[0]);
+    }
+  }, [activeTab, equipments.length, listYear, primaryInventoryYearOptions]);
+
   const listTabPagination = useOperationsClientPagination(
-    activeTab === "list" ? equipments : [],
-    activeTab === "list" ? `list-${equipments.length}` : "list-off"
+    activeTab === "list" ? equipmentsForListYear : [],
+    activeTab === "list" ? `list-${listYear}-${equipmentsForListYear.length}` : "list-off"
   );
   const { paginatedItems: paginatedListEquipments, ...listPaginationFooterProps } =
     listTabPagination;
@@ -701,18 +755,46 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       {/* Tab content */}
       {activeTab === "list" && (
         <div className="space-y-4 rounded-3xl border border-white/10 bg-[#0b2740]/75 backdrop-blur-[2px] p-6 shadow-2xl">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <h3 className="text-sm font-semibold text-white">
-              Equipment List
-            </h3>
-            <button
-              type="button"
-              onClick={fetchEquipments}
-              disabled={equipmentsLoading}
-              className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {equipmentsLoading ? "Refreshing..." : "Refresh"}
-            </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
+            <h3 className="text-sm font-semibold text-white">Equipment List</h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="shrink-0 text-xs uppercase tracking-[0.2em] text-slate-200">
+                  Year
+                </span>
+                <OperationsSelectField
+                  variant="pill"
+                  ariaLabel="Inventory year"
+                  value={String(listYear)}
+                  onChange={(v) => setListYear(Number(v))}
+                  options={primaryInventoryYearOptions.map((y) => ({
+                    value: String(y),
+                    label: String(y),
+                  }))}
+                  className="min-w-0 w-[6.25rem] sm:w-32"
+                  triggerClassName="ops-select-trigger w-full rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                />
+              </div>
+              {canDownload && (
+                <button
+                  type="button"
+                  onClick={() => downloadPrimaryInventoryYearCsv(equipmentsForListYear, listYear)}
+                  disabled={equipmentsForListYear.length === 0 || equipmentsLoading}
+                  title="Download all rows for the selected year as one CSV"
+                  className="text-xs px-3 py-1.5 rounded-lg border border-orange-400/50 text-orange-100 bg-orange-500/10 hover:bg-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Download full year (CSV)
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={fetchEquipments}
+                disabled={equipmentsLoading}
+                className="text-xs px-3 py-1.5 rounded-lg border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {equipmentsLoading ? "Refreshing..." : "Refresh"}
+              </button>
+            </div>
           </div>
 
           {equipmentsError && (

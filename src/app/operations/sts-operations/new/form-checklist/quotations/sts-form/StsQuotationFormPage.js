@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
@@ -39,6 +39,8 @@ const emptyForm = () => ({
   acceptanceClientName: "",
   personInCharge: "",
   acceptanceDate: "",
+  acceptanceSignatureText: "",
+  acceptanceSignatureImage: "",
   designatedAdvisor: "",
   dailyRate: "",
   managementFee: "",
@@ -89,6 +91,8 @@ function toFormData(record) {
     acceptanceClientName: d.acceptanceClientName ?? "",
     personInCharge: d.personInCharge ?? "",
     acceptanceDate: d.acceptanceDate ? new Date(d.acceptanceDate).toISOString().split("T")[0] : "",
+    acceptanceSignatureText: d.acceptanceSignatureText ?? "",
+    acceptanceSignatureImage: "",
     designatedAdvisor: d.designatedAdvisor ?? "",
     dailyRate: d.dailyRate ?? "",
     managementFee: d.managementFee ?? "",
@@ -113,7 +117,12 @@ function toPayload(form) {
   if (p.operationDate) p.operationDate = new Date(p.operationDate).toISOString();
   if (p.acceptanceDate) p.acceptanceDate = new Date(p.acceptanceDate).toISOString();
   if (p.acceptanceDate030B) p.acceptanceDate030B = new Date(p.acceptanceDate030B).toISOString();
+  p.acceptanceSignatureImage = "";
   return p;
+}
+
+function requiresQuotationSignature(formType) {
+  return ["OPS-OFD-030", "OPS-OFD-030B", "POAC"].includes(formType);
 }
 
 const inputClass =
@@ -176,6 +185,13 @@ export default function StsQuotationFormPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    if (
+      requiresQuotationSignature(form.formType) &&
+      !String(form.acceptanceSignatureText ?? "").trim()
+    ) {
+      setError("Signature is required.");
+      return;
+    }
     setSaving(true);
     try {
       const url = editId
@@ -188,6 +204,7 @@ export default function StsQuotationFormPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
+      if (data.data) setForm(toFormData(data.data));
       setSuccess(editId ? "Quotation updated." : "Quotation saved.");
       if (!editId && data.data?._id) {
         setTimeout(() => router.push(`/operations/sts-operations/new/form-checklist/quotations/sts-form?edit=${data.data._id}`), 1500);
@@ -551,7 +568,16 @@ export default function StsQuotationFormPage() {
                       <OperationsSelectField
                         ariaLabel="Location"
                         value={form.location}
-                        onChange={(v) => setField("location", v)}
+                        onChange={(v) => {
+                          setForm((prev) => {
+                            const next = { ...prev, location: v };
+                            const baseEmpty = !String(prev.baseInfoLocation ?? "").trim();
+                            if ((prev.formType === "OPS-OFD-030" || prev.formType === "POAC") && baseEmpty) {
+                              next.baseInfoLocation = v;
+                            }
+                            return next;
+                          });
+                        }}
                         options={locationSelectOptions}
                         triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
                         className="w-full"
@@ -650,6 +676,21 @@ export default function StsQuotationFormPage() {
                       <label className={labelClass}>Acceptance Date</label>
                       <input type="date" value={form.acceptanceDate} onChange={(e) => setField("acceptanceDate", e.target.value)} className={inputClass} />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label htmlFor="stsAcceptanceSignatureText" className={labelClass}>
+                        Signature
+                      </label>
+                      <input
+                        id="stsAcceptanceSignatureText"
+                        type="text"
+                        value={form.acceptanceSignatureText}
+                        onChange={(e) => setField("acceptanceSignatureText", e.target.value)}
+                        className={inputClass}
+                        placeholder="Type full name as electronic signature"
+                        autoComplete="off"
+                        required={requiresQuotationSignature(form.formType)}
+                      />
+                    </div>
                   </div>
                 </section>
               </>
@@ -684,7 +725,16 @@ export default function StsQuotationFormPage() {
                       <OperationsSelectField
                         ariaLabel="Location"
                         value={form.location}
-                        onChange={(v) => setField("location", v)}
+                        onChange={(v) => {
+                          setForm((prev) => {
+                            const next = { ...prev, location: v };
+                            const baseEmpty = !String(prev.baseInfoLocation ?? "").trim();
+                            if ((prev.formType === "OPS-OFD-030" || prev.formType === "POAC") && baseEmpty) {
+                              next.baseInfoLocation = v;
+                            }
+                            return next;
+                          });
+                        }}
                         options={locationSelectOptions}
                         triggerClassName={`${inputClass} flex min-h-[2.75rem] items-center justify-between pr-10 text-left`}
                         className="w-full"
@@ -779,6 +829,21 @@ export default function StsQuotationFormPage() {
                       <label className={labelClass}>Acceptance Date</label>
                       <input type="date" value={form.acceptanceDate} onChange={(e) => setField("acceptanceDate", e.target.value)} className={inputClass} />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label htmlFor="stsPoacAcceptanceSignatureText" className={labelClass}>
+                        Signature
+                      </label>
+                      <input
+                        id="stsPoacAcceptanceSignatureText"
+                        type="text"
+                        value={form.acceptanceSignatureText}
+                        onChange={(e) => setField("acceptanceSignatureText", e.target.value)}
+                        className={inputClass}
+                        placeholder="Type full name as electronic signature"
+                        autoComplete="off"
+                        required={requiresQuotationSignature(form.formType)}
+                      />
+                    </div>
                   </div>
                 </section>
               </>
@@ -846,6 +911,21 @@ export default function StsQuotationFormPage() {
                     <div className="sm:col-span-2">
                       <label className={labelClass}>As authorized signatory for</label>
                       <input type="text" value={form.authorizedSignatoryFor} onChange={(e) => setField("authorizedSignatoryFor", e.target.value)} className={inputClass} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label htmlFor="sts030bAcceptanceSignatureText" className={labelClass}>
+                        Signature
+                      </label>
+                      <input
+                        id="sts030bAcceptanceSignatureText"
+                        type="text"
+                        value={form.acceptanceSignatureText}
+                        onChange={(e) => setField("acceptanceSignatureText", e.target.value)}
+                        className={inputClass}
+                        placeholder="Type full name as electronic signature"
+                        autoComplete="off"
+                        required={requiresQuotationSignature(form.formType)}
+                      />
                     </div>
                   </div>
                 </section>

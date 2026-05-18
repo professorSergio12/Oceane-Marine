@@ -2,8 +2,24 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import TrainingRecord from "@/lib/mongodb/models/qhse-training/TrainingRecord";
 import TrainingPlan from "@/lib/mongodb/models/qhse-training/TrainingPlan";
-import path from "path";
+import path from "node:path";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
+import { assertQhsePermission } from "@/lib/auth/qhseGuard";
+
+export const runtime = "nodejs";
+
+/** YYYY-MM-DD for matching plan.planItems to submitted plannedDate (reduces TZ drift). */
+function dateKeyOnly(value) {
+  if (value == null || value === "") return "";
+  if (typeof value === "string") {
+    const t = value.trim();
+    const m = /^(\d{4}-\d{2}-\d{2})/.exec(t);
+    if (m) return m[1];
+  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
 
 export async function GET(req) {
   try {
@@ -59,9 +75,25 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const guard = await assertQhsePermission("canCreate");
+  if (!guard.ok) return guard.response;
+
   try {
     await connectDB();
-    const formData = await req.formData();
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (e) {
+      console.error("training record FormData parse:", e);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Could not read the upload (body too large or corrupted). Try a file under 25MB, ensure you are signed in, and retry.",
+        },
+        { status: 400 }
+      );
+    }
 
     const trainingPlanId = formData.get("trainingPlanId");
     const plannedDate = formData.get("plannedDate");
@@ -69,7 +101,25 @@ export async function POST(req) {
     const instructor = formData.get("instructor");
     const actualTrainingDate = formData.get("actualTrainingDate");
     const attendanceJson = formData.get("attendance");
-    const attendance = JSON.parse(attendanceJson || "[]");
+    let attendance;
+    try {
+      const rawJson =
+        typeof attendanceJson === "string" && attendanceJson.trim()
+          ? attendanceJson.trim()
+          : "[]";
+      attendance = JSON.parse(rawJson);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Invalid attendance JSON" },
+        { status: 400 }
+      );
+    }
+    if (!Array.isArray(attendance)) {
+      return NextResponse.json(
+        { success: false, error: "Attendance must be an array" },
+        { status: 400 }
+      );
+    }
     const attachmentFile = formData.get("attachment");
 
     if (
@@ -86,8 +136,8 @@ export async function POST(req) {
       );
     }
 
-    const topicTrimmed = topic.trim();
-    const instructorTrimmed = instructor.trim();
+    const topicTrimmed = String(topic ?? "").trim();
+    const instructorTrimmed = String(instructor ?? "").trim();
 
     const invalidAttendance = attendance.some(
       (item) => !item?.traineeName?.trim()
@@ -102,7 +152,8 @@ export async function POST(req) {
 
     const formattedAttendance = attendance.map((item) => ({
       traineeName: item.traineeName.trim(),
-      department: item.department?.trim() || undefined,
+      department:
+        (item.department || item.role || "").trim() || undefined,
       designation: item.designation?.trim() || undefined,
       signature: item.signature?.trim() || undefined,
     }));
@@ -116,9 +167,9 @@ export async function POST(req) {
       );
     }
 
+    const plannedKey = dateKeyOnly(plannedDate);
     const planItem = plan.planItems.find(
-      (item) => new Date(item.plannedDate).toISOString().split("T")[0] === 
-                 new Date(plannedDate).toISOString().split("T")[0]
+      (item) => dateKeyOnly(item.plannedDate) === plannedKey
     );
 
     if (!planItem) {

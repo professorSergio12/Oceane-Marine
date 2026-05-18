@@ -51,6 +51,8 @@ export default function OperationsSelectField({
   className = "",
   disabled = false,
   searchable = true,
+  /** "bottom" (default) or "top" — use "top" in table footers so the list is not clipped. */
+  menuPlacement = "bottom",
 }) {
   const baseId = useId();
   const labelId = `${baseId}-label`;
@@ -184,11 +186,16 @@ export default function OperationsSelectField({
     ? ""
     : `${placeholderLike ? "font-normal text-white/60" : "font-semibold text-white"}`;
 
+  const menuPositionClass =
+    menuPlacement === "top"
+      ? "absolute left-0 right-0 bottom-full z-[200] mb-1"
+      : "absolute left-0 right-0 top-full z-[200] mt-1";
+
   const dropdownPanelClass =
     listClassName ??
     (variant === "pill"
-      ? "absolute left-0 right-0 top-full z-[1] mt-1 flex min-h-0 max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] text-xs shadow-xl"
-      : "absolute left-0 right-0 top-full z-[1] mt-1 flex min-h-0 max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] shadow-xl");
+      ? `${menuPositionClass} flex min-h-0 max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] text-xs shadow-xl`
+      : `${menuPositionClass} flex min-h-0 max-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b2740] shadow-xl`);
 
   /* Explicit list max-height when a search row is present — flex-1 alone inside max-h-only parents often collapses the scroll area to ~one row. */
   const listScrollClass =

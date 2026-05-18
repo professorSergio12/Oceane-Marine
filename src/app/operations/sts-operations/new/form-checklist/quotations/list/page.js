@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { buildDocumentHtml030, buildDocumentHtml030B, buildDocumentHtmlPOAC, getFormNoLineForPdf } from "../sts-form/documentTemplate";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import {
@@ -124,25 +123,12 @@ export default function QuotationListPage() {
   };
 
   const handleDownloadSts = async (record) => {
-    let html;
-    let defaultFormNo;
-    if (record.formType === "OPS-OFD-030B") {
-      html = buildDocumentHtml030B(record);
-      defaultFormNo = "OPS-OFD-030B";
-    } else if (record.formType === "POAC") {
-      html = buildDocumentHtmlPOAC(record);
-      defaultFormNo = "Form No. OPS-OFD-30A / Rev 1.2 / Issue Date: 20 Aug 2023";
-    } else {
-      html = buildDocumentHtml030(record);
-      defaultFormNo = "Form No. OPS-OFD-30 / Rev 1.1 / Issue Date: 20 Aug 2023";
-    }
-    const formNoLine = getFormNoLineForPdf(record, defaultFormNo);
     setDownloadingId(record._id);
     try {
       const res = await fetch("/api/operations/form-checklist/sts-quotation-form/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, formNoLine }),
+        body: JSON.stringify({ quotationId: String(record._id) }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -454,7 +440,7 @@ export default function QuotationListPage() {
               <p className="text-white/60">No rows match your search.</p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+            <div className="rounded-2xl border border-white/10 bg-white/5">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-white/5 border-b border-white/10">
@@ -705,6 +691,7 @@ function QuotationViewModal({ record, onClose, onEdit, onDownload, downloading }
                 <ViewField label="Client Name (Company)" value={record.acceptanceClientName} />
                 <ViewField label="Person In Charge" value={record.personInCharge} />
                 <ViewField label="Acceptance Date" value={formatDate(record.acceptanceDate)} />
+                <ViewField label="Signature" value={record.acceptanceSignatureText} full />
               </ViewSection>
             </>
           ) : (

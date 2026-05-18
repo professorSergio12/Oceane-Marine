@@ -7,7 +7,7 @@ const attachmentSchema = {
   fileSize: { type: Number },
 };
 
-/** User-managed controlled documents (form + file); Rev auto-increments on each edit (1.0 → 1.1 → …). */
+/** User-managed controlled documents (form + file); Rev No is manual (revMajor.revMinor). */
 const ControlledDocumentEntrySchema = new mongoose.Schema(
   {
     formCode: { type: String, required: true, trim: true, index: true },

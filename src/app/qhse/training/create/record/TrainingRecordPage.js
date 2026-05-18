@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useQhseRole } from "@/hooks/useQhseRole";
+import { readJsonFromResponse } from "@/lib/utils/readJsonFromResponse";
 
 /* ---------------- helpers ---------------- */
 
@@ -55,6 +56,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
   const [planError, setPlanError] = useState(null);
   const [planDeleting, setPlanDeleting] = useState(false);
   const [creatingFor, setCreatingFor] = useState(null);
+  const [editingRecordId, setEditingRecordId] = useState(null);
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -80,7 +82,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
       setLoadingYears(true);
       try {
         const res = await fetch("/api/qhse/training/plan");
-        const data = await res.json();
+        const data = await readJsonFromResponse(res);
         if (res.ok && data.success && Array.isArray(data.data)) {
           const merged = Array.from(
             new Set([...initialYears, ...data.data])
@@ -88,6 +90,8 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
           setAvailableYears(merged);
           // Do not change the selected year here — keep user's selection (or initial currentYear) so it doesn't change while filling the form
         }
+      } catch {
+        /* Non-JSON or network: keep default year list */
       } finally {
         setLoadingYears(false);
       }
@@ -109,7 +113,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
       setCreatingFor(null);
       try {
         const res = await fetch(`/api/qhse/training/plan?year=${year}`);
-        const data = await res.json();
+        const data = await readJsonFromResponse(res);
         if (!res.ok || !data.success) {
           throw new Error(data.error || "No approved plan for this year");
         }
@@ -137,12 +141,12 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
     setPlanError(null);
     try {
       const res = await fetch(`/api/qhse/training/plan/${plan._id}`, { method: "DELETE" });
-      const data = await res.json();
+      const data = await readJsonFromResponse(res);
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete plan");
       setPlan(null);
       setMessage("Training plan deleted.");
       const yearsRes = await fetch("/api/qhse/training/plan");
-      const yearsData = await yearsRes.json();
+      const yearsData = await readJsonFromResponse(yearsRes);
       if (yearsRes.ok && yearsData.success && Array.isArray(yearsData.data)) {
         const merged = Array.from(new Set([...getYears(), ...yearsData.data])).sort((a, b) => b - a);
         setAvailableYears(merged);
@@ -251,7 +255,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
           `/api/qhse/training/record?year=${year === "all" ? "all" : year}`,
           { cache: "no-store" }
         );
-        const data = await res.json();
+        const data = await readJsonFromResponse(res);
         if (!res.ok || !data.success) {
           throw new Error(data.error || "Failed to load training records");
         }
@@ -301,7 +305,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
 
   const applyPlanItem = (item, monthPairIndex) => {
     if (!item) return;
-    // Reset form for the new month pair; only pre-fill date from plan
+    setEditingRecordId(null);
     setFormData(
       getInitialFormData({
         actualTrainingDate: toDateInputValue(item.plannedDate),
@@ -313,9 +317,39 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
     setError(null);
   };
 
+  const startEditRecord = (record, planItem, monthPairIndex) => {
+    if (!record?._id || !planItem) return;
+    setEditingRecordId(record._id);
+    setCreatingFor({ ...planItem, _monthPairIndex: monthPairIndex });
+    setFormData({
+      actualTrainingDate: toDateInputValue(record.actualTrainingDate || planItem.plannedDate),
+      trainees: (record.attendance || []).map((t) => ({
+        name: t.traineeName || "",
+        role: t.department || t.designation || "",
+      })),
+    });
+    setAttachmentFile(null);
+    setMessage(null);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const closeRecordForm = () => {
+    setCreatingFor(null);
+    setEditingRecordId(null);
+    setFormData(getInitialFormData());
+    setAttachmentFile(null);
+    setError(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
+    const isEdit = Boolean(editingRecordId);
+    if (!isEdit && !plan?._id) {
+      setError("Select a year with an approved training plan before creating a record.");
+      return;
+    }
     setSaving(true);
     setError(null);
     setMessage(null);
@@ -337,62 +371,71 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
         role: t.role.trim(),
       }));
 
-      // Validate that the plannedDate month matches the expected month pair
-      const expectedMonthPairIndex = creatingFor._monthPairIndex;
-      if (expectedMonthPairIndex !== undefined && expectedMonthPairIndex !== null) {
-        const plannedDateMonth = new Date(creatingFor.plannedDate).getMonth();
-        const expectedMonths = MONTH_PAIRS[expectedMonthPairIndex].key.split("-").map((m) => {
-          const monthMap = {
-            Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-            Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
-          };
-          return monthMap[m];
-        });
-        if (!expectedMonths.includes(plannedDateMonth)) {
-          throw new Error(`Planned date month (${plannedDateMonth}) does not match selected month pair (${MONTH_PAIRS[expectedMonthPairIndex].label})`);
+      if (!isEdit) {
+        const expectedMonthPairIndex = creatingFor._monthPairIndex;
+        if (expectedMonthPairIndex !== undefined && expectedMonthPairIndex !== null) {
+          const plannedDateMonth = new Date(creatingFor.plannedDate).getMonth();
+          const expectedMonths = MONTH_PAIRS[expectedMonthPairIndex].key.split("-").map((m) => {
+            const monthMap = {
+              Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+              Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+            };
+            return monthMap[m];
+          });
+          if (!expectedMonths.includes(plannedDateMonth)) {
+            throw new Error(
+              `Planned date month (${plannedDateMonth}) does not match selected month pair (${MONTH_PAIRS[expectedMonthPairIndex].label})`
+            );
+          }
         }
       }
 
-      // Create FormData for file upload
       const submitFormData = new FormData();
-      submitFormData.append("trainingPlanId", plan._id);
-      // Ensure plannedDate is in ISO string format (YYYY-MM-DD)
-      const plannedDateStr = creatingFor.plannedDate 
-        ? (typeof creatingFor.plannedDate === 'string' 
-            ? creatingFor.plannedDate 
-            : new Date(creatingFor.plannedDate).toISOString().split("T")[0])
-        : "";
-      submitFormData.append("plannedDate", plannedDateStr);
-      submitFormData.append("topic", creatingFor.topic);
-      submitFormData.append("instructor", creatingFor.instructor);
+      if (!isEdit) {
+        submitFormData.append("trainingPlanId", plan._id);
+        const plannedDateStr = creatingFor.plannedDate
+          ? typeof creatingFor.plannedDate === "string"
+            ? creatingFor.plannedDate
+            : new Date(creatingFor.plannedDate).toISOString().split("T")[0]
+          : "";
+        submitFormData.append("plannedDate", plannedDateStr);
+        submitFormData.append("topic", creatingFor.topic);
+        submitFormData.append("instructor", creatingFor.instructor);
+      }
       submitFormData.append("actualTrainingDate", formData.actualTrainingDate);
       submitFormData.append("attendance", JSON.stringify(attendance));
-      
+
       if (attachmentFile) {
         submitFormData.append("attachment", attachmentFile);
       }
 
-      const res = await fetch("/api/qhse/training/record", {
-        method: "POST",
-        body: submitFormData,
-      });
+      const res = await fetch(
+        isEdit ? `/api/qhse/training/record/${editingRecordId}` : "/api/qhse/training/record",
+        {
+          method: isEdit ? "PUT" : "POST",
+          body: submitFormData,
+        }
+      );
 
-      const data = await res.json();
+      const data = await readJsonFromResponse(res);
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to create training record");
+        throw new Error(
+          data.error ||
+            (isEdit ? "Failed to update training record" : "Failed to create training record")
+        );
       }
 
-      setMessage("Training record saved successfully!");
+      setMessage(
+        isEdit ? "Training record updated successfully!" : "Training record saved successfully!"
+      );
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      setFormData(getInitialFormData());
-      setAttachmentFile(null);
-      setCreatingFor(null);
+      closeRecordForm();
       
       // Refresh plan and records (only refresh plan when a specific year is selected)
       if (year !== "all") {
         const refreshRes = await fetch(`/api/qhse/training/plan?year=${year}`);
-        const refreshData = await refreshRes.json();
+        const refreshData = await readJsonFromResponse(refreshRes);
         if (refreshRes.ok && refreshData.success) {
           setPlan(refreshData.data);
         }
@@ -403,12 +446,17 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
         `/api/qhse/training/record?year=${year === "all" ? "all" : year}&_t=${Date.now()}`,
         { cache: "no-store" }
       );
-      const recordsData = await recordsRes.json();
+      const recordsData = await readJsonFromResponse(recordsRes);
       if (recordsRes.ok && recordsData.success) {
         setRecords(recordsData.data || []);
       }
     } catch (err) {
-      setError(err.message);
+      let msg = err?.message || "Save failed";
+      if (/Unexpected token ['"]?</i.test(msg) || /not valid JSON/i.test(msg)) {
+        msg =
+          "The server returned an error page instead of data. Sign in again, try a smaller attachment (under 25MB), then retry. If it continues, open DevTools → Network → the training/record request and check the status code.";
+      }
+      setError(msg);
     } finally {
       setSaving(false);
     }
@@ -417,7 +465,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
   /* ---------------- UI ---------------- */
 
   const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
-  const canSubmit = canCreate;
+  const canSubmit = editingRecordId ? canEdit : canCreate;
 
   const { contentClassName } = useQhseSidebar();
   const content = (
@@ -624,7 +672,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
             >
               {!canSubmit && (
                 <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
-                  You do not have permission to create records. Form is view-only.
+                  You do not have permission to {editingRecordId ? "update" : "create"} training records. Form is view-only.
                 </div>
               )}
               <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
@@ -636,12 +684,12 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                     <div className="flex items-center gap-2">
                       <span className="text-lg">➕</span>
                       <h2 className="text-lg font-semibold">
-                        Training record details
+                        {editingRecordId ? "Edit training record" : "Training record details"}
                       </h2>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setCreatingFor(null)}
+                      onClick={closeRecordForm}
                       className="text-xs text-slate-200 hover:text-white"
                     >
                       ✕ Close
@@ -828,7 +876,11 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                   disabled={!canSubmit || saving}
                   className="px-6 py-3 rounded-xl bg-orange-500 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {saving ? "Saving..." : "Save Training Record"}
+                  {saving
+                    ? "Saving..."
+                    : editingRecordId
+                      ? "Update Training Record"
+                      : "Save Training Record"}
                 </button>
               </div>
               </fieldset>
@@ -1156,6 +1208,15 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                               </div>
                             )}
                             <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditRecord(record, planItem, idx)}
+                                  className="text-xs text-amber-300 hover:text-amber-200 font-medium px-2 py-1 rounded border border-amber-400/30 hover:bg-amber-400/10 transition"
+                                >
+                                  Edit
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => handleDownloadRecordDocx(record._id, record.serialNumber)}

@@ -182,6 +182,13 @@ const ControlledDocumentEntriesSection = forwardRef(function ControlledDocumentE
         return;
       }
 
+      const revTrimmed = revDisplay.trim();
+      if (!/^\d{1,4}\.\d{1,4}$/.test(revTrimmed)) {
+        setError("Rev No must be major.minor (e.g. 1.0 or 2.15).");
+        setSubmitting(false);
+        return;
+      }
+
       const fd = new FormData();
       fd.append("formCode", formCode.trim());
       fd.append("title", title.trim());
@@ -192,6 +199,7 @@ const ControlledDocumentEntriesSection = forwardRef(function ControlledDocumentE
         )
       );
       fd.append("department", department.trim());
+      fd.append("revNo", revTrimmed);
       if (issueDate) fd.append("issueDate", issueDate);
       if (documentFile) fd.append("document", documentFile);
 
@@ -350,29 +358,24 @@ const ControlledDocumentEntriesSection = forwardRef(function ControlledDocumentE
                         />
                       </div>
                       <div className="space-y-1">
-                        <span className="text-xs font-medium uppercase tracking-wide text-slate-300 block">
-                          Rev No{" "}
-                          <span className="text-slate-500 normal-case">(auto)</span>
-                        </span>
-                        <div className="rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-sky-200 font-mono">
-                          {editingId ? (
-                            <>
-                              <span className="text-slate-400">Current </span>
-                              {revDisplay}
-                              <span className="text-slate-500"> · After save </span>
-                              {(() => {
-                                const parts = String(revDisplay).split(".");
-                                const maj = parts[0] || "1";
-                                const min = Number(parts[1] ?? 0) + 1;
-                                return `${maj}.${min}`;
-                              })()}
-                            </>
-                          ) : (
-                            revDisplay
-                          )}
-                        </div>
+                        <label
+                          htmlFor="cdf-rev-no"
+                          className="text-xs font-medium uppercase tracking-wide text-slate-300"
+                        >
+                          Rev No <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          id="cdf-rev-no"
+                          required
+                          value={revDisplay}
+                          onChange={(e) => setRevDisplay(e.target.value)}
+                          className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white font-mono focus:ring-2 focus:ring-sky-500/40 outline-none max-w-xs"
+                          placeholder="e.g. 1.0"
+                          pattern="\d{1,4}\.\d{1,4}"
+                          title="Major.minor (e.g. 1.0)"
+                        />
                         <p className="text-[10px] text-slate-500">
-                          Each edit increases the revision by 0.1 (e.g. 1.0 → 1.1 → 1.2).
+                          Enter revision manually (major.minor). Not auto-incremented on save.
                         </p>
                       </div>
                     </div>

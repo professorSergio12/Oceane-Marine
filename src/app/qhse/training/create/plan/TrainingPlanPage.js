@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useQhseRole } from "@/hooks/useQhseRole";
+import { readJsonFromResponse } from "@/lib/utils/readJsonFromResponse";
 
 // Generate dynamic years: 2 years back, current year, and 5 years forward
 function getYears() {
@@ -66,6 +67,28 @@ const yearFromDateInput = (value) => {
   return Number.isFinite(y) ? y : null;
 };
 
+const toDateInputValue = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 10);
+};
+
+function monthPairIndexForPlannedDate(plannedDate) {
+  if (!plannedDate) return -1;
+  const month = new Date(plannedDate).getMonth();
+  return MONTH_PAIRS.findIndex((pair) => pair.months.includes(month));
+}
+
+function buildEmptyMonthDataForYear(y) {
+  return MONTH_PAIRS.map((pair) => ({
+    plannedDate: formatDateInput(y, pair.months[0], 1),
+    topic: "",
+    instructor: "",
+    description: "",
+  }));
+}
+
 export default function TrainingPlanPage({ hideSidebar = false }) {
   const currentYear = new Date().getFullYear();
   const initialYear = currentYear;
@@ -92,6 +115,54 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
     "Sep-Oct": null,
     "Nov-Dec": null,
   });
+  const [existingPlanId, setExistingPlanId] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadPlanForYear = async () => {
+      setLoadingPlan(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/qhse/training/plan?year=${year}`);
+        const data = await readJsonFromResponse(res);
+        if (!active) return;
+
+        if (res.ok && data.success && data.data) {
+          const plan = data.data;
+          setExistingPlanId(plan._id);
+          const next = buildEmptyMonthDataForYear(year);
+          for (const item of plan.planItems || []) {
+            const idx = monthPairIndexForPlannedDate(item.plannedDate);
+            if (idx >= 0) {
+              const day = dayFromDateInput(toDateInputValue(item.plannedDate), 1);
+              next[idx] = {
+                plannedDate: formatDateInput(year, MONTH_PAIRS[idx].months[0], day),
+                topic: item.topic || "",
+                instructor: item.instructor || "",
+                description: item.description || "",
+              };
+            }
+          }
+          setMonthData(next);
+        } else {
+          setExistingPlanId(null);
+          setMonthData(buildEmptyMonthDataForYear(year));
+        }
+      } catch {
+        if (active) {
+          setExistingPlanId(null);
+          setMonthData(buildEmptyMonthDataForYear(year));
+        }
+      } finally {
+        if (active) setLoadingPlan(false);
+      }
+    };
+    loadPlanForYear();
+    return () => {
+      active = false;
+    };
+  }, [year]);
 
   const handleYearChange = (newYear) => {
     setYear(newYear);
@@ -192,29 +263,37 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
         }
       });
 
-      const res = await fetch("/api/qhse/training/plan", {
-        method: "POST",
-        body: formData,
-      });
+      const isUpdate = Boolean(existingPlanId);
+      const res = await fetch(
+        isUpdate
+          ? `/api/qhse/training/plan/${existingPlanId}`
+          : "/api/qhse/training/plan",
+        {
+          method: isUpdate ? "PUT" : "POST",
+          body: formData,
+        }
+      );
 
-      const data = await res.json();
+      const data = await readJsonFromResponse(res);
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to create training plan");
+        throw new Error(
+          data.error ||
+            (isUpdate ? "Failed to update training plan" : "Failed to create training plan")
+        );
       }
 
-      setMessage(`Training plan for ${year} saved successfully`);
-      setError(null);
-      
-      // Reset form after successful submission
-      setMonthData(
-        MONTH_PAIRS.map((pair) => ({
-          plannedDate: formatDateInput(year, pair.months[0], 1),
-          topic: "",
-          instructor: "",
-          description: "",
-        }))
+      if (data.data?._id) {
+        setExistingPlanId(data.data._id);
+      }
+
+      setMessage(
+        isUpdate
+          ? `Training plan for ${year} updated successfully`
+          : `Training plan for ${year} saved successfully`
       );
+      setError(null);
+
       setMonthPairFiles({
         "Jan-Feb": null,
         "Mar-Apr": null,
@@ -223,7 +302,32 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
         "Sep-Oct": null,
         "Nov-Dec": null,
       });
-      setSelectedPair(0);
+
+      if (isUpdate) {
+        const refreshRes = await fetch(`/api/qhse/training/plan?year=${year}`);
+        const refreshData = await readJsonFromResponse(refreshRes);
+        if (refreshRes.ok && refreshData.success && refreshData.data) {
+          const plan = refreshData.data;
+          setExistingPlanId(plan._id);
+          const next = buildEmptyMonthDataForYear(year);
+          for (const item of plan.planItems || []) {
+            const idx = monthPairIndexForPlannedDate(item.plannedDate);
+            if (idx >= 0) {
+              const day = dayFromDateInput(toDateInputValue(item.plannedDate), 1);
+              next[idx] = {
+                plannedDate: formatDateInput(year, MONTH_PAIRS[idx].months[0], day),
+                topic: item.topic || "",
+                instructor: item.instructor || "",
+                description: item.description || "",
+              };
+            }
+          }
+          setMonthData(next);
+        }
+      } else {
+        setMonthData(buildEmptyMonthDataForYear(year));
+        setSelectedPair(0);
+      }
       
       // Scroll to top to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -242,7 +346,7 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
     currentPairData.description.trim();
 
   const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
-  const canSubmit = canCreate;
+  const canSubmit = existingPlanId ? canEdit : canCreate;
 
   const { contentClassName } = useQhseSidebar();
   const content = (
@@ -293,7 +397,7 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
           >
             {!canSubmit && (
               <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
-                You do not have permission to create records. Form is view-only.
+                You do not have permission to {existingPlanId ? "update" : "create"} this training plan. Form is view-only.
               </div>
             )}
             <fieldset disabled={!canSubmit} className="border-0 p-0 m-0 min-w-0 space-y-6 disabled:opacity-[0.88]">
@@ -502,7 +606,11 @@ export default function TrainingPlanPage({ hideSidebar = false }) {
                 disabled={!canSubmit || saving}
                 className="px-6 py-3 rounded-xl bg-orange-500 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg shadow-orange-500/40 hover:bg-orange-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {saving ? "Saving..." : `Submit Plan for ${year}`}
+                {saving
+                  ? "Saving..."
+                  : existingPlanId
+                    ? `Update Plan for ${year}`
+                    : `Submit Plan for ${year}`}
               </button>
             </div>
             </fieldset>

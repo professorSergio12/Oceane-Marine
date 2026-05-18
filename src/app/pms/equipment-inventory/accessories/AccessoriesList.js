@@ -58,6 +58,74 @@ function formatDetailDate(value) {
   });
 }
 
+function escapeCsvCell(value) {
+  if (value == null) return "";
+  const s = String(value).trim();
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function getAccessoryExportColumns(listCategory) {
+  const cols = [
+    ...(listCategory === "REGULAR"
+      ? [{ label: "Equipment No", getValue: (i) => i?.equipmentNo ?? "" }]
+      : []),
+    { label: "Equipment Name", getValue: (i) => i?.equipmentName ?? "" },
+    { label: "Placed In", getValue: (i) => i?.placedIn ?? "" },
+    { label: "Location", getValue: (i) => i?.locationName ?? "" },
+    { label: "Category", getValue: (i) => i?.category ?? "" },
+    { label: "Status", getValue: (i) => i?.status ?? "" },
+    { label: "Purchase Date", getValue: (i) => formatDetailDate(i?.purchaseDate) },
+    { label: "Specification", getValue: (i) => i?.specification ?? "" },
+    { label: "Put In Use", getValue: (i) => (i?.putInUse ? "Yes" : "No") },
+    { label: "Put In Use Date", getValue: (i) => formatDetailDate(i?.putInUseDate) },
+    { label: "Remarks", getValue: (i) => i?.remarks ?? "" },
+  ];
+  if (listCategory === "OCCASIONAL") {
+    cols.push(
+      {
+        label: "Quantity",
+        getValue: (i) => (i?.quantity != null ? String(i.quantity) : ""),
+      },
+      {
+        label: "Track Test Schedule",
+        getValue: (i) => (i?.occasionalTrackTestSchedule ? "Yes" : "No"),
+      },
+      {
+        label: "Occasional Test Date",
+        getValue: (i) => formatDetailDate(i?.occasionalTestDate),
+      },
+      {
+        label: "Next Due Date",
+        getValue: (i) => formatDetailDate(i?.occasionalNextDueDate),
+      }
+    );
+  }
+  return cols;
+}
+
+/** One CSV for the full accessories list for the selected year and tab (Regular / Occasional). */
+function downloadAccessoriesInventoryYearCsv(items, year, listCategory) {
+  if (!items?.length) return;
+  const columns = getAccessoryExportColumns(listCategory);
+  const headers = columns.map((c) => c.label);
+  const headerLine = headers.map(escapeCsvCell).join(",");
+  const lines = items.map((row) =>
+    columns.map((c) => escapeCsvCell(c.getValue(row))).join(",")
+  );
+  const csv = "\uFEFF" + headerLine + "\r\n" + lines.join("\r\n") + "\r\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const kind = listCategory === "OCCASIONAL" ? "Occasional" : "Regular";
+  a.download = `Accessories_${kind}_Inventory_${year}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function getYears() {
   const currentYear = new Date().getFullYear();
   const years = [];
@@ -75,7 +143,7 @@ export default function AccessoriesList({
   onListCategoryChange,
   onEditItem,
 }) {
-  const { canEdit, canDelete } = usePmsRole();
+  const { canEdit, canDelete, canDownload } = usePmsRole();
   const [accessories, setAccessories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -222,6 +290,19 @@ export default function AccessoriesList({
               triggerClassName="ops-select-trigger w-full rounded-full px-3 py-1 text-xs tracking-widest uppercase"
             />
           </div>
+          {canDownload && (
+            <button
+              type="button"
+              onClick={() =>
+                downloadAccessoriesInventoryYearCsv(accessories, year, listCategory)
+              }
+              disabled={loading || accessories.length === 0}
+              title="Download all rows for this year and tab as one CSV"
+              className="text-xs px-3 py-1.5 rounded-lg border border-orange-400/50 text-orange-100 bg-orange-500/10 hover:bg-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              Download full year (CSV)
+            </button>
+          )}
         </div>
       </div>
 

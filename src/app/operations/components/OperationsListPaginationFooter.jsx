@@ -23,7 +23,7 @@ export default function OperationsListPaginationFooter({
 
   return (
     <div
-      className={`relative z-10 flex flex-col gap-3 border-t border-white/10 bg-white/3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${className}`.trim()}
+      className={`relative z-20 overflow-visible flex flex-col gap-3 border-t border-white/10 bg-white/3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${className}`.trim()}
     >
       <div className="flex min-w-0 flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         <span className="shrink-0">
@@ -38,6 +38,7 @@ export default function OperationsListPaginationFooter({
           <OperationsSelectField
             variant="pill"
             searchable={false}
+            menuPlacement="top"
             ariaLabel="Rows per page"
             value={String(pageSize)}
             onChange={(v) => {
@@ -49,7 +50,7 @@ export default function OperationsListPaginationFooter({
               label: String(n),
             }))}
             triggerClassName="ops-select-trigger min-h-0 w-full min-w-[3rem] justify-between rounded-lg px-2 py-1 text-xs uppercase tracking-wide"
-            className="w-14 min-w-[3.5rem] shrink-0"
+            className="relative z-30 w-14 min-w-[3.5rem] shrink-0"
           />
         </div>
       </div>

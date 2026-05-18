@@ -36,10 +36,12 @@ const StsQuotationFormSchema = new mongoose.Schema(
     supportCraft: { type: String, default: "" },
     personnelTransferBasket: { type: String, default: "" },
     baseInfoLocation: { type: String, default: "" },
-    // Acceptance (030)
+    // Acceptance (030) — image stored under public/signature/operations/sts-checklist-ops-ofd-030/… (same pattern as other STS forms)
     acceptanceClientName: { type: String, default: "" },
     personInCharge: { type: String, default: "" },
     acceptanceDate: { type: Date, default: null },
+    acceptanceSignatureText: { type: String, default: "" },
+    acceptanceSignatureImage: { type: String, default: "" },
 
     // OPS-OFD-030B (STS Advisor): section 1.1 Service Overview locations in PDF
     serviceOverviewFrom: { type: String, default: "" },

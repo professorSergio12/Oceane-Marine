@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsQuotationForm from "@/lib/mongodb/models/operations-form-checklist/StsQuotationForm";
-import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
 
 const DATE_FIELDS = [
   "proposalDate",
@@ -16,7 +16,7 @@ function sanitize(body) {
   DATE_FIELDS.forEach((key) => {
     if (out[key] != null && out[key] !== "") {
       const d = new Date(out[key]);
-          out[key] = Number.isNaN(d.getTime()) ? null : d;
+      out[key] = Number.isNaN(d.getTime()) ? null : d;
     } else {
       out[key] = null;
     }
@@ -32,6 +32,16 @@ export async function PUT(req, { params }) {
   try {
     const { id } = await params;
     const body = await req.json();
+
+    const sig = String(body.acceptanceSignatureText ?? "").trim();
+    if (["OPS-OFD-030", "OPS-OFD-030B", "POAC"].includes(body.formType) && !sig) {
+      return NextResponse.json(
+        { success: false, error: "Signature is required." },
+        { status: 400 }
+      );
+    }
+    body.acceptanceSignatureImage = "";
+
     const doc = await StsQuotationForm.findByIdAndUpdate(
       id,
       { $set: sanitize(body) },
@@ -43,7 +53,7 @@ export async function PUT(req, { params }) {
         { status: 404 }
       );
     }
-    void notifyOperationsEdit("STS Quotation", id);
+    notifyOperationsEdit("STS Quotation", id).catch(() => {});
     return NextResponse.json({ success: true, data: doc });
   } catch (error) {
     return NextResponse.json(

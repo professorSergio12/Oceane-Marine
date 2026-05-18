@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import ControlledDocumentEntry from "@/lib/mongodb/models/qhse-controlled-document/ControlledDocumentEntry";
 import { assertQhsePermission } from "@/lib/auth/qhseGuard";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
+import { parseControlledDocumentRevNo } from "@/lib/qhse/controlledDocumentRev";
 
 export const runtime = "nodejs";
 
@@ -22,7 +23,13 @@ export async function POST(req) {
     );
     const issueDateRaw = form.get("issueDate");
     const department = form.get("department") || "";
+    const revNoRaw = form.get("revNo");
     const file = form.get("document");
+
+    const revParsed = parseControlledDocumentRevNo(revNoRaw);
+    if (!revParsed.ok) {
+      return NextResponse.json({ error: revParsed.error }, { status: 400 });
+    }
 
     if (!formCode || !String(formCode).trim()) {
       return NextResponse.json({ error: "Form Code is required" }, { status: 400 });
@@ -58,8 +65,8 @@ export async function POST(req) {
       title: String(title).trim(),
       documents,
       issueDate: issueDate || undefined,
-      revMajor: 1,
-      revMinor: 0,
+      revMajor: revParsed.revMajor,
+      revMinor: revParsed.revMinor,
       department: typeof department === "string" ? department.trim() : "",
       attachment: {
         filePath,

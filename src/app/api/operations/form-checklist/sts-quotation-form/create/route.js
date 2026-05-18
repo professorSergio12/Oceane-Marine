@@ -6,6 +6,16 @@ export async function POST(req) {
   await connectDB();
   try {
     const body = await req.json();
+
+    const sig = String(body.acceptanceSignatureText ?? "").trim();
+    if (["OPS-OFD-030", "OPS-OFD-030B", "POAC"].includes(body.formType) && !sig) {
+      return NextResponse.json(
+        { success: false, error: "Signature is required." },
+        { status: 400 }
+      );
+    }
+    body.acceptanceSignatureImage = "";
+
     const {
       formType,
       formNo,
@@ -37,6 +47,8 @@ export async function POST(req) {
       acceptanceClientName,
       personInCharge,
       acceptanceDate,
+      acceptanceSignatureText,
+      acceptanceSignatureImage,
       designatedAdvisor,
       dailyRate,
       managementFee,
@@ -91,6 +103,8 @@ export async function POST(req) {
       acceptanceClientName: acceptanceClientName ?? "",
       personInCharge: personInCharge ?? "",
       acceptanceDate: acceptanceDate ? new Date(acceptanceDate) : null,
+      acceptanceSignatureText: acceptanceSignatureText ?? "",
+      acceptanceSignatureImage: acceptanceSignatureImage ?? "",
       designatedAdvisor: designatedAdvisor ?? "",
       dailyRate: dailyRate ?? "",
       managementFee: managementFee ?? "",

@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import path from "path";
 import { promises as fs } from "fs";
 import puppeteer from "puppeteer";
+import mongoose from "mongoose";
+import { connectDB } from "@/lib/config/connection";
+import StsQuotationForm from "@/lib/mongodb/models/operations-form-checklist/StsQuotationForm";
+import { getSignatureAbsolutePathForRead } from "@/lib/utils/signature-storage";
+import {
+  buildDocumentHtml030,
+  buildDocumentHtml030B,
+  buildDocumentHtmlPOAC,
+  getFormNoLineForPdf,
+} from "@/app/operations/sts-operations/new/form-checklist/quotations/sts-form/documentTemplate";
 
 export const maxDuration = 60;
 
@@ -23,9 +33,48 @@ const MIME_BY_EXT = {
   ".webp": "image/webp",
 };
 
-/** Inline absolute-rooted asset URLs (`src="/foo/bar.png"`) as data: URLs.
- * Required because `page.setContent()` resolves relative URLs against `about:blank`,
- * so /public/* would otherwise 404 inside the headless page. */
+function defaultFormNoForQuotation(formType) {
+  if (formType === "OPS-OFD-030B") return "OPS-OFD-030B";
+  if (formType === "POAC") return "Form No. OPS-OFD-30A / Rev 1.2 / Issue Date: 20 Aug 2023";
+  return "Form No. OPS-OFD-30 / Rev 1.1 / Issue Date: 20 Aug 2023";
+}
+
+/**
+ * Build HTML + footer on the server from MongoDB so signature files are read on the same
+ * machine as Puppeteer (fixes missing images when the client sent HTML with unresolved /signature/ URLs).
+ */
+async function resolveQuotationHtmlForPdf(body) {
+  const quotationId = body?.quotationId;
+  const clientHtml = body?.html;
+  const clientFormNoLine = body?.formNoLine;
+
+  if (quotationId != null && String(quotationId).trim() !== "") {
+    const id = String(quotationId).trim();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return { error: "Invalid quotationId", status: 400 };
+    }
+    await connectDB();
+    const doc = await StsQuotationForm.findById(id).lean();
+    if (!doc) {
+      return { error: "Quotation not found", status: 404 };
+    }
+    const defaultNo = defaultFormNoForQuotation(doc.formType);
+    const formNoLine = getFormNoLineForPdf(doc, defaultNo);
+    let html;
+    if (doc.formType === "OPS-OFD-030B") html = buildDocumentHtml030B(doc);
+    else if (doc.formType === "POAC") html = buildDocumentHtmlPOAC(doc);
+    else html = buildDocumentHtml030(doc);
+    return { html, formNoLine };
+  }
+
+  if (clientHtml && typeof clientHtml === "string") {
+    return { html: clientHtml, formNoLine: clientFormNoLine ?? "" };
+  }
+
+  return { error: "Provide quotationId or html", status: 400 };
+}
+
+/** Inline absolute-rooted asset URLs (`src="/foo/bar.png"`) as data: URLs. */
 async function inlinePublicAssets(html) {
   const publicDir = path.join(process.cwd(), "public");
   const cache = new Map();
@@ -43,7 +92,7 @@ async function inlinePublicAssets(html) {
       const mime = MIME_BY_EXT[ext] || "application/octet-stream";
       cache.set(rel, `data:${mime};base64,${buf.toString("base64")}`);
     } catch {
-      // ignored: leave the original src so the page still renders broken-image alt
+      // ignored
     }
   }
   return html.replace(re, (full, attr, rel) => {
@@ -52,16 +101,45 @@ async function inlinePublicAssets(html) {
   });
 }
 
+/** Remaining /signature/… URLs → data URLs (Puppeteer setContent is about:blank). */
+async function inlineSignaturePublicUrls(html) {
+  const re = /src="(\/signature\/[^"]+)"/g;
+  const paths = [...new Set([...html.matchAll(re)].map((m) => m[1]))];
+  const dataByPath = new Map();
+  for (const urlPath of paths) {
+    const abs = getSignatureAbsolutePathForRead(urlPath);
+    if (!abs) continue;
+    try {
+      const buf = await fs.readFile(abs);
+      const ext = path.extname(abs).toLowerCase();
+      const mime = MIME_BY_EXT[ext] || "image/png";
+      dataByPath.set(urlPath, `data:${mime};base64,${buf.toString("base64")}`);
+    } catch (e) {
+      console.warn("STS quotation PDF: could not read signature file", urlPath, e?.message || e);
+    }
+  }
+  return html.replace(re, (full, p1) => {
+    const data = dataByPath.get(p1);
+    return data ? `src="${data}"` : full;
+  });
+}
+
 export async function POST(req) {
   let browser;
   try {
-    const { html, formNoLine } = await req.json();
-    if (!html || typeof html !== "string") {
-      return NextResponse.json({ error: "Missing or invalid html" }, { status: 400 });
+    const body = await req.json();
+    const resolved = await resolveQuotationHtmlForPdf(body);
+    if ("error" in resolved) {
+      return NextResponse.json(
+        { error: resolved.error },
+        { status: resolved.status ?? 400 }
+      );
     }
+    const { html, formNoLine } = resolved;
 
     const footerText = formNoLine != null ? escapeForHtml(String(formNoLine)) : "";
-    const htmlForPdf = await inlinePublicAssets(html);
+    let htmlForPdf = await inlinePublicAssets(html);
+    htmlForPdf = await inlineSignaturePublicUrls(htmlForPdf);
 
     browser = await puppeteer.launch({
       headless: true,

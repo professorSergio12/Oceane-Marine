@@ -458,11 +458,11 @@ export default function ControlledDocumentRegisterPage() {
                               )}
                               {canDownload && row.attachment?.filePath && (
                                 <a
-                                  href={`/api/qhse/controlled-document-entry/${row._id}/download`}
+                                  href={`/api/qhse/controlled-document-entry/${row._id}/download/docx`}
                                   download
                                   className={downloadIconLinkClass}
-                                  title={`Download: ${row.title || row.formCode || "document"}`}
-                                  aria-label={`Download file for ${row.title || row.formCode || "document"}`}
+                                  title="Download as Word"
+                                  aria-label={`Download as Word: ${row.title || row.formCode || "document"}`}
                                 >
                                   <svg
                                     className="w-4 h-4 shrink-0"

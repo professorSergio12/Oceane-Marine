@@ -7,6 +7,7 @@ import ControlledDocumentEntry from "@/lib/mongodb/models/qhse-controlled-docume
 import { assertQhsePermission } from "@/lib/auth/qhseGuard";
 import { saveQhseFile } from "@/lib/utils/qhse-file-storage";
 import { archiveControlledDocumentRevision } from "@/lib/qhse/archiveControlledDocumentRevision";
+import { parseControlledDocumentRevNo } from "@/lib/qhse/controlledDocumentRev";
 
 export const runtime = "nodejs";
 
@@ -46,7 +47,13 @@ export async function PATCH(req, ctx) {
     );
     const issueDateRaw = form.get("issueDate");
     const department = form.get("department") ?? "";
+    const revNoRaw = form.get("revNo");
     const file = form.get("document");
+
+    const revParsed = parseControlledDocumentRevNo(revNoRaw);
+    if (!revParsed.ok) {
+      return NextResponse.json({ error: revParsed.error }, { status: 400 });
+    }
 
     if (!formCode || !String(formCode).trim()) {
       return NextResponse.json({ error: "Form Code is required" }, { status: 400 });
@@ -95,9 +102,8 @@ export async function PATCH(req, ctx) {
     existing.department =
       typeof department === "string" ? department.trim() : "";
     existing.issueDate = issueDate;
-
-    const nextMinor = Number(existing.revMinor ?? 0) + 1;
-    existing.revMinor = nextMinor;
+    existing.revMajor = revParsed.revMajor;
+    existing.revMinor = revParsed.revMinor;
 
     if (hasNewFile) {
       const buffer = Buffer.from(await file.arrayBuffer());
