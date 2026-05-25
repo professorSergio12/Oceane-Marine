@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -441,33 +442,7 @@ function buildOverallFeedbackSection(overallFeedback) {
 
 // ========== SIGNATURE SECTION ==========
 function buildSignatureSection(signature) {
-    let signatureImage = null;
-
-    try {
-        if (signature.stampSignature) {
-            let imagePath = signature.stampSignature;
-
-            if (imagePath.startsWith("data:image")) {
-                // Handle base64 data URL directly
-                const base64Data = imagePath.split(",")[1];
-                signatureImage = Buffer.from(base64Data, "base64");
-            } else if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                // HTTP URLs — skip for now
-                console.log("Signature is an HTTP URL, skipping embed:", imagePath);
-            } else if (imagePath.startsWith("/") || imagePath.startsWith("signature")) {
-                const resolvedPath = imagePath.startsWith("/")
-                    ? path.join(process.cwd(), "public", imagePath)
-                    : path.join(process.cwd(), "public", imagePath);
-                if (fs.existsSync(resolvedPath)) {
-                    signatureImage = fs.readFileSync(resolvedPath);
-                } else {
-                    console.log("Signature file not found:", resolvedPath);
-                }
-            }
-        }
-    } catch (err) {
-        console.error("Error loading signature:", err.message);
-    }
+    const signatureImage = loadSignatureImage(signature.stampSignature, "OPS-OFD-020");
 
     let dateStr = "";
     if (signature.date) {

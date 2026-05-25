@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -380,39 +380,7 @@ function buildChecklist3BSection(items) {
 // SIGNATURE BLOCK
 // ================================================================
 function buildSignatureBlock(signature) {
-    let signatureImage = null;
-
-    if (signature.signature) {
-        try {
-            let imagePath = signature.signature;
-
-            // Handle HTTP URLs
-            if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                try {
-                    const parsed = new URL(imagePath);
-                    imagePath = parsed.pathname;
-                } catch { }
-            }
-
-            // Handle file paths
-            if (imagePath.startsWith("/") || imagePath.startsWith("signature")) {
-                const absPath = path.join(process.cwd(), "public", imagePath);
-                if (fs.existsSync(absPath)) {
-                    signatureImage = fs.readFileSync(absPath);
-                }
-            }
-
-            // Handle base64
-            if (imagePath.startsWith("data:image")) {
-                const base64Data = imagePath.split(",")[1];
-                if (base64Data) {
-                    signatureImage = Buffer.from(base64Data, "base64");
-                }
-            }
-        } catch (err) {
-            console.error("Error loading signature:", err.message);
-        }
-    }
+    const signatureImage = loadSignatureImage(signature.signature, "OPS-OFD-003");
 
     // Signature block: create new border objects to avoid mutation
     const signatureBorders = {

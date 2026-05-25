@@ -192,7 +192,10 @@ export default function NewOperationPage() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "list") setActiveViewTab("list");
+    if (tab === "list") {
+      setActiveViewTab("list");
+      setShowSuccessPage(false);
+    }
   }, [searchParams]);
 
   const cycleFlowDir = () =>
@@ -684,7 +687,7 @@ export default function NewOperationPage() {
 
     const opRef = String(operationRef || "").trim();
     if (!opRef) {
-      alert("Please generate an Operation Ref No (click ⚡) before saving.");
+      alert("Please enter an Operation Ref No or click ⚡ to generate one before saving.");
       return;
     }
 
@@ -1156,11 +1159,9 @@ export default function NewOperationPage() {
                     type="text"
                     name="Operation_Ref_No"
                     value={operationRef}
-                    readOnly
-                    aria-readonly="true"
-                    placeholder="Click ⚡ to generate"
-                    title="Reference is generated only via the button — not editable"
-                    className="flex-1 cursor-default rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:ring-0 focus:border-white/10"
+                    onChange={(e) => setOperationRef(e.target.value)}
+                    placeholder="Enter manually or click ⚡ to generate"
+                    className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none focus:ring-1 focus:ring-orange-400/40 focus:border-orange-400/30"
                   />
                   <button
                     type="button"
@@ -1539,7 +1540,7 @@ export default function NewOperationPage() {
                             <td className="py-2 pr-4 text-white/80">{nm.VesselName || "—"}</td>
                             <td className="py-2 pr-4 text-white/70">
                               {nm.timeOfIncident
-                                ? new Date(nm.timeOfIncident).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                                ? new Date(nm.timeOfIncident).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
                                 : "—"}
                             </td>
                             <td className="py-2 pr-4">
@@ -1633,7 +1634,7 @@ export default function NewOperationPage() {
             {/* No-operation-ref notice */}
             {!operationRef && !linkedFormsLoading && linkedForms.length === 0 && (
               <p className="text-sm text-slate-500 italic">
-                Generate an Operation Ref to see linked form statuses.
+                Enter or generate an Operation Ref to see linked form statuses.
               </p>
             )}
 

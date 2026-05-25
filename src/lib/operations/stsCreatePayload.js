@@ -74,7 +74,7 @@ export function buildStsCreateDocument({
   const operationRef = trimOrNull(body.Operation_Ref_No);
 
   if (!operationRef) {
-    const err = new Error("Operation reference number is required. Click ⚡ to generate one.");
+    const err = new Error("Operation reference number is required. Enter one manually or click ⚡ to generate.");
     err.statusCode = 400;
     throw err;
   }

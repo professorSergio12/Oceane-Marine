@@ -26,9 +26,9 @@ export async function GET(req) {
 
   try {
     if (rawPath) {
-      if (!rawPath.startsWith("/uploads/")) {
+      if (!rawPath.startsWith("/uploads/") && !rawPath.startsWith("/upload/")) {
         return NextResponse.json(
-          { error: "Only /uploads/** paths are allowed" },
+          { error: "Only /uploads/** and /upload/** paths are allowed" },
           { status: 400 }
         );
       }
@@ -45,7 +45,8 @@ export async function GET(req) {
       for (const candidate of candidates) {
         const allowed =
           candidate.startsWith(publicRoot + path.sep) ||
-          candidate.startsWith(path.join(projectRoot, "uploads") + path.sep);
+          candidate.startsWith(path.join(projectRoot, "uploads") + path.sep) ||
+          candidate.startsWith(path.join(projectRoot, "upload") + path.sep);
         if (!allowed) continue;
         try {
           await fs.access(candidate);

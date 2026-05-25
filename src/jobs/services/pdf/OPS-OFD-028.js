@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -36,55 +37,6 @@ const CLAUSE_6 = `These conditions shall be construed according to English law a
 
 const DECLARATION = `I HEREBY REQUEST THE SERVICES OF OCEANE FENDERS DMCC AND I HEREBY ACKNOWLEDGE RECEIPT OF A COPY OF THE CONDITIONS OF USE OF A MOORING MASTER SUPPLIED BY OCEANE FENDERS DMCC.`;
 
-/* ================= HELPER: Load image from file path or base64 ================= */
-
-function loadImageData(imageValue) {
-    if (!imageValue) return null;
-
-    try {
-        // Handle data:image base64
-        if (imageValue.startsWith("data:image")) {
-            const base64Data = imageValue.replace(/^data:image\/\w+;base64,/, "");
-            return Buffer.from(base64Data, "base64");
-        }
-
-        // Handle full HTTP URLs — extract pathname and load from public folder
-        if (imageValue.startsWith("http://") || imageValue.startsWith("https://")) {
-            try {
-                const parsed = new URL(imageValue);
-                const relativePath = parsed.pathname; // "/signature/operation-sts-checklist/..."
-                const fullPath = path.join(process.cwd(), "public", relativePath);
-                if (fs.existsSync(fullPath)) {
-                    return fs.readFileSync(fullPath);
-                }
-            } catch { }
-        }
-
-        // Handle file path (starts with / or relative path)
-        if (imageValue.startsWith("/") || imageValue.startsWith("signature")) {
-            const fullPath = path.join(process.cwd(), "public", imageValue);
-            if (fs.existsSync(fullPath)) {
-                return fs.readFileSync(fullPath);
-            }
-        }
-
-        // Handle raw base64 (frontend strips data:image prefix)
-        if (imageValue.length > 100 && !imageValue.startsWith("http")) {
-            try {
-                const buffer = Buffer.from(imageValue, "base64");
-                // Validate it's actual image data (PNG starts with 0x89, JPEG with 0xFF)
-                if (buffer.length > 10 && (buffer[0] === 0x89 || buffer[0] === 0xFF)) {
-                    return buffer;
-                }
-            } catch { }
-        }
-    } catch (err) {
-        console.error("Error loading image:", err.message);
-    }
-
-    return null;
-}
-
 /* ================= MAIN EXPORT ================= */
 
 export async function generateOpsOfd028Doc(checklist, fullPath) {
@@ -100,8 +52,8 @@ export async function generateOpsOfd028Doc(checklist, fullPath) {
         );
     } catch { }
 
-    const signatureImage = loadImageData(sig.signatureImage);
-    const stampImage = loadImageData(sig.stampImage);
+    const signatureImage = loadSignatureImage(sig.signatureImage, "OPS-OFD-028-signature");
+    const stampImage = loadSignatureImage(sig.stampImage, "OPS-OFD-028-stamp");
 
     /* ================= HEADER TABLE ================= */
 

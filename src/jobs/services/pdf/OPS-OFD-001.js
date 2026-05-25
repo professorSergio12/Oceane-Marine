@@ -12,6 +12,7 @@ import {
     AlignmentType,
     ImageRun
 } from "docx";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 
 export async function generateOpsOfd001Doc(checklist, fullPath) {
 
@@ -30,29 +31,7 @@ export async function generateOpsOfd001Doc(checklist, fullPath) {
         );
     } catch { }
 
-    try {
-        if (sig.signature) {
-            let imagePath = sig.signature;
-            
-            // Handle full HTTP URLs — extract pathname and load from public folder
-            if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                try {
-                    const parsed = new URL(imagePath);
-                    imagePath = parsed.pathname; // "/signature/operation-sts-checklist/..."
-                } catch { }
-            }
-            
-            // Handle file path (starts with / or relative path)
-            if (imagePath.startsWith("/") || imagePath.startsWith("signature")) {
-                const fullPath = path.join(process.cwd(), "public", imagePath);
-                if (fs.existsSync(fullPath)) {
-                    signatureImage = fs.readFileSync(fullPath);
-                }
-            }
-        }
-    } catch (err) {
-        console.error("Error loading signature image:", err.message);
-    }
+    signatureImage = loadSignatureImage(sig.signature, "OPS-OFD-001");
 
     /* ================= HEADER TABLE ================= */
 

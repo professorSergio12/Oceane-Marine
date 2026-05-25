@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -33,36 +34,9 @@ export async function generateOpsOfd005DDoc(checklist, fullPath) {
         );
     } catch { }
 
-    // Load signature images
-    const loadSignatureImage = (sig) => {
-        if (!sig?.signature) return null;
-        try {
-            let imagePath = sig.signature;
-            
-            // Handle full HTTP URLs — extract pathname and load from public folder
-            if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                try {
-                    const parsed = new URL(imagePath);
-                    imagePath = parsed.pathname;
-                } catch { }
-            }
-            
-            // Handle file path (starts with / or relative path)
-            if (imagePath.startsWith("/") || imagePath.startsWith("signature")) {
-                const fullPath = path.join(process.cwd(), "public", imagePath);
-                if (fs.existsSync(fullPath)) {
-                    return fs.readFileSync(fullPath);
-                }
-            }
-        } catch (err) {
-            console.error(`Error loading signature image:`, err.message);
-        }
-        return null;
-    };
-
-    terminalBerthedShipSignatureImage = loadSignatureImage(terminalBerthedShipSig);
-    outerShipSignatureImage = loadSignatureImage(outerShipSig);
-    terminalSignatureImage = loadSignatureImage(terminalSig);
+    terminalBerthedShipSignatureImage = loadSignatureImage(terminalBerthedShipSig?.signature, "OPS-OFD-005D-terminalBerthedShip");
+    outerShipSignatureImage = loadSignatureImage(outerShipSig?.signature, "OPS-OFD-005D-outerShip");
+    terminalSignatureImage = loadSignatureImage(terminalSig?.signature, "OPS-OFD-005D-terminal");
 
     /* ================= HEADER TABLE ================= */
 

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -30,56 +31,8 @@ export async function generateDeclarationOfSeaDoc(declaration, fullPath) {
         );
     } catch { }
 
-    // Load signature images
-    const loadSignatureImage = (sig, label) => {
-        if (!sig?.signature) {
-            console.log(`ℹ️ [DOCX] No signature path for ${label}`);
-            return null;
-        }
-        try {
-            let imagePath = sig.signature;
-            console.log(`📎 [DOCX] Loading signature for ${label}: ${imagePath.substring(0, 80)}...`);
-
-            // Handle base64 data:image strings directly (stored in DB)
-            if (imagePath.startsWith("data:image")) {
-                const raw = imagePath.replace(/^data:image\/\w+;base64,/, "");
-                const buffer = Buffer.from(raw, "base64");
-                console.log(`✅ [DOCX] Signature decoded from base64 for ${label} (${buffer.length} bytes)`);
-                return buffer;
-            }
-
-            // Handle raw base64 (no data: prefix)
-            if (imagePath.length > 100 && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
-                const buffer = Buffer.from(imagePath, "base64");
-                console.log(`✅ [DOCX] Signature decoded from raw base64 for ${label} (${buffer.length} bytes)`);
-                return buffer;
-            }
-
-            // Handle full HTTP URLs
-            if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                try {
-                    const parsed = new URL(imagePath);
-                    imagePath = parsed.pathname;
-                } catch { }
-            }
-
-            // Handle file path (relative or absolute)
-            if (imagePath.startsWith("/") || imagePath.startsWith("signature")) {
-                const sigFullPath = path.join(process.cwd(), "public", imagePath);
-                if (fs.existsSync(sigFullPath)) {
-                    console.log(`✅ [DOCX] Signature image loaded for ${label}: ${sigFullPath}`);
-                    return fs.readFileSync(sigFullPath);
-                }
-                console.warn(`⚠️ [DOCX] Signature file not found for ${label}: ${sigFullPath}`);
-            }
-        } catch (err) {
-            console.error(`Error loading signature image for ${label}:`, err.message);
-        }
-        return null;
-    };
-
-    constantHeadingShipSignatureImage = loadSignatureImage(constantHeadingShipSig, "constantHeadingShip");
-    manoeuvringShipSignatureImage = loadSignatureImage(manoeuvringShipSig, "manoeuvringShip");
+    constantHeadingShipSignatureImage = loadSignatureImage(constantHeadingShipSig?.signature, "OPS-OFD-005E-constantHeadingShip");
+    manoeuvringShipSignatureImage = loadSignatureImage(manoeuvringShipSig?.signature, "OPS-OFD-005E-manoeuvringShip");
 
     /* ================= HEADER TABLE ================= */
 

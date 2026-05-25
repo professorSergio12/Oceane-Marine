@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -517,61 +518,7 @@ function getResponseText(qNum, responses) {
 // SIGNATURE SECTION
 // ================================================================
 function buildSignatureSection(signature) {
-    // Load signature image if available
-    let signatureImage = null;
-    try {
-        if (signature.signature) {
-            let imagePath = signature.signature;
-            
-            // Handle base64 data URLs
-            if (imagePath.startsWith("data:image")) {
-                try {
-                    const base64Data = imagePath.replace(/^data:image\/\w+;base64,/, "");
-                    signatureImage = Buffer.from(base64Data, "base64");
-                    console.log("✅ Loaded signature from base64 data URL");
-                } catch (err) {
-                    console.error("Error decoding base64 signature:", err.message);
-                }
-            }
-            // Handle HTTP/HTTPS URLs
-            else if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                try {
-                    const parsed = new URL(imagePath);
-                    imagePath = parsed.pathname;
-                    const fullPath = path.join(process.cwd(), "public", imagePath);
-                    if (fs.existsSync(fullPath)) {
-                        signatureImage = fs.readFileSync(fullPath);
-                        console.log("✅ Loaded signature from HTTP URL path:", imagePath);
-                    }
-                } catch (err) {
-                    console.error("Error processing HTTP signature URL:", err.message);
-                }
-            }
-            // Handle file paths
-            else if (imagePath.startsWith("/") || imagePath.startsWith("signature")) {
-                const fullPath = path.join(process.cwd(), "public", imagePath);
-                if (fs.existsSync(fullPath)) {
-                    signatureImage = fs.readFileSync(fullPath);
-                    console.log("✅ Loaded signature from file path:", imagePath);
-                } else {
-                    console.warn("⚠️ Signature file not found at:", fullPath);
-                }
-            }
-            // Handle raw base64 (without data: prefix)
-            else if (imagePath && !imagePath.startsWith("http") && !imagePath.startsWith("/")) {
-                try {
-                    signatureImage = Buffer.from(imagePath, "base64");
-                    console.log("✅ Loaded signature from raw base64");
-                } catch (err) {
-                    console.error("Error decoding raw base64 signature:", err.message);
-                }
-            }
-        } else {
-            console.log("ℹ️ No signature provided");
-        }
-    } catch (err) {
-        console.error("Error loading signature image:", err.message);
-    }
+    const signatureImage = loadSignatureImage(signature.signature, "OPS-OFD-001A");
 
     const rows = [
         new TableRow({

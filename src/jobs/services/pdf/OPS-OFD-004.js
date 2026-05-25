@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -756,7 +756,7 @@ function build4FPart3Table(checklist4F) {
 // HELPER: SIGNATURE SECTION
 // ================================================================
 function buildSignatureSection(signature) {
-    const signatureImage = loadImageData(signature.signature);
+    const signatureImage = loadSignatureImage(signature.signature, "OPS-OFD-004");
 
     return new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
@@ -925,48 +925,3 @@ function formatDate(date) {
     return `${day} ${month} ${year}`;
 }
 
-function loadImageData(imageValue) {
-    if (!imageValue) return null;
-
-    try {
-        // Handle data:image base64
-        if (imageValue.startsWith("data:image")) {
-            const base64Data = imageValue.replace(/^data:image\/\w+;base64,/, "");
-            return Buffer.from(base64Data, "base64");
-        }
-
-        // Handle full HTTP URLs
-        if (imageValue.startsWith("http://") || imageValue.startsWith("https://")) {
-            try {
-                const parsed = new URL(imageValue);
-                const relativePath = parsed.pathname;
-                const fullPath = path.join(process.cwd(), "public", relativePath);
-                if (fs.existsSync(fullPath)) {
-                    return fs.readFileSync(fullPath);
-                }
-            } catch { }
-        }
-
-        // Handle file path
-        if (imageValue.startsWith("/") || imageValue.startsWith("signature")) {
-            const fullPath = path.join(process.cwd(), "public", imageValue);
-            if (fs.existsSync(fullPath)) {
-                return fs.readFileSync(fullPath);
-            }
-        }
-
-        // Handle raw base64
-        if (imageValue.length > 100 && !imageValue.startsWith("http")) {
-            try {
-                const buffer = Buffer.from(imageValue, "base64");
-                if (buffer.length > 10 && (buffer[0] === 0x89 || buffer[0] === 0xFF)) {
-                    return buffer;
-                }
-            } catch { }
-        }
-    } catch (err) {
-        console.error("Error loading image:", err.message);
-    }
-
-    return null;
-}

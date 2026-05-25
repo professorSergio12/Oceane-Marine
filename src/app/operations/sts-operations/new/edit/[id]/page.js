@@ -682,7 +682,6 @@ export default function EditOperationPage() {
                 label="Operation Ref No"
                 placeholder="Reference number"
                 name="Operation_Ref_No"
-                readOnly
               />
               <SelectField
                   label="Type of operation"
@@ -1047,7 +1046,7 @@ export default function EditOperationPage() {
                             <td className="py-2 pr-4 text-white/80">{nm.VesselName || "—"}</td>
                             <td className="py-2 pr-4 text-white/70">
                               {nm.timeOfIncident
-                                ? new Date(nm.timeOfIncident).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                                ? new Date(nm.timeOfIncident).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
                                 : "—"}
                             </td>
                             <td className="py-2 pr-4">

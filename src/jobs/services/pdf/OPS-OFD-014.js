@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
     Document,
     Packer,
@@ -33,29 +34,7 @@ export async function generateOpsOfd014Doc(checklist, fullPath) {
         );
     } catch { }
 
-    try {
-        if (sig.mooringMasterSignature) {
-            let imagePath = sig.mooringMasterSignature;
-            
-            // Handle full HTTP URLs — extract pathname and load from public folder
-            if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                try {
-                    const parsed = new URL(imagePath);
-                    imagePath = parsed.pathname;
-                } catch { }
-            }
-            
-            // Handle file path (starts with / or relative path)
-            if (imagePath.startsWith("/") || imagePath.startsWith("signature")) {
-                const fullPath = path.join(process.cwd(), "public", imagePath);
-                if (fs.existsSync(fullPath)) {
-                    signatureImage = fs.readFileSync(fullPath);
-                }
-            }
-        }
-    } catch (err) {
-        console.error("Error loading signature image:", err.message);
-    }
+    signatureImage = loadSignatureImage(sig.mooringMasterSignature, "OPS-OFD-014");
 
     /* ================= HEADER TABLE ================= */
 

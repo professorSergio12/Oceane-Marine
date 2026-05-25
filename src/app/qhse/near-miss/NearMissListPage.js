@@ -34,6 +34,7 @@ function formatDateTime(value) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -426,7 +427,7 @@ export default function NearMissListPage() {
                   </label>
                   <div className="text-sm font-semibold text-white">
                     {selectedReport?.timeOfIncident
-                      ? formatDate(selectedReport.timeOfIncident)
+                      ? formatDateTime(selectedReport.timeOfIncident)
                       : "—"}
                   </div>
                 </div>
@@ -637,7 +638,7 @@ export default function NearMissListPage() {
                             {report.VesselName || "—"}
                           </td>
                           <td className="py-3 pr-4">
-                            {formatDate(report.timeOfIncident)}
+                            {formatDateTime(report.timeOfIncident)}
                           </td>
                           <td className="py-3 pr-4">
                             <div>
