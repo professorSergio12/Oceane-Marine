@@ -1895,7 +1895,7 @@ function OperationsListComponent() {
         const type = op.typeOfOperation?.toLowerCase() || "";
         const location = op.location?.name?.toLowerCase() || "";
         const client = op.client?.toLowerCase() || "";
-        const agent = op.agent?.toLowerCase() || "";
+        const mooringMaster = op.mooringMaster?.name?.toLowerCase() || "";
         const chs = op.chs?.toLowerCase() || "";
         const ms = op.ms?.toLowerCase() || "";
         return (
@@ -1903,7 +1903,7 @@ function OperationsListComponent() {
           type.includes(query) ||
           location.includes(query) ||
           client.includes(query) ||
-          agent.includes(query) ||
+          mooringMaster.includes(query) ||
           chs.includes(query) ||
           ms.includes(query)
         );
@@ -2068,7 +2068,7 @@ function OperationsListComponent() {
         <div className="relative min-w-0 flex-1">
           <input
             type="text"
-            placeholder="Search by Ref No, Type, Location, Client, Agent, CHS, MS..."
+            placeholder="Search by Ref No, Type, Location, Client, Mooring Master, CHS, MS..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder:text-white/50 focus:border-orange-500/40 focus:ring-2 focus:ring-orange-500/40 transition outline-none"
@@ -2166,7 +2166,7 @@ function OperationsListComponent() {
                 <thead className="border-b border-white/10 bg-white/5">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
-                      Date
+                      Operation Ref No
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
                       Type of Operation
@@ -2184,7 +2184,7 @@ function OperationsListComponent() {
                       Client
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
-                      Agent
+                      Mooring Master
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
                       Barrels
@@ -2198,8 +2198,8 @@ function OperationsListComponent() {
                   {paginatedOperations.map((op) => (
                     <tr key={op._id} className="transition hover:bg-white/5">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-white/90">
-                          {formatDateTime(op.operationStartTime)}
+                        <span className="text-sm text-white/90 font-mono">
+                          {op.Operation_Ref_No || "—"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -2224,7 +2224,7 @@ function OperationsListComponent() {
                         <span className="text-sm text-white/90">{op.client || "—"}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-white/90">{op.agent || "—"}</span>
+                        <span className="text-sm text-white/90">{op.mooringMaster?.name || "—"}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-white/90">{calculateBarrels(op.quantity)}</span>

@@ -143,8 +143,8 @@ function getPrimaryEquipmentInventoryYear(eq) {
   return d.getFullYear();
 }
 
-/** Download all primary equipment rows for one inventory year as a single CSV. */
-function downloadPrimaryInventoryYearCsv(rows, year) {
+/** Download all primary equipment rows as a single CSV (no year filter). */
+function downloadPrimaryInventoryAllCsv(rows) {
   if (!rows?.length) return;
   const columns = getPrimaryEquipmentExportColumns();
   const headers = columns.map((c) => c.label);
@@ -157,7 +157,7 @@ function downloadPrimaryInventoryYearCsv(rows, year) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Primary_Equipment_Inventory_${year}.csv`;
+  a.download = `Primary_Equipment_Inventory_All.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -778,12 +778,12 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
               {canDownload && (
                 <button
                   type="button"
-                  onClick={() => downloadPrimaryInventoryYearCsv(equipmentsForListYear, listYear)}
-                  disabled={equipmentsForListYear.length === 0 || equipmentsLoading}
-                  title="Download all rows for the selected year as one CSV"
+                  onClick={() => downloadPrimaryInventoryAllCsv(equipments)}
+                  disabled={equipments.length === 0 || equipmentsLoading}
+                  title="Download all equipment records as CSV"
                   className="text-xs px-3 py-1.5 rounded-lg border border-orange-400/50 text-orange-100 bg-orange-500/10 hover:bg-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Download full year (CSV)
+                  Download All
                 </button>
               )}
               <button
