@@ -12,6 +12,7 @@ import {
   ImageRun,
 } from "docx";
 import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 
 // Same question labels as list page (HSE Checklist)
 const hseChecklistLabels = {
@@ -53,19 +54,7 @@ function getSignatureBuffer(value) {
   if (value == null || typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
-  let b64 = null;
-  if (trimmed.startsWith("data:image")) {
-    const match = trimmed.match(/^data:[^;]+;base64,(.+)$/s);
-    if (match && match[1]) b64 = match[1];
-  } else if (/^[A-Za-z0-9+/=]{50,}$/.test(trimmed)) {
-    b64 = trimmed;
-  }
-  if (!b64) return null;
-  try {
-    return Buffer.from(b64, "base64");
-  } catch {
-    return null;
-  }
+  return loadSignatureImage(trimmed, "HSE-Induction");
 }
 
 export async function generateHseInductionChecklistDoc(report, fullPath) {

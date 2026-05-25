@@ -15,6 +15,7 @@ import {
   POAC_CROSS_DEFAULT_AREAS as DEFAULT_AREAS,
 } from "./poacCrossCompetencyEvaluationData.js";
 import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 
 const FORM_TITLE = "POAC Cross Competency Evaluation";
 const FORM_CODE_DEFAULT = "QAF-OFD-009";
@@ -61,18 +62,7 @@ function getSignatureBuffer(value) {
   if (value == null || typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed || /not available|n\/a/i.test(trimmed)) return null;
-  try {
-    if (trimmed.startsWith("data:image")) {
-      const base64Data = trimmed.replace(/^data:image\/\w+;base64,/, "");
-      return Buffer.from(base64Data, "base64");
-    }
-    if (/^[A-Za-z0-9+/=]{50,}$/.test(trimmed)) {
-      return Buffer.from(trimmed, "base64");
-    }
-  } catch {
-    // ignore
-  }
-  return null;
+  return loadSignatureImage(trimmed, "POAC-CrossCompetency");
 }
 
 export async function generatePoacCrossCompetencyDoc(record, fullPath) {
