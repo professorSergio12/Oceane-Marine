@@ -498,18 +498,6 @@ export default function NewBaseSetupChecklistListPage() {
                                 title="Download as Word"
                               />
                             )}
-                            {canDownload && (
-                              <DownloadIconButton
-                                onClick={() => handleDownloadPdf(form)}
-                                disabled={
-                                  downloadingPdf === form._id ||
-                                  downloadingDocx === form._id
-                                }
-                                loading={downloadingPdf === form._id}
-                                title="Download as PDF"
-                                className="!text-rose-400 hover:!text-rose-300"
-                              />
-                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}
                               disabled={archivingId === form._id || deleting === form._id}

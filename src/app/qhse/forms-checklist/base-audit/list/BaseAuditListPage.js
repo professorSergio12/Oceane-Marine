@@ -571,15 +571,6 @@ export default function BaseAuditListPage() {
                                 title="Download as Word"
                               />
                             )}
-                            {canDownload && (
-                              <DownloadIconButton
-                                onClick={() => handleDownloadPdf(report)}
-                                disabled={downloadingPdf === report._id || downloading === report._id}
-                                loading={downloadingPdf === report._id}
-                                title="Download as PDF"
-                                className="!text-rose-400 hover:!text-rose-300"
-                              />
-                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(report)}
                               disabled={archivingId === report._id || deleting === report._id}
