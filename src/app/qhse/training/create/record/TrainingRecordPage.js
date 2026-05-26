@@ -550,7 +550,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
             <div className="border-b border-white/10 pb-3">
               {/* Own row: title — centered on all breakpoints */}
               <h2 className="text-center text-base font-semibold text-white whitespace-nowrap sm:text-lg">
-                Monthly Training Plan
+                Training Records for {year === "all" ? "All years" : year}
               </h2>
               {/* Next row: badges, actions, hint — centered; unchanged stacking on small screens */}
               <div className="mt-3 flex flex-col items-center gap-3 text-center sm:mt-4">
@@ -893,7 +893,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold">
-                  Training Records for {year === "all" ? "All years" : year}
+                  Monthly Training Plan
                 </h2>
                 <p className="text-xs text-slate-300 mt-1">
                   Plan & records grouped by month pairs
