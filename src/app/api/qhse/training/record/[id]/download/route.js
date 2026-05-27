@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import TrainingRecord from "@/lib/mongodb/models/qhse-training/TrainingRecord";
 import fs from "fs";
 import path from "path";
+import { streamAttachmentFile } from "@/lib/utils/qhse-attachment-stream";
 
 export async function GET(req, { params }) {
   await connectDB();
@@ -34,32 +35,9 @@ export async function GET(req, { params }) {
       );
     }
 
-    const fileBuffer = fs.readFileSync(absolutePath);
-    const fileName = record.attachment.fileName || path.basename(absolutePath);
-    const fileExt = path.extname(fileName).toLowerCase();
-
-    const contentTypeMap = {
-      ".pdf": "application/pdf",
-      ".doc": "application/msword",
-      ".docx":
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".xls": "application/vnd.ms-excel",
-      ".xlsx":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ".txt": "text/plain",
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-    };
-
-    const contentType = contentTypeMap[fileExt] || "application/octet-stream";
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-      },
-    });
+    const fileName =
+      record.attachment.fileName || path.basename(absolutePath);
+    return streamAttachmentFile(absolutePath, fileName);
   } catch (error) {
     console.error("Training Record Download Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -3,17 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import DrillPlan from "@/lib/mongodb/models/qhse-drill/DrillPlan";
 import fs from "fs";
 import path from "path";
-
-const MIME_TYPES = {
-  ".pdf": "application/pdf",
-  ".doc": "application/msword",
-  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".xls": "application/vnd.ms-excel",
-  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-};
+import { streamAttachmentFile } from "@/lib/utils/qhse-attachment-stream";
 
 export async function GET(req) {
   try {
@@ -82,16 +72,7 @@ export async function GET(req) {
       );
     }
 
-    const fileBuffer = fs.readFileSync(absolutePath);
-    const ext = path.extname(fileName).toLowerCase();
-    const contentType = MIME_TYPES[ext] || "application/octet-stream";
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-      },
-    });
+    return streamAttachmentFile(absolutePath, fileName);
   } catch (error) {
     console.error("Download Quarter File Error:", error);
     return NextResponse.json(

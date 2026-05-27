@@ -943,7 +943,14 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                                 `/api/qhse/training/download/quarter-file?planId=${plan._id}&monthPair=${monthPairKey}`
                               );
                               if (!res.ok) {
-                                throw new Error("Failed to download file");
+                                let msg = "Failed to download file";
+                                try {
+                                  const data = await res.json();
+                                  msg = data.error || msg;
+                                } catch {
+                                  /* ignore */
+                                }
+                                throw new Error(msg);
                               }
                               const blob = await res.blob();
                               const url = globalThis.URL.createObjectURL(blob);
@@ -1033,13 +1040,40 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                           {downloadingRecordPdfId === record._id ? "…" : "PDF"}
                         </button>
                         {record.attachment?.fileName && (
-                          <a
-                            href={`/api/qhse/training/record/${record._id}/download`}
-                            download={record.attachment.fileName}
-                            className="text-xs text-slate-300 hover:text-slate-200 font-medium px-2 py-1 rounded border border-white/20 hover:bg-white/10 transition inline-block"
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(
+                                  `/api/qhse/training/record/${record._id}/download`
+                                );
+                                if (!res.ok) {
+                                  let msg = "Failed to download attachment";
+                                  try {
+                                    const data = await res.json();
+                                    msg = data.error || msg;
+                                  } catch {
+                                    /* ignore */
+                                  }
+                                  throw new Error(msg);
+                                }
+                                const blob = await res.blob();
+                                const url = globalThis.URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = record.attachment.fileName;
+                                document.body.appendChild(a);
+                                a.click();
+                                globalThis.URL.revokeObjectURL(url);
+                                a.remove();
+                              } catch (err) {
+                                alert(err.message || "Failed to download attachment");
+                              }
+                            }}
+                            className="text-xs text-slate-300 hover:text-slate-200 font-medium px-2 py-1 rounded border border-white/20 hover:bg-white/10 transition"
                           >
                             📥 Attachment
-                          </a>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -1242,7 +1276,14 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                                         `/api/qhse/training/record/${record._id}/download`
                                       );
                                       if (!res.ok) {
-                                        throw new Error("Failed to download file");
+                                        let msg = "Failed to download attachment";
+                                        try {
+                                          const data = await res.json();
+                                          msg = data.error || msg;
+                                        } catch {
+                                          /* ignore */
+                                        }
+                                        throw new Error(msg);
                                       }
                                       const blob = await res.blob();
                                       const url = globalThis.URL.createObjectURL(blob);
@@ -1254,7 +1295,7 @@ export default function TrainingRecordPage({ hideSidebar = false }) {
                                       globalThis.URL.revokeObjectURL(url);
                                       a.remove();
                                     } catch (err) {
-                                      alert(err.message || "Failed to download file");
+                                      alert(err.message || "Failed to download attachment");
                                     }
                                   }}
                                   className="text-xs text-slate-300 hover:text-slate-200 font-medium px-2 py-1 rounded border border-white/20 hover:bg-white/10 transition"
