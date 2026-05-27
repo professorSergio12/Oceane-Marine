@@ -220,6 +220,8 @@ export default function NewOperationPage() {
   const [selectedTypeOfOperation, setSelectedTypeOfOperation] = useState("");
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("");
+  const [selectedVesselTypeCHS, setSelectedVesselTypeCHS] = useState("");
+  const [selectedVesselTypeMS, setSelectedVesselTypeMS] = useState("");
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState([]);
 
   const resetStsSelectFields = useCallback(() => {
@@ -230,6 +232,8 @@ export default function NewOperationPage() {
     setSelectedTypeOfOperation("");
     setSelectedClient("");
     setSelectedAgent("");
+    setSelectedVesselTypeCHS("");
+    setSelectedVesselTypeMS("");
     setSelectedEquipmentIds([]);
     setPreStsDocs({ jpo: "", riskAssessment: "" });
     setRiskAssessmentFileName("");
@@ -427,6 +431,8 @@ export default function NewOperationPage() {
       typeOfOperation: selectedTypeOfOperation || rawFields.typeOfOperation || "",
       client: selectedClient || rawFields.client || "",
       agent: selectedAgent || rawFields.agent || "",
+      vesselTypeCHS: selectedVesselTypeCHS || rawFields.vesselTypeCHS || "",
+      vesselTypeMS: selectedVesselTypeMS || rawFields.vesselTypeMS || "",
     };
     const hasData =
       (quantityMT && String(quantityMT).trim() !== "") ||
@@ -481,6 +487,8 @@ export default function NewOperationPage() {
     selectedTypeOfOperation,
     selectedClient,
     selectedAgent,
+    selectedVesselTypeCHS,
+    selectedVesselTypeMS,
     selectedEquipmentIds,
   ]);
 
@@ -583,6 +591,21 @@ export default function NewOperationPage() {
         }
         if (fields.typeOfCargo && String(fields.typeOfCargo).trim() !== "") {
           setSelectedTypeOfCargoId(String(fields.typeOfCargo));
+        }
+        if (fields.typeOfOperation && String(fields.typeOfOperation).trim() !== "") {
+          setSelectedTypeOfOperation(String(fields.typeOfOperation));
+        }
+        if (fields.client && String(fields.client).trim() !== "") {
+          setSelectedClient(String(fields.client));
+        }
+        if (fields.agent && String(fields.agent).trim() !== "") {
+          setSelectedAgent(String(fields.agent));
+        }
+        if (fields.vesselTypeCHS && String(fields.vesselTypeCHS).trim() !== "") {
+          setSelectedVesselTypeCHS(String(fields.vesselTypeCHS));
+        }
+        if (fields.vesselTypeMS && String(fields.vesselTypeMS).trim() !== "") {
+          setSelectedVesselTypeMS(String(fields.vesselTypeMS));
         }
 
         setPreStsDocs((prev) => ({
@@ -762,13 +785,15 @@ export default function NewOperationPage() {
         formData.delete("agent");
       }
 
-      const vesselTypeCHS = formData.get("vesselTypeCHS");
-      if (!vesselTypeCHS || vesselTypeCHS === "Select" || vesselTypeCHS === "") {
+      if (selectedVesselTypeCHS && selectedVesselTypeCHS !== "Select") {
+        formData.set("vesselTypeCHS", selectedVesselTypeCHS);
+      } else {
         formData.delete("vesselTypeCHS");
       }
 
-      const vesselTypeMS = formData.get("vesselTypeMS");
-      if (!vesselTypeMS || vesselTypeMS === "Select" || vesselTypeMS === "") {
+      if (selectedVesselTypeMS && selectedVesselTypeMS !== "Select") {
+        formData.set("vesselTypeMS", selectedVesselTypeMS);
+      } else {
         formData.delete("vesselTypeMS");
       }
 
@@ -1355,6 +1380,9 @@ export default function NewOperationPage() {
                       { label: "Supramax", value: "Supramax" },
                     ]}
                     name="vesselTypeCHS"
+                    resetKey={formResetKey}
+                    value={selectedVesselTypeCHS}
+                    onChange={setSelectedVesselTypeCHS}
                   />
                   <TextField
                     label="LOA (CHS)"
@@ -1426,6 +1454,9 @@ export default function NewOperationPage() {
                       { label: "Supramax", value: "Supramax" },
                     ]}
                     name="vesselTypeMS"
+                    resetKey={formResetKey}
+                    value={selectedVesselTypeMS}
+                    onChange={setSelectedVesselTypeMS}
                   />
                   <TextField
                     label="LOA (MS)"
