@@ -14,6 +14,21 @@ function getYearOptions() {
   return years;
 }
 
+function parseFilenameFromDisposition(disposition) {
+  if (!disposition) return "";
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (utf8Match && utf8Match[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ""));
+    } catch {
+      /* fallthrough */
+    }
+  }
+  const asciiMatch = /filename="?([^";]+)"?/i.exec(disposition);
+  if (asciiMatch && asciiMatch[1]) return asciiMatch[1].trim();
+  return "";
+}
+
 export default function ArchivePage() {
   const { setPageLoading } = useQhseLoading();
   const { canDelete, canDownload } = useQhseRole();
@@ -26,9 +41,55 @@ export default function ArchivePage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [moduleFilter, setModuleFilter] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
 
   const yearOptions = getYearOptions();
+
+  const handleDownload = async (row) => {
+    if (!canDownload || !row?._id) return;
+    setDownloadingId(row._id);
+    setError("");
+    setActionMessage("");
+    try {
+      const res = await fetch(`/api/qhse/archive/${row._id}/download`);
+      if (!res.ok) {
+        let message = `Failed to download (status ${res.status})`;
+        const ct = res.headers.get("content-type") || "";
+        try {
+          if (ct.includes("application/json")) {
+            const data = await res.json();
+            message = data.error || message;
+          } else {
+            const text = await res.text();
+            if (text && text.length < 500) message = text;
+          }
+        } catch {
+          /* ignore parse failure */
+        }
+        setError(message);
+        return;
+      }
+      const disposition = res.headers.get("content-disposition") || "";
+      const filenameFromHeader = parseFilenameFromDisposition(disposition);
+      const fallbackName = `${row.title || row.formCode || "archive"}`.replace(/[\\/:*?"<>|]/g, "_");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filenameFromHeader || fallbackName;
+      a.rel = "noopener";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setError(err?.message || "Failed to download file");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const handleDelete = async (row) => {
     if (!canDelete) return;
@@ -229,17 +290,25 @@ export default function ArchivePage() {
                             </span>
                           ) : canDownload ? (
                             <span className="relative group inline-flex">
-                              <a
-                                href={`/api/qhse/archive/${row._id}/download`}
-                                download
+                              <button
+                                type="button"
+                                onClick={() => handleDownload(row)}
+                                disabled={downloadingId === row._id}
                                 title="Download"
                                 aria-label="Download"
-                                className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 transition inline-flex"
+                                className="p-1.5 rounded text-sky-400 hover:text-sky-300 hover:bg-white/10 disabled:opacity-50 transition inline-flex"
                               >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                              </a>
+                                {downloadingId === row._id ? (
+                                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                )}
+                              </button>
                               <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
                                 Download
                               </span>

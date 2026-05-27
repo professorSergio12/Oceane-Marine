@@ -572,7 +572,14 @@ export default function DrillsReportClient() {
                               `/api/qhse/drill/download/quarter-file?planId=${plan._id}&quarter=${quarter}`
                             );
                             if (!res.ok) {
-                              throw new Error("Failed to download file");
+                              let msg = "Failed to download file";
+                              try {
+                                const data = await res.json();
+                                msg = data.error || msg;
+                              } catch {
+                                /* ignore */
+                              }
+                              throw new Error(msg);
                             }
                             const blob = await res.blob();
                             const url = globalThis.URL.createObjectURL(blob);
