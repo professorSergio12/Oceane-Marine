@@ -7,6 +7,7 @@ import PrimaryEquipment from "./equipment-inventory/primary-equipment/PrimaryEqu
 import Accessories from "./equipment-inventory/accessories/Accessories";
 import PmsLocationMaster from "./location/PmsLocationMaster";
 import WarehouseManagement from "./warehouse-management/WarehouseManagement";
+import PmsDocuments from "./documents/PmsDocuments";
 import { usePmsRole } from "@/hooks/usePmsRole";
 
 export default function PmsPage() {
@@ -39,6 +40,11 @@ export default function PmsPage() {
         key: "warehouse-management",
         label: "Warehouse Management",
         href: "/pms/warehouse-management",
+      },
+      {
+        key: "documents",
+        label: "📁 Documents",
+        href: "/pms/documents",
       },
       ...(isPmsAdmin
         ? [
@@ -297,6 +303,7 @@ export default function PmsPage() {
             )}
             {activeTab === "location" && isPmsAdmin && <PmsLocationMaster />}
             {activeTab === "equipment-testing" && <EquipmentTesting />}
+            {activeTab === "documents" && <PmsDocuments />}
           </div>
         </div>
       </div>

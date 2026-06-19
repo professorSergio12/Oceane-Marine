@@ -26,6 +26,11 @@ const sidebarTabs = [
     label: "CID",
     href: "/hr/cid",
   },
+  {
+    key: "documents",
+    label: "📁 Documents",
+    href: "/hr/documents",
+  },
 ];
 
 export default function HrSidebar() {
@@ -45,6 +50,8 @@ export default function HrSidebar() {
       setActiveTab("poac-matrix");
     } else if (pathname.startsWith("/hr/cid")) {
       setActiveTab("cid");
+    } else if (pathname.startsWith("/hr/documents")) {
+      setActiveTab("documents");
     }
   }, [pathname]);
 

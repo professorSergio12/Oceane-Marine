@@ -10,6 +10,11 @@ const ALL_SIDEBAR_TABS = [
     href: "/operations/sts-operations/new/compatibility",
   },
   {
+    key: "documents",
+    label: "📁 Documents",
+    href: "/operations/sts-operations/new/documents",
+  },
+  {
     key: "forms",
     label: "Forms and checklist",
     submodules: [

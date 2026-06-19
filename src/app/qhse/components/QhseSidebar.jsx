@@ -7,6 +7,11 @@ import { useQhseSidebar } from "../QhseSidebarContext";
 
 const sidebarTabs = [
   {
+    key: "documents",
+    label: "📁 Documents",
+    href: "/qhse/documents",
+  },
+  {
     key: "controlled-document-register",
     label: "Controlled document register",
     href: "/qhse/controlled-document-register",
@@ -140,7 +145,9 @@ export default function QhseSidebar() {
 
   // Derive active tab from current route and auto-expand nested submodules
   useEffect(() => {
-    if (pathname.startsWith("/qhse/controlled-document-register")) {
+    if (pathname.startsWith("/qhse/documents")) {
+      setActiveTab("documents");
+    } else if (pathname.startsWith("/qhse/controlled-document-register")) {
       setActiveTab("controlled-document-register");
     } else if (pathname.startsWith("/qhse/defects-list")) {
       setActiveTab("defects");
