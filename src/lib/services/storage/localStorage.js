@@ -5,7 +5,7 @@ import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 
 /**
- * Local-disk storage driver (used when there is no DigitalOcean Spaces bucket).
+ * Local-disk storage for SharePoint files.
  *
  * Files are written under  <project>/uploads/sharepoint/<key>  and served by the
  * existing /api/files/download route (which already allows /uploads/** paths).
