@@ -146,7 +146,7 @@ export const config = {
     "/admin",
     "/admin/:path*",
     "/login",
-    "/signup",
+    // "/signup",
     "/api/:path*",
   ],
 };
