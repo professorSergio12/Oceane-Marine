@@ -9,6 +9,7 @@ import {
   ActionViewIconLink,
   ActionEditIconLink,
   ActionDeleteIcon,
+  ActionDownloadIcon,
 } from "@/app/components/RecordActionIcons";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
 import { getSidebarTabs } from "@/app/operations/sts-operations/new/sidebarTabs";
@@ -40,6 +41,7 @@ export default function CompatibilityListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [locationId, setLocationId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,6 +76,41 @@ export default function CompatibilityListPage() {
         setPageLoading(false);
       });
   }, [year, locationId, setPageLoading]);
+
+  async function handleDownload(rec) {
+    setDownloading(rec._id);
+    try {
+      const res = await fetch(
+        `/api/operations/compatibility/${rec._id}/download`
+      );
+      if (!res.ok) {
+        let msg = "Failed to download document";
+        try {
+          const data = await res.json();
+          msg = data.error || msg;
+        } catch {}
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const fileName = match
+        ? match[1]
+        : `Compatibility-${rec.operationNumber || rec._id}.docx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloading(null);
+    }
+  }
 
   const initialYears = getYears();
 
@@ -354,6 +391,12 @@ export default function CompatibilityListPage() {
                               <ActionViewIconLink
                                 href={`/operations/sts-operations/new/compatibility/view/${rec._id}`}
                                 title="View"
+                              />
+                              <ActionDownloadIcon
+                                onClick={() => handleDownload(rec)}
+                                disabled={downloading === rec._id}
+                                loading={downloading === rec._id}
+                                title="Download (Word)"
                               />
                               {canEditCompatibility && (
                                 <ActionEditIconLink
