@@ -28,15 +28,21 @@ export default function CompatibilityViewPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState("");
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  async function handleDownload() {
+  async function downloadFile(format) {
     if (!id) return;
-    setDownloading(true);
+    const isPdf = format === "pdf";
+    const setLoading = isPdf ? setDownloadingPdf : setDownloadingDocx;
+    setLoading(true);
     try {
-      const res = await fetch(`/api/operations/compatibility/${id}/download`);
+      const url = isPdf
+        ? `/api/operations/compatibility/${id}/download/pdf`
+        : `/api/operations/compatibility/${id}/download`;
+      const res = await fetch(url);
       if (!res.ok) {
-        let msg = "Failed to download document";
+        let msg = isPdf ? "Failed to download PDF" : "Failed to download document";
         try {
           const d = await res.json();
           msg = d.error || msg;
@@ -46,21 +52,22 @@ export default function CompatibilityViewPage() {
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="?([^"]+)"?/);
+      const fallbackExt = isPdf ? "pdf" : "docx";
       const fileName = match
         ? match[1]
-        : `Compatibility-${data?.operationNumber || id}.docx`;
-      const url = URL.createObjectURL(blob);
+        : `Compatibility-${data?.operationNumber || id}.${fallbackExt}`;
+      const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = objectUrl;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
     } catch (err) {
       setError(err.message);
     } finally {
-      setDownloading(false);
+      setLoading(false);
     }
   }
 
@@ -189,21 +196,19 @@ export default function CompatibilityViewPage() {
               </Link>
               <button
                 type="button"
-                onClick={handleDownload}
-                disabled={downloading || loading || !data}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => downloadFile("docx")}
+                disabled={downloadingDocx || downloadingPdf || loading || !data}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-400/40 bg-sky-500/15 hover:bg-sky-500/25 text-sm font-semibold text-sky-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {downloading ? (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                )}
-                {downloading ? "Preparing…" : "Download"}
+                {downloadingDocx ? "Preparing…" : "Word"}
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadFile("pdf")}
+                disabled={downloadingDocx || downloadingPdf || loading || !data}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-rose-400/40 bg-rose-500/15 hover:bg-rose-500/25 text-sm font-semibold text-rose-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {downloadingPdf ? "Preparing…" : "PDF"}
               </button>
               <Link href={`/operations/sts-operations/new/compatibility?edit=${id}`} className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-sm font-semibold text-white transition">
                 Edit

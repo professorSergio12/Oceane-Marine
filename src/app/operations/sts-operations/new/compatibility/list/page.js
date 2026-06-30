@@ -41,7 +41,8 @@ export default function CompatibilityListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [downloading, setDownloading] = useState(null);
+  const [downloadingDocx, setDownloadingDocx] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [locationId, setLocationId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,14 +78,17 @@ export default function CompatibilityListPage() {
       });
   }, [year, locationId, setPageLoading]);
 
-  async function handleDownload(rec) {
-    setDownloading(rec._id);
+  async function downloadCompatibilityFile(rec, format) {
+    const isPdf = format === "pdf";
+    const setLoading = isPdf ? setDownloadingPdf : setDownloadingDocx;
+    setLoading(rec._id);
     try {
-      const res = await fetch(
-        `/api/operations/compatibility/${rec._id}/download`
-      );
+      const url = isPdf
+        ? `/api/operations/compatibility/${rec._id}/download/pdf`
+        : `/api/operations/compatibility/${rec._id}/download`;
+      const res = await fetch(url);
       if (!res.ok) {
-        let msg = "Failed to download document";
+        let msg = isPdf ? "Failed to download PDF" : "Failed to download document";
         try {
           const data = await res.json();
           msg = data.error || msg;
@@ -94,21 +98,22 @@ export default function CompatibilityListPage() {
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="?([^"]+)"?/);
+      const fallbackExt = isPdf ? "pdf" : "docx";
       const fileName = match
         ? match[1]
-        : `Compatibility-${rec.operationNumber || rec._id}.docx`;
-      const url = URL.createObjectURL(blob);
+        : `Compatibility-${rec.operationNumber || rec._id}.${fallbackExt}`;
+      const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = objectUrl;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
     } catch (err) {
       setError(err.message);
     } finally {
-      setDownloading(null);
+      setLoading(null);
     }
   }
 
@@ -393,10 +398,24 @@ export default function CompatibilityListPage() {
                                 title="View"
                               />
                               <ActionDownloadIcon
-                                onClick={() => handleDownload(rec)}
-                                disabled={downloading === rec._id}
-                                loading={downloading === rec._id}
-                                title="Download (Word)"
+                                onClick={() => downloadCompatibilityFile(rec, "docx")}
+                                disabled={
+                                  downloadingDocx === rec._id ||
+                                  downloadingPdf === rec._id
+                                }
+                                loading={downloadingDocx === rec._id}
+                                title="Download Word"
+                                className="!border-sky-400/50 !text-sky-300 hover:!bg-sky-500/15"
+                              />
+                              <ActionDownloadIcon
+                                onClick={() => downloadCompatibilityFile(rec, "pdf")}
+                                disabled={
+                                  downloadingDocx === rec._id ||
+                                  downloadingPdf === rec._id
+                                }
+                                loading={downloadingPdf === rec._id}
+                                title="Download PDF"
+                                className="!border-rose-400/50 !text-rose-300 hover:!bg-rose-500/15"
                               />
                               {canEditCompatibility && (
                                 <ActionEditIconLink
