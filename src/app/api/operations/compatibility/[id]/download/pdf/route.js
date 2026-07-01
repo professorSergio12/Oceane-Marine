@@ -21,11 +21,10 @@ export async function GET(req, { params }) {
       pdfBuffer = await generateCompatibilityPdf(doc);
     } catch (err) {
       console.error("Compatibility PDF generation error:", err);
-      const message =
-        err?.message?.includes("soffice") || err?.message?.includes("LibreOffice")
-          ? "PDF export requires LibreOffice on the server (install LibreOffice or set LIBREOFFICE_PATH)."
-          : err?.message || "Failed to generate PDF";
-      return NextResponse.json({ error: message }, { status: 500 });
+      return NextResponse.json(
+        { error: err?.message || "Failed to generate PDF" },
+        { status: 500 }
+      );
     }
 
     const fileName = `Compatibility-${sanitizeCompatibilityFilename(doc.operationNumber)}.pdf`;
