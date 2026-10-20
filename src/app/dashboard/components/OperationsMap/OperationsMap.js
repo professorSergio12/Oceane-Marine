@@ -103,10 +103,10 @@ export default function OperationsMap({ year, month }) {
           className="w-full h-full"
           style={{ background: "#dce6f0" }}
         >
-          {/* Light tile layer – CartoDB Positron (light / white background) */}
+          {/* CARTO Positron (light) – served via our caching proxy to save CARTO quota */}
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution=""
+            url="/api/map-tiles/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
 
           {/* Auto-fit when data changes */}
