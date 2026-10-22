@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
-import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import MooringMaster from "@/lib/mongodb/models/MooringMaster";
+import { releaseOperationEquipment, requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export async function PATCH(req, { params }) {
+  const { response } = await requireOpsPermission("canEditForm");
+  if (response) return response;
+
   await connectDB();
   const { id } = await params;
 
@@ -17,34 +20,28 @@ export async function PATCH(req, { params }) {
       );
     }
 
+    if (!operation.isLatest) {
+      return NextResponse.json(
+        { error: "Only latest version can be completed" },
+        { status: 403 }
+      );
+    }
+
     if (operation.operationStatus === "COMPLETED") {
       return NextResponse.json(
         { error: "Operation already completed" },
         { status: 400 }
       );
     }
-    // 1. Update operation
+
+    const now = new Date();
+
+    // 1. Release equipment first so a failure can't leave a completed operation holding it
+    operation.equipments = await releaseOperationEquipment(operation.toObject().equipments, now);
+
+    // 2. Complete the operation
     operation.operationStatus = "COMPLETED";
-    operation.operationEndTime = new Date();
-    await operation.save();
-
-    // 2. Release equipments
-    for (const eq of operation.equipments || []) {
-      if (eq.status === "IN_USE") {
-        const hours = (now.getTime() - new Date(eq.startTime).getTime()) / 36e5;
-
-        await Equipment.findByIdAndUpdate(eq.equipment, {
-          $inc: { quantityTransferred: 1 },
-          isInUse: false,
-          lastUsedAt: new Date(),
-        });
-
-        eq.endTime = now;
-        eq.usedHours = hours;
-        eq.status = "RELEASED";
-      }
-    }
-
+    operation.operationEndTime = now;
     await operation.save();
 
     // 3. Release mooring master

@@ -4,6 +4,7 @@ import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import InspectionChecklist from "@/lib/mongodb/models/operations-form-checklist/InspectionChecklist";
 import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,9 @@ function getNextVersion(latestVersion) {
 }
 
 export async function POST(req, { params }) {
+  const { response: authResponse } = await requireOpsPermission("canEditForm");
+  if (authResponse) return authResponse;
+
   await connectDB();
 
   try {

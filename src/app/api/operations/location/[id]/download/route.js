@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import mongoose from "mongoose";
+import { requireOpsAdmin } from "@/lib/auth/requireOpsAdmin";
 import { connectDB } from "@/lib/config/connection";
 import LocationOfficeCheck from "@/lib/mongodb/models/operations/operations-locations/LocationOfficeCheck";
 
@@ -8,11 +10,26 @@ export const runtime = "nodejs";
 
 const UPLOAD_BASE = "uploads/location";
 
-export async function GET(req, { params }) {
-  await connectDB();
+/**
+ * Header values must be plain ASCII, so non-ASCII names (–, é, Arabic…) get an
+ * ASCII fallback plus the RFC 5987 `filename*` with the real UTF-8 name.
+ */
+function contentDisposition(fileName) {
+  const asciiFallback = fileName.replace(/[^\x20-\x7E]/g, "_").replace(/["\\]/g, "_");
+  const encoded = encodeURIComponent(fileName).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
+}
 
+export async function GET(req, { params }) {
   try {
+    const { response } = await requireOpsAdmin();
+    if (response) return response;
+
+    await connectDB();
     const { id } = await params;
+    if (!mongoose.isValidObjectId(id)) {
+      return NextResponse.json({ error: "Record not found" }, { status: 404 });
+    }
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
     const key = searchParams.get("key");
@@ -70,7 +87,7 @@ export async function GET(req, { params }) {
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${fileName.replace(/"/g, '\\"')}"`,
+        "Content-Disposition": contentDisposition(fileName),
       },
     });
   } catch (error) {

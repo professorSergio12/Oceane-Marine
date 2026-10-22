@@ -35,7 +35,8 @@ export async function DELETE(req, { params }) {
 
     // Clean up document from StsOperation if checklist has operationRef
     if (record.operationRef) {
-      await StsOperation.updateOne(
+      // All versions share the ref — remove the document from every one (incl. latest)
+      await StsOperation.updateMany(
         { Operation_Ref_No: record.operationRef },
         { $pull: { documents: { documentType: config.formNo, checklistId: id } } }
       );

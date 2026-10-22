@@ -81,7 +81,25 @@ export async function GET(req) {
       );
     }
 
-    const upstream = await fetch(parsed.toString(), { redirect: "follow" });
+    // Absolute link to this app's own /uploads → serve from disk instead of fetching
+    const requestHost = new URL(req.url).host;
+    if (parsed.host === requestHost && /^\/uploads?\//.test(parsed.pathname)) {
+      const local = new URL(req.url);
+      local.search = "";
+      local.searchParams.set("path", decodeURIComponent(parsed.pathname));
+      if (suggestedName) local.searchParams.set("name", suggestedName);
+      return NextResponse.redirect(local);
+    }
+
+    // Only proxy known file hosts — never arbitrary / internal addresses (SSRF)
+    if (!isAllowedDownloadHost(parsed.hostname)) {
+      return NextResponse.json(
+        { error: "Downloads from this address are not allowed" },
+        { status: 400 }
+      );
+    }
+
+    const upstream = await fetch(parsed.toString(), { redirect: "error" });
     if (!upstream.ok) {
       return NextResponse.json(
         { error: `Upstream ${upstream.status}` },
@@ -102,6 +120,23 @@ export async function GET(req) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Hosts the `url` proxy may fetch from. Extra hosts can be added with
+ * FILE_DOWNLOAD_ALLOWED_HOSTS="files.example.com,cdn.example.com" (".example.com" = any subdomain).
+ */
+const DEFAULT_ALLOWED_HOSTS = [".digitaloceanspaces.com", "res.cloudinary.com"];
+
+function isAllowedDownloadHost(hostname) {
+  const host = hostname.toLowerCase();
+  const extra = (process.env.FILE_DOWNLOAD_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  return [...DEFAULT_ALLOWED_HOSTS, ...extra].some((allowed) =>
+    allowed.startsWith(".") ? host.endsWith(allowed) : host === allowed
+  );
 }
 
 function fileResponse(buffer, filename, contentType) {

@@ -4,8 +4,12 @@ import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import Manual from "@/lib/mongodb/models/operations-form-checklist/Manual";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export async function DELETE(req, { params }) {
+  const { response: authResponse } = await requireOpsPermission("canDeleteForm");
+  if (authResponse) return authResponse;
+
   await connectDB();
 
   try {

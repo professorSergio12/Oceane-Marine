@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsQuotationForm from "@/lib/mongodb/models/operations-form-checklist/StsQuotationForm";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export async function POST(req) {
+  const { response: authResponse } = await requireOpsPermission("canCreateForm");
+  if (authResponse) return authResponse;
+
   await connectDB();
   try {
     const body = await req.json();

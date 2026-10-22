@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
 import { computeHose, computeFender } from "@/app/operations/sts-operations/new/compatibility/calculations";
 import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export async function GET(req, { params }) {
   await connectDB();
@@ -22,6 +23,9 @@ export async function GET(req, { params }) {
 }
 
 export async function PUT(req, { params }) {
+  const { response: authResponse } = await requireOpsPermission("canEditCompatibility");
+  if (authResponse) return authResponse;
+
   await connectDB();
   try {
     const { id } = await params;

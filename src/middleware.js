@@ -1,5 +1,58 @@
 import { NextResponse } from "next/server";
 
+/* ==========================
+   Access token verification (HS256, as signed by jsonwebtoken in /api/auth/login).
+   `jsonwebtoken` doesn't run in middleware, so this uses Web Crypto directly.
+   A cookie that merely exists is not enough — signature and expiry must be valid.
+========================== */
+
+function base64UrlToBytes(input) {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(input.length / 4) * 4, "=");
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+let hmacKeyPromise = null;
+function getHmacKey() {
+  if (!hmacKeyPromise) {
+    hmacKeyPromise = crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(process.env.JWT_SECRET || ""),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+  }
+  return hmacKeyPromise;
+}
+
+async function isValidAccessToken(token) {
+  if (!token || !process.env.JWT_SECRET) return false;
+  try {
+    const [headerPart, payloadPart, signaturePart] = token.split(".");
+    if (!headerPart || !payloadPart || !signaturePart) return false;
+
+    const header = JSON.parse(new TextDecoder().decode(base64UrlToBytes(headerPart)));
+    if (header.alg !== "HS256") return false;
+
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      await getHmacKey(),
+      base64UrlToBytes(signaturePart),
+      new TextEncoder().encode(`${headerPart}.${payloadPart}`)
+    );
+    if (!valid) return false;
+
+    const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(payloadPart)));
+    if (typeof payload.exp === "number" && payload.exp * 1000 <= Date.now()) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * API routes that stay reachable without a session cookie.
  * Everything under /api/* else requires access_token (see matcher).
@@ -82,7 +135,7 @@ function isPublicApiRoute(pathname) {
   return false;
 }
 
-export function middleware(request) {
+export async function middleware(request) {
   const token = request.cookies.get("access_token")?.value;
   const { pathname } = request.nextUrl;
 
@@ -98,16 +151,17 @@ export function middleware(request) {
     if (isPublicApiRoute(pathname)) {
       return NextResponse.next();
     }
-    if (!token) {
+    if (!(await isValidAccessToken(token))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     return NextResponse.next();
   }
 
+  const hasValidSession = await isValidAccessToken(token);
   const publicPages = ["/login", "/signup"];
 
   if (publicPages.includes(pathname)) {
-    if (token) {
+    if (hasValidSession) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();
@@ -128,7 +182,7 @@ export function middleware(request) {
 
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
 
-  if (isProtected && !token) {
+  if (isProtected && !hasValidSession) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

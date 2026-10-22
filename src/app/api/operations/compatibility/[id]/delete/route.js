@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export async function DELETE(req, { params }) {
+  const { response: authResponse } = await requireOpsPermission("canDeleteCompatibility");
+  if (authResponse) return authResponse;
+
   await connectDB();
 
   try {

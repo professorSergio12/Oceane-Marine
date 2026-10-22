@@ -3,10 +3,14 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import Manual from "@/lib/mongodb/models/operations-form-checklist/Manual";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export const runtime = "nodejs";
 
 export async function POST(req) {
+  const { response: authResponse } = await requireOpsPermission("canCreateForm");
+  if (authResponse) return authResponse;
+
   await connectDB();
 
   try {

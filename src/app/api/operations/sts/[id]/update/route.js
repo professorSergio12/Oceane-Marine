@@ -4,7 +4,15 @@ import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
-import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
+import {
+  FINISHED_OPERATION_STATUSES,
+  releaseOperationEquipment,
+  requireOpsPermission,
+} from "@/lib/operations/stsOperationGuards";
+
+/* Fields the client must never overwrite (version control / identity). */
+const PROTECTED_FIELDS = ["_id", "parentOperationId", "version", "isLatest", "createdAt", "updatedAt", "__v", "documents"];
 
 /* =====================
    FILE UPLOAD FIELDS (CHS/MS vessel documents)
@@ -74,6 +82,9 @@ async function saveUploadedFile(file, subfolder) {
 }
 
 export async function PUT(req, { params }) {
+  const { response } = await requireOpsPermission("canEditForm");
+  if (response) return response;
+
   await connectDB();
   const { id } = await params;
 
@@ -102,6 +113,7 @@ export async function PUT(req, { params }) {
 
     /* Form sends equipment IDs as strings; schema expects embedded usage objects. */
     delete body.equipments;
+    for (const field of PROTECTED_FIELDS) delete body[field];
 
     /* =====================
        HANDLE FILE UPLOADS (CHS/MS vessel documents)
@@ -205,36 +217,75 @@ export async function PUT(req, { params }) {
 
     const newVersionNumber = Number((lastVersion.version + 0.1).toFixed(1));
 
-    // Mark previous versions as NOT latest
-    await StsOperation.updateMany(
-      { parentOperationId: existing.parentOperationId },
-      { $set: { isLatest: false } }
-    );
-
     // Handle submission status
     const isSubmitted = body.isSubmitted === "true" || body.isSubmitted === true;
-    const submittedAt = isSubmitted && body.submittedAt ? new Date(body.submittedAt) : null;
+    const parsedSubmittedAt = isSubmitted && body.submittedAt ? new Date(body.submittedAt) : null;
+    const submittedAt =
+      parsedSubmittedAt && !Number.isNaN(parsedSubmittedAt.getTime()) ? parsedSubmittedAt : null;
 
-    // CREATE NEW VERSION ENTRY
-    const newVersion = await StsOperation.create({
-      ...existing.toObject(),
+    const { _id: _omitId, ...existingData } = existing.toObject();
+
+    // Operation finished in this edit → free its equipment
+    const newStatus = body.operationStatus || existing.operationStatus;
+    const isFinishing =
+      FINISHED_OPERATION_STATUSES.has(newStatus) &&
+      !FINISHED_OPERATION_STATUSES.has(existing.operationStatus);
+
+    // Build + validate the new version BEFORE touching existing versions, so a bad
+    // value (empty dropdown, invalid date…) can't leave the operation without a latest version.
+    const newVersion = new StsOperation({
+      ...existingData,
       ...body,
       ...uploadedFiles,
-      _id: undefined, // important: create new document, NOT overwrite
       version: newVersionNumber,
-      isLatest: true,
+      isLatest: false,
       isSubmitted: isSubmitted || existing.isSubmitted, // Preserve if already submitted
       submittedAt: submittedAt || existing.submittedAt, // Preserve if already submitted
       documents: mergedDocuments,
     });
+    await newVersion.validate();
+    await newVersion.save();
+
+    // Claim the "latest" flag from the version being edited. If it's no longer latest,
+    // someone else saved first — undo our copy instead of creating two latest versions.
+    const claimed = await StsOperation.findOneAndUpdate(
+      { _id: existing._id, isLatest: true },
+      { $set: { isLatest: false } }
+    );
+    if (!claimed) {
+      await StsOperation.deleteOne({ _id: newVersion._id });
+      return NextResponse.json(
+        { error: "This operation was changed by someone else while you were editing. Please reload and try again." },
+        { status: 409 }
+      );
+    }
+
+    const promote = { isLatest: true };
+    if (isFinishing) {
+      promote.equipments = await releaseOperationEquipment(newVersion.toObject().equipments);
+      if (!newVersion.operationEndTime) promote.operationEndTime = new Date();
+    }
+    await StsOperation.updateOne({ _id: newVersion._id }, { $set: promote });
+    await StsOperation.updateMany(
+      { parentOperationId: existing.parentOperationId, _id: { $ne: newVersion._id } },
+      { $set: { isLatest: false } }
+    );
+
+    const saved = await StsOperation.findById(newVersion._id).lean();
 
     void notifyOperationsEdit("STS Operations", id);
     return NextResponse.json({
       success: true,
       message: "New version created",
-      data: newVersion,
+      data: saved,
     });
   } catch (error) {
+    if (error?.name === "ValidationError" || error?.name === "CastError") {
+      const details = error.errors
+        ? Object.values(error.errors).map((e) => e.message).join("; ")
+        : error.message;
+      return NextResponse.json({ error: `Please check the form: ${details}` }, { status: 400 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

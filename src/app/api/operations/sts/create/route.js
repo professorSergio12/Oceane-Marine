@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import { buildStsCreateDocument } from "@/lib/operations/stsCreatePayload";
+import { FINISHED_OPERATION_STATUSES } from "@/lib/operations/stsOperationGuards";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import fs from "fs/promises";
@@ -182,10 +183,13 @@ export async function POST(req) {
     /* =====================
        EQUIPMENT USAGE
     ====================== */
+    // An operation created already finished must not lock its equipment
+    const createdFinished = FINISHED_OPERATION_STATUSES.has(body.operationStatus);
     const equipmentUsage = equipments.map((eq) => ({
       equipment: eq._id,
       startTime: operationStartTime,
-      status: "IN_USE",
+      status: createdFinished ? "RELEASED" : "IN_USE",
+      ...(createdFinished ? { endTime: operationEndTime || new Date() } : {}),
     }));
 
     /* =====================
@@ -220,7 +224,7 @@ export async function POST(req) {
     /* =====================
        LOCK EQUIPMENTS
     ====================== */
-    if (equipmentIds.length > 0) {
+    if (equipmentIds.length > 0 && !createdFinished) {
       await Equipment.updateMany(
         { _id: { $in: equipmentIds } },
         {

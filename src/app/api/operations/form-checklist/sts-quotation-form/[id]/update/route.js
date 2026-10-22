@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsQuotationForm from "@/lib/mongodb/models/operations-form-checklist/StsQuotationForm";
 import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 const DATE_FIELDS = [
   "proposalDate",
@@ -28,6 +29,9 @@ function sanitize(body) {
 }
 
 export async function PUT(req, { params }) {
+  const { response: authResponse } = await requireOpsPermission("canEditForm");
+  if (authResponse) return authResponse;
+
   await connectDB();
   try {
     const { id } = await params;

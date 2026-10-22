@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
@@ -26,6 +26,11 @@ const OFFICE_CHECK_LABELS = {
   costing: "Costing",
 };
 
+const EMPTY_OFFICE_CHECKS = Object.fromEntries(Object.keys(OFFICE_CHECK_LABELS).map((key) => [key, false]));
+
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // matches API per-file limit
+const MAX_UPLOAD_BYTES = 30 * 1024 * 1024; // matches proxyClientMaxBodySize in next.config.mjs
+
 // Year range for dropdown (e.g. current year - 5 to current year + 2)
 function getYearsRange() {
   const currentYear = new Date().getFullYear();
@@ -34,6 +39,40 @@ function getYearsRange() {
     years.push(y);
   }
   return years.sort((a, b) => b - a);
+}
+
+const normalizeLocationName = (name) => (name || "").trim().replace(/\s+/g, " ").toLowerCase();
+
+// Validate optional coordinate input; returns an error message or "" if OK
+function validateCoordinate(raw, label, min, max) {
+  const v = raw.trim();
+  if (!v) return "";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return `${label} must be a number (e.g. 25.12).`;
+  if (n < min || n > max) return `${label} must be between ${min} and ${max}.`;
+  return "";
+}
+
+// Turn a failed location API response into a message the user can act on
+async function getLocationApiError(res, fallback) {
+  let serverMessage = "";
+  try {
+    const data = await res.json();
+    serverMessage = data?.error || data?.message || "";
+  } catch {
+    // non-JSON response
+  }
+  if (/already exists/i.test(serverMessage)) {
+    return "This location already exists. Search for it in the list below to edit its coordinates.";
+  }
+  if (res.status === 413 || /parse body as FormData/i.test(serverMessage)) {
+    return "The files are too large to upload together (30MB total). Please upload fewer or smaller files at a time.";
+  }
+  if (res.status === 401) return "Your session has expired. Please log in again.";
+  if (res.status === 403) return "You don't have permission to manage locations. Operations admin role is required.";
+  if (res.status === 404) return "This location no longer exists. Please refresh the page.";
+  if (res.status >= 500) return `Something went wrong on the server. Please try again.${serverMessage ? ` (${serverMessage})` : ""}`;
+  return serverMessage || fallback;
 }
 
 export default function LocationsPage() {
@@ -51,6 +90,7 @@ export default function LocationsPage() {
   const [editingId, setEditingId] = useState(null);
   const [editLat, setEditLat] = useState("");
   const [editLng, setEditLng] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
   const [activeTab, setActiveTab] = useState("locations");
   const [expandedModules, setExpandedModules] = useState(new Set());
@@ -68,22 +108,21 @@ export default function LocationsPage() {
   const [loadingList, setLoadingList] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
-  const [officeChecks, setOfficeChecks] = useState({
-    jpo: false,
-    riskAssessment: false,
-    stsTransferLocationChecklist: false,
-    stsNewBaseChecklist: false,
-    moc: false,
-    mocRa: false,
-    preArrivalNotification: false,
-    contingencyPlan: false,
-    costing: false,
-  });
+  const [officeChecks, setOfficeChecks] = useState(EMPTY_OFFICE_CHECKS);
+  // Saved record for the selected location + year (pre-fills the form so a re-save doesn't wipe it)
+  const [existingOfficeRecord, setExistingOfficeRecord] = useState(null);
+  const [loadingOfficeRecord, setLoadingOfficeRecord] = useState(false);
   const [checkboxFiles, setCheckboxFiles] = useState({});
   const [additionalFiles, setAdditionalFiles] = useState([]);
   const additionalInputRefs = useRef([]);
 
-  const locPag = useOperationsClientPagination(items, "locations-master");
+  const filteredItems = useMemo(() => {
+    const q = locationSearch.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((item) => item.name?.toLowerCase().includes(q));
+  }, [items, locationSearch]);
+
+  const locPag = useOperationsClientPagination(filteredItems, `locations-master|${locationSearch}`);
   const { paginatedItems: locPageItems, ...locFooterProps } = locPag;
   const recPag = useOperationsClientPagination(records, `${selectedLocationId}|${year}`);
   const { paginatedItems: recPageItems, ...recFooterProps } = recPag;
@@ -211,10 +250,67 @@ export default function LocationsPage() {
     loadRecords();
   }, [canManageMasterData, section, officeView, selectedLocationId, year]);
 
+  const applyOfficeRecord = (record) => {
+    setExistingOfficeRecord(record || null);
+    setOfficeChecks({ ...EMPTY_OFFICE_CHECKS, ...(record?.officeChecks || {}) });
+    setCheckboxFiles({});
+    setAdditionalFiles([]);
+    additionalInputRefs.current.forEach((ref) => { if (ref) ref.value = ""; });
+  };
+
+  // Load the saved office checks for the selected location + year into the form
+  useEffect(() => {
+    if (!canManageMasterData) return;
+    if (section !== "office-checks" || officeView !== "form") return;
+    if (!selectedLocationId) {
+      applyOfficeRecord(null);
+      return;
+    }
+    let cancelled = false;
+    const loadOfficeRecord = async () => {
+      setLoadingOfficeRecord(true);
+      try {
+        const url = `/api/operations/location/list?location=${encodeURIComponent(selectedLocationId)}&year=${year}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(await getLocationApiError(res, "Failed to load saved office checks."));
+        const data = await res.json();
+        if (!cancelled) applyOfficeRecord(data?.data?.[0] || null);
+      } catch (err) {
+        if (!cancelled) {
+          applyOfficeRecord(null);
+          setError(err.message);
+        }
+      } finally {
+        if (!cancelled) setLoadingOfficeRecord(false);
+      }
+    };
+    loadOfficeRecord();
+    return () => { cancelled = true; };
+  }, [canManageMasterData, section, officeView, selectedLocationId, year]);
+
   const handleSubmitLocation = async (e) => {
     e.preventDefault();
     setError("");
-    if (!value.trim()) return;
+    if (!value.trim()) {
+      setError("Please enter a location name.");
+      return;
+    }
+
+    const duplicate = items.find((item) => normalizeLocationName(item.name) === normalizeLocationName(value));
+    if (duplicate) {
+      setError(`"${duplicate.name}" already exists. Use the edit button in the list below to change its coordinates.`);
+      setLocationSearch(duplicate.name);
+      return;
+    }
+
+    const coordError =
+      validateCoordinate(latValue, "Latitude", -90, 90) ||
+      validateCoordinate(lngValue, "Longitude", -180, 180);
+    if (coordError) {
+      setError(coordError);
+      return;
+    }
+
     try {
       setLoading(true);
       const payload = { name: value.trim() };
@@ -227,7 +323,7 @@ export default function LocationsPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        throw new Error(await getLocationApiError(res, "Failed to add location."));
       }
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
@@ -248,6 +344,13 @@ export default function LocationsPage() {
 
   const handleUpdateCoords = async (id) => {
     setError("");
+    const coordError =
+      validateCoordinate(editLat, "Latitude", -90, 90) ||
+      validateCoordinate(editLng, "Longitude", -180, 180);
+    if (coordError) {
+      setError(coordError);
+      return;
+    }
     try {
       setActionLoading(true);
       const res = await fetch(`/api/master/locations/${id}/update`, {
@@ -258,7 +361,7 @@ export default function LocationsPage() {
           longitude: editLng.trim() ? parseFloat(editLng.trim()) : null,
         }),
       });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error(await getLocationApiError(res, "Failed to update location."));
       const data = await res.json();
       if (data.error) throw new Error(data.error || "Failed to update");
       setEditingId(null);
@@ -280,11 +383,12 @@ export default function LocationsPage() {
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this location?")) return;
+    setError("");
     try {
       setActionLoading(true);
       const res = await fetch(`/api/master/locations/${id}/delete`, { method: "DELETE" });
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        throw new Error(await getLocationApiError(res, "Failed to delete location."));
       }
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
@@ -308,8 +412,9 @@ export default function LocationsPage() {
   };
 
   const toggleCheck = (key) => {
+    // Unticking drops any file picked for that check so it isn't uploaded
+    if (officeChecks[key]) setCheckboxFiles((prev) => ({ ...prev, [key]: null }));
     setOfficeChecks((prev) => ({ ...prev, [key]: !prev[key] }));
-    if (!officeChecks[key]) setCheckboxFiles((prev) => ({ ...prev, [key]: null }));
   };
 
   const handleCheckboxFile = (key, file) => {
@@ -336,26 +441,43 @@ export default function LocationsPage() {
       setError("Please select a location");
       return;
     }
+
+    // Only files for ticked checks are sent
+    const checkboxUploads = Object.entries(checkboxFiles).filter(([key, file]) => file && officeChecks[key]);
+    // Numbered without gaps: the API stops reading at the first missing additional_N
+    const additionalUploads = additionalFiles.filter(Boolean).map((file, i) => [i, file]);
+    const allFiles = [...checkboxUploads, ...additionalUploads].map(([, file]) => file);
+
+    const tooBig = allFiles.find((file) => file.size > MAX_FILE_BYTES);
+    if (tooBig) {
+      setError(`"${tooBig.name}" is larger than 25MB. Please upload a smaller file.`);
+      return;
+    }
+    const totalBytes = allFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes > MAX_UPLOAD_BYTES) {
+      setError(
+        `The selected files add up to ${(totalBytes / 1024 / 1024).toFixed(1)}MB. You can upload up to 30MB per save. Please save some files now and the rest in a second save.`
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("locationId", selectedLocationId);
-      formData.append("locationName", selectedLocationName);
       formData.append("year", String(year));
-      formData.append("uploadedByName", "");
-      formData.append("uploadedByUserId", "");
       Object.keys(officeChecks).forEach((key) => {
         formData.append(key, officeChecks[key] ? "true" : "false");
       });
-      Object.keys(checkboxFiles).forEach((key) => {
-        if (checkboxFiles[key]) formData.append(`attachment_${key}`, checkboxFiles[key]);
+      checkboxUploads.forEach(([key, file]) => {
+        formData.append(`attachment_${key}`, file);
       });
-      additionalFiles.forEach((file, i) => {
-        if (file) formData.append(`additional_${i}`, file);
+      additionalUploads.forEach(([i, file]) => {
+        formData.append(`additional_${i}`, file);
       });
       const res = await fetch("/api/operations/location/create", { method: "POST", body: formData });
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        throw new Error(await getLocationApiError(res, "Failed to save office checks."));
       }
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
@@ -364,20 +486,7 @@ export default function LocationsPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Save failed");
       setSuccess("Office checks saved successfully.");
-      setOfficeChecks({
-        jpo: false,
-        riskAssessment: false,
-        stsTransferLocationChecklist: false,
-        stsNewBaseChecklist: false,
-        moc: false,
-        mocRa: false,
-        preArrivalNotification: false,
-        contingencyPlan: false,
-        costing: false,
-      });
-      setCheckboxFiles({});
-      setAdditionalFiles([]);
-      additionalInputRefs.current.forEach((ref) => { if (ref) ref.value = ""; });
+      applyOfficeRecord(data.data);
       if (officeView === "list") {
         const url = `/api/operations/location/list?location=${encodeURIComponent(selectedLocationId)}&year=${year}`;
         const listRes = await fetch(url);
@@ -697,12 +806,26 @@ export default function LocationsPage() {
               )}
 
               <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl shadow-2xl overflow-hidden">
-                <div className="px-6 py-5 border-b border-white/10 bg-white/5 flex items-center justify-between">
+                <div className="px-6 py-5 border-b border-white/10 bg-white/5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-white">Location List</h2>
                     <p className="text-xs text-white/60 mt-0.5">Manage all operation locations</p>
                   </div>
-                  <span className="text-sm font-semibold text-white/80">{items.length} {items.length === 1 ? "Item" : "Items"}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-full sm:w-64">
+                      <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" /></svg>
+                      <input
+                        type="search"
+                        value={locationSearch}
+                        onChange={(e) => setLocationSearch(e.target.value)}
+                        placeholder="Search location..."
+                        className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-orange-500/50 outline-none"
+                      />
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-white/80">
+                      {locationSearch.trim() ? `${filteredItems.length} of ${items.length}` : items.length} {items.length === 1 ? "Item" : "Items"}
+                    </span>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -789,6 +912,13 @@ export default function LocationsPage() {
                           </td>
                         </tr>
                       )}
+                      {items.length > 0 && !filteredItems.length && (
+                        <tr>
+                          <td className="px-4 py-12 text-center" colSpan={5}>
+                            <p className="text-sm text-white/60">No locations match &quot;{locationSearch.trim()}&quot;.</p>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -851,27 +981,66 @@ export default function LocationsPage() {
 
               {officeView === "form" && (
                 <form onSubmit={handleSubmitOfficeChecks} className="space-y-8 p-4 sm:p-6">
+                  {loadingOfficeRecord && (
+                    <p className="text-xs text-white/60">Loading saved office checks…</p>
+                  )}
+                  {!loadingOfficeRecord && existingOfficeRecord && (
+                    <p className="rounded-xl border border-sky-400/30 bg-sky-950/30 px-4 py-2 text-xs text-sky-200">
+                      Showing what is already saved for {existingOfficeRecord.locationName} {existingOfficeRecord.year}
+                      {existingOfficeRecord.uploadedBy?.name ? ` (last updated by ${existingOfficeRecord.uploadedBy.name})` : ""}.
+                      Saving keeps existing files unless you upload a replacement or untick the check.
+                    </p>
+                  )}
                   <section>
                     <h2 className="text-lg font-semibold text-white/90 border-b border-white/10 pb-3 mb-4">Office Checks</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {Object.entries(OFFICE_CHECK_LABELS).map(([key, label]) => (
-                        <div key={key} className="flex flex-col gap-2">
-                          <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" checked={officeChecks[key] || false} onChange={() => toggleCheck(key)} className="rounded border-white/30 bg-white/5 text-green-500 focus:ring-orange-500" />
-                            <span className="text-sm text-white/90">{label}</span>
-                          </label>
-                          {officeChecks[key] && (
-                            <div className="ml-6">
-                              <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onChange={(e) => handleCheckboxFile(key, e.target.files?.[0] || null)} className="block w-full text-xs text-slate-200 file:mr-2 file:rounded-lg file:border-0 file:bg-orange-500 file:px-3 file:py-1.5 file:text-white file:text-xs cursor-pointer" />
-                              {checkboxFiles[key] && <p className="mt-1 text-xs text-white/60">Selected: {checkboxFiles[key].name}</p>}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                      {Object.entries(OFFICE_CHECK_LABELS).map(([key, label]) => {
+                        const savedAttachment = (existingOfficeRecord?.checkboxAttachments || []).find((a) => a.key === key);
+                        return (
+                          <div key={key} className="flex flex-col gap-2">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input type="checkbox" checked={officeChecks[key] || false} onChange={() => toggleCheck(key)} className="rounded border-white/30 bg-white/5 text-green-500 focus:ring-orange-500" />
+                              <span className="text-sm text-white/90">{label}</span>
+                            </label>
+                            {officeChecks[key] && (
+                              <div className="ml-6">
+                                {savedAttachment && !checkboxFiles[key] && (
+                                  <p className="mb-1 text-xs text-white/60">
+                                    Current file:{" "}
+                                    <button type="button" onClick={() => handleDownload(existingOfficeRecord._id, "checkbox", key)} className="text-sky-300 hover:underline">
+                                      {savedAttachment.fileName}
+                                    </button>
+                                  </p>
+                                )}
+                                <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onChange={(e) => handleCheckboxFile(key, e.target.files?.[0] || null)} className="block w-full text-xs text-slate-200 file:mr-2 file:rounded-lg file:border-0 file:bg-orange-500 file:px-3 file:py-1.5 file:text-white file:text-xs cursor-pointer" />
+                                {checkboxFiles[key] && (
+                                  <p className="mt-1 text-xs text-white/60">
+                                    Selected: {checkboxFiles[key].name}
+                                    {savedAttachment ? " (will replace the current file)" : ""}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {!officeChecks[key] && savedAttachment && (
+                              <p className="ml-6 text-xs text-amber-300/80">Unticked: the saved file will be removed from this record when you save.</p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </section>
                   <section>
                     <h2 className="text-lg font-semibold text-white/90 border-b border-white/10 pb-3 mb-4">Additional Attachments</h2>
+                    {(existingOfficeRecord?.additionalAttachments || []).length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        <span className="text-xs text-white/60">Already saved:</span>
+                        {existingOfficeRecord.additionalAttachments.map((att, i) => (
+                          <button key={att._id || i} type="button" onClick={() => handleDownload(existingOfficeRecord._id, "additional", i)} className="text-xs text-sky-300 hover:underline">
+                            {att.fileName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="space-y-3">
                       {additionalFiles.map((_, index) => (
                         <div key={index} className="flex items-center gap-2">

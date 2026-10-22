@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { connectDB } from "@/lib/config/connection";
 import InspectionChecklist from "@/lib/mongodb/models/operations-form-checklist/InspectionChecklist";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,9 @@ function getNextVersion(latestVersion) {
 }
 
 export async function POST(req) {
+  const { response: authResponse } = await requireOpsPermission("canCreateForm");
+  if (authResponse) return authResponse;
+
   await connectDB();
 
   try {

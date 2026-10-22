@@ -4,8 +4,12 @@ import Jpo from "@/lib/mongodb/models/operations-form-checklist/Jpo";
 import fs from "fs";
 import path from "path";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
+import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
 
 export async function DELETE(req, { params }) {
+  const { response: authResponse } = await requireOpsPermission("canDeleteForm");
+  if (authResponse) return authResponse;
+
   await connectDB();
 
   try {

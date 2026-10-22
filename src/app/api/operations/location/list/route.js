@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireOpsAdmin } from "@/lib/auth/requireOpsAdmin";
 import { connectDB } from "@/lib/config/connection";
 import LocationOfficeCheck from "@/lib/mongodb/models/operations/operations-locations/LocationOfficeCheck";
 
 export async function GET(req) {
-  await connectDB();
   try {
+    const { response } = await requireOpsAdmin();
+    if (response) return response;
+
+    await connectDB();
     const { searchParams } = new URL(req.url);
     const locationId = searchParams.get("location");
     const yearParam = searchParams.get("year");
