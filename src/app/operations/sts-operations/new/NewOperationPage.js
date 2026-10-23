@@ -23,6 +23,13 @@ import {
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import SelectField from "@/app/operations/components/OperationsSelectField";
 import StsDocumentationMultiUpload from "./StsDocumentationMultiUpload";
+import {
+  EquipmentOptionLabel,
+  SelectedEquipmentList,
+  equipmentButtonLabel,
+  isEquipmentAvailable,
+  toEquipmentOption,
+} from "./equipment-options";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import { readJsonFromResponse } from "@/lib/utils/readJsonFromResponse";
 
@@ -1676,11 +1683,7 @@ export default function NewOperationPage() {
                 label="Equipment Used (available only)"
                 loading={loadingMasters}
                 name="equipments"
-                options={equipmentList
-                  .filter(
-                    (e) => (e.availabilityStatus || "AVAILABLE") === "AVAILABLE"
-                  )
-                  .map((e) => ({ label: e.equipmentName, value: e._id }))}
+                options={equipmentList.filter(isEquipmentAvailable).map(toEquipmentOption)}
                 resetKey={formResetKey}
                 equipmentDraftEpoch={equipmentDraftEpoch}
                 restoredEquipmentIds={restoredEquipmentIds}
@@ -2867,16 +2870,7 @@ function MultiSelectDropdown({
     );
   };
 
-  const summaryLabel = (() => {
-    if (selected.length) {
-      const selectedLabels = selected
-        .map((val) => options.find((opt) => String(opt.value) === String(val))?.label)
-        .filter(Boolean);
-      return selectedLabels.join(", ") || `${selected.length} selected`;
-    }
-    if (loading) return "Loading...";
-    return "Select equipment";
-  })();
+  const summaryLabel = equipmentButtonLabel(selected.length, loading);
 
   useEffect(() => {
     if (isControlled) return;
@@ -2897,6 +2891,7 @@ function MultiSelectDropdown({
   return (
     <div className="space-y-2 relative">
       <Label>{label}</Label>
+      <SelectedEquipmentList options={options} selected={selected} onRemove={toggle} />
       <div className="relative">
         <button
           type="button"
@@ -2939,11 +2934,11 @@ function MultiSelectDropdown({
                 >
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-white/50 bg-transparent text-orange-400 focus:ring-orange-400"
+                    className="h-4 w-4 shrink-0 rounded border-white/50 bg-transparent text-orange-400 focus:ring-orange-400"
                     checked={selected.includes(String(opt.value))}
                     onChange={() => toggle(opt.value)}
                   />
-                  <span>{opt.label}</span>
+                  <EquipmentOptionLabel option={opt} />
                 </label>
               ))}
           </div>

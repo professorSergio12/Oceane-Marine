@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import { attachLastTestDates } from "@/lib/pms/equipmentLastTest";
 
 export async function GET() {
     const guard = await assertPmsPermission("canView");
@@ -12,7 +13,8 @@ export async function GET() {
         const equipments = await Equipment.find()
             .sort({ createdAt: -1 })
             .lean();
-            
+        await attachLastTestDates(equipments);
+
         return NextResponse.json({ equipments });
     } catch (error) {
         console.error("List Equipment Error:", error);

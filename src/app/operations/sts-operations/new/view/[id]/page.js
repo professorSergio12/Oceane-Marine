@@ -14,6 +14,7 @@ import {
   HARDCOPY_DOC_PREFIX,
 } from "@/lib/utils/sts-linked-form-file";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
+import { formatEquipmentTestDate } from "../../equipment-options";
 
 /** Map every OPS-OFD code to a human-readable form name */
 const FORM_NAME_MAP = {
@@ -971,6 +972,16 @@ function ViewOperationPage() {
                             >
                               <span className="font-medium text-white">
                                 {eq.equipment?.equipmentName || eq.equipment?.name || "Equipment"}
+                              </span>
+                              <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-white/60">
+                                <span>Code: <span className="text-white/85">{eq.equipment?.equipmentCode || "—"}</span></span>
+                                <span>Type: <span className="text-white/85">{eq.equipment?.equipmentType || "—"}</span></span>
+                                <span>
+                                  Last Test Date:{" "}
+                                  <span className="text-white/85">
+                                    {formatEquipmentTestDate(eq.equipment?.lastTestDisplayDate ?? eq.equipment?.lastTestDate)}
+                                  </span>
+                                </span>
                               </span>
                               {(eq.startTime || eq.status) && (
                                 <span className="block text-white/60 text-xs mt-0.5">

@@ -1,6 +1,7 @@
 import STSTimesheet from "../../lib/mongodb/models/operation-sts-checklist/OPS-OFD-018.js";
 import Operation from "../../lib/mongodb/models/sts-documentation/StsOperation.js";
 import { generateOpsOfd018Doc } from "../services/pdf/OPS-OFD-018.js";
+import { fillOpsOfd018Template, OPS_OFD_018_TEMPLATE } from "../services/pdf/OPS-OFD-018-template.js";
 import { getPdfStoragePath } from "../services/pdf/pdfStorage.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -98,8 +99,13 @@ export function defineOpsOfd018Job(agenda) {
 
             console.log("💾 Document entry added to StsOperation", { operationRef, filePath: dbPath });
 
-            // Generate DOCX document
-            await generateOpsOfd018Doc(timesheet, fullPath);
+            // Generate DOCX in the client's exact template; fall back to the built-in layout if it's missing
+            if (fs.existsSync(OPS_OFD_018_TEMPLATE)) {
+                await fillOpsOfd018Template(timesheet, fullPath);
+            } else {
+                console.warn("⚠️ OPS-OFD-018 template not found, using built-in layout:", OPS_OFD_018_TEMPLATE);
+                await generateOpsOfd018Doc(timesheet, fullPath);
+            }
             console.log("✅ Document generated successfully", { fullPath });
 
             // Update document status to GENERATED

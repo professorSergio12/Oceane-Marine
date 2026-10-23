@@ -6,6 +6,7 @@ import "@/lib/mongodb/models/Location";
 import "@/lib/mongodb/models/MooringMaster";
 import "@/lib/mongodb/models/CargoType";
 import "@/lib/mongodb/models/pms/Equipment";
+import { attachLastTestDates } from "@/lib/pms/equipmentLastTest";
 
 export async function GET(req, { params }) {
   await connectDB();
@@ -24,6 +25,8 @@ export async function GET(req, { params }) {
         { status: 404 }
       );
     }
+
+    await attachLastTestDates((operation.equipments || []).map((eq) => eq?.equipment));
 
     return NextResponse.json({
       success: true,

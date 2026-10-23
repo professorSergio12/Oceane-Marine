@@ -18,9 +18,10 @@ export async function GET(req) {
     // Build query
     const query = { isLatest: true };
 
-    // Add status filter
+    // Add status filter (one status, or several comma-separated: "INPROGRESS,Lined Up")
     if (status) {
-      query.operationStatus = status;
+      const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
+      query.operationStatus = statuses.length > 1 ? { $in: statuses } : statuses[0];
     }
 
     const yearNum = year ? parseInt(year, 10) : NaN;

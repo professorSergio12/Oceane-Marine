@@ -63,6 +63,35 @@ function formatDate(value) {
   });
 }
 
+/** Checklist fields that hold the POAC / STS Superintendent name (differs per form). */
+const SUPERINTENDENT_KEYS = [
+  "poacOrStsSuperintendent",
+  "stsSuperintendentName",
+  "stsSuperintendent",
+  "designatedPOACName",
+  "nameOfPOAC",
+  "mooringMasterName",
+  "mooringMaster",
+];
+
+/** First non-empty string under any of `keys`, searched through nested sections of the form. */
+function findNestedString(obj, keys, depth = 0) {
+  if (!obj || typeof obj !== "object" || depth > 4) return "";
+  for (const key of keys) {
+    const v = obj[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === "object" && !(value instanceof Date)) {
+      const found = Array.isArray(value)
+        ? value.map((item) => findNestedString(item, keys, depth + 1)).find(Boolean)
+        : findNestedString(value, keys, depth + 1);
+      if (found) return found;
+    }
+  }
+  return "";
+}
+
 export default function FormListPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -85,6 +114,28 @@ export default function FormListPage() {
   const [availableYears, setAvailableYears] = useState([currentYear]);
   const [searchTerm, setSearchTerm] = useState("");
   const { setPageLoading } = useOperationsLoading();
+
+  // Operation ref → Mooring Master, used as POAC/STS Superintendent for forms that don't record one
+  const [mooringMasterByRef, setMooringMasterByRef] = useState({});
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/operations/sts/list")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.success) return;
+        const map = {};
+        (data.data || []).forEach((op) => {
+          const ref = op.Operation_Ref_No?.trim();
+          const name = op.mooringMaster?.name;
+          if (ref && name && !map[ref]) map[ref] = name;
+        });
+        setMooringMasterByRef(map);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     fetchForms();
@@ -185,10 +236,20 @@ export default function FormListPage() {
     const formNoFromTitle = FORM_TITLES[formPath]?.split(' - ')[0];
     const formNo = form.formNo ?? form.documentInfo?.formNo ?? formNoFromTitle ?? '—';
     const revisionNo = form.revisionNo ?? form.documentInfo?.revisionNo ?? '—';
+    const operationNo = (typeof form.operationRef === 'string' && form.operationRef.trim()) || '—';
+    const superintendent =
+      findNestedString(form, SUPERINTENDENT_KEYS) ||
+      mooringMasterByRef[form.operationRef?.trim?.()] ||
+      '—';
+    // When the record was submitted into the system
+    const submissionDate = form.submittedAt ?? form.createdAt;
     return {
       formNo,
       revisionNo,
       issueDate,
+      operationNo,
+      superintendent,
+      submissionDate,
       vessel,
       location,
     };
@@ -201,6 +262,8 @@ export default function FormListPage() {
         const fields = getFormDisplayFields(form);
         return (
           String(form.sequenceNumber || "").toLowerCase().includes(s) ||
+          String(fields.operationNo || "").toLowerCase().includes(s) ||
+          String(fields.superintendent || "").toLowerCase().includes(s) ||
           String(fields.formNo || "").toLowerCase().includes(s) ||
           String(fields.revisionNo || "").toLowerCase().includes(s) ||
           String(fields.vessel || "").toLowerCase().includes(s) ||
@@ -387,7 +450,7 @@ export default function FormListPage() {
           </header>
 
           <QhseListPageContainer
-            searchPlaceholder="Search by sequence, form no., vessel, location, status..."
+            searchPlaceholder="Search by operation number, form no., superintendent, vessel, location, status..."
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             filterChildren={
@@ -433,16 +496,16 @@ export default function FormListPage() {
                   <thead className="bg-white/5 border-b border-white/10">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                        Sequence No
+                        Operation Number
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Form No
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                        Rev No
+                        POAC/STS Superintendent
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
-                        Issue Date
+                        Submission Date
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-white/90 uppercase tracking-wider">
                         Vessel
@@ -465,7 +528,7 @@ export default function FormListPage() {
                         <tr key={form._id} className="hover:bg-white/5 transition">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm font-mono font-semibold text-sky-400">
-                              {form.sequenceNumber || '—'}
+                              {fields.operationNo}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -473,14 +536,14 @@ export default function FormListPage() {
                               {fields.formNo}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4">
                             <span className="text-sm text-white/90">
-                              {fields.revisionNo}
+                              {fields.superintendent}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm text-white/90">
-                              {formatDate(fields.issueDate)}
+                              {formatDate(fields.submissionDate)}
                             </span>
                           </td>
                           <td className="px-6 py-4">

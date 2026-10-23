@@ -17,6 +17,13 @@ import {
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import SelectField from "@/app/operations/components/OperationsSelectField";
 import StsDocumentationMultiUpload from "../../StsDocumentationMultiUpload";
+import {
+  EquipmentOptionLabel,
+  SelectedEquipmentList,
+  equipmentButtonLabel,
+  isEquipmentAvailable,
+  toEquipmentOption,
+} from "../../equipment-options";
 
 const statusTone = {
   INPROGRESS: {
@@ -406,10 +413,11 @@ export default function EditOperationPage() {
         formData.delete("vesselTypeMS");
       }
 
-      // Equipments multi-select
+      // Equipments multi-select (marker tells the API the selection was sent, even when empty)
       const selectedEquipments = formData.getAll("equipments").filter(Boolean);
       formData.delete("equipments");
       selectedEquipments.forEach((id) => formData.append("equipments", id));
+      formData.set("equipmentsSubmitted", "1");
 
       const response = await fetch(`/api/operations/sts/${id}/update`, {
         method: "PUT",
@@ -1145,11 +1153,17 @@ export default function EditOperationPage() {
                 label="Equipment Used (available only)"
                 loading={loadingMasters}
                 name="equipments"
-                options={equipmentList
-                  .filter(
-                    (e) => (e.availabilityStatus || "AVAILABLE") === "AVAILABLE"
-                  )
-                  .map((e) => ({ label: e.equipmentName, value: e._id }))}
+                options={(() => {
+                  // Free equipment + the ones this operation already uses (they're "in use" by it)
+                  const ownIds = new Set(
+                    (operationData?.equipments || [])
+                      .map((eq) => String(eq.equipment?._id || eq.equipment || ""))
+                      .filter(Boolean)
+                  );
+                  return equipmentList
+                    .filter((e) => isEquipmentAvailable(e) || ownIds.has(String(e._id)))
+                    .map(toEquipmentOption);
+                })()}
                 resetKey={formResetKey}
                 initialSelected={operationData?.equipments?.map((eq) => {
                   const eqId = eq.equipment?._id || eq.equipment;
@@ -1862,36 +1876,33 @@ function MultiSelectDropdown({
   initialSelected = [],
 }) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(initialSelected || []);
+  const [selected, setSelected] = useState((initialSelected || []).map(String));
 
   const toggle = (val) => {
+    const strVal = String(val);
     setSelected((prev) =>
-      prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
+      prev.includes(strVal) ? prev.filter((v) => v !== strVal) : [...prev, strVal]
     );
   };
 
-  const summaryLabel = (() => {
-    if (selected.length) {
-      const selectedLabels = selected
-        .map((val) => options.find((opt) => opt.value === val)?.label)
-        .filter(Boolean);
-      return selectedLabels.join(", ") || `${selected.length} selected`;
-    }
-    if (loading) return "Loading...";
-    return "Select equipment";
-  })();
+  const summaryLabel = equipmentButtonLabel(selected.length, loading);
 
+  // Apply the saved selection only when it actually changes (operation loaded / reset).
+  // The parent rebuilds `initialSelected` on every render, so depending on the array
+  // itself reset the user's ticks immediately — that's why multiple picks didn't stick.
+  const initialKey = (initialSelected || []).map(String).join(",");
   useEffect(() => {
-    if (resetKey === 0 && initialSelected.length > 0) {
-      setSelected(initialSelected);
-    } else if (resetKey > 0) {
+    if (resetKey > 0) {
       setSelected([]);
+    } else if (initialKey) {
+      setSelected(initialKey.split(","));
     }
-  }, [resetKey, initialSelected]);
+  }, [resetKey, initialKey]);
 
   return (
     <div className="space-y-2 relative">
       <Label>{label}</Label>
+      <SelectedEquipmentList options={options} selected={selected} onRemove={toggle} />
       <div className="relative">
         <button
           type="button"
@@ -1934,11 +1945,11 @@ function MultiSelectDropdown({
                 >
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-white/50 bg-transparent text-orange-400 focus:ring-orange-400"
-                    checked={selected.includes(opt.value)}
+                    className="h-4 w-4 shrink-0 rounded border-white/50 bg-transparent text-orange-400 focus:ring-orange-400"
+                    checked={selected.includes(String(opt.value))}
                     onChange={() => toggle(opt.value)}
                   />
-                  <span>{opt.label}</span>
+                  <EquipmentOptionLabel option={opt} />
                 </label>
               ))}
           </div>

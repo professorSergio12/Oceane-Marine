@@ -986,33 +986,61 @@ export default function ViewFormPage() {
 
           {/* Form card - same style as external Operations-STS-CheckList forms */}
           <div className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 text-white">
-            {/* Header row: logo area, title, form meta (Form No, Issue Date, Approved by) */}
-            <div className="flex flex-col lg:flex-row justify-between items-start gap-4 mb-6 sm:mb-8 border-b border-gray-700 pb-4 sm:pb-6">
-              <div className="w-full lg:w-48 flex items-center justify-start">
-                <span className="text-gray-500 text-xs sm:text-sm font-semibold">OCEANE</span>
-              </div>
-              <div className="flex-1 flex flex-col items-center text-center px-2 sm:px-4">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">AT SEA SHIP TO SHIP TRANSFER</h1>
-                <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-200">
-                  {FORM_TITLES[formPath] || formPath}
-                </h2>
-                <p className="text-xs text-gray-400 mt-2">View only</p>
-              </div>
-              <div className="bg-gray-700 p-3 sm:p-4 rounded w-full lg:min-w-[200px] text-xs sm:text-sm space-y-1">
-                <div><strong>Form No:</strong> {getFormHeaderMeta().formNo}</div>
-                <div><strong>Rev No:</strong> {getFormHeaderMeta().revisionNo}</div>
-                <div><strong>Issue Date:</strong> {getFormHeaderMeta().issueDate ? formatDateOnly(getFormHeaderMeta().issueDate) : 'N/A'}</div>
-                <div><strong>Approved by:</strong> {getFormHeaderMeta().approvedBy}</div>
-              </div>
-            </div>
-
-            {/* Status bar */}
-            <div className="flex items-center gap-3 mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-gray-700/50 border border-gray-600/50">
-              <span className="text-sm font-medium text-gray-400">Status:</span>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[formData?.status] || STATUS_COLORS.DRAFT}`}>
-                {formData?.status || 'DRAFT'}
-              </span>
-            </div>
+            {/* Header: title + status on the left, document details on the right */}
+            {(() => {
+              const meta = getFormHeaderMeta();
+              const fullTitle = FORM_TITLES[formPath] || formPath;
+              const [formCode, ...nameParts] = fullTitle.split(" - ");
+              const formName = nameParts.join(" - ") || fullTitle;
+              const details = [
+                { label: "Operation No", value: formData?.operationRef?.trim() || "—", highlight: true },
+                { label: "Form No", value: meta.formNo && meta.formNo !== "—" ? meta.formNo : formCode },
+                { label: "Rev No", value: meta.revisionNo },
+                { label: "Issue Date", value: meta.issueDate ? formatDateOnly(meta.issueDate) : "N/A" },
+                { label: "Approved by", value: meta.approvedBy || "—" },
+                { label: "Submitted", value: formData?.createdAt ? formatDateOnly(formData.createdAt) : "—" },
+              ];
+              return (
+                <div className="mb-6 sm:mb-8 flex flex-col gap-5 border-b border-gray-700 pb-5 sm:pb-6 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-gray-600 bg-gray-900/60 px-2 py-0.5 text-[11px] font-bold tracking-[0.2em] text-gray-300">
+                        OCEANE
+                      </span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/90">
+                        At Sea Ship to Ship Transfer
+                      </span>
+                    </div>
+                    <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl">{formName}</h1>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-orange-400/30 bg-orange-500/15 px-2.5 py-1 font-mono text-xs font-semibold text-orange-300">
+                        {formCode}
+                      </span>
+                      <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${STATUS_COLORS[formData?.status] || STATUS_COLORS.DRAFT}`}>
+                        {formData?.status || "DRAFT"}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-gray-600 px-2.5 py-1 text-xs text-gray-400">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View only
+                      </span>
+                    </div>
+                  </div>
+                  <dl className="grid w-full shrink-0 grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-gray-600/60 bg-gray-700/50 p-4 text-sm sm:grid-cols-3 lg:w-auto lg:min-w-[22rem] lg:grid-cols-2">
+                    {details.map(({ label, value, highlight }) => (
+                      <div key={label} className="min-w-0">
+                        <dt className="text-[11px] font-medium uppercase tracking-wider text-gray-400">{label}</dt>
+                        <dd className={`mt-0.5 truncate font-semibold ${highlight ? "font-mono text-sky-300" : "text-white"}`} title={String(value)}>
+                          {value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              );
+            })()}
 
             {/* Form body: OPS-OFD-014 / OPS-OFD-018 / OPS-OFD-005B use external-form layout; others use generic render */}
             <div className="space-y-6">

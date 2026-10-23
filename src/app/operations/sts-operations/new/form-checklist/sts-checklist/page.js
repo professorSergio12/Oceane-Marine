@@ -180,25 +180,30 @@ export default function StsChecklistPage() {
     router.push(`/operations/sts-operations/new/form-checklist/sts-checklist/${apiPath}/list`);
   };
 
-  // Fetch INPROGRESS operations on mount
+  // Fetch In Progress + Lined Up operations on mount (checklists are prepared before the job starts too)
   useEffect(() => {
     const fetchInProgressOperations = async () => {
       try {
         setLoadingOperations(true);
-        const response = await fetch('/api/operations/sts/list?status=INPROGRESS');
+        const statuses = encodeURIComponent("INPROGRESS,Lined Up");
+        const response = await fetch(`/api/operations/sts/list?status=${statuses}`);
         const data = await response.json();
-        
+
         if (data.success && data.data) {
-          // Extract operation ref numbers and trim whitespace
-          const refs = data.data
-            .map(op => op.Operation_Ref_No?.trim()) // Trim whitespace
-            .filter(ref => ref && ref.length > 0) // Remove null/undefined/empty
-            .sort(); // Sort alphabetically
-          
+          // One entry per ref (trimmed), with its status for the dropdown label
+          const byRef = new Map();
+          data.data.forEach((op) => {
+            const ref = op.Operation_Ref_No?.trim();
+            if (ref && !byRef.has(ref)) byRef.set(ref, op.operationStatus);
+          });
+          const refs = [...byRef.entries()]
+            .map(([ref, status]) => ({ ref, status }))
+            .sort((a, b) => a.ref.localeCompare(b.ref));
+
           setInProgressOperations(refs);
         }
       } catch (error) {
-        console.error('Error fetching INPROGRESS operations:', error);
+        console.error('Error fetching In Progress / Lined Up operations:', error);
       } finally {
         setLoadingOperations(false);
       }
@@ -479,9 +484,9 @@ export default function StsChecklistPage() {
                 onChange={(v) => setSelectedOperationRef(v)}
                 options={[
                   { value: "", label: "-- Select Operation Ref --" },
-                  ...inProgressOperations.map((ref) => ({
+                  ...inProgressOperations.map(({ ref, status }) => ({
                     value: ref,
-                    label: ref,
+                    label: `${ref} — ${status === "INPROGRESS" ? "In Progress" : status}`,
                   })),
                 ]}
                 disabled={loadingOperations}

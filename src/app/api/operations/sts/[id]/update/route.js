@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import Equipment from "@/lib/mongodb/models/pms/Equipment";
+import mongoose from "mongoose";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
@@ -114,6 +116,41 @@ export async function PUT(req, { params }) {
     /* Form sends equipment IDs as strings; schema expects embedded usage objects. */
     delete body.equipments;
     for (const field of PROTECTED_FIELDS) delete body[field];
+
+    // Equipment selection: the edit form sends `equipmentsSubmitted=1` plus 0..n `equipments` ids.
+    // Kept items keep their usage entry; removed ones are unlocked; added ones must be free.
+    let equipmentPlan = null;
+    if (body.equipmentsSubmitted === "1") {
+      const requested = [
+        ...new Set(
+          formData
+            .getAll("equipments")
+            .filter((v) => typeof v === "string" && v.trim() !== "")
+            .map((v) => v.trim())
+        ),
+      ];
+      if (requested.some((v) => !mongoose.isValidObjectId(v))) {
+        return NextResponse.json({ error: "Invalid equipment selection" }, { status: 400 });
+      }
+      const current = existing.toObject().equipments || [];
+      const currentIds = new Set(current.map((e) => String(e.equipment)));
+      const addedIds = requested.filter((v) => !currentIds.has(v));
+      if (addedIds.length > 0) {
+        const free = await Equipment.countDocuments({ _id: { $in: addedIds }, isInUse: false });
+        if (free !== addedIds.length) {
+          return NextResponse.json(
+            { error: "One or more selected equipments are already in use by another operation. Please refresh and choose again." },
+            { status: 400 }
+          );
+        }
+      }
+      equipmentPlan = {
+        kept: current.filter((e) => requested.includes(String(e.equipment))),
+        removed: current.filter((e) => !requested.includes(String(e.equipment))),
+        addedIds,
+      };
+    }
+    delete body.equipmentsSubmitted;
 
     // Ref No changed on edit → must not belong to a different operation
     if (typeof body.Operation_Ref_No === "string") {
@@ -249,6 +286,25 @@ export async function PUT(req, { params }) {
     const isFinishing =
       FINISHED_OPERATION_STATUSES.has(newStatus) &&
       !FINISHED_OPERATION_STATUSES.has(existing.operationStatus);
+    const finishedAfterEdit = FINISHED_OPERATION_STATUSES.has(newStatus);
+
+    if (equipmentPlan) {
+      const parsedStart = body.operationStartTime ? new Date(body.operationStartTime) : null;
+      const startTime =
+        parsedStart && !Number.isNaN(parsedStart.getTime())
+          ? parsedStart
+          : existing.operationStartTime || new Date();
+      // Equipment added to an already-finished operation is recorded but never locked
+      existingData.equipments = [
+        ...equipmentPlan.kept,
+        ...equipmentPlan.addedIds.map((equipmentId) => ({
+          equipment: new mongoose.Types.ObjectId(equipmentId),
+          startTime,
+          status: finishedAfterEdit ? "RELEASED" : "IN_USE",
+          ...(finishedAfterEdit ? { endTime: new Date() } : {}),
+        })),
+      ];
+    }
 
     // Build + validate the new version BEFORE touching existing versions, so a bad
     // value (empty dropdown, invalid date…) can't leave the operation without a latest version.
@@ -277,6 +333,14 @@ export async function PUT(req, { params }) {
         { error: "This operation was changed by someone else while you were editing. Please reload and try again." },
         { status: 409 }
       );
+    }
+
+    if (equipmentPlan) {
+      // Unlock what was removed, lock what was added (unless the operation is finished)
+      await releaseOperationEquipment(equipmentPlan.removed);
+      if (equipmentPlan.addedIds.length > 0 && !finishedAfterEdit) {
+        await Equipment.updateMany({ _id: { $in: equipmentPlan.addedIds } }, { $set: { isInUse: true } });
+      }
     }
 
     const promote = { isLatest: true };
