@@ -115,6 +115,25 @@ export async function PUT(req, { params }) {
     delete body.equipments;
     for (const field of PROTECTED_FIELDS) delete body[field];
 
+    // Ref No changed on edit → must not belong to a different operation
+    if (typeof body.Operation_Ref_No === "string") {
+      body.Operation_Ref_No = body.Operation_Ref_No.trim();
+      if (!body.Operation_Ref_No) {
+        delete body.Operation_Ref_No;
+      } else if (body.Operation_Ref_No !== existing.Operation_Ref_No) {
+        const taken = await StsOperation.exists({
+          Operation_Ref_No: body.Operation_Ref_No,
+          parentOperationId: { $ne: existing.parentOperationId },
+        });
+        if (taken) {
+          return NextResponse.json(
+            { error: `Operation Ref No "${body.Operation_Ref_No}" is already used by another operation.` },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
     /* =====================
        HANDLE FILE UPLOADS (CHS/MS vessel documents)
     ====================== */

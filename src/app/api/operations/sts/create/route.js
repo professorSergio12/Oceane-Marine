@@ -99,6 +99,17 @@ export async function POST(req) {
     });
 
     /* =====================
+       REF NO MUST BE UNIQUE (manual entry or ⚡ generated)
+    ====================== */
+    const requestedRef = String(body.Operation_Ref_No || "").trim();
+    if (requestedRef && (await StsOperation.exists({ Operation_Ref_No: requestedRef }))) {
+      return NextResponse.json(
+        { error: `Operation Ref No "${requestedRef}" is already used by another operation. Please enter a different one or click ⚡ to generate.` },
+        { status: 409 }
+      );
+    }
+
+    /* =====================
        HANDLE FILE UPLOADS (CHS/MS vessel documents)
     ====================== */
     const uploadedFiles = {};

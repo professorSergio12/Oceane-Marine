@@ -2037,6 +2037,32 @@ function OperationsListComponent() {
     return (mt * 7.33).toFixed(2);
   };
 
+  const [downloadingRegister, setDownloadingRegister] = useState(false);
+
+  // Full register: historical Excel jobs + every operation in the app, as one .xlsx
+  const downloadFullRegister = async () => {
+    setDownloadingRegister(true);
+    try {
+      const res = await fetch("/api/operations/sts/export-register");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Download failed (status ${res.status})`);
+      }
+      const blob = await res.blob();
+      const match = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = match?.[1] || "Oceane-STS-Operations-Register.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(`Could not download the register: ${error.message}`);
+    } finally {
+      setDownloadingRegister(false);
+    }
+  };
+
   const downloadExcel = () => {
     const columns = getExportColumns();
     const headers = buildExportHeaders(columns);
@@ -2118,11 +2144,28 @@ function OperationsListComponent() {
             />
           </svg>
         </div>
-        <div className="flex shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={downloadFullRegister}
+            disabled={downloadingRegister}
+            title="Download one Excel with all past jobs (from the old register) and every operation in the app"
+            className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-3 py-2.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-sm"
+          >
+            {downloadingRegister ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-emerald-200 border-t-transparent" />
+            ) : (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+              </svg>
+            )}
+            <span className="hidden sm:inline">{downloadingRegister ? "Preparing…" : "Download Full Register"}</span>
+            <span className="sm:hidden">{downloadingRegister ? "…" : "Register"}</span>
+          </button>
           <ActionDownloadIcon
             onClick={downloadExcel}
             disabled={filteredOperations.length === 0}
-            title="Download Excel"
+            title="Download current list (filtered, CSV)"
             className="!rounded-xl !p-2.5"
           />
         </div>
