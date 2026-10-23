@@ -45,3 +45,9 @@ next-env.d.ts
 
 # map tile cache
 /.cache
+
+# Runtime files written by the app / worker on each server (uploads, generated checklists).
+# Never commit these — the server has its own copies and git pull would fail on them.
+/uploads/
+/public/upload/
+/public/uploads/
