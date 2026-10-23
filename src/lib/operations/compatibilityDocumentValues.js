@@ -11,7 +11,29 @@ export function formatCompatibilityNumber(value) {
   return String(Math.round(n * 100) / 100);
 }
 
+/** Hose-only / fender-only template tags, blanked when that section hasn't been calculated. */
+const HOSE_TAGS = ["POINT_A", "POINT_B", "POINT_C", "SS_MAXFB", "SS_MINFB", "STBL_MAXFB", "STBL_MINFB", "HOSE_LEN"];
+const FENDER_TAGS = [
+  "SS_DWT", "SS_BEAM", "SS_DISP", "SS_DRAFT", "STBL_DWT", "STBL_BEAM", "STBL_DISP", "STBL_DRAFT",
+  "EDC", "STBL_MASS", "SS_MASS", "VDISP_STBL", "VDISP_SS", "CVD", "E_CALM", "E_MOD", "E_ROUGH",
+  "F_CALM", "F_MOD", "F_ROUGH",
+];
+
 export function buildCompatibilityDocumentValues(doc) {
+  const values = buildAllCompatibilityValues(doc);
+  // A record holds hose, fender or both (combined record). Leave an uncalculated section empty
+  // instead of printing numbers computed from blank inputs. Records with no saved results
+  // (very old ones) keep the previous behaviour of showing both.
+  const hasHose = doc.results?.hose && (doc.results.hose.HoseCal != null || doc.results.hose.FreeboardDiff != null);
+  const hasFender = doc.results?.fender && (doc.results.fender.EDC != null || doc.results.fender.Fenderselect_Calm);
+  if (hasHose || hasFender) {
+    if (!hasHose) HOSE_TAGS.forEach((t) => { values[t] = ""; });
+    if (!hasFender) FENDER_TAGS.forEach((t) => { values[t] = ""; });
+  }
+  return values;
+}
+
+function buildAllCompatibilityValues(doc) {
   const STBL = doc.STBL || {};
   const SS = doc.SS || {};
   const hose = computeHose(STBL, SS);

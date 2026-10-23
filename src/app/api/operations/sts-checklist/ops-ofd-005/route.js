@@ -27,7 +27,7 @@ export async function GET(req) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const operationRef = searchParams.get("operationRef");
+    const operationRef = searchParams.get("operationRef")?.replace(/,\s*$/, "").trim();
 
     if (!operationRef) {
       return NextResponse.json(
@@ -36,7 +36,10 @@ export async function GET(req) {
       );
     }
 
-    const checklist = await STSChecklist5.findOne({ operationRef }).lean();
+    // One checklist per operation; if older duplicates exist, use the most recently saved one
+    const checklist = await STSChecklist5.findOne({ operationRef })
+      .sort({ updatedAt: -1, _id: -1 })
+      .lean();
 
     if (!checklist) {
       return NextResponse.json(
@@ -63,7 +66,7 @@ export async function PUT(req) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const operationRef = searchParams.get("operationRef");
+    const operationRef = searchParams.get("operationRef")?.replace(/,\s*$/, "").trim();
 
     if (!operationRef) {
       return NextResponse.json(
@@ -72,7 +75,10 @@ export async function PUT(req) {
       );
     }
 
-    const existing = await STSChecklist5.findOne({ operationRef }).lean();
+    // Same record the GET above returns, so the form always updates what it loaded
+    const existing = await STSChecklist5.findOne({ operationRef })
+      .sort({ updatedAt: -1, _id: -1 })
+      .lean();
 
     if (!existing) {
       return NextResponse.json(
@@ -155,8 +161,8 @@ export async function PUT(req) {
       createdBy: body.createdBy || existing.createdBy || undefined,
     };
 
-    const updatedChecklist = await STSChecklist5.findOneAndUpdate(
-      { operationRef },
+    const updatedChecklist = await STSChecklist5.findByIdAndUpdate(
+      existing._id,
       updateData,
       { new: true, runValidators: true }
     );

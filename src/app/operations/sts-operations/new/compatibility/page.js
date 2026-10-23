@@ -263,7 +263,7 @@ function CompatibilityPageContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
       setError("");
-      setSuccess(editId ? "Operation updated." : "Operation saved.");
+      setSuccess(editId ? "Operation updated." : data.merged ? data.message : "Operation saved.");
       setResults(data.data?.results || results);
       messageTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       if (!editId) setTimeout(() => setSuccess(""), 3000);

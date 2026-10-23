@@ -328,6 +328,19 @@ function buildChecklist5ATable(items) {
     });
 }
 
+// Cell text for a repetitive-check row: the "Date/time of check" row shows the
+// entered date/time, the "Initials" row shows the initials, other rows a Yes box
+function repetitiveCellText(section, row, i) {
+    const name = (row.checkName || "").trim().toLowerCase();
+    if (name === "date/time of check") {
+        const v = row.timeChecks?.[i]?.dateTime || "";
+        const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
+        return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : v;
+    }
+    if (name === "initials") return section.initials?.[i] || "";
+    return row.timeChecks?.[i]?.yes ? "☑ Yes" : "☐ Yes";
+}
+
 // ================================================================
 // CHECKLIST 5B TABLE
 // ================================================================
@@ -361,7 +374,7 @@ function buildChecklist5BTable(section, isFirstPage) {
                 createCell(row.checkName || "", 30),
                 createCell("", 8),
                 ...Array.from({ length: 6 }, (_, i) =>
-                    createCell(row.timeChecks?.[i]?.yes ? "☑ Yes" : "☐ Yes", 8, true)
+                    createCell(repetitiveCellText(section, row, i), 8, true)
                 ),
                 createCell(row.remarks || "", 14)
             ]
@@ -394,7 +407,7 @@ function buildChecklist5CTable(section) {
             children: [
                 createCell(row.checkName || "", 30),
                 ...Array.from({ length: 6 }, (_, i) =>
-                    createCell(row.timeChecks?.[i]?.yes ? "☑ Yes" : "☐ Yes", 8, true)
+                    createCell(repetitiveCellText(section, row, i), 8, true)
                 ),
                 createCell(row.remarks || "", 22)
             ]

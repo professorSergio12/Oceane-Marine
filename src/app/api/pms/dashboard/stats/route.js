@@ -5,7 +5,20 @@ import WarehouseManagement from "@/lib/mongodb/models/pms/WarehouseManagement";
 import EquipmentTest from "@/lib/mongodb/models/pms/EquipmentTest";
 import Accessories from "@/lib/mongodb/models/pms/Accessories";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
+import Certificate from "@/lib/mongodb/models/pms/Certificate";
 import { assertPmsPermission } from "@/lib/auth/pmsGuard";
+import "@/lib/mongodb/models/Location";
+
+/**
+ * Hose / primary fender / secondary fender from a Primary Equipment item.
+ * Name and type are free text (e.g. name "Hose", type "Clean"), so match on keywords.
+ */
+function classifyEquipment(eq) {
+  const text = `${eq.equipmentName || ""} ${eq.equipmentType || ""}`.toLowerCase();
+  if (/\bhoses?\b/.test(text)) return "hoses";
+  if (/\bfenders?\b/.test(text)) return /\bsecondary\b|\bs\.?\s?fender/.test(text) ? "secondaryFenders" : "primaryFenders";
+  return null;
+}
 
 export async function GET(req) {
   const guard = await assertPmsPermission("canView");
@@ -26,12 +39,25 @@ export async function GET(req) {
       .sort({ startDate: -1 })
       .lean();
 
-    const totalHoses = warehouseData.reduce((s, i) => s + (i.hoses || 0), 0);
-    const totalPrimaryFenders = warehouseData.reduce((s, i) => s + (i.primaryFenders || 0), 0);
-    const totalSecondaryFenders = warehouseData.reduce((s, i) => s + (i.secondaryFenders || 0), 0);
+    const warehouseHoses = warehouseData.reduce((s, i) => s + (i.hoses || 0), 0);
+    const warehousePrimaryFenders = warehouseData.reduce((s, i) => s + (i.primaryFenders || 0), 0);
+    const warehouseSecondaryFenders = warehouseData.reduce((s, i) => s + (i.secondaryFenders || 0), 0);
 
     /* ========== EQUIPMENT DATA ========== */
     const allEquipment = await Equipment.find({ status: { $ne: "RETIRED" } }).lean();
+
+    // Primary Equipment items are counted too (name/type are free text, so classify by keyword)
+    const inventoryCounts = { hoses: 0, primaryFenders: 0, secondaryFenders: 0 };
+    const inventoryByLocation = {};
+    allEquipment.forEach((eq) => {
+      const kind = classifyEquipment(eq);
+      if (!kind) return;
+      inventoryCounts[kind] += 1;
+      const loc = String(eq.locationName || "").trim();
+      if (!loc) return;
+      inventoryByLocation[loc] = inventoryByLocation[loc] || { hoses: 0, primaryFenders: 0, secondaryFenders: 0 };
+      inventoryByLocation[loc][kind] += 1;
+    });
 
     // Group by equipmentType for donut chart
     const equipmentByType = {};
@@ -73,21 +99,27 @@ export async function GET(req) {
       retirementByType[type] = (retirementByType[type] || 0) + 1;
     });
 
-    /* ========== EQUIPMENT BY LOCATION (warehouse records — keys match PMS Location names) ========== */
-    const distinctWarehouseLocs = [
-      ...new Set(warehouseData.map((item) => item.location).filter(Boolean)),
-    ].sort((a, b) => String(a).localeCompare(String(b)));
+    /* ========== EQUIPMENT BY LOCATION (warehouse records + Primary Equipment, keyed by PMS Location name) ========== */
     const equipmentByLocation = {};
-    distinctWarehouseLocs.forEach((loc) => {
-      const locData = warehouseData.filter((item) => item.location === loc);
-      if (locData.length > 0) {
-        equipmentByLocation[loc] = {
-          primaryFenders: locData.reduce((s, i) => s + (i.primaryFenders || 0), 0),
-          secondaryFenders: locData.reduce((s, i) => s + (i.secondaryFenders || 0), 0),
-          hoses: locData.reduce((s, i) => s + (i.hoses || 0), 0),
-        };
-      }
+    const addToLocation = (loc, counts) => {
+      const key = String(loc || "").trim();
+      if (!key) return;
+      const cur = equipmentByLocation[key] || { primaryFenders: 0, secondaryFenders: 0, hoses: 0 };
+      cur.primaryFenders += counts.primaryFenders || 0;
+      cur.secondaryFenders += counts.secondaryFenders || 0;
+      cur.hoses += counts.hoses || 0;
+      equipmentByLocation[key] = cur;
+    };
+    warehouseData.forEach((item) => addToLocation(item.location, item));
+    Object.entries(inventoryByLocation).forEach(([loc, counts]) => addToLocation(loc, counts));
+    Object.keys(equipmentByLocation).forEach((loc) => {
+      const c = equipmentByLocation[loc];
+      if (c.primaryFenders + c.secondaryFenders + c.hoses === 0) delete equipmentByLocation[loc];
     });
+
+    /* ========== CERTIFICATIONS ========== */
+    const totalCertificates = await Certificate.countDocuments();
+    const equipmentWithTestCertificate = allEquipment.filter((eq) => eq.testCertificate?.fileUrl).length;
 
     /* ========== SPARE USAGE (ACCESSORIES - OCCASIONAL) ========== */
     const spares = await Accessories.find({
@@ -103,7 +135,7 @@ export async function GET(req) {
       "equipments.status": "IN_USE",
     })
       .populate("equipments.equipment", "equipmentCode equipmentName equipmentType")
-      .populate("location", "locationName")
+      .populate("location", "name")
       .select(
         "Operation_Ref_No operationStartTime equipments location operationStatus"
       )
@@ -114,8 +146,9 @@ export async function GET(req) {
     // Flatten into rows
     const equipmentInUse = [];
     inUseOps.forEach((op) => {
+      // Skip usage entries whose equipment no longer exists in PMS (deleted records)
       const inUseItems = (op.equipments || []).filter(
-        (e) => e.status === "IN_USE"
+        (e) => e.status === "IN_USE" && e.equipment?._id
       );
       inUseItems.forEach((item) => {
         equipmentInUse.push({
@@ -124,7 +157,7 @@ export async function GET(req) {
           equipmentName: item.equipment?.equipmentName || "—",
           equipmentCode: item.equipment?.equipmentCode || "—",
           equipmentType: item.equipment?.equipmentType || "—",
-          location: op.location?.locationName || "—",
+          location: op.location?.name || "—",
           startTime: item.startTime,
         });
       });
@@ -168,13 +201,23 @@ export async function GET(req) {
         overdue: totalOverdue,
         plannedTests,
         completedTests,
+        totalCertificates,
+        equipmentWithTestCertificate,
 
-        // Fenders & Hoses
-        hoses: { total: totalHoses },
+        // Fenders & Hoses: Primary Equipment items + Warehouse Management quantities
+        hoses: {
+          total: inventoryCounts.hoses + warehouseHoses,
+          inventory: inventoryCounts.hoses,
+          warehouse: warehouseHoses,
+        },
         fenders: {
-          primary: totalPrimaryFenders,
-          secondary: totalSecondaryFenders,
-          total: totalPrimaryFenders + totalSecondaryFenders,
+          primary: inventoryCounts.primaryFenders + warehousePrimaryFenders,
+          secondary: inventoryCounts.secondaryFenders + warehouseSecondaryFenders,
+          total:
+            inventoryCounts.primaryFenders + warehousePrimaryFenders +
+            inventoryCounts.secondaryFenders + warehouseSecondaryFenders,
+          inventory: inventoryCounts.primaryFenders + inventoryCounts.secondaryFenders,
+          warehouse: warehousePrimaryFenders + warehouseSecondaryFenders,
         },
 
         // Chart data

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
+import { groupCompatibilityList } from "@/lib/operations/compatibilityGroup";
 
 export async function GET(req) {
   await connectDB();
@@ -18,9 +19,11 @@ export async function GET(req) {
       query["location.locationId"] = locationId;
     }
 
-    const data = await Compatibility.find(query)
+    const records = await Compatibility.find(query)
       .sort({ year: -1, operationNumber: 1, createdAt: -1 })
       .lean();
+    // One entry per operation: hose + fender combined (older separate records included)
+    const data = groupCompatibilityList(records);
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
-import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
+import { loadMergedCompatibility } from "@/lib/operations/compatibilityGroup";
 import { sanitizeCompatibilityFilename } from "@/lib/operations/compatibilityDocumentValues";
 import { fillCompatibilityDocx } from "@/lib/operations/fillCompatibilityDocx";
 
@@ -10,7 +10,8 @@ export async function GET(req, { params }) {
   await connectDB();
   try {
     const { id } = await params;
-    const doc = await Compatibility.findById(id).lean();
+    // Hose + fender of the same operation in one file
+    const doc = await loadMergedCompatibility(id);
     if (!doc) {
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }

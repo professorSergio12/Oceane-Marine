@@ -28,6 +28,7 @@ function getYears() {
 function calcTypeLabel(rec) {
   const hasHose = rec.results?.hose?.HoseCal != null || rec.results?.hose?.FreeboardDiff != null;
   const hasFender = rec.results?.fender?.EDC != null || rec.results?.fender?.Fenderselect_Calm;
+  if (hasHose && hasFender) return "Hose + Fender";
   return hasHose ? "Hose Calculation" : hasFender ? "Fender Calculation" : "—";
 }
 
@@ -425,7 +426,7 @@ export default function CompatibilityListPage() {
                               )}
                               {canDeleteCompatibility && <ActionDeleteIcon
                                 onClick={async () => {
-                                  if (!confirm(`Are you sure you want to delete operation ${rec.operationNumber}? This action cannot be undone.`)) {
+                                  if (!confirm(`Are you sure you want to delete the compatibility record for operation ${rec.operationNumber} (hose and fender)? This action cannot be undone.`)) {
                                     return;
                                   }
                                   setDeleting(rec._id);

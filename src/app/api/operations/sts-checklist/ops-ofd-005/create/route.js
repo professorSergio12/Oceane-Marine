@@ -36,6 +36,10 @@ export async function POST(req) {
     }
 
     const body = JSON.parse(dataStr);
+    // Checklist is keyed by operation ref; normalise it the same way the GET/PUT routes do
+    if (typeof body.operationRef === "string") {
+      body.operationRef = body.operationRef.replace(/,\s*$/, "").trim();
+    }
 
     // Handle signature file upload if provided
     const signatureFile = formData.get("signature");
@@ -64,6 +68,18 @@ export async function POST(req) {
       return NextResponse.json(
         { error: "operationRef is required" },
         { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // One checklist per operation: a second create would split the entries across two records
+    const alreadySaved = await STSChecklist5.exists({ operationRef: body.operationRef });
+    if (alreadySaved) {
+      return NextResponse.json(
+        {
+          error:
+            "A checklist is already saved for this operation. Reload the page to see the saved entries, then add yours and submit again.",
+        },
+        { status: 409, headers: corsHeaders }
       );
     }
 

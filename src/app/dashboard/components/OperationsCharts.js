@@ -61,8 +61,8 @@ function formatNumber(num) {
 }
 
 export default function OperationsCharts() {
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  // null = All Years (all-time totals incl. the client's starting figures)
+  const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
   const [stats, setStats] = useState({
@@ -83,9 +83,11 @@ export default function OperationsCharts() {
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.append("year", selectedYear.toString());
-      if (selectedMonth) {
-        params.append("month", selectedMonth.toString());
+      if (selectedYear) {
+        params.append("year", selectedYear.toString());
+        if (selectedMonth) {
+          params.append("month", selectedMonth.toString());
+        }
       }
 
       const res = await fetch(`/api/operations/dashboard/stats?${params.toString()}`);
@@ -119,9 +121,11 @@ export default function OperationsCharts() {
   }, [selectedYear, selectedMonth]);
 
   const handleYearChange = (year) => {
-    setSelectedYear(Number(year));
+    setSelectedYear(year === "all" ? null : Number(year));
     setSelectedMonth(null);
   };
+
+  const baseline = stats.baseline?.applied ? stats.baseline : null;
 
   const handleMonthChange = (month) => {
     setSelectedMonth(month === "all" ? null : Number(month));
@@ -179,10 +183,11 @@ export default function OperationsCharts() {
           <div className="flex items-center gap-1.5 sm:gap-2">
             <label className="text-xs sm:text-sm font-semibold text-slate-200">Year:</label>
             <select
-              value={selectedYear}
+              value={selectedYear ?? "all"}
               onChange={(e) => handleYearChange(e.target.value)}
               className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
             >
+              <option value="all">All Years</option>
               {getYears().map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -196,7 +201,9 @@ export default function OperationsCharts() {
             <select
               value={selectedMonth || "all"}
               onChange={(e) => handleMonthChange(e.target.value)}
-              className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+              disabled={!selectedYear}
+              title={!selectedYear ? "Select a year to filter by month" : undefined}
+              className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="all">All Months</option>
               {MONTHS.map((month, index) => (
@@ -214,19 +221,34 @@ export default function OperationsCharts() {
         {/* Overall STS Operations */}
         <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-orange-900/40 via-orange-800/30 to-red-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-orange-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
           <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-orange-300 mb-1 sm:mb-2">Overall STS Operations</h3>
-          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.totalOperations}</p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.totalOperations.toLocaleString()}</p>
+          {baseline && (
+            <p className="mt-1 text-[10px] sm:text-xs text-orange-100/70">
+              {baseline.completedOperations.toLocaleString()} before system + {baseline.newOperations.toLocaleString()} in app
+            </p>
+          )}
         </div>
 
         {/* Total Barrels */}
         <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-teal-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-emerald-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
           <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-emerald-300 mb-1 sm:mb-2">Total Barrels Transferred</h3>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{formatNumber(stats.totalBarrels)}</p>
+          {baseline && (
+            <p className="mt-1 text-[10px] sm:text-xs text-emerald-100/70">
+              {formatNumber(baseline.barrels)} before system + {formatNumber(Math.round(baseline.newBarrels))} in app
+            </p>
+          )}
         </div>
 
         {/* Completed */}
         <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-green-900/40 via-green-800/30 to-emerald-900/40 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 hover:shadow-green-500/20 transition-all hover:scale-[1.02] md:hover:scale-105">
           <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold text-green-300 mb-1 sm:mb-2">Completed</h3>
-          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.statusCount.COMPLETED}</p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{stats.statusCount.COMPLETED.toLocaleString()}</p>
+          {baseline && (
+            <p className="mt-1 text-[10px] sm:text-xs text-green-100/70">
+              {baseline.completedOperations.toLocaleString()} before system + {baseline.newCompletedOperations.toLocaleString()} in app
+            </p>
+          )}
         </div>
 
         {/* In Progress */}

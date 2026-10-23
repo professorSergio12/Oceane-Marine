@@ -40,7 +40,8 @@ const Checklist5AItemSchema = new mongoose.Schema({
 // ================= TIME CHECK CELL =================
 const TimeCheckCellSchema = new mongoose.Schema({
     timeLabel: String,     // Time1, Time2, Time3 etc
-    yes: Boolean
+    yes: Boolean,
+    dateTime: String       // "Date/time of check" row value, as entered (YYYY-MM-DDTHH:mm)
 }, { _id: false });
 
 

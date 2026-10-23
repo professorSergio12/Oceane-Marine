@@ -39,9 +39,12 @@ export default function PMSCharts() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(null);
 
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
+  const fetchStats = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/pms/dashboard/stats");
@@ -51,11 +54,13 @@ export default function PMSCharts() {
         throw new Error(data.error || "Failed to fetch PMS statistics");
       if (!data.data) throw new Error("No data received from API");
       setStats(data.data);
+      setUpdatedAt(new Date());
     } catch (err) {
       console.error("PMS Dashboard Fetch Error:", err);
       setError(err.message || "Failed to load PMS statistics");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -141,43 +146,54 @@ export default function PMSCharts() {
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <SectionHeader />
+      <SectionHeader
+        updatedAt={updatedAt}
+        refreshing={refreshing}
+        onRefresh={() => fetchStats(true)}
+      />
 
       {/* ==================== ROW 1 — STAT CARDS ==================== */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <StatCard
           label="Total Equipment"
           value={stats.totalEquipment}
+          hint="Not retired"
           gradient="from-cyan-900/40 via-cyan-800/30 to-sky-900/40"
           accent="text-cyan-300"
         />
         <StatCard
           label="Active"
           value={stats.activeEquipment}
+          hint={`${stats.totalEquipment ? Math.round((stats.activeEquipment / stats.totalEquipment) * 100) : 0}% of total`}
           gradient="from-emerald-900/40 via-emerald-800/30 to-teal-900/40"
           accent="text-emerald-300"
         />
         <StatCard
           label="In Use"
           value={stats.inUseEquipment}
+          hint="On operations now"
           gradient="from-orange-900/40 via-orange-800/30 to-red-900/40"
           accent="text-orange-300"
         />
         <StatCard
           label="Certifications"
           value={stats.totalCertificates}
+          hint={`${stats.equipmentWithTestCertificate ?? 0} equipment with test cert.`}
           gradient="from-violet-900/40 via-violet-800/30 to-purple-900/40"
           accent="text-violet-300"
         />
         <StatCard
           label="Upcoming Tests"
           value={stats.upcomingTestDue}
+          hint="Next 30 days"
           gradient="from-blue-900/40 via-blue-800/30 to-indigo-900/40"
           accent="text-blue-300"
         />
         <StatCard
           label="Overdue"
           value={stats.overdue}
+          hint={stats.overdue > 0 ? "Needs attention" : "All up to date"}
+          highlight={stats.overdue > 0}
           gradient="from-red-900/40 via-red-800/30 to-rose-900/40"
           accent="text-red-300"
         />
@@ -196,6 +212,10 @@ export default function PMSCharts() {
               {stats.hoses?.total ?? 0}
             </span>
           </div>
+          <SourceBreakdown
+            inventory={stats.hoses?.inventory}
+            warehouse={stats.hoses?.warehouse}
+          />
         </div>
 
         {/* Total Fenders */}
@@ -217,6 +237,24 @@ export default function PMSCharts() {
               </span>
             </div>
           </div>
+          {(stats.fenders?.total ?? 0) > 0 && (
+            <div className="mt-3 h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
+              <div
+                className="h-full bg-indigo-400"
+                style={{ width: `${((stats.fenders.primary || 0) / stats.fenders.total) * 100}%` }}
+                title="Primary"
+              />
+              <div
+                className="h-full bg-purple-400"
+                style={{ width: `${((stats.fenders.secondary || 0) / stats.fenders.total) * 100}%` }}
+                title="Secondary"
+              />
+            </div>
+          )}
+          <SourceBreakdown
+            inventory={stats.fenders?.inventory}
+            warehouse={stats.fenders?.warehouse}
+          />
         </div>
       </div>
 
@@ -231,14 +269,22 @@ export default function PMSCharts() {
         <div className="md:col-span-1 lg:col-span-4">
           <div className="rounded-xl md:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6 h-full flex flex-col">
             <h3 className="text-xs sm:text-sm font-semibold text-white/80 mb-3 md:mb-4">
-              Total accessories
+              Equipment by Type
             </h3>
             <div className="flex-1 relative min-h-[180px] sm:min-h-[200px] md:min-h-[260px]">
               {typeLabels.length > 0 ? (
-                <DoughnutChart data={donutData} options={donutOptions} />
+                <>
+                  <DoughnutChart data={donutData} options={donutOptions} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl md:text-3xl font-bold text-white">
+                      {typeValues.reduce((a, b) => a + b, 0)}
+                    </span>
+                    <span className="text-[10px] md:text-xs text-white/50">Total</span>
+                  </div>
+                </>
               ) : (
                 <div className="flex items-center justify-center h-full text-white/40 text-xs sm:text-sm">
-                  No equipment data
+                  No equipment added yet
                 </div>
               )}
             </div>
@@ -282,18 +328,6 @@ export default function PMSCharts() {
           <div className="space-y-4">
             {retirementData.length > 0 ? (
               <>
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-orange-500" />
-                    <span className="text-xs text-slate-300">
-                      Primary Fender
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <span className="text-xs text-slate-300">LPG Hose</span>
-                  </div>
-                </div>
                 <div className="space-y-3">
                   {retirementData.map((item, idx) => {
                     const maxRetirement = Math.max(
@@ -426,8 +460,8 @@ export default function PMSCharts() {
                 );
               })
             ) : (
-              <div className="flex items-center justify-center w-full text-white/40 text-sm">
-                No location data
+              <div className="flex items-center justify-center w-full text-white/40 text-sm text-center px-4">
+                No hoses or fenders with a location yet. Set a Location on Primary Equipment or add Warehouse records.
               </div>
             )}
           </div>
@@ -441,19 +475,39 @@ export default function PMSCharts() {
    SUB-COMPONENTS
    ================================================================ */
 
-function SectionHeader() {
+function SectionHeader({ updatedAt, refreshing, onRefresh }) {
   return (
-    <div>
-      <h2 className="text-xl font-semibold text-white">PMS</h2>
-      <p className="text-sm text-slate-300">Planned Maintenance System</p>
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 className="text-xl font-semibold text-white">PMS</h2>
+        <p className="text-sm text-slate-300">Planned Maintenance System</p>
+      </div>
+      {onRefresh && (
+        <div className="flex items-center gap-3">
+          {updatedAt && (
+            <span className="text-xs text-slate-400">
+              Updated{" "}
+              {updatedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function StatCard({ label, value, gradient, accent }) {
+function StatCard({ label, value, hint, highlight, gradient, accent }) {
   return (
     <div
-      className={`rounded-xl md:rounded-2xl border border-white/15 bg-gradient-to-br ${gradient} backdrop-blur-md shadow-2xl p-3 md:p-5 hover:shadow-lg transition-all hover:scale-[1.02] md:hover:scale-[1.03] cursor-default`}
+      className={`rounded-xl md:rounded-2xl border ${highlight ? "border-red-400/70 ring-1 ring-red-400/40" : "border-white/15"} bg-gradient-to-br ${gradient} backdrop-blur-md shadow-2xl p-3 md:p-5 hover:shadow-lg transition-all hover:scale-[1.02] md:hover:scale-[1.03] cursor-default`}
     >
       <h3
         className={`text-[10px] md:text-xs font-semibold ${accent} uppercase tracking-wider mb-1 md:mb-2`}
@@ -461,6 +515,27 @@ function StatCard({ label, value, gradient, accent }) {
         {label}
       </h3>
       <p className="text-2xl md:text-3xl font-bold text-white">{value ?? 0}</p>
+      {hint && (
+        <p className="mt-1 text-[10px] md:text-xs text-white/50 truncate" title={hint}>
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Where a hose/fender count comes from ---------- */
+function SourceBreakdown({ inventory, warehouse }) {
+  return (
+    <div className="mt-3 pt-3 border-t border-white/10 space-y-1">
+      <div className="flex items-center justify-between text-[10px] md:text-xs">
+        <span className="text-slate-400">Primary Equipment</span>
+        <span className="font-semibold text-white/80">{inventory ?? 0}</span>
+      </div>
+      <div className="flex items-center justify-between text-[10px] md:text-xs">
+        <span className="text-slate-400">Warehouse records</span>
+        <span className="font-semibold text-white/80">{warehouse ?? 0}</span>
+      </div>
     </div>
   );
 }
@@ -517,71 +592,82 @@ function SpareUsageTable({ spares }) {
 /* ---------- Equipment currently in Use ---------- */
 function EquipmentInUseTable({ items }) {
   return (
-    <div className="rounded-xl md:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col">
-      <div className="bg-gradient-to-r from-orange-600/70 to-orange-700/70 rounded-t-xl md:rounded-t-2xl px-3 md:px-5 py-2 md:py-3 border-b border-white/10">
+    <div className="rounded-xl md:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md shadow-2xl h-full flex flex-col overflow-hidden">
+      <div className="bg-gradient-to-r from-orange-600/70 to-orange-700/70 px-3 md:px-5 py-2 md:py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="text-xs md:text-sm font-bold text-orange-50 tracking-wide">
           Equipment Currently In Use
         </h3>
+        <span className="rounded-full bg-black/25 px-2 py-0.5 text-[10px] md:text-xs font-semibold text-orange-50">
+          {items.length}
+        </span>
       </div>
-      <div className="flex-1 overflow-x-auto overflow-y-auto max-h-[280px] md:max-h-[340px] styled-scrollbar">
-        {items.length > 0 ? (
-          <table className="w-full text-[10px] md:text-xs min-w-[500px]">
-            <thead className="sticky top-0 bg-orange-950/50 z-10">
-              <tr className="border-b border-orange-400/20">
-                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
-                  Date
-                </th>
-                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
-                  Ops
-                </th>
-                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
-                  Equipment
-                </th>
-                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
-                  Type
-                </th>
-                <th className="text-left px-2 md:px-4 py-1.5 md:py-2.5 text-orange-200/80 font-semibold whitespace-nowrap">
-                  Location
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, i) => (
-                <tr
-                  key={i}
-                  className="border-b border-white/5 hover:bg-white/5 transition"
-                >
-                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/70 whitespace-nowrap">
-                    {item.date
-                      ? new Date(item.date).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                        })
-                      : "—"}
-                  </td>
-                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 whitespace-nowrap">
-                    <span className="inline-block px-1.5 md:px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 text-[9px] md:text-[10px] font-semibold">
-                      {item.operationRef || "—"}
-                    </span>
-                  </td>
-                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/90 font-medium whitespace-nowrap">
-                    {item.equipmentName}
-                  </td>
-                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/60 whitespace-nowrap">
-                    {item.equipmentType}
-                  </td>
-                  <td className="px-2 md:px-4 py-1.5 md:py-2.5 text-white/60 whitespace-nowrap">
-                    {item.location}
-                  </td>
+      <div className="relative flex-1 min-h-[260px]">
+        <div className="absolute inset-0 overflow-y-auto styled-scrollbar">
+          {items.length > 0 ? (
+            <table className="w-full table-fixed text-[10px] md:text-xs">
+              <colgroup>
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "36%" }} />
+                <col style={{ width: "28%" }} />
+              </colgroup>
+              <thead className="sticky top-0 z-10 bg-[#2a1712]">
+                <tr className="border-b border-orange-400/20">
+                  {["Date", "Ops", "Equipment", "Location"].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-2 md:px-4 py-2 md:py-2.5 text-orange-200/80 font-semibold"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="flex items-center justify-center py-8 md:py-10 text-white/40 text-xs md:text-sm">
-            No equipment currently in use
-          </div>
-        )}
+              </thead>
+              <tbody>
+                {items.map((item, i) => (
+                  <tr
+                    key={i}
+                    className="border-b border-white/5 hover:bg-white/5 transition align-top"
+                  >
+                    <td className="px-2 md:px-4 py-2 md:py-2.5 text-white/70 whitespace-nowrap">
+                      {item.date
+                        ? new Date(item.date).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                          })
+                        : "—"}
+                    </td>
+                    <td className="px-2 md:px-4 py-2 md:py-2.5">
+                      <span className="inline-block max-w-full truncate px-1.5 md:px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 text-[9px] md:text-[10px] font-semibold">
+                        {item.operationRef || "—"}
+                      </span>
+                    </td>
+                    <td className="px-2 md:px-4 py-2 md:py-2.5">
+                      <p className="text-white/90 font-medium truncate" title={item.equipmentName}>
+                        {item.equipmentName}
+                      </p>
+                      <p className="text-white/45 text-[9px] md:text-[10px] truncate">
+                        {[item.equipmentCode, item.equipmentType]
+                          .filter((v) => v && v !== "—")
+                          .join(" · ") || "—"}
+                      </p>
+                    </td>
+                    <td
+                      className="px-2 md:px-4 py-2 md:py-2.5 text-white/60 truncate"
+                      title={item.location}
+                    >
+                      {item.location}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="flex items-center justify-center h-full text-white/40 text-xs md:text-sm">
+              No equipment currently in use
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -610,6 +696,7 @@ function WarehouseMovementTracker({ movements }) {
 }
 
 function MovementRow({ movement }) {
+  const [now] = useState(() => Date.now());
   const from = formatLocation(movement.fromLocation);
   const stop = movement.stopover ? formatLocation(movement.stopover) : null;
   const to = formatLocation(movement.toLocation);
@@ -624,7 +711,6 @@ function MovementRow({ movement }) {
     const start = movement.startDate ? new Date(movement.startDate).getTime() : null;
     const end = movement.estimatedEndDate ? new Date(movement.estimatedEndDate).getTime() : null;
     if (!start || !end || end <= start) return 50; // fallback to midway if no dates
-    const now = Date.now();
     if (now <= start) return 0;
     if (now >= end) return 100;
     return ((now - start) / (end - start)) * 100;
@@ -662,7 +748,7 @@ function MovementRow({ movement }) {
           )}
           {movement.estimatedEndDate && (
             <span className={`text-[9px] sm:text-[10px] font-semibold ${
-              new Date(movement.estimatedEndDate).getTime() < Date.now()
+              new Date(movement.estimatedEndDate).getTime() < now
                 ? "text-red-400"
                 : "text-emerald-400/70"
             }`}>
@@ -719,9 +805,10 @@ function MovementRow({ movement }) {
             className="absolute z-10 pointer-events-none transition-all duration-1000"
             style={{ left: `${truckLeft}%`, top: "-2px" }}
           >
-            <span className="text-xs sm:text-sm" style={{ transform: "scaleX(-1)", display: "inline-block" }}>
-              🚛
-            </span>
+            <span
+              className="block w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-sm bg-cyan-400 border-2 border-cyan-200 shadow-[0_0_8px_rgba(34,211,238,0.6)]"
+              title={`${Math.round(progress)}% of the way`}
+            />
           </div>
         </div>
       </div>

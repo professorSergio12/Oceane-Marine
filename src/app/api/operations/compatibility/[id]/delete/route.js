@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/config/connection";
 import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
 import { notifyOperationsEdit, notifyOperationsDelete } from "@/lib/notifications/operationsNotified";
 import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
+import { findCompatibilityGroup } from "@/lib/operations/compatibilityGroup";
 
 export async function DELETE(req, { params }) {
   const { response: authResponse } = await requireOpsPermission("canDeleteCompatibility");
@@ -22,8 +23,11 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    // Delete from database
-    await Compatibility.findByIdAndDelete(id);
+    // The list shows one combined record per operation, so delete every record of that
+    // operation (older separate hose / fender records included)
+    const group = await findCompatibilityGroup(record.operationNumber);
+    const ids = group.length > 0 ? group.map((r) => r._id) : [record._id];
+    await Compatibility.deleteMany({ _id: { $in: ids } });
 
     void notifyOperationsDelete("Compatibility", id);
     return NextResponse.json({

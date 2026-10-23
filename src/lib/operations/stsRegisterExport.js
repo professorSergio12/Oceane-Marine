@@ -230,26 +230,54 @@ export async function buildStsRegisterWorkbook() {
 }
 
 /**
- * Highest sequence number used for a year in the historical Excel (e.g. 540 for "2026-540").
- * Cached per file modification time so ref generation stays fast.
+ * Rows of the historical Excel register (jobs before the app), parsed once and cached per
+ * file modification time. Each row: { ref, type, status, location, date, stbl, ss, mooringMaster,
+ * cargo, quantityMT, equipmentUsed }. Returns [] if the file is missing.
  */
-let refCache = { mtimeMs: 0, maxByYear: null };
-export async function getRegisterMaxSeqByYear() {
+let registerCache = { mtimeMs: 0, rows: null };
+export async function getRegisterRows() {
   try {
     const stat = await fs.stat(REGISTER_TEMPLATE_PATH);
-    if (refCache.maxByYear && refCache.mtimeMs === stat.mtimeMs) return refCache.maxByYear;
+    if (registerCache.rows && registerCache.mtimeMs === stat.mtimeMs) return registerCache.rows;
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(REGISTER_TEMPLATE_PATH);
-    const maxByYear = {};
+    const rows = [];
     workbook.worksheets[0].eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber <= HEADER_ROW) return;
-      const m = /^(\d{4})-(\d+)/.exec(cellText(row.getCell(COL.REF).value).trim());
-      if (m) maxByYear[m[1]] = Math.max(maxByYear[m[1]] || 0, Number(m[2]));
+      const text = (col) => cellText(row.getCell(col).value).trim();
+      const dateValue = row.getCell(COL.DATE).value;
+      const qty = row.getCell(COL.QUANTITY).value;
+      const quantityMT = typeof qty === "number" ? qty : Number(String(cellText(qty)).replace(/,/g, ""));
+      rows.push({
+        ref: text(COL.REF),
+        type: text(COL.TYPE),
+        status: text(COL.STATUS),
+        location: text(COL.LOCATION),
+        date: dateValue instanceof Date ? dateValue : null,
+        stbl: text(COL.STBL),
+        ss: text(COL.SS),
+        mooringMaster: text(COL.MOORING_MASTER),
+        cargo: text(COL.CARGO),
+        quantityMT: Number.isFinite(quantityMT) && cellText(qty).trim() !== "" ? quantityMT : null,
+        equipmentUsed: text(COL.EQUIP),
+      });
     });
-    refCache = { mtimeMs: stat.mtimeMs, maxByYear };
-    return maxByYear;
+    registerCache = { mtimeMs: stat.mtimeMs, rows };
+    return rows;
   } catch {
-    return {};
+    return [];
   }
+}
+
+/**
+ * Highest sequence number used for a year in the historical Excel (e.g. 540 for "2026-540").
+ */
+export async function getRegisterMaxSeqByYear() {
+  const maxByYear = {};
+  for (const { ref } of await getRegisterRows()) {
+    const m = /^(\d{4})-(\d+)/.exec(ref);
+    if (m) maxByYear[m[1]] = Math.max(maxByYear[m[1]] || 0, Number(m[2]));
+  }
+  return maxByYear;
 }

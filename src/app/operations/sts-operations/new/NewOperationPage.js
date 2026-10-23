@@ -231,6 +231,71 @@ export default function NewOperationPage() {
   const [selectedVesselTypeMS, setSelectedVesselTypeMS] = useState("");
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState([]);
 
+  // "Select Previous Operation": reuse the equipment of a completed operation (app or historical register)
+  const [previousOperations, setPreviousOperations] = useState([]);
+  const [loadingPreviousOperations, setLoadingPreviousOperations] = useState(false);
+  const [previousOperationKey, setPreviousOperationKey] = useState("");
+  const [previousOperationResult, setPreviousOperationResult] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingPreviousOperations(true);
+    fetch("/api/operations/sts/previous-operations")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.success) setPreviousOperations(data.data || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingPreviousOperations(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setPreviousOperationKey("");
+    setPreviousOperationResult(null);
+  }, [formResetKey]);
+
+  /**
+   * Add every equipment of the chosen completed operation to the current selection.
+   * Already-selected items are not duplicated; items now in use elsewhere (or retired)
+   * can't be added and are reported. The original operation is never modified.
+   */
+  const applyPreviousOperation = (key) => {
+    setPreviousOperationKey(key);
+    if (!key) {
+      setPreviousOperationResult(null);
+      return;
+    }
+    const previous = previousOperations.find((p) => p.key === key);
+    if (!previous) return;
+
+    const availableIds = new Set(equipmentList.filter(isEquipmentAvailable).map((e) => String(e._id)));
+    const next = new Set(selectedEquipmentIds.map(String));
+    const added = [];
+    const alreadySelected = [];
+    const unavailable = [];
+    for (const eq of previous.equipment) {
+      const id = String(eq._id);
+      if (next.has(id)) alreadySelected.push(eq);
+      else if (availableIds.has(id)) {
+        next.add(id);
+        added.push(eq);
+      } else unavailable.push(eq);
+    }
+    setSelectedEquipmentIds([...next]);
+    setPreviousOperationResult({
+      ref: previous.ref,
+      added,
+      alreadySelected,
+      unavailable,
+      unmatchedCodes: previous.unmatchedCodes || [],
+    });
+  };
+
   const resetStsSelectFields = useCallback(() => {
     setSelectedLocationId("");
     setSelectedOperationType("");
@@ -1690,11 +1755,63 @@ export default function NewOperationPage() {
                 selectedIds={selectedEquipmentIds}
                 onChange={setSelectedEquipmentIds}
               />
-              <TextAreaField
-                label="Remarks"
-                placeholder="Add remarks..."
-                name="remarks"
-              />
+              <div className="space-y-2">
+                <Label>Select Previous Operation</Label>
+                <SelectField
+                  ariaLabel="Select previous completed operation"
+                  value={previousOperationKey}
+                  onChange={applyPreviousOperation}
+                  loading={loadingPreviousOperations}
+                  disabled={loadingPreviousOperations || loadingMasters}
+                  options={[
+                    {
+                      value: "",
+                      label: loadingPreviousOperations
+                        ? "Loading..."
+                        : previousOperations.length
+                          ? "Reuse equipment from a completed operation"
+                          : "No completed operations with equipment",
+                    },
+                    ...previousOperations.map((p) => ({
+                      value: p.key,
+                      label: `${p.ref || "No ref"}${p.vessels ? ` — ${p.vessels}` : ""} (${p.equipment.length} equipment${p.source === "register" ? ", historical" : ""})`,
+                    })),
+                  ]}
+                  triggerClassName="flex w-full items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-black/20 outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400/60 transition"
+                />
+                {previousOperationResult && (
+                  <div className="space-y-1 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs">
+                    <p className="text-emerald-300">
+                      {previousOperationResult.added.length > 0
+                        ? `Added ${previousOperationResult.added.length} equipment from ${previousOperationResult.ref}: ${previousOperationResult.added.map((e) => e.code || e.name).join(", ")}`
+                        : `No new equipment added from ${previousOperationResult.ref}.`}
+                    </p>
+                    {previousOperationResult.alreadySelected.length > 0 && (
+                      <p className="text-white/60">
+                        Already selected: {previousOperationResult.alreadySelected.map((e) => e.code || e.name).join(", ")}
+                      </p>
+                    )}
+                    {previousOperationResult.unavailable.length > 0 && (
+                      <p className="text-amber-300/90">
+                        Not available (in use by another operation or inactive): {previousOperationResult.unavailable.map((e) => e.code || e.name).join(", ")}
+                      </p>
+                    )}
+                    {previousOperationResult.unmatchedCodes.length > 0 && (
+                      <p className="text-white/50">
+                        Not found in PMS: {previousOperationResult.unmatchedCodes.join(", ")}
+                      </p>
+                    )}
+                    <p className="text-white/40">You can still add or remove equipment using the Equipment dropdown.</p>
+                  </div>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <TextAreaField
+                  label="Remarks"
+                  placeholder="Add remarks..."
+                  name="remarks"
+                />
+              </div>
             </div>
 
             <StsDocumentationMultiUpload key={formResetKey} />

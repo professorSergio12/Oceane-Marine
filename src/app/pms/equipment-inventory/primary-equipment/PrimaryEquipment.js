@@ -711,8 +711,19 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       }
 
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error(
+            "Your login session has expired. Please log in again in a new tab (the form here keeps what you typed), then click Save again."
+          );
+        }
+        if (res.status === 403) {
+          throw new Error(
+            "You don't have permission to save equipment. Please ask a PMS admin for editor access."
+          );
+        }
         throw new Error(
           data.message ||
+            data.error ||
             `Request failed with status ${res.status}${
               editingEquipmentId
                 ? " (update equipment)"

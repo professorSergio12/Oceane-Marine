@@ -4,12 +4,14 @@ import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
 import { computeHose, computeFender } from "@/app/operations/sts-operations/new/compatibility/calculations";
 import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
 import { requireOpsPermission } from "@/lib/operations/stsOperationGuards";
+import { loadMergedCompatibility } from "@/lib/operations/compatibilityGroup";
 
 export async function GET(req, { params }) {
   await connectDB();
   try {
     const { id } = await params;
-    const doc = await Compatibility.findById(id).lean();
+    // Combined hose + fender view of this operation (older separate records included)
+    const doc = await loadMergedCompatibility(id);
     if (!doc) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -58,7 +60,8 @@ export async function PUT(req, { params }) {
       SS: SS || existing.SS || {},
     };
 
-    const existingResults = existing.results || {};
+    // Keep the other section's results, including ones saved on an older separate record
+    const existingResults = (await loadMergedCompatibility(id))?.results || existing.results || {};
     if (section === "fender") {
       update.results = { ...existingResults, fender: computeFender(update.STBL, update.SS) };
     } else {

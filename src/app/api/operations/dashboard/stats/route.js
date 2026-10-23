@@ -4,6 +4,7 @@ import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import Location from "@/lib/mongodb/models/Location";
 import CargoType from "@/lib/mongodb/models/CargoType";
 import MooringMaster from "@/lib/mongodb/models/MooringMaster";
+import { getHistoricalBaseline, operationBarrels } from "@/lib/operations/dashboardBaseline";
 
 export async function GET(req) {
   try {
@@ -46,9 +47,9 @@ export async function GET(req) {
       .lean();
 
     // 1. Overall STS operations count
-    const totalOperations = operations.length;
+    let totalOperations = operations.length;
 
-    // 2. Status count
+    // 2. Status count ("Lined Up" is the app's pending status)
     const statusCount = {
       COMPLETED: 0,
       CANCELED: 0,
@@ -56,8 +57,9 @@ export async function GET(req) {
       PENDING: 0,
     };
     operations.forEach((op) => {
-      const status = op.operationStatus || "PENDING";
-      if (statusCount.hasOwnProperty(status)) {
+      const raw = op.operationStatus || "PENDING";
+      const status = raw === "Lined Up" ? "PENDING" : raw;
+      if (Object.prototype.hasOwnProperty.call(statusCount, status)) {
         statusCount[status]++;
       }
     });
@@ -69,10 +71,33 @@ export async function GET(req) {
       locationWise[locName] = (locationWise[locName] || 0) + 1;
     });
 
-    // 4. Total barrels transferred
-    const totalBarrels = operations.reduce((sum, op) => {
-      return sum + (op.quantity || 0);
-    }, 0);
+    // 4. Total barrels transferred: completed operations only, quantity is stored in MT → barrels
+    let totalBarrels = operations
+      .filter((op) => op.operationStatus === "COMPLETED")
+      .reduce((sum, op) => sum + operationBarrels(op), 0);
+
+    // All-time view: start from the client's figures (671 completed ops, 700M barrels) and add
+    // every operation recorded in the app. Each app operation is counted once (latest version).
+    let baseline = { applied: false };
+    if (!year) {
+      const historical = getHistoricalBaseline();
+      const appCompleted = operations.filter((op) => op.operationStatus === "COMPLETED");
+      const appBarrels = appCompleted.reduce((sum, op) => sum + operationBarrels(op), 0);
+
+      totalOperations = historical.completedOperations + operations.length;
+      statusCount.COMPLETED = historical.completedOperations + appCompleted.length;
+      totalBarrels = historical.barrels + appBarrels;
+
+      baseline = {
+        applied: true,
+        completedOperations: historical.completedOperations,
+        barrels: historical.barrels,
+        newOperations: operations.length,
+        newCompletedOperations: appCompleted.length,
+        newBarrels: Math.round(appBarrels * 100) / 100,
+      };
+    }
+    totalBarrels = Math.round(totalBarrels * 100) / 100;
 
     // 5. Most used Mooring Master
     const mooringMasterCount = {};
@@ -133,6 +158,7 @@ export async function GET(req) {
         cargoTypes,
         loaRanges,
         clientsData,
+        baseline,
       },
     });
   } catch (error) {
