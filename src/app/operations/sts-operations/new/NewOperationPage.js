@@ -2246,16 +2246,13 @@ function OperationsListComponent() {
                       Operation Ref No
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
-                      Type of Operation
+                      Vessels
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
                       Location
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
                       Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
-                      VSL Name
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-white/90 uppercase">
                       Client
@@ -2280,7 +2277,16 @@ function OperationsListComponent() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-white/90">{op.typeOfOperation || "—"}</span>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-baseline gap-2">
+                            <span className="w-7 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-sky-300/80">CHS</span>
+                            <span className="text-white/90">{op.chs || "—"}</span>
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="w-7 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-orange-300/80">MS</span>
+                            <span className="text-white/90">{op.ms || "—"}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm text-white/90">{op.location?.name || "—"}</span>
@@ -2293,9 +2299,6 @@ function OperationsListComponent() {
                         >
                           {op.operationStatus || "—"}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-white/90">{op.chs || op.ms || "—"}</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm text-white/90">{op.client || "—"}</span>

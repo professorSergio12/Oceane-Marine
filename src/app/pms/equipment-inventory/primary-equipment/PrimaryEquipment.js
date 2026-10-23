@@ -280,9 +280,38 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     }
   }, [activeTab, equipments.length, listYear, primaryInventoryYearOptions]);
 
+  // Search within the selected year: code, serial, name, type, entity, location, etc.
+  const [listSearch, setListSearch] = useState("");
+  const listSearchTerm = listSearch.trim().toLowerCase();
+  const filteredListEquipments = useMemo(() => {
+    if (!listSearchTerm) return equipmentsForListYear;
+    return equipmentsForListYear.filter((eq) => {
+      const placedIn = [
+        eq.placedInOffice && "office",
+        eq.placedInBase && "base",
+        eq.placedInBay && "bay",
+      ].filter(Boolean);
+      return [
+        eq.equipmentCode,
+        eq.serialCode,
+        eq.equipmentName,
+        eq.equipmentType,
+        eq.entity,
+        eq.locationName,
+        eq.ownershipType,
+        eq.status,
+        eq.manufacturer,
+        eq.specification,
+        ...placedIn,
+      ].some((v) => v != null && String(v).toLowerCase().includes(listSearchTerm));
+    });
+  }, [equipmentsForListYear, listSearchTerm]);
+
   const listTabPagination = useOperationsClientPagination(
-    activeTab === "list" ? equipmentsForListYear : [],
-    activeTab === "list" ? `list-${listYear}-${equipmentsForListYear.length}` : "list-off"
+    activeTab === "list" ? filteredListEquipments : [],
+    activeTab === "list"
+      ? `list-${listYear}-${equipmentsForListYear.length}-${listSearchTerm}`
+      : "list-off"
   );
   const { paginatedItems: paginatedListEquipments, ...listPaginationFooterProps } =
     listTabPagination;
@@ -758,6 +787,25 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
             <h3 className="text-sm font-semibold text-white">Equipment List</h3>
             <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:w-64">
+                <svg
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+                </svg>
+                <input
+                  type="search"
+                  value={listSearch}
+                  onChange={(e) => setListSearch(e.target.value)}
+                  placeholder="Search code, serial, name, type, location…"
+                  aria-label="Search equipment"
+                  className="w-full rounded-full border border-white/15 bg-white/5 py-1.5 pl-9 pr-3 text-xs text-white placeholder:text-slate-400 outline-none focus:border-sky-400/50 focus:ring-2 focus:ring-sky-500/30"
+                />
+              </div>
               <div className="flex min-w-0 items-center gap-2">
                 <span className="shrink-0 text-xs uppercase tracking-[0.2em] text-slate-200">
                   Year
@@ -832,6 +880,13 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                         className="px-4 py-4 text-center text-slate-400"
                       >
                         No equipments found
+                      </td>
+                    </tr>
+                  )}
+                  {equipments.length > 0 && listSearchTerm && filteredListEquipments.length === 0 && (
+                    <tr>
+                      <td colSpan={11} className="px-4 py-4 text-center text-slate-400">
+                        No equipment matches &quot;{listSearch.trim()}&quot; in {listYear}.
                       </td>
                     </tr>
                   )}
