@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-/* ==========================
+/* ==========
    Access token verification (HS256, as signed by jsonwebtoken in /api/auth/login).
    `jsonwebtoken` doesn't run in middleware, so this uses Web Crypto directly.
    A cookie that merely exists is not enough — signature and expiry must be valid.
-========================== */
+================ */
 
 function base64UrlToBytes(input) {
   const base64 = input.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(input.length / 4) * 4, "=");
