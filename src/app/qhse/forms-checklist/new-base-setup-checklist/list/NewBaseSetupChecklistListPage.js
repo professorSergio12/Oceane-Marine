@@ -498,14 +498,14 @@ export default function NewBaseSetupChecklistListPage() {
                                 title="Download as Word"
                               />
                             )}
+                            {canEdit && (
+                              <EditIconButton onClick={() => handleEdit(form)} />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}
                               disabled={archivingId === form._id || deleting === form._id}
                               loading={archivingId === form._id}
                             />
-                            {canEdit && (
-                              <EditIconButton onClick={() => handleEdit(form)} />
-                            )}
                             {canDelete && (
                               <DeleteIconButton
                                 onClick={() => handleDelete(form)}

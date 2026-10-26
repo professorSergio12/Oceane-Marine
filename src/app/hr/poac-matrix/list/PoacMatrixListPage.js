@@ -699,7 +699,6 @@ export default function PoacMatrixListPage({ onRefresh }) {
                           <td className="px-4 py-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <ViewIconButton onClick={() => handleView(record)} />
-                              {canEdit && <EditIconButton onClick={() => handleEdit(record)} />}
                               {canDownload && (
                                 <DownloadIconButton
                                   onClick={() => handleRecordPDF(record)}
@@ -707,6 +706,7 @@ export default function PoacMatrixListPage({ onRefresh }) {
                                   loading={pdfDownloadingId === record._id}
                                 />
                               )}
+                              {canEdit && <EditIconButton onClick={() => handleEdit(record)} />}
                               {canDelete && (
                                 <DeleteIconButton
                                   onClick={() => handleDelete(record._id)}

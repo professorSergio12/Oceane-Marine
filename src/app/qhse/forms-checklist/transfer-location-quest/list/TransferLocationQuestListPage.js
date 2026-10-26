@@ -513,14 +513,14 @@ export default function TransferLocationQuestListPage() {
                                 className="!text-rose-400 hover:!text-rose-300"
                               />
                             )}
+                            {canEdit && (
+                              <EditIconButton onClick={() => handleEdit(form)} />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(form)}
                               disabled={archivingId === form._id || deleting === form._id}
                               loading={archivingId === form._id}
                             />
-                            {canEdit && (
-                              <EditIconButton onClick={() => handleEdit(form)} />
-                            )}
                             {canDelete && (
                               <DeleteIconButton
                                 onClick={() => handleDelete(form)}

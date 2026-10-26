@@ -971,10 +971,10 @@ function ViewOperationPage() {
                               className="text-sm"
                             >
                               <span className="font-medium text-white">
-                                {eq.equipment?.equipmentName || eq.equipment?.name || "Equipment"}
+                                {eq.equipment?.equipmentCode || eq.equipment?.equipmentName || eq.equipment?.name || "Equipment"}
                               </span>
                               <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-white/60">
-                                <span>Code: <span className="text-white/85">{eq.equipment?.equipmentCode || "—"}</span></span>
+                                <span>Equipment: <span className="text-white/85">{eq.equipment?.equipmentName || eq.equipment?.name || "—"}</span></span>
                                 <span>Type: <span className="text-white/85">{eq.equipment?.equipmentType || "—"}</span></span>
                                 <span>
                                   Last Test Date:{" "}

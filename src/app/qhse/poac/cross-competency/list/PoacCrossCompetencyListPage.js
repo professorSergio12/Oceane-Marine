@@ -413,6 +413,7 @@ export default function PoacCrossCompetencyListPage() {
                           </td>
                           <td className="whitespace-nowrap py-2 pr-3 text-right align-middle sm:py-3 sm:pr-4">
                             <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
+                              <ViewIconButton href={`/qhse/poac/cross-competency/${form._id}`} />
                               {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadDocx(form)}
@@ -440,7 +441,6 @@ export default function PoacCrossCompetencyListPage() {
                                 className="!text-rose-400 hover:!text-rose-300"
                               />
                               )}
-                              <ViewIconButton href={`/qhse/poac/cross-competency/${form._id}`} />
                               <ArchiveIconButton
                                 onClick={() => handleArchive(form)}
                                 disabled={archivingId === form._id || deleting === form._id}

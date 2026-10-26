@@ -506,28 +506,6 @@ export default function MOCManagementChangeFormPage() {
             </p>
           </div>
           <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
-            <a
-              href="/templates/controlled-register/QAF-OFD-058.docx"
-              download
-              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
-              title="Download form template (QAF-OFD-058)"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-              </svg>
-              Template (058)
-            </a>
-            <a
-              href="/templates/controlled-register/QAF-OFD-058A.docx"
-              download
-              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
-              title="Download form template (QAF-OFD-058A)"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-              </svg>
-              Template (058A)
-            </a>
             <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/moc/management-change/form"
@@ -552,7 +530,29 @@ export default function MOCManagementChangeFormPage() {
         )}
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
+          <div className="flex flex-wrap gap-3 items-center justify-end">
+            <a
+              href="/templates/controlled-register/QAF-OFD-058.docx"
+              download
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-300 hover:bg-indigo-500/20 transition"
+              title="Download form template (QAF-OFD-058)"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+              </svg>
+              Template (058)
+            </a>
+            <a
+              href="/templates/controlled-register/QAF-OFD-058A.docx"
+              download
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+              title="Download form template (QAF-OFD-058A)"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+              </svg>
+              Template (058A)
+            </a>
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
               <select

@@ -430,23 +430,6 @@ function VendorSupplyFormContent() {
               </p>
             </div>
             <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
-              <TemplateDownloadLink formCode="QAF-OFD-037" />
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
-                  Year
-                </span>
-                <select
-                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
-                  value={year || ""}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                >
-                  {getYears().map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
                 <Link
                   href="/qhse/forms-checklist/vendor-supply/form"
@@ -484,15 +467,36 @@ function VendorSupplyFormContent() {
             </div>
           )}
 
-          {/* Rating Legend */}
-          <div className="rounded-xl border border-white/10 px-4 py-3 text-xs text-slate-200 flex flex-wrap items-center gap-x-6 gap-y-1" style={{ backgroundColor: '#153d59' }}>
-            <span className="font-semibold text-white/90">
-              Rating Scale (1–4):
-            </span>
-            <span>1 = Not Satisfied</span>
-            <span>2 = Need Improvement</span>
-            <span>3 = Acceptable</span>
-            <span>4 = Satisfied</span>
+          {/* Rating Legend + Template / Year */}
+          <div className="rounded-xl border border-white/10 px-4 py-3 text-xs text-slate-200 flex flex-wrap items-center justify-between gap-x-6 gap-y-3" style={{ backgroundColor: '#153d59' }}>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+              <span className="font-semibold text-white/90">
+                Rating Scale (1–4):
+              </span>
+              <span>1 = Not Satisfied</span>
+              <span>2 = Need Improvement</span>
+              <span>3 = Acceptable</span>
+              <span>4 = Satisfied</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <TemplateDownloadLink formCode="QAF-OFD-037" />
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-200">
+                  Year
+                </span>
+                <select
+                  className="theme-select rounded-full px-3 py-1 text-xs tracking-widest uppercase"
+                  value={year || ""}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                >
+                  {getYears().map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
           {!canSubmit && (

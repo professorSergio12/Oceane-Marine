@@ -263,6 +263,7 @@ export default function TargetKpiListPage() {
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-right sm:px-4 sm:py-3">
                         <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
+                          <ViewIconButton href={`/qhse/kpi/target-kpi/view/${String(item._id ?? "")}`} />
                           {canDownload && (
                             <button
                               type="button"
@@ -290,7 +291,6 @@ export default function TargetKpiListPage() {
                             disabled={archivingId === item._id || deletingId === item._id}
                             loading={archivingId === item._id}
                           />
-                          <ViewIconButton href={`/qhse/kpi/target-kpi/view/${String(item._id ?? "")}`} />
                           {canDelete && (
                             <DeleteIconButton
                               onClick={() => handleDelete(item)}

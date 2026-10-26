@@ -131,9 +131,9 @@ function DocumentsContent() {
             {!loading && !error && isEmpty && (
               <div className="p-10 text-center text-white/60">
                 <p className="text-4xl mb-2">📂</p>
-                <p>Yahan koi file nahi mili.</p>
+                <p>No files found here.</p>
                 <p className="text-sm mt-1">
-                  Upar &quot;Sync HR from SharePoint&quot; dabao ya kisi folder mein jao.
+                  Click &quot;Sync HR from SharePoint&quot; above, or open a folder.
                 </p>
               </div>
             )}

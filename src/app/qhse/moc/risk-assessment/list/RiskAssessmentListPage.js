@@ -303,11 +303,6 @@ export default function RiskAssessmentListPage() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-right sm:px-6 sm:py-4">
                           <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
-                            <ArchiveIconButton
-                              onClick={() => handleArchive(upload)}
-                              disabled={archivingId === upload._id}
-                              loading={archivingId === upload._id}
-                            />
                             {canDownload && upload.files?.length > 0 && (
                               <>
                                 {upload.files.map((file, index) => (
@@ -324,6 +319,11 @@ export default function RiskAssessmentListPage() {
                                 ))}
                               </>
                             )}
+                            <ArchiveIconButton
+                              onClick={() => handleArchive(upload)}
+                              disabled={archivingId === upload._id}
+                              loading={archivingId === upload._id}
+                            />
                             {canDelete && (
                             <DeleteIconButton
                               onClick={() => handleDelete(upload._id)}

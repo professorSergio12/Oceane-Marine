@@ -288,6 +288,7 @@ export default function CidListPage({ onRefresh }) {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <ViewIconButton onClick={() => handleView(record)} />
                             {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadPdf(record)}
@@ -297,7 +298,6 @@ export default function CidListPage({ onRefresh }) {
                                 className="!text-rose-400 hover:!text-rose-300"
                               />
                             )}
-                            <ViewIconButton onClick={() => handleView(record)} />
                             {canEdit && <EditIconButton onClick={() => handleEdit(record)} />}
                             {canDelete && (
                               <DeleteIconButton

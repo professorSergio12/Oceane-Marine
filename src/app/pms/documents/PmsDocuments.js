@@ -106,9 +106,9 @@ export default function PmsDocuments() {
         {!loading && !error && isEmpty && (
           <div className="p-10 text-center text-white/60">
             <p className="mb-2 text-4xl">📂</p>
-            <p>Yahan koi file nahi mili.</p>
+            <p>No files found here.</p>
             <p className="mt-1 text-sm">
-              Upar &quot;Sync PMS from SharePoint&quot; dabao ya kisi folder mein jao.
+              Click &quot;Sync PMS from SharePoint&quot; above, or open a folder.
             </p>
           </div>
         )}

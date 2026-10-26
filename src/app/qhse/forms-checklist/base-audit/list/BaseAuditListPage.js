@@ -571,14 +571,14 @@ export default function BaseAuditListPage() {
                                 title="Download as Word"
                               />
                             )}
+                            {canEdit && (
+                              <EditIconButton onClick={() => handleEdit(report)} />
+                            )}
                             <ArchiveIconButton
                               onClick={() => handleArchive(report)}
                               disabled={archivingId === report._id || deleting === report._id}
                               loading={archivingId === report._id}
                             />
-                            {canEdit && (
-                              <EditIconButton onClick={() => handleEdit(report)} />
-                            )}
                             {canDelete && (
                               <DeleteIconButton
                                 onClick={() => handleDelete(report)}

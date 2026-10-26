@@ -980,6 +980,10 @@ export default function QuestionnaireListAdminPage() {
                             </td>
                             <td className="whitespace-nowrap py-2 pr-3 text-right sm:py-3 sm:pr-4">
                               <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
+                                <ViewIconButton
+                                  onClick={() => setSelectedForm(form)}
+                                  title="View Details"
+                                />
                                 {canDownload && (
                                   <DownloadIconButton
                                     onClick={() => handleDownloadDocx(form)}
@@ -1003,10 +1007,6 @@ export default function QuestionnaireListAdminPage() {
                                     className="!text-rose-400 hover:!text-rose-300"
                                   />
                                 )}
-                                <ViewIconButton
-                                  onClick={() => setSelectedForm(form)}
-                                  title="View Details"
-                                />
                                 <ArchiveIconButton
                                   onClick={() => handleArchive(form)}
                                   disabled={archivingId === form._id || deleting === form._id}

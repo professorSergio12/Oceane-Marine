@@ -29,6 +29,7 @@ import {
   equipmentButtonLabel,
   isEquipmentAvailable,
   toEquipmentOption,
+  EquipmentOptionsPanel,
 } from "./equipment-options";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import { readJsonFromResponse } from "@/lib/utils/readJsonFromResponse";
@@ -3037,31 +3038,12 @@ function MultiSelectDropdown({
         </button>
 
         {open && (
-          <div className="absolute z-30 mt-2 w-full rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur shadow-2xl max-h-64 overflow-y-auto">
-            {loading && (
-              <div className="px-4 py-3 text-sm text-white/70">Loading...</div>
-            )}
-            {!loading && !options.length && (
-              <div className="px-4 py-3 text-sm text-white/60">
-                No available equipment
-              </div>
-            )}
-            {!loading &&
-              options.map((opt) => (
-                <label
-                  key={opt.value}
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 shrink-0 rounded border-white/50 bg-transparent text-orange-400 focus:ring-orange-400"
-                    checked={selected.includes(String(opt.value))}
-                    onChange={() => toggle(opt.value)}
-                  />
-                  <EquipmentOptionLabel option={opt} />
-                </label>
-              ))}
-          </div>
+          <EquipmentOptionsPanel
+            options={options}
+            selected={selected}
+            loading={loading}
+            onToggle={toggle}
+          />
         )}
       </div>
       {/* Hidden inputs for form submission */}

@@ -673,6 +673,10 @@ export default function NearMissListPage() {
                           </td>
                           <td className="whitespace-nowrap py-2 pr-3 text-right sm:py-3 sm:pr-4">
                             <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
+                              <ViewIconButton
+                                onClick={() => handleViewDetails(report)}
+                                title="View Details"
+                              />
                               <DownloadIconButton
                                 onClick={() => handleDownloadWord(report)}
                                 disabled={
@@ -703,10 +707,6 @@ export default function NearMissListPage() {
                                 onClick={() => handleDelete(report)}
                                 disabled={!canDelete || archivingId === report._id || deleting === report._id}
                                 loading={deleting === report._id}
-                              />
-                              <ViewIconButton
-                                onClick={() => handleViewDetails(report)}
-                                title="View Details"
                               />
                             </div>
                           </td>

@@ -356,7 +356,6 @@ export default function EquipmentBaseStockFormPage() {
             </p>
           </div>
           <div className="flex w-full max-w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:self-auto sm:flex-shrink-0">
-            <TemplateDownloadLink formCode="QAF-OFD-013" />
             <div className="inline-flex max-w-full flex-wrap justify-center rounded-xl border border-white/15 bg-white/5 overflow-hidden">
               <Link
                 href="/qhse/forms-checklist/equipment-base-stock-level/form"
@@ -389,7 +388,8 @@ export default function EquipmentBaseStockFormPage() {
         )}
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
+          <div className="flex flex-wrap gap-3 items-center justify-end">
+            <TemplateDownloadLink formCode="QAF-OFD-013" />
             <div className="flex items-center gap-2">
               <span className="text-xs uppercase tracking-[0.2em] text-slate-200">Year</span>
               <select

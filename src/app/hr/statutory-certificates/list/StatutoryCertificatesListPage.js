@@ -370,6 +370,10 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                         </td>
                         <td className="px-3 py-3 text-right sm:px-6 sm:py-4">
                           <div className="flex items-center justify-end gap-1">
+                            <ViewIconButton
+                              onClick={() => handleView(cert)}
+                              disabled={downloadingPdfId === cert._id}
+                            />
                             {canDownload && (
                               <QhseDownloadIconButton
                                 onClick={() => handleDownloadPdf(cert)}
@@ -381,10 +385,6 @@ export default function StatutoryCertificatesListPage({ onRefresh }) {
                                 className="!text-rose-400 hover:!text-rose-300"
                               />
                             )}
-                            <ViewIconButton
-                              onClick={() => handleView(cert)}
-                              disabled={downloadingPdfId === cert._id}
-                            />
                             {canEdit && (
                               <EditIconButton
                                 onClick={() => handleEdit(cert)}

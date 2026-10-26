@@ -734,6 +734,10 @@ export default function AuditSubContractorListAdminPage() {
                             </td>
                             <td className="whitespace-nowrap py-2 pr-3 text-right sm:py-3 sm:pr-4">
                               <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
+                                <ViewIconButton
+                                  onClick={() => setSelectedAudit(audit)}
+                                  title="View Details"
+                                />
                                 {canDownload && (
                                   <DownloadIconButton
                                     onClick={() => handleDownloadDocx(audit)}
@@ -757,10 +761,6 @@ export default function AuditSubContractorListAdminPage() {
                                     className="!text-rose-400 hover:!text-rose-300"
                                   />
                                 )}
-                                <ViewIconButton
-                                  onClick={() => setSelectedAudit(audit)}
-                                  title="View Details"
-                                />
                                 <ArchiveIconButton
                                   onClick={() => handleArchive(audit)}
                                   disabled={archivingId === audit._id || deleting === audit._id}

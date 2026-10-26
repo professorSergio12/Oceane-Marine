@@ -377,6 +377,7 @@ export default function AuditInspectionPlannerListPage() {
                         <td className="px-6 py-4">{item.status}</td>
                         <td className="whitespace-nowrap px-3 py-3 text-right sm:px-6 sm:py-4">
                           <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
+                            <ViewIconButton href={`/qhse/audit-inspection-planner/view/${item._id}`} />
                             {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadDocx(item)}
@@ -400,7 +401,6 @@ export default function AuditInspectionPlannerListPage() {
                                 className="!text-rose-400 hover:!text-rose-300"
                               />
                             )}
-                            <ViewIconButton href={`/qhse/audit-inspection-planner/view/${item._id}`} />
                             {canEdit && (
                               <EditIconButton href={`/qhse/audit-inspection-planner/form?edit=${item._id}`} />
                             )}
