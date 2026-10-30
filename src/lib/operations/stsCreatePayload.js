@@ -8,6 +8,7 @@ const VESSEL_TYPE_VALUES = [
   "ULCC",
   "Suexmax",
   "Aframax",
+  "MR",
   "panamax",
   "post-panamax",
   "Handysize",
