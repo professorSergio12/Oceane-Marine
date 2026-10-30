@@ -19,6 +19,85 @@ function markerRadius(total) {
   return 8;
 }
 
+/* ─────────── marker popup ─────────── */
+const POPUP_STATUSES = [
+  { key: "inProgress", label: "In Progress", colour: "#2563eb" },
+  { key: "completed",  label: "Completed",   colour: "#059669" },
+  { key: "pending",    label: "Pending",     colour: "#d97706" },
+  { key: "cancelled",  label: "Cancelled",   colour: "#dc2626" },
+];
+
+const OP_STATUS_COLOUR = {
+  INPROGRESS: "#2563eb",
+  COMPLETED: "#059669",
+  CANCELED: "#dc2626",
+};
+
+/** Fixed-size popup: long location / operation lists scroll inside instead of growing the card */
+function LocationPopup({ loc }) {
+  const locations = loc.locations || [];
+  const isGroup = locations.length > 1;
+
+  return (
+    <div className="w-full text-gray-800">
+      <p className="font-bold text-sm leading-snug line-clamp-2" style={{ color: "#1e40af" }} title={loc.name}>
+        {isGroup ? `${locations.length} locations at this point` : loc.name}
+      </p>
+
+      {/* Total + status counts */}
+      <div className="mt-2 flex items-center gap-3">
+        <div className="text-center shrink-0">
+          <p className="text-2xl font-bold leading-none">{loc.total}</p>
+          <p className="text-[10px] uppercase tracking-wide text-gray-400 mt-0.5">Total</p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] flex-1">
+          {POPUP_STATUSES.map((s) => (
+            <span key={s.key} className={`flex items-center gap-1.5 ${loc[s.key] ? "" : "opacity-40"}`}>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: s.colour }} />
+              <span className="text-gray-500 truncate">{s.label}</span>
+              <span className="ml-auto font-semibold">{loc[s.key] || 0}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Per-location counts when several locations share these coordinates */}
+      {isGroup && (
+        <div className="mt-2 pt-2 border-t border-gray-200">
+          <p className="text-[10px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">Locations</p>
+          <div className="max-h-[72px] overflow-y-auto pr-1 space-y-0.5 light-panel-scroll">
+            {[...locations].sort((a, b) => b.total - a.total).map((l) => (
+              <p key={l.name} className="flex justify-between gap-3 text-[11px] text-gray-600">
+                <span className="truncate" title={l.name}>{l.name}</span>
+                <span className="font-semibold text-gray-800 shrink-0">{l.total}</span>
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent operations */}
+      {loc.operations.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-gray-200">
+          <p className="text-[10px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">Recent</p>
+          <div className="max-h-[96px] overflow-y-auto pr-1 space-y-0.5 light-panel-scroll">
+            {loc.operations.map((op, i) => (
+              <p key={`${op.refNo}-${i}`} className="flex items-center gap-1.5 text-[11px] text-gray-600 leading-tight">
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: OP_STATUS_COLOUR[op.status] || "#d97706" }}
+                />
+                <span className="font-medium text-gray-800 shrink-0">{op.refNo}</span>
+                {op.chs && <span className="text-gray-400 truncate" title={op.chs}>· {op.chs}</span>}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─────────── auto-fit bounds ─────────── */
 function FitBounds({ markers }) {
   const map = useMap();
@@ -126,62 +205,8 @@ export default function OperationsMap({ year, month }) {
                 opacity: 0.8,
               }}
             >
-              <Popup>
-                <div className="min-w-[180px]">
-                  <p className="font-bold text-sm mb-1" style={{ color: "#1e40af" }}>{loc.name}</p>
-                  {/* Per-location counts when several locations share these coordinates */}
-                  {loc.locations?.length > 1 && (
-                    <div className="mb-1.5 pb-1.5 border-b border-gray-200 text-xs">
-                      {loc.locations.map((l) => (
-                        <p key={l.name} className="flex justify-between gap-3 text-gray-600">
-                          <span>{l.name}</span>
-                          <span className="font-semibold text-gray-800">{l.total}</span>
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
-                    <span className="text-gray-500">Total:</span>
-                    <span className="font-semibold text-gray-800">{loc.total}</span>
-                    {loc.completed > 0 && (
-                      <>
-                        <span className="text-emerald-600">Completed:</span>
-                        <span className="text-gray-800">{loc.completed}</span>
-                      </>
-                    )}
-                    {loc.inProgress > 0 && (
-                      <>
-                        <span className="text-blue-600">In Progress:</span>
-                        <span className="text-gray-800">{loc.inProgress}</span>
-                      </>
-                    )}
-                    {loc.pending > 0 && (
-                      <>
-                        <span className="text-amber-600">Pending:</span>
-                        <span className="text-gray-800">{loc.pending}</span>
-                      </>
-                    )}
-                    {loc.cancelled > 0 && (
-                      <>
-                        <span className="text-red-600">Cancelled:</span>
-                        <span className="text-gray-800">{loc.cancelled}</span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Recent operations */}
-                  {loc.operations.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <p className="text-[10px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">Recent</p>
-                      {loc.operations.map((op, i) => (
-                        <p key={i} className="text-[11px] text-gray-600 leading-tight">
-                          <span className="font-medium text-gray-800">{op.refNo}</span>
-                          {op.chs && <span className="text-gray-400"> · {op.chs}</span>}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <Popup minWidth={240} maxWidth={260} autoPanPadding={[16, 16]}>
+                <LocationPopup loc={loc} />
               </Popup>
             </CircleMarker>
           ))}

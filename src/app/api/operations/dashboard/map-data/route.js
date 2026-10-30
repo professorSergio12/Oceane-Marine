@@ -106,6 +106,8 @@ function resolveCoords(locationDoc) {
   return null;
 }
 
+const RECENT_OPS_PER_MARKER = 10;
+
 /* ================================================================
    GET  /api/operations/dashboard/map-data?year=2026&month=3
    Returns operation locations with coordinates and counts
@@ -142,6 +144,7 @@ export async function GET(req) {
     })
       .populate("location", "name latitude longitude")
       .select("location operationStatus Operation_Ref_No chs ms operationStartTime")
+      .sort({ operationStartTime: -1 })
       .lean();
 
     // Group by location
@@ -176,8 +179,8 @@ export async function GET(req) {
       else if (status === "CANCELED")   entry.cancelled++;
       else entry.pending++;
 
-      // Keep last 5 operations per location for tooltip
-      if (entry.operations.length < 5) {
+      // Keep the latest operations per location for the popup (newest first via the sort above)
+      if (entry.operations.length < RECENT_OPS_PER_MARKER) {
         entry.operations.push({
           refNo: op.Operation_Ref_No,
           status: op.operationStatus,
@@ -207,7 +210,7 @@ export async function GET(req) {
       merged.cancelled += entry.cancelled;
       merged.operations = [...merged.operations, ...entry.operations]
         .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-        .slice(0, 5);
+        .slice(0, RECENT_OPS_PER_MARKER);
     }
 
     const markers = Object.values(byCoords).sort((a, b) => b.total - a.total);
