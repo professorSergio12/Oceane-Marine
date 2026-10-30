@@ -188,7 +188,29 @@ export async function GET(req) {
       }
     }
 
-    const markers = Object.values(locationMap).sort((a, b) => b.total - a.total);
+    // Locations with the same coordinates (e.g. "Fujairah Anchorage" and "Fujairah S Anchorage")
+    // would draw on top of each other and hide one count, so merge them into one marker.
+    const byCoords = {};
+    for (const entry of Object.values(locationMap)) {
+      const key = `${Number(entry.lat).toFixed(4)},${Number(entry.lng).toFixed(4)}`;
+      const merged = byCoords[key];
+      if (!merged) {
+        byCoords[key] = { ...entry, key, locations: [{ name: entry.name, total: entry.total }] };
+        continue;
+      }
+      merged.locations.push({ name: entry.name, total: entry.total });
+      merged.name = merged.locations.map((l) => l.name).join(" / ");
+      merged.total += entry.total;
+      merged.completed += entry.completed;
+      merged.inProgress += entry.inProgress;
+      merged.pending += entry.pending;
+      merged.cancelled += entry.cancelled;
+      merged.operations = [...merged.operations, ...entry.operations]
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+        .slice(0, 5);
+    }
+
+    const markers = Object.values(byCoords).sort((a, b) => b.total - a.total);
 
     return NextResponse.json({ success: true, data: markers });
   } catch (error) {

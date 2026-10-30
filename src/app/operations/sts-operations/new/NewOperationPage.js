@@ -126,6 +126,15 @@ function applyFieldsToForm(form, fields, skipNames) {
   }
 }
 
+/** Readable status for the "Select Previous Operation" list */
+function formatOperationStatus(status) {
+  const s = String(status || "").trim();
+  if (s.toUpperCase() === "INPROGRESS" || s.toLowerCase() === "in progress") return "In Progress";
+  if (s.toUpperCase() === "COMPLETED") return "Completed";
+  if (s.toLowerCase() === "lined up") return "Lined Up";
+  return s;
+}
+
 const statusTone = {
   INPROGRESS: {
     dot: "bg-sky-600",
@@ -232,7 +241,7 @@ export default function NewOperationPage() {
   const [selectedVesselTypeMS, setSelectedVesselTypeMS] = useState("");
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState([]);
 
-  // "Select Previous Operation": reuse the equipment of a completed operation (app or historical register)
+  // "Select Previous Operation": reuse the equipment of a lined up / in-progress / completed operation (app or historical register)
   const [previousOperations, setPreviousOperations] = useState([]);
   const [loadingPreviousOperations, setLoadingPreviousOperations] = useState(false);
   const [previousOperationKey, setPreviousOperationKey] = useState("");
@@ -261,7 +270,7 @@ export default function NewOperationPage() {
   }, [formResetKey]);
 
   /**
-   * Add every equipment of the chosen completed operation to the current selection.
+   * Add every equipment of the chosen previous operation to the current selection.
    * Already-selected items are not duplicated; items now in use elsewhere (or retired)
    * can't be added and are reported. The original operation is never modified.
    */
@@ -778,7 +787,7 @@ export default function NewOperationPage() {
     persistStsNewOpDraftNow();
   }, [persistStsNewOpDraftNow]);
 
-  const handleSubmit = async (e, isSubmit = false) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const opRef = String(operationRef || "").trim();
@@ -787,8 +796,8 @@ export default function NewOperationPage() {
       return;
     }
 
-    if (isSubmit && !selectedLocationId) {
-      alert("Please select a Location before submitting. You can save a draft without it and complete details later.");
+    if (!selectedLocationId) {
+      alert("Please select a Location before submitting.");
       return;
     }
 
@@ -799,16 +808,10 @@ export default function NewOperationPage() {
 
       formData.set("Operation_Ref_No", opRef);
 
-      const finalStatus = isSubmit ? status : "INPROGRESS";
-      formData.set("operationStatus", finalStatus);
-
-      if (isSubmit) {
-        formData.set("isSubmitted", "true");
-        formData.set("submittedAt", new Date().toISOString());
-      } else {
-        formData.delete("isSubmitted");
-        formData.delete("submittedAt");
-      }
+      // The status the user selected is saved as-is
+      formData.set("operationStatus", status);
+      formData.set("isSubmitted", "true");
+      formData.set("submittedAt", new Date().toISOString());
 
       formData.set("flowDirection", flowDir);
 
@@ -1761,7 +1764,7 @@ export default function NewOperationPage() {
               <div className="space-y-2">
                 <Label>Select Previous Operation</Label>
                 <SelectField
-                  ariaLabel="Select previous completed operation"
+                  ariaLabel="Select previous operation"
                   value={previousOperationKey}
                   onChange={applyPreviousOperation}
                   loading={loadingPreviousOperations}
@@ -1772,12 +1775,12 @@ export default function NewOperationPage() {
                       label: loadingPreviousOperations
                         ? "Loading..."
                         : previousOperations.length
-                          ? "Reuse equipment from a completed operation"
-                          : "No completed operations with equipment",
+                          ? "Reuse equipment from a previous operation"
+                          : "No previous operations with equipment",
                     },
                     ...previousOperations.map((p) => ({
                       value: p.key,
-                      label: `${p.ref || "No ref"}${p.vessels ? ` — ${p.vessels}` : ""} (${p.equipment.length} equipment${p.source === "register" ? ", historical" : ""})`,
+                      label: `${p.ref || "No ref"}${p.vessels ? ` — ${p.vessels}` : ""} (${p.status ? `${formatOperationStatus(p.status)}, ` : ""}${p.equipment.length} equipment${p.source === "register" ? ", historical" : ""})`,
                     })),
                   ]}
                   triggerClassName="flex w-full items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-black/20 outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400/60 transition"
@@ -1848,15 +1851,7 @@ export default function NewOperationPage() {
               </button>
               <button
                 type="button"
-                onClick={(e) => handleSubmit(e, false)}
-                disabled={submitting}
-                className="px-6 py-3 rounded-xl border border-blue-400/30 bg-blue-500/20 text-blue-300 font-semibold hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? "Saving..." : "Save as Draft"}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
+                onClick={handleSubmit}
                 disabled={submitting}
                 className="px-6 py-3 rounded-xl bg-orange-500 text-white font-semibold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >

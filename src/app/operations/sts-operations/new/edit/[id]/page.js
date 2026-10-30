@@ -361,23 +361,18 @@ export default function EditOperationPage() {
     }
   }, [operationData, loadingMasters]);
 
-  const handleSubmit = async (e, isSubmit = false) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
       const formData = new FormData(formRef.current);
 
-      // Add status - always INPROGRESS for draft, keep selected status for submit
-      const finalStatus = isSubmit ? status : "INPROGRESS";
-      formData.append("status", finalStatus);
-      formData.append("operationStatus", finalStatus);
-      
-      // Mark as submitted if submit button clicked
-      if (isSubmit) {
-        formData.append("isSubmitted", "true");
-        formData.append("submittedAt", new Date().toISOString());
-      }
+      // The status the user selected is saved as-is
+      formData.append("status", status);
+      formData.append("operationStatus", status);
+      formData.append("isSubmitted", "true");
+      formData.append("submittedAt", new Date().toISOString());
 
       // Add flow direction
       formData.append("flowDirection", flowDir);
@@ -1200,15 +1195,7 @@ export default function EditOperationPage() {
                 <>
                   <button
                     type="button"
-                    onClick={(e) => handleSubmit(e, false)}
-                    disabled={submitting}
-                    className="px-6 py-3 rounded-xl border border-blue-400/30 bg-blue-500/20 text-blue-300 font-semibold hover:bg-blue-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? "Saving..." : "Save as Draft"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleSubmit(e, true)}
+                    onClick={handleSubmit}
                     disabled={submitting}
                     className="px-6 py-3 rounded-xl bg-orange-500 text-white font-semibold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >

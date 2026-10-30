@@ -6,7 +6,7 @@ import { getRegisterRows } from "@/lib/operations/stsRegisterExport";
 
 /**
  * GET /api/operations/sts/previous-operations
- * Completed operations whose equipment can be reused on a new operation:
+ * Lined up, in-progress and completed operations whose equipment can be reused on a new operation:
  *  - app operations (equipment saved on the operation), and
  *  - historical register jobs (EquipUSED codes matched to PMS equipment code / serial).
  * When the same ref exists in both, the app operation wins. Read-only.
@@ -22,6 +22,10 @@ const norm = (s) =>
     .replace(/\s+/g, "")
     .replace(/^tc\/am\//, "");
 
+// Statuses offered in "Select Previous Operation" (app values; register text is compared lowercased)
+const REUSABLE_STATUSES = ["Lined Up", "INPROGRESS", "COMPLETED"];
+const REUSABLE_REGISTER_STATUSES = new Set(["lined up", "inprogress", "in progress", "completed"]);
+
 function splitCodes(text) {
   return String(text || "")
     .split(/[,;\n]+/)
@@ -34,8 +38,8 @@ export async function GET() {
     await connectDB();
 
     const [appOps, registerRows, allEquipment] = await Promise.all([
-      StsOperation.find({ isLatest: true, operationStatus: "COMPLETED" })
-        .select("Operation_Ref_No chs ms operationStartTime operationEndTime equipments")
+      StsOperation.find({ isLatest: true, operationStatus: { $in: REUSABLE_STATUSES } })
+        .select("Operation_Ref_No chs ms operationStatus operationStartTime operationEndTime equipments")
         .populate("equipments.equipment", "equipmentCode equipmentName serialCode")
         .sort({ operationStartTime: -1 })
         .lean(),
@@ -59,6 +63,7 @@ export async function GET() {
         key: `app:${op._id}`,
         ref,
         source: "app",
+        status: op.operationStatus,
         date: op.operationEndTime || op.operationStartTime || null,
         vessels: [op.chs, op.ms].filter(Boolean).join(" / "),
         equipment,
@@ -78,7 +83,7 @@ export async function GET() {
     }
 
     registerRows.forEach((row, index) => {
-      if (row.status.toLowerCase() !== "completed" || !row.equipmentUsed) return;
+      if (!REUSABLE_REGISTER_STATUSES.has(String(row.status || "").trim().toLowerCase()) || !row.equipmentUsed) return;
       if (row.ref && appRefs.has(row.ref)) return; // app version already listed
       const seen = new Set();
       const equipment = [];
@@ -100,6 +105,7 @@ export async function GET() {
         key: `register:${index}`,
         ref: row.ref,
         source: "register",
+        status: row.status,
         date: row.date,
         vessels: [row.stbl, row.ss].filter(Boolean).join(" / "),
         equipment,

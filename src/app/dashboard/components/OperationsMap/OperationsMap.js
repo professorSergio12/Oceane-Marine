@@ -115,7 +115,7 @@ export default function OperationsMap({ year, month }) {
           {/* Markers */}
           {markers.map((loc) => (
             <CircleMarker
-              key={loc.name}
+              key={loc.key || loc.name}
               center={[loc.lat, loc.lng]}
               radius={markerRadius(loc.total)}
               pathOptions={{
@@ -129,6 +129,17 @@ export default function OperationsMap({ year, month }) {
               <Popup>
                 <div className="min-w-[180px]">
                   <p className="font-bold text-sm mb-1" style={{ color: "#1e40af" }}>{loc.name}</p>
+                  {/* Per-location counts when several locations share these coordinates */}
+                  {loc.locations?.length > 1 && (
+                    <div className="mb-1.5 pb-1.5 border-b border-gray-200 text-xs">
+                      {loc.locations.map((l) => (
+                        <p key={l.name} className="flex justify-between gap-3 text-gray-600">
+                          <span>{l.name}</span>
+                          <span className="font-semibold text-gray-800">{l.total}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
                     <span className="text-gray-500">Total:</span>
                     <span className="font-semibold text-gray-800">{loc.total}</span>
