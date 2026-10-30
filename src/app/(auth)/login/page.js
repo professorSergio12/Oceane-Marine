@@ -154,6 +154,10 @@ export default function LoginPage() {
                       d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                     />
                     <circle cx="12" cy="12" r="3" />
+                    {/* Line through the eye while the password is visible */}
+                    {showPassword && (
+                      <path strokeLinecap="round" strokeWidth={1.75} d="M3 3l18 18" />
+                    )}
                   </svg>
                 </button>
               </div>

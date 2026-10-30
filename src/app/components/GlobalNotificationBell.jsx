@@ -19,6 +19,22 @@ const TABS = [
   { key: M.HR, label: "HR", accent: "from-rose-500 to-orange-600" },
 ];
 
+/* Draggable bell: position is kept as distance from the bottom-right corner (px) */
+const BELL_SIZE = 56;
+const EDGE_GAP = 8;
+const DRAG_THRESHOLD = 5;
+const DEFAULT_BELL_POS = { right: 24, bottom: 24 };
+const BELL_POS_STORAGE_KEY = "notificationBellPosition";
+
+function clampBellPos({ right, bottom }) {
+  const maxRight = Math.max(EDGE_GAP, window.innerWidth - BELL_SIZE - EDGE_GAP);
+  const maxBottom = Math.max(EDGE_GAP, window.innerHeight - BELL_SIZE - EDGE_GAP);
+  return {
+    right: Math.min(Math.max(right, EDGE_GAP), maxRight),
+    bottom: Math.min(Math.max(bottom, EDGE_GAP), maxBottom),
+  };
+}
+
 function timeAgo(date) {
   const d = new Date(date);
   const diffMs = Date.now() - d.getTime();
@@ -63,6 +79,72 @@ export default function GlobalNotificationBell() {
   const [totalUnread, setTotalUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef(null);
+
+  /* ---- Draggable position (so the bell can be moved off buttons it covers) ---- */
+  const [bellPos, setBellPos] = useState(DEFAULT_BELL_POS);
+  const bellPosLoadedRef = useRef(false);
+  const dragRef = useRef(null);
+  const justDraggedRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(BELL_POS_STORAGE_KEY) || "null");
+      if (saved && Number.isFinite(saved.right) && Number.isFinite(saved.bottom)) {
+        setBellPos(clampBellPos(saved));
+      }
+    } catch {
+      /* storage unavailable — keep default corner */
+    }
+    bellPosLoadedRef.current = true;
+    const onResize = () => setBellPos((p) => clampBellPos(p));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!bellPosLoadedRef.current) return;
+    try {
+      localStorage.setItem(BELL_POS_STORAGE_KEY, JSON.stringify(bellPos));
+    } catch {
+      /* storage unavailable — position just won't persist */
+    }
+  }, [bellPos]);
+
+  const onBellPointerDown = (e) => {
+    if (e.button !== 0) return;
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startRight: bellPos.right,
+      startBottom: bellPos.bottom,
+      moved: false,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onBellPointerMove = (e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    d.moved = true;
+    setBellPos(clampBellPos({ right: d.startRight - dx, bottom: d.startBottom - dy }));
+  };
+
+  const onBellPointerUp = () => {
+    // A drag must not also toggle the panel (the click fires right after pointerup)
+    if (dragRef.current?.moved) justDraggedRef.current = true;
+    dragRef.current = null;
+  };
+
+  const onBellClick = () => {
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      return;
+    }
+    setOpen((v) => !v);
+  };
 
   const isAdmin = useMemo(
     () =>
@@ -182,13 +264,29 @@ export default function GlobalNotificationBell() {
   const activeAccent =
     TABS.find((t) => t.key === tab)?.accent ?? "from-slate-500 to-slate-700";
 
+  // Open the panel on the side of the screen that has room for it
+  const bellInLowerHalf = bellPos.bottom < window.innerHeight / 2;
+  const bellOnRightHalf = bellPos.right < window.innerWidth / 2;
+  const panelVertical = bellInLowerHalf
+    ? "bottom-24 sm:top-auto sm:bottom-[4.5rem]"
+    : "top-24 sm:bottom-auto sm:top-[4.5rem]";
+  const panelHorizontal = bellOnRightHalf ? "sm:left-auto sm:right-0" : "sm:right-auto sm:left-0";
+
   return (
-    <div ref={panelRef} className="fixed bottom-6 right-6 z-[9990] font-sans">
+    <div
+      ref={panelRef}
+      className="fixed z-[9990] font-sans"
+      style={{ right: bellPos.right, bottom: bellPos.bottom }}
+    >
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${activeAccent} text-white shadow-2xl shadow-black/40 ring-2 ring-white/10 transition hover:scale-[1.03] hover:ring-white/25`}
-        title="Notifications"
+        onClick={onBellClick}
+        onPointerDown={onBellPointerDown}
+        onPointerMove={onBellPointerMove}
+        onPointerUp={onBellPointerUp}
+        onPointerCancel={onBellPointerUp}
+        className={`relative flex h-14 w-14 touch-none select-none cursor-grab active:cursor-grabbing items-center justify-center rounded-2xl bg-gradient-to-br ${activeAccent} text-white shadow-2xl shadow-black/40 ring-2 ring-white/10 transition hover:scale-[1.03] hover:ring-white/25`}
+        title="Notifications (drag to move)"
         aria-label="Open notifications"
       >
         <svg
@@ -214,7 +312,7 @@ export default function GlobalNotificationBell() {
 
       {open && (
         <div
-          className="fixed bottom-24 left-3 right-3 z-[9991] flex max-h-[min(70vh,560px)] w-auto flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1222] shadow-[0_25px_80px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:absolute sm:inset-x-auto sm:bottom-[4.5rem] sm:left-auto sm:right-0 sm:z-auto sm:max-h-[min(70vh,560px)] sm:w-[min(100vw-1.5rem,420px)]"
+          className={`fixed left-3 right-3 z-[9991] flex max-h-[min(70vh,560px)] w-auto flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1222] shadow-[0_25px_80px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:absolute sm:z-auto sm:max-h-[min(70vh,560px)] sm:w-[min(100vw-1.5rem,420px)] ${panelVertical} ${panelHorizontal}`}
           role="dialog"
           aria-label="Activity feed"
         >

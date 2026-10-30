@@ -341,65 +341,21 @@ export default function OperationsCharts() {
         {/* Cargo Types */}
         <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
           <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Types of Cargos Transferred</h2>
-          <div className="space-y-3">
-            {cargoData.length > 0 ? (
-              cargoData.map((item, idx) => {
-                const maxCount = Math.max(...cargoData.map((d) => d.count), 1);
-                const width = (item.count / maxCount) * 100;
-                const colors = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6"];
-                return (
-                  <div key={item.name} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-300">{item.name}</span>
-                      <span className="text-xs font-bold text-white">{item.count}</span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-4 relative overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${width}%`,
-                          backgroundColor: colors[idx % colors.length],
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-slate-400 text-sm">No cargo type data</div>
-            )}
-          </div>
+          {cargoData.length > 0 ? (
+            <CargoDonut data={cargoData} />
+          ) : (
+            <div className="text-center py-8 text-slate-400 text-sm">No cargo type data</div>
+          )}
         </div>
 
         {/* Clients-wise Operations */}
         <div className="rounded-xl md:rounded-2xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md shadow-2xl p-3 sm:p-4 md:p-6">
           <h2 className="text-sm sm:text-base md:text-lg font-bold text-white mb-3 md:mb-4">Clients-wise Operations</h2>
-          <div className="h-48 sm:h-56 md:h-64 flex items-end justify-around gap-0.5 sm:gap-1 px-1 sm:px-2">
-            {stats.clientsData.length > 0 ? (
-              stats.clientsData.slice(0, 8).map((item) => {
-                const maxValue = Math.max(...stats.clientsData.map((d) => d.count), 1);
-                const height = (item.count / maxValue) * 100;
-                return (
-                  <div key={item.name} className="flex-1 flex flex-col items-center gap-1">
-                    <div
-                      className="w-full bg-white/10 rounded-t relative"
-                      style={{ height: `${height}%`, minHeight: "4px" }}
-                    >
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-purple-500 to-purple-400 rounded-t"></div>
-                      <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-white whitespace-nowrap">
-                        {item.count}
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-semibold text-slate-300 text-center leading-tight">
-                      {item.name.length > 6 ? item.name.substring(0, 6) : item.name}
-                    </span>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-slate-400 text-sm w-full">No client data</div>
-            )}
-          </div>
+          {stats.clientsData.length > 0 ? (
+            <ClientColumns data={stats.clientsData} />
+          ) : (
+            <div className="text-center py-8 text-slate-400 text-sm w-full">No client data</div>
+          )}
         </div>
       </div>
 
@@ -429,6 +385,131 @@ export default function OperationsCharts() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ================================================================
+   CARGO TYPES — donut chart with total in the centre + legend
+   ================================================================ */
+const CARGO_COLORS = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6"];
+const CARGO_OTHER_COLOR = "#64748b";
+
+function CargoDonut({ data }) {
+  // Top 5 cargo types, the rest grouped as "Other"
+  const top = data.slice(0, CARGO_COLORS.length);
+  const restCount = data.slice(CARGO_COLORS.length).reduce((s, d) => s + d.count, 0);
+  const slices = [
+    ...top.map((d, i) => ({ ...d, color: CARGO_COLORS[i] })),
+    ...(restCount > 0 ? [{ name: "Other", count: restCount, color: CARGO_OTHER_COLOR }] : []),
+  ];
+  const total = slices.reduce((s, d) => s + d.count, 0);
+
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  // Start offset of each slice along the ring (computed up front, no mutation in render)
+  const starts = slices.reduce(
+    (acc, d) => [...acc, acc[acc.length - 1] + (d.count / total) * circumference],
+    [0]
+  );
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+      <div className="relative h-36 w-36 shrink-0">
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="12" />
+          {slices.map((d, i) => {
+            const length = (d.count / total) * circumference;
+            return (
+              <circle
+                key={d.name}
+                cx="50"
+                cy="50"
+                r={radius}
+                fill="none"
+                stroke={d.color}
+                strokeWidth="12"
+                strokeDasharray={`${length} ${circumference - length}`}
+                strokeDashoffset={-starts[i]}
+              >
+                <title>{`${d.name}: ${d.count}`}</title>
+              </circle>
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold text-white tabular-nums">{total}</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-400">Transfers</span>
+        </div>
+      </div>
+      <ul className="w-full min-w-0 space-y-2">
+        {slices.map((d) => (
+          <li key={d.name} className="flex items-center justify-between gap-3 text-xs">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: d.color }} />
+              <span className="truncate text-slate-200" title={d.name}>{d.name}</span>
+            </span>
+            <span className="shrink-0 tabular-nums">
+              <span className="font-semibold text-white">{d.count}</span>
+              <span className="ml-1.5 text-slate-400">{Math.round((d.count / total) * 100)}%</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ================================================================
+   CLIENTS — vertical column chart (count on top, full name below)
+   Every client gets a column. Columns share the card width; once they
+   would get narrower than MIN_CLIENT_COLUMN_WIDTH the chart scrolls sideways.
+   ================================================================ */
+const CLIENT_COLORS = ["#22d3ee", "#a855f7", "#f472b6", "#facc15", "#34d399", "#60a5fa", "#fb923c", "#94a3b8"];
+const CLIENT_CHART_HEIGHT = 160; // px available for the tallest column
+const MIN_CLIENT_COLUMN_WIDTH = 64; // px per client (column + its name)
+
+function ClientColumns({ data }) {
+  const sorted = [...data].sort((a, b) => b.count - a.count);
+  const maxCount = Math.max(...sorted.map((d) => d.count), 1);
+
+  return (
+    <div className="overflow-x-auto styled-scrollbar pb-1">
+      <div style={{ minWidth: sorted.length * MIN_CLIENT_COLUMN_WIDTH }}>
+        <div className="relative" style={{ height: CLIENT_CHART_HEIGHT + 24 }}>
+          {/* light guide lines at 50% and 100% */}
+          <div className="absolute inset-x-0 border-t border-dashed border-white/10" style={{ bottom: CLIENT_CHART_HEIGHT }} />
+          <div className="absolute inset-x-0 border-t border-dashed border-white/10" style={{ bottom: CLIENT_CHART_HEIGHT / 2 }} />
+          <div className="absolute inset-x-0 bottom-0 border-t border-white/20" />
+          <div className="relative flex h-full items-end">
+            {sorted.map((d, i) => {
+              const height = Math.max((d.count / maxCount) * CLIENT_CHART_HEIGHT, 6);
+              return (
+                <div key={d.name} className="flex min-w-0 flex-1 flex-col items-center px-1.5 sm:px-2">
+                  <span className="mb-1 text-xs font-bold text-white tabular-nums">{d.count}</span>
+                  <div
+                    className="w-full max-w-[56px] rounded-t-md transition-all"
+                    style={{ height, backgroundColor: CLIENT_COLORS[i % CLIENT_COLORS.length] }}
+                    title={`${d.name}: ${d.count} operation${d.count !== 1 ? "s" : ""}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {/* full client names under their columns */}
+        <div className="mt-2 flex">
+          {sorted.map((d) => (
+            <span
+              key={d.name}
+              className="min-w-0 flex-1 px-1 text-center text-[10px] leading-tight text-slate-300 break-words"
+              title={d.name}
+            >
+              {d.name}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
