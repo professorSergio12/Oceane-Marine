@@ -5,6 +5,22 @@ import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import "@/lib/mongodb/models/Location";
 import "@/lib/mongodb/models/MooringMaster";
 
+/** "2026-541" → [2026, 541]; null for refs in any other format */
+function refSortKey(ref) {
+  const m = String(ref || "").trim().match(/^(\d{4})\s*-\s*(\d+)/);
+  return m ? [Number(m[1]), Number(m[2])] : null;
+}
+
+/** Job number order, newest first (2026-545, 2026-543, …); other refs follow, newest created first */
+function compareByRefDesc(a, b) {
+  const ka = refSortKey(a.Operation_Ref_No);
+  const kb = refSortKey(b.Operation_Ref_No);
+  if (ka && kb) return kb[0] - ka[0] || kb[1] - ka[1];
+  if (ka) return -1;
+  if (kb) return 1;
+  return 0; // keep the createdAt order from the query
+}
+
 export async function GET(req) {
   await connectDB();
 
@@ -74,6 +90,8 @@ export async function GET(req) {
         createdAt: -1,
       })
       .lean();
+
+    list.sort(compareByRefDesc);
 
     return NextResponse.json({
       success: true,
