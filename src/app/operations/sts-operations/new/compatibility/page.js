@@ -20,6 +20,8 @@ const emptyShip = () => ({
   ManifoldToRail: "",
 });
 
+const SHIP_NUMBER_FIELDS = ["DWT", "Beam", "DISP", "Draft", "MaxFreeboard", "MinFreeboard", "ManifoldToRail"];
+
 /** STS ops that can be tied to compatibility (matches common workflow before / during transfer). */
 const COMPATIBILITY_STS_STATUSES = ["INPROGRESS", "Lined Up"];
 
@@ -120,6 +122,60 @@ function CompatibilityPageContent() {
     }
     if (op.ms) {
       setSS((prev) => ({ ...prev, name: op.ms }));
+    }
+    if (!editId) loadSavedCalculation(op);
+  };
+
+  /* Calculation already saved for the selected operation → show its values and results */
+  const savedLookupRef = useRef(0);
+  const filledFromSavedRef = useRef(false);
+  const loadSavedCalculation = async (op) => {
+    const ref = String(op.Operation_Ref_No || "").trim();
+    if (!ref) return;
+    const lookupId = ++savedLookupRef.current;
+    setSuccess("");
+    try {
+      const res = await fetch(`/api/operations/compatibility/list?operationNumber=${encodeURIComponent(ref)}`, { cache: "no-store" });
+      const data = await res.json();
+      if (lookupId !== savedLookupRef.current) return; // a different operation was picked meanwhile
+      const saved = data.success && Array.isArray(data.data) ? data.data[0] : null;
+      if (!saved) {
+        // Clear values that were filled from another operation's saved calculation
+        if (filledFromSavedRef.current) {
+          setSTBL({ ...emptyShip(), name: op.chs || "" });
+          setSS({ ...emptyShip(), name: op.ms || "" });
+          setResults(null);
+          filledFromSavedRef.current = false;
+        }
+        return;
+      }
+      const toForm = (ship, currentName) => ({
+        name: currentName || ship?.name || "",
+        DWT: ship?.DWT ?? "",
+        Beam: ship?.Beam ?? "",
+        DISP: ship?.DISP ?? "",
+        Draft: ship?.Draft ?? "",
+        MaxFreeboard: ship?.MaxFreeboard ?? "",
+        MinFreeboard: ship?.MinFreeboard ?? "",
+        ManifoldToRail: ship?.ManifoldToRail ?? "",
+      });
+      // Names follow the operation (latest), numbers come from the saved calculation
+      const stbl = toForm(saved.STBL, op.chs);
+      const ss = toForm(saved.SS, op.ms);
+      setSTBL(stbl);
+      setSS(ss);
+      // Recalculate the saved sections from these numbers (adds Point A/B/C, which aren't stored)
+      const num = (v) => Number(v) || 0;
+      const toNums = (s) => ({ ...s, ...Object.fromEntries(SHIP_NUMBER_FIELDS.map((f) => [f, num(s[f])])) });
+      const computed = computeAll(toNums(stbl), toNums(ss));
+      const shown = {};
+      if (saved.results?.hose) shown.hose = computed.hose;
+      if (saved.results?.fender) shown.fender = computed.fender;
+      setResults(Object.keys(shown).length ? shown : null);
+      filledFromSavedRef.current = true;
+      setSuccess(`Saved calculation for ${ref} loaded. Saving again updates the same record.`);
+    } catch {
+      // No saved data could be loaded — the form simply stays empty for a new calculation
     }
   };
 

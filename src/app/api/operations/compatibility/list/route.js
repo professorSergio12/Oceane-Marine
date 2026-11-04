@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import Compatibility from "@/lib/mongodb/models/operations/Compatibility";
-import { groupCompatibilityList } from "@/lib/operations/compatibilityGroup";
+import { findCompatibilityGroup, groupCompatibilityList } from "@/lib/operations/compatibilityGroup";
 
 export async function GET(req) {
   await connectDB();
@@ -9,6 +9,13 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
     const locationId = searchParams.get("locationId");
+    const operationNumber = searchParams.get("operationNumber");
+
+    // One operation's saved calculation (hose + fender combined) — used to prefill the form
+    if (operationNumber) {
+      const group = await findCompatibilityGroup(operationNumber);
+      return NextResponse.json({ success: true, data: groupCompatibilityList(group) });
+    }
 
     let query = {};
     if (year) {

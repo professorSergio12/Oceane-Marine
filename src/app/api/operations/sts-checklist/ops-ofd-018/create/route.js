@@ -32,6 +32,10 @@ export async function POST(req) {
     }
 
     const body = JSON.parse(dataStr);
+    // Timesheet is keyed by operation ref; normalise it the same way the GET/PUT routes do
+    if (typeof body.operationRef === "string") {
+      body.operationRef = body.operationRef.replace(/,\s*$/, "").trim();
+    }
 
     if (!body.operationRef) {
       return NextResponse.json(
@@ -76,25 +80,18 @@ export async function POST(req) {
       createdBy: body.createdBy || undefined,
     };
 
-    /* ================= DUPLICATE SAFETY CHECK ================= */
-    const existing = await STSTimesheet.findOne({
-      operationRef: body.operationRef,
-    }).sort({ createdAt: -1 });
-
-    if (existing) {
-      if (existing.sequenceNumber) {
-        console.log(`⚠️ OPS-OFD-018 already exists for ${body.operationRef}, returning existing`);
-        return NextResponse.json(
-          {
-            message: "Timesheet already exists",
-            data: existing,
-            isDuplicate: true,
-          },
-          { status: 200, headers: corsHeaders }
-        );
-      }
-      await STSTimesheet.findByIdAndDelete(existing._id);
-      console.log(`🗑️ Deleted incomplete OPS-OFD-018 without sequenceNumber for ${body.operationRef}`);
+    /* ================= ONE TIMESHEET PER OPERATION ================= */
+    // A second create would leave the entries in two records (or drop them), so refuse it;
+    // the form loads the saved timesheet and updates it instead.
+    const alreadySaved = await STSTimesheet.exists({ operationRef: body.operationRef });
+    if (alreadySaved) {
+      return NextResponse.json(
+        {
+          error:
+            "A timesheet is already saved for this operation. Reload the page to see the saved entries, then make your changes and submit again.",
+        },
+        { status: 409, headers: corsHeaders }
+      );
     }
 
     /* ================= STEP 1: SAVE DOCUMENT ================= */

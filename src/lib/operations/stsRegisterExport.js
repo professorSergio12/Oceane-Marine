@@ -23,6 +23,9 @@ import RecordOfWorkHours from "@/lib/mongodb/models/operation-sts-checklist/OPS-
  *   1. every row of the customer's historical Excel, exactly as it is (duplicates included), then
  *   2. every operation in the app, appended below — even when its ref also appears in the old data.
  * The template file itself is never modified.
+ * Columns 32–37 (start / end of the operation, timesheet cargo quantity, mooring master) are added after the
+ * Excel's own columns and are filled from the app's STS Timesheet (OPS-OFD-018); historical rows
+ * leave them blank.
  */
 export const REGISTER_TEMPLATE_PATH = path.join(
   process.cwd(),
@@ -31,7 +34,33 @@ export const REGISTER_TEMPLATE_PATH = path.join(
 
 const HEADER_ROW = 1;
 const COL = { REF: 1, TYPE: 2, STATUS: 3, LOCATION: 4, DATE: 5, STBL: 6, SS: 7, MOORING_MASTER: 8, CARGO: 9, QUANTITY: 10, EQUIP: 30, REMARKS: 31 };
-const LAST_COL = 31;
+const TIMESHEET_COL = { START_DATE: 32, START_TIME: 33, END_DATE: 34, END_TIME: 35, QUANTITY: 36, SUPERINTENDENT: 37 };
+// Header names as the client uses them in their register
+const TIMESHEET_HEADERS = {
+  [TIMESHEET_COL.START_DATE]: "Start Date",
+  [TIMESHEET_COL.START_TIME]: "Start time",
+  [TIMESHEET_COL.END_DATE]: "End Date",
+  [TIMESHEET_COL.END_TIME]: "End Time",
+  [TIMESHEET_COL.QUANTITY]: "Timesheet cargo", // timesheet QUANTITY:
+  [TIMESHEET_COL.SUPERINTENDENT]: "MM from time sheet", // timesheet STS SUPERINTENDENT:
+};
+const LAST_COL = TIMESHEET_COL.SUPERINTENDENT;
+
+/** Timesheet rows that mark the start (first filled "From") and the end (last filled "To") */
+const START_ACTIVITIES = [
+  "COMM SHORE MOBILISATION",
+  "SUPPORT CRAFT SAILS",
+  "M/M ONBOARD",
+  "COMM MOB EQUIPMENT ON VESSEL",
+  "COMM RUN IN",
+  "MOORING",
+];
+const END_ACTIVITIES = [
+  "UNMOORING",
+  "COMM DEMOB EQUIPMENT",
+  "SUPPORT CRAFT DEPARTS VESSEL",
+  "SHORE DEMOBILISATION",
+];
 
 const STATUS_LABELS = {
   INPROGRESS: "In Progress",
@@ -146,8 +175,48 @@ async function loadFilledForms(operations) {
   return filled;
 }
 
-/** Values for the 31 Excel columns for one app operation. */
-function buildAppRowValues(op, filledForms) {
+/** Timesheet date (stored at UTC midnight of the chosen day) → Excel date cell value */
+function timesheetDate(d) {
+  if (!d) return null;
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? null : new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+/**
+ * Start = "From" of the first filled START_ACTIVITIES row; End = "To" of the last filled
+ * END_ACTIVITIES row. A row counts as filled when its date is set.
+ */
+function timesheetStartEnd(timesheet) {
+  const rows = new Map((timesheet?.operationTimings || []).map((r) => [norm(r.activityName), r]));
+  const pick = (names, dateKey, timeKey) => {
+    for (const name of names) {
+      const row = rows.get(norm(name));
+      const date = timesheetDate(row?.[dateKey]);
+      if (date) return { date, time: String(row[timeKey] || "").trim() };
+    }
+    return { date: null, time: "" };
+  };
+  return {
+    start: pick(START_ACTIVITIES, "fromDate", "fromTime"),
+    end: pick([...END_ACTIVITIES].reverse(), "toDate", "toTime"),
+  };
+}
+
+/** refs → latest saved timesheet of each operation */
+async function loadTimesheets(operations) {
+  const refs = operations.map((op) => op.Operation_Ref_No).filter(Boolean);
+  const byRef = new Map();
+  if (refs.length === 0) return byRef;
+  const docs = await STSTimesheet.find({ operationRef: { $in: refs } })
+    .select("operationRef operationTimings basicInfo.stsSuperintendent cargoInfo.cargoQuantity updatedAt")
+    .sort({ updatedAt: -1, _id: -1 })
+    .lean();
+  for (const doc of docs) if (!byRef.has(doc.operationRef)) byRef.set(doc.operationRef, doc);
+  return byRef;
+}
+
+/** Values for the register columns for one app operation. */
+function buildAppRowValues(op, filledForms, timesheets) {
   const values = {
     [COL.REF]: op.Operation_Ref_No || "",
     [COL.TYPE]: TYPE_LABELS[op.typeOfOperation] || op.typeOfOperation || "",
@@ -169,6 +238,17 @@ function buildAppRowValues(op, filledForms) {
   for (const { col, field, form } of DOCUMENT_COLUMNS) {
     values[col] = hasText(op[field]) || (form && forms.has(form)) ? "Yes" : "No";
   }
+  const timesheet = timesheets.get(op.Operation_Ref_No);
+  const { start, end } = timesheetStartEnd(timesheet);
+  values[TIMESHEET_COL.START_DATE] = start.date ?? "";
+  values[TIMESHEET_COL.START_TIME] = start.time;
+  values[TIMESHEET_COL.END_DATE] = end.date ?? "";
+  values[TIMESHEET_COL.END_TIME] = end.time;
+  values[TIMESHEET_COL.SUPERINTENDENT] = String(timesheet?.basicInfo?.stsSuperintendent || "").trim();
+  // Free text in the form: a plain number is written as a number so Excel can sum it
+  const quantity = String(timesheet?.cargoInfo?.cargoQuantity || "").trim();
+  const plainNumber = quantity.replace(/,/g, "");
+  values[TIMESHEET_COL.QUANTITY] = /^-?\d+(\.\d+)?$/.test(plainNumber) ? Number(plainNumber) : quantity;
   return values;
 }
 
@@ -195,7 +275,7 @@ export async function buildStsRegisterWorkbook() {
     .sort({ operationStartTime: 1, Operation_Ref_No: 1 })
     .lean();
 
-  const filledForms = await loadFilledForms(operations);
+  const [filledForms, timesheets] = await Promise.all([loadFilledForms(operations), loadTimesheets(operations)]);
 
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(REGISTER_TEMPLATE_PATH);
@@ -209,12 +289,29 @@ export async function buildStsRegisterWorkbook() {
   const excelRows = lastDataRow - HEADER_ROW;
   const styleSource = sheet.getRow(lastDataRow > HEADER_ROW ? lastDataRow : HEADER_ROW + 1);
 
+  // Timesheet columns: header styled like the last original header cell
+  const header = sheet.getRow(HEADER_ROW);
+  const headerStyle = header.getCell(COL.REMARKS).style;
+  for (const [col, title] of Object.entries(TIMESHEET_HEADERS)) {
+    const cell = header.getCell(Number(col));
+    cell.value = title;
+    if (headerStyle) cell.style = JSON.parse(JSON.stringify(headerStyle));
+    sheet.getColumn(Number(col)).width = 20;
+  }
+  header.commit();
+  const bodyStyle = styleSource.getCell(COL.REMARKS).style;
+
   let added = 0;
   for (const op of operations) {
-    const values = buildAppRowValues(op, filledForms);
+    const values = buildAppRowValues(op, filledForms, timesheets);
     lastDataRow += 1;
     const row = sheet.getRow(lastDataRow);
     copyRowStyle(styleSource, row);
+    for (const col of Object.values(TIMESHEET_COL)) {
+      if (bodyStyle) row.getCell(col).style = JSON.parse(JSON.stringify(bodyStyle));
+    }
+    row.getCell(TIMESHEET_COL.START_DATE).numFmt = "dd-mmm-yy";
+    row.getCell(TIMESHEET_COL.END_DATE).numFmt = "dd-mmm-yy";
     for (let c = 1; c <= LAST_COL; c++) row.getCell(c).value = values[c] ?? "";
     row.commit();
     added += 1;
