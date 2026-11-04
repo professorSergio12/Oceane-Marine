@@ -25,7 +25,7 @@ const PERMISSION_MAP = {
     canEditCompatibility: true,
     canDeleteCompatibility: true,
     canManageMasterData: false,
-    canApprove: false,
+    canApprove: true,
     isOpsAdmin: false,
   },
   approver: {

@@ -3,7 +3,7 @@
  *
  * Roles:
  *   admin    – manage master data (cargo types, locations, mooring masters)
- *   editor   – create / edit / delete STS forms, compatibility, checklists
+ *   editor   – create / edit / delete STS forms, compatibility, checklists; can also approve
  *   approver – approve forms where approval buttons exist
  *   viewer   – read-only access (default for everyone)
  */
@@ -36,7 +36,7 @@ const PERMISSIONS = {
     canEditCompatibility: true,
     canDeleteCompatibility: true,
     canManageMasterData: false,
-    canApprove: false,
+    canApprove: true,
   },
   [OPS_ROLES.APPROVER]: {
     canView: true,

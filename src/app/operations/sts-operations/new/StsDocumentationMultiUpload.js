@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
+import { confirmDialog } from "@/app/components/ConfirmDialog";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 
 const ACCEPT =
@@ -448,7 +449,14 @@ export default function StsDocumentationMultiUpload({ existingDocuments = [] }) 
                       )}
                       <button
                         type="button"
-                        onClick={() => removeExisting(doc.filePath)}
+                        onClick={async () => {
+                          const ok = await confirmDialog({
+                            title: "Remove attachment?",
+                            message: "This attachment will be removed from the operation when you submit.",
+                            confirmLabel: "Remove",
+                          });
+                          if (ok) removeExisting(doc.filePath);
+                        }}
                         className="ml-auto rounded-md bg-red-500/15 px-2 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-500/25 transition"
                         title="Remove this attachment"
                       >

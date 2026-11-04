@@ -180,12 +180,12 @@ export default function StsChecklistPage() {
     router.push(`/operations/sts-operations/new/form-checklist/sts-checklist/${apiPath}/list`);
   };
 
-  // Fetch In Progress + Lined Up operations on mount (checklists are prepared before the job starts too)
+  // Fetch Lined Up + In Progress + Completed operations on mount (checklists are prepared before the job starts and finished after it)
   useEffect(() => {
     const fetchInProgressOperations = async () => {
       try {
         setLoadingOperations(true);
-        const statuses = encodeURIComponent("INPROGRESS,Lined Up");
+        const statuses = encodeURIComponent("INPROGRESS,Lined Up,COMPLETED");
         const response = await fetch(`/api/operations/sts/list?status=${statuses}`);
         const data = await response.json();
 
@@ -203,7 +203,7 @@ export default function StsChecklistPage() {
           setInProgressOperations(refs);
         }
       } catch (error) {
-        console.error('Error fetching In Progress / Lined Up operations:', error);
+        console.error('Error fetching operations:', error);
       } finally {
         setLoadingOperations(false);
       }
@@ -486,7 +486,7 @@ export default function StsChecklistPage() {
                   { value: "", label: "-- Select Operation Ref --" },
                   ...inProgressOperations.map(({ ref, status }) => ({
                     value: ref,
-                    label: `${ref} — ${status === "INPROGRESS" ? "In Progress" : status}`,
+                    label: `${ref} — ${status === "INPROGRESS" ? "In Progress" : status === "COMPLETED" ? "Completed" : status}`,
                   })),
                 ]}
                 disabled={loadingOperations}

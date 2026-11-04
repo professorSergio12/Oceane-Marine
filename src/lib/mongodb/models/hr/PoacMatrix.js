@@ -99,6 +99,10 @@ const poacMatrixRowSchema = new mongoose.Schema({
     ],
     default: [],
   },
+  saudiAramco: {
+    type: Boolean,
+    default: false,
+  },
   remarks: {
     type: String,
     default: "",

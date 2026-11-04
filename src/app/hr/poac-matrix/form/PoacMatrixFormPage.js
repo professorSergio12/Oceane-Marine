@@ -54,6 +54,7 @@ const createEmptyRow = (stsServiceProvider = "") => {
     poacName: "",
     experienceWithOceane: "",
     visaEntries: [],
+    saudiAramco: false,
     remarks: "",
     newFiles: [],
     existingAttachments: [],
@@ -114,6 +115,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                 poacName: row.poacName || "",
                 experienceWithOceane: row.experienceWithOceane || "",
                 visaEntries: normalizeVisaEntriesFromRow(row),
+                saudiAramco: row.saudiAramco === true,
                 remarks: row.remarks || "",
                 newFiles: [],
                 existingAttachments: existingAtts,
@@ -200,6 +202,7 @@ export default function PoacMatrixFormPage({ onSuccess }) {
         formData.append(`row_${i}_experienceWithOceane`, (row.experienceWithOceane || "").trim());
         formData.append(`row_${i}_visaEntries`, JSON.stringify(row.visaEntries || []));
         formData.append(`row_${i}_remarks`, (row.remarks || "").trim());
+        formData.append(`row_${i}_saudiAramco`, row.saudiAramco ? "true" : "false");
 
         YES_NO_OPTIONS.forEach(({ key }) => {
           formData.append(`row_${i}_${key}`, row[key] || "No");
@@ -464,6 +467,20 @@ export default function PoacMatrixFormPage({ onSuccess }) {
                     className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
                     placeholder="e.g., > 1year, < 1 year"
                   />
+                </div>
+
+                {/* Saudi Aramco */}
+                <div className="space-y-2">
+                  <span className="block text-sm font-semibold text-white/90">Saudi Aramco</span>
+                  <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 border border-white/20 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={row.saudiAramco === true}
+                      onChange={(e) => updateRow(rowIndex, "saudiAramco", e.target.checked)}
+                      className="w-4 h-4 accent-orange-500 cursor-pointer"
+                    />
+                    <span className="text-sm text-white/80">Saudi Aramco</span>
+                  </label>
                 </div>
 
                 {/* Visa – each location has its own expiry */}

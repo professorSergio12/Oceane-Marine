@@ -128,6 +128,7 @@ function formatVisaForRow(row) {
 
 function pdfCellValue(row, k) {
   if (k === "visaEntries") return formatVisaForRow(row) || "—";
+  if (k === "saudiAramco") return row.saudiAramco ? "Yes" : "No";
   const v = row[k];
   return Array.isArray(v) ? (v.length ? v.join(", ") : "—") : (v || "—");
 }
@@ -292,6 +293,7 @@ const DETAIL_COLUMNS = [
   { key: "validMedicalsExpiry", label: "Medicals Expiry" },
   { key: "experienceWithOceane", label: "Experience with Oceane" },
   { key: "visaEntries", label: "Visa (location / expiry)" },
+  { key: "saudiAramco", label: "Saudi Aramco" },
   { key: "remarks", label: "Remarks: Locations / etc" },
 ];
 
@@ -923,6 +925,8 @@ export default function PoacMatrixListPage({ onRefresh }) {
                           const val =
                             col.key === "visaEntries"
                               ? formatVisaForRow(row) || "—"
+                              : col.key === "saudiAramco"
+                                ? (rawVal ? "Yes" : "No")
                               : Array.isArray(rawVal)
                                 ? rawVal.length > 0
                                   ? rawVal.join(", ")

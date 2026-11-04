@@ -130,6 +130,7 @@ export async function PUT(req, { params }) {
       const experienceWithOceane = formData.get(`row_${rowIndex}_experienceWithOceane`);
       const visaEntries = parseVisaEntries(formData, rowIndex);
       const remarks = formData.get(`row_${rowIndex}_remarks`) || "";
+      const saudiAramco = formData.get(`row_${rowIndex}_saudiAramco`) === "true";
 
       // Validate required fields
       if (!stsServiceProvider || !stsServiceProvider.trim()) {
@@ -232,6 +233,7 @@ export async function PUT(req, { params }) {
         ...optionFileData,
         experienceWithOceane: experienceWithOceane.trim(),
         visaEntries,
+        saudiAramco,
         remarks: remarks ? remarks.trim() : "",
         attachments: mergedAttachments,
       });

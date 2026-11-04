@@ -4,7 +4,7 @@ import { connectDB } from "@/lib/config/connection";
 import StsOperation from "@/lib/mongodb/models/sts-documentation/StsOperation";
 import Equipment from "@/lib/mongodb/models/pms/Equipment";
 import { buildStsCreateDocument } from "@/lib/operations/stsCreatePayload";
-import { FINISHED_OPERATION_STATUSES } from "@/lib/operations/stsOperationGuards";
+import { FINISHED_OPERATION_STATUSES, describeRefHolder } from "@/lib/operations/stsOperationGuards";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import fs from "fs/promises";
@@ -101,10 +101,16 @@ export async function POST(req) {
     /* =====================
        REF NO MUST BE UNIQUE (manual entry or ⚡ generated)
     ====================== */
+    // Only current versions count: an operation renamed later must not keep its old ref reserved
     const requestedRef = String(body.Operation_Ref_No || "").trim();
-    if (requestedRef && (await StsOperation.exists({ Operation_Ref_No: requestedRef }))) {
+    const refHolder = requestedRef
+      ? await StsOperation.findOne({ Operation_Ref_No: requestedRef, isLatest: true })
+          .select("chs ms operationStatus operationStartTime")
+          .lean()
+      : null;
+    if (refHolder) {
       return NextResponse.json(
-        { error: `Operation Ref No "${requestedRef}" is already used by another operation. Please enter a different one or click ⚡ to generate.` },
+        { error: `Operation Ref No "${requestedRef}" is already used by ${describeRefHolder(refHolder)}. Please enter a different one or click ⚡ to generate.` },
         { status: 409 }
       );
     }

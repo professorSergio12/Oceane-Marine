@@ -7,8 +7,10 @@ import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { notifyOperationsEdit } from "@/lib/notifications/operationsNotified";
+import { syncCompatibilityFromOperation } from "@/lib/operations/syncCompatibility";
 import {
   FINISHED_OPERATION_STATUSES,
+  describeRefHolder,
   releaseOperationEquipment,
   requireOpsPermission,
 } from "@/lib/operations/stsOperationGuards";
@@ -158,13 +160,17 @@ export async function PUT(req, { params }) {
       if (!body.Operation_Ref_No) {
         delete body.Operation_Ref_No;
       } else if (body.Operation_Ref_No !== existing.Operation_Ref_No) {
-        const taken = await StsOperation.exists({
+        // Only current versions count (an operation renamed earlier frees its old ref)
+        const taken = await StsOperation.findOne({
           Operation_Ref_No: body.Operation_Ref_No,
           parentOperationId: { $ne: existing.parentOperationId },
-        });
+          isLatest: true,
+        })
+          .select("chs ms operationStatus operationStartTime")
+          .lean();
         if (taken) {
           return NextResponse.json(
-            { error: `Operation Ref No "${body.Operation_Ref_No}" is already used by another operation.` },
+            { error: `Operation Ref No "${body.Operation_Ref_No}" is already used by ${describeRefHolder(taken)}.` },
             { status: 409 }
           );
         }
@@ -355,6 +361,13 @@ export async function PUT(req, { params }) {
     );
 
     const saved = await StsOperation.findById(newVersion._id).lean();
+
+    // Keep the compatibility record's auto-filled fields (ref, year, location, CHS/MS names) in step
+    try {
+      await syncCompatibilityFromOperation(saved, existing.Operation_Ref_No);
+    } catch (syncError) {
+      console.error("Compatibility sync after operation edit failed:", syncError);
+    }
 
     void notifyOperationsEdit("STS Operations", id);
     return NextResponse.json({

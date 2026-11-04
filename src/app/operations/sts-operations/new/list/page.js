@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { confirmDialog } from "@/app/components/ConfirmDialog";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsLoading } from "@/app/operations/OperationsLoadingContext";
@@ -120,7 +121,11 @@ export default function STSListPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this operation?")) {
+    if (!(await confirmDialog({
+        title: "Delete operation?",
+        message: "This operation and all its versions will be permanently deleted. This cannot be undone.",
+        confirmLabel: "Delete",
+      }))) {
       return;
     }
 

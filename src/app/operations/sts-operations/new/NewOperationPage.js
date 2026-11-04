@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { confirmDialog } from "@/app/components/ConfirmDialog";
 import { useState, useEffect, useRef, forwardRef, useCallback, useMemo, useId } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOperationsSidebar } from "../../OperationsSidebarContext";
@@ -2108,7 +2109,11 @@ function OperationsListComponent() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this operation?")) {
+    if (!(await confirmDialog({
+        title: "Delete operation?",
+        message: "This operation and all its versions will be permanently deleted. This cannot be undone.",
+        confirmLabel: "Delete",
+      }))) {
       return;
     }
 
@@ -2650,9 +2655,14 @@ function UploadPill({ label, description, name, accent = "sky", resetKey }) {
     setFileName(file ? file.name : "");
   };
 
-  const handleClear = (e) => {
+  const handleClear = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!(await confirmDialog({
+        title: "Remove file?",
+        message: "This file will be removed from the operation when you submit.",
+        confirmLabel: "Remove",
+      }))) return;
     setFileName("");
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -2787,8 +2797,13 @@ function ActionUpload({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [draftRestoreEpoch, draftInitialUrl]);
 
-  const handleDismiss = (e) => {
+  const handleDismiss = async (e) => {
     e.preventDefault();
+    if (!(await confirmDialog({
+        title: "Remove file link?",
+        message: "This file link will be removed from the operation when you submit.",
+        confirmLabel: "Remove",
+      }))) return;
     setUserDismissed(true);
     setFileUrl("");
     setIsAutoFetched(false);
@@ -2814,8 +2829,13 @@ function ActionUpload({
     }
   };
 
-  const handleClearUpload = (e) => {
+  const handleClearUpload = async (e) => {
     e.preventDefault();
+    if (!(await confirmDialog({
+        title: "Remove file?",
+        message: "This file will be removed from the operation when you submit.",
+        confirmLabel: "Remove",
+      }))) return;
     setUploadedFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };

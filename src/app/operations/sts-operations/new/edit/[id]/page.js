@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { confirmDialog } from "@/app/components/ConfirmDialog";
 import { useState, useEffect, useRef, forwardRef, useMemo } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
@@ -1419,9 +1420,14 @@ function UploadPill({ label, description, name, accent = "sky", resetKey, existi
     }
   };
 
-  const handleClear = (e) => {
+  const handleClear = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!(await confirmDialog({
+        title: "Remove file?",
+        message: "This file will be removed from the operation when you submit.",
+        confirmLabel: "Remove",
+      }))) return;
     setFileName("");
     setExisting("");
     if (inputRef.current) {
@@ -1597,8 +1603,13 @@ function ActionUpload({
     }
   }, [externalValue, defaultValue, isAutoFetched, userDismissed]);
 
-  const handleDismiss = (e) => {
+  const handleDismiss = async (e) => {
     e.preventDefault();
+    if (!(await confirmDialog({
+        title: "Remove file link?",
+        message: "This file link will be removed from the operation when you submit.",
+        confirmLabel: "Remove",
+      }))) return;
     setUserDismissed(true);
     setFileUrl("");
     setIsAutoFetched(false);
@@ -1625,8 +1636,13 @@ function ActionUpload({
     }
   };
 
-  const handleClearUpload = (e) => {
+  const handleClearUpload = async (e) => {
     e.preventDefault();
+    if (!(await confirmDialog({
+        title: "Remove file?",
+        message: "This file will be removed from the operation when you submit.",
+        confirmLabel: "Remove",
+      }))) return;
     setUploadedFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
