@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOperationsSidebar } from "@/app/operations/OperationsSidebarContext";
 import { useOperationsRole } from "@/hooks/useOperationsRole";
-import { HARDCOPY_DOC_PREFIX } from "@/lib/utils/sts-linked-form-file";
-import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
@@ -54,18 +52,11 @@ const FORMS = [
   { formNo: "OPS-OFD-029", title: "Mooring Master Expense Sheet", apiPath: "ops-ofd-029" },
 ];
 
-/** Map checklist table form number → linked-forms / hardcopy API target. */
-function formNoToHardcopyTarget(formNo) {
-  if (formNo === "OPS-OFD-001A") return "OPS-OFD-001-A";
-  return formNo;
-}
-
 export default function StsChecklistPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
-  const { isOpsAdmin, role } = useOperationsRole();
-  const canUploadHardcopy = role === "admin" || role === "editor";
+  const { isOpsAdmin } = useOperationsRole();
   const sidebarTabs = getSidebarTabs(isOpsAdmin);
   const [activeTab] = useState("forms");
   const [expandedModules, setExpandedModules] = useState(new Set(["forms"]));
@@ -75,107 +66,6 @@ export default function StsChecklistPage() {
   const [inProgressOperations, setInProgressOperations] = useState([]);
   const [loadingOperations, setLoadingOperations] = useState(false);
   const [overallCopied, setOverallCopied] = useState(false);
-  const [operationDocuments, setOperationDocuments] = useState([]);
-  const [loadingDocuments, setLoadingDocuments] = useState(false);
-  const [rowUploadingTarget, setRowUploadingTarget] = useState(null);
-  const [uploadNotice, setUploadNotice] = useState(null);
-  const pendingHardcopyTargetRef = useRef(null);
-  const hiddenHardcopyInputRef = useRef(null);
-
-  const hardcopyDocs = useMemo(
-    () =>
-      (operationDocuments || []).filter((d) => d.source === "CHECKLIST_HARDCOPY" && d.filePath),
-    [operationDocuments]
-  );
-
-  useEffect(() => {
-    const ref = selectedOperationRef?.trim();
-    if (!ref) {
-      setOperationDocuments([]);
-      setUploadNotice(null);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoadingDocuments(true);
-        const res = await fetch(
-          `/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(ref)}`
-        );
-        const json = await res.json();
-        if (!cancelled && json.success) {
-          setOperationDocuments(json.documents || []);
-        }
-      } catch (e) {
-        console.error(e);
-        if (!cancelled) setOperationDocuments([]);
-      } finally {
-        if (!cancelled) setLoadingDocuments(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedOperationRef]);
-
-  const refreshDocuments = async () => {
-    const ref = selectedOperationRef?.trim();
-    if (!ref) return;
-    try {
-      const res = await fetch(
-        `/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(ref)}`
-      );
-      const json = await res.json();
-      if (json.success) setOperationDocuments(json.documents || []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const triggerRowHardcopyUpload = (formNo) => {
-    if (!selectedOperationRef?.trim()) {
-      alert("Please select an operation reference first.");
-      return;
-    }
-    const target = formNoToHardcopyTarget(formNo);
-    pendingHardcopyTargetRef.current = target;
-    hiddenHardcopyInputRef.current?.click();
-  };
-
-  const handleHardcopyFilePicked = async (e) => {
-    const file = e.target.files?.[0];
-    const formTarget = pendingHardcopyTargetRef.current;
-    pendingHardcopyTargetRef.current = null;
-    e.target.value = "";
-    const ref = selectedOperationRef?.trim();
-    if (!file || !formTarget || !ref) return;
-
-    try {
-      setRowUploadingTarget(formTarget);
-      setUploadNotice(null);
-      const fd = new FormData();
-      fd.set("operationRef", ref);
-      fd.set("formTarget", formTarget);
-      fd.set("file", file);
-      const res = await fetch("/api/operations/sts/checklist-hardcopy", {
-        method: "POST",
-        body: fd,
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || "Upload failed");
-      }
-      setUploadNotice({ type: "ok", text: `Hardcopy saved for ${formTarget}.` });
-      setTimeout(() => setUploadNotice(null), 4000);
-      await refreshDocuments();
-    } catch (err) {
-      setUploadNotice({ type: "error", text: err.message || "Upload failed" });
-      setTimeout(() => setUploadNotice(null), 6000);
-    } finally {
-      setRowUploadingTarget(null);
-    }
-  };
-
   const handleViewList = (apiPath) => {
     router.push(`/operations/sts-operations/new/form-checklist/sts-checklist/${apiPath}/list`);
   };
@@ -532,29 +422,9 @@ export default function StsChecklistPage() {
             )}
           </div>
 
-          {uploadNotice && (
-            <div
-              className={`rounded-xl border px-4 py-3 text-sm ${
-                uploadNotice.type === "ok"
-                  ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"
-                  : "border-red-400/40 bg-red-500/10 text-red-100"
-              }`}
-            >
-              {uploadNotice.text}
-            </div>
-          )}
-
           {/* Forms Table */}
           <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
             <div className="overflow-x-auto">
-              <input
-                ref={hiddenHardcopyInputRef}
-                type="file"
-                className="sr-only"
-                tabIndex={-1}
-                aria-hidden
-                onChange={handleHardcopyFilePicked}
-              />
               <table className="w-full">
                 <thead className="bg-white/5 border-b border-white/10">
                   <tr>
@@ -574,15 +444,6 @@ export default function StsChecklistPage() {
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {FORMS.map((form) => {
-                    const hcTarget = formNoToHardcopyTarget(form.formNo);
-                    const hcKey = `${HARDCOPY_DOC_PREFIX}${hcTarget}`;
-                    const hcCount = hardcopyDocs.filter((d) => d.documentType === hcKey).length;
-                    const latestHc = [...hardcopyDocs]
-                      .filter((d) => d.documentType === hcKey)
-                      .sort(
-                        (a, b) =>
-                          new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0)
-                      )[0];
                     return (
                     <tr
                       key={form.formNo}
@@ -684,48 +545,6 @@ export default function StsChecklistPage() {
                           >
                             View List
                           </button>
-                          {canUploadHardcopy && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => triggerRowHardcopyUpload(form.formNo)}
-                                disabled={
-                                  !selectedOperationRef?.trim() ||
-                                  rowUploadingTarget === hcTarget
-                                }
-                                title={
-                                  selectedOperationRef?.trim()
-                                    ? "Attach a scanned or saved file for this form"
-                                    : "Select an operation reference above first"
-                                }
-                                className="rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100 shadow-md transition hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-45 sm:px-5 sm:py-2.5 sm:text-sm"
-                              >
-                                {rowUploadingTarget === hcTarget ? "Uploading…" : "Upload"}
-                              </button>
-                              {selectedOperationRef?.trim() && (
-                                <div className="text-[10px] leading-tight text-white/50">
-                                  {loadingDocuments
-                                    ? "…"
-                                    : hcCount > 0
-                                      ? `${hcCount} hardcop${hcCount === 1 ? "y" : "ies"}`
-                                      : "No hardcopy"}
-                                  {latestHc?.filePath ? (
-                                    <>
-                                      {" · "}
-                                      <button
-                                        type="button"
-                                        onClick={() => downloadFileFromUrl(latestHc.filePath, `${form.formNo || "hardcopy"}-${(latestHc.filePath.split("/").pop() || "file")}`)}
-                                        className="font-semibold text-orange-300/90 underline-offset-2 hover:text-orange-200 hover:underline"
-                                        title="Download latest hardcopy"
-                                      >
-                                        Download
-                                      </button>
-                                    </>
-                                  ) : null}
-                                </div>
-                              )}
-                            </>
-                          )}
                         </div>
                       </td>
                     </tr>

@@ -75,7 +75,10 @@ const LINKED_FORMS = [
  * Helper: normalise a vessel name for case-insensitive comparison
  */
 function normalise(str) {
-  return (str || "").trim().toLowerCase();
+  return (str || "")
+    .toLowerCase()
+    .replace(/^\s*m\W?\s*[tv]\W?\s+/, "") // "MT ", "M/T ", "M.V. " prefixes typed into the form
+    .replace(/[^a-z0-9]/g, "");
 }
 
 /**
@@ -83,7 +86,8 @@ function normalise(str) {
  *
  * The form's `jobDetails.vesselName` is compared against the operation's
  * `chs` and `ms` vessel names.  Each feedback doc is assigned to the
- * matching vessel side; unmatched docs go into a generic bucket.
+ * matching vessel side; unmatched docs go into a generic OPS-OFD-020 entry
+ * (only returned when there are any), so they still show on a card.
  */
 async function buildFeedbackEntries(operationRef, chsName, msName) {
   try {
@@ -98,6 +102,7 @@ async function buildFeedbackEntries(operationRef, chsName, msName) {
 
     const chsDocs = [];
     const msDocs  = [];
+    const otherDocs = [];
 
     for (const doc of allDocs) {
       const vesselName = normalise(doc.jobDetails?.vesselName);
@@ -105,8 +110,9 @@ async function buildFeedbackEntries(operationRef, chsName, msName) {
         chsDocs.push(doc);
       } else if (normMs && vesselName === normMs) {
         msDocs.push(doc);
+      } else {
+        otherDocs.push(doc);
       }
-      // If it doesn't match either, skip (won't appear in either bucket)
     }
 
     const mapDoc = (d) => ({
@@ -133,6 +139,18 @@ async function buildFeedbackEntries(operationRef, chsName, msName) {
         count: msDocs.length,
         docs: msDocs.map(mapDoc),
       },
+      ...(otherDocs.length > 0
+        ? [
+            {
+              formCode: "OPS-OFD-020",
+              label: "Master's Feedback (vessel not matched)",
+              category: "feedback",
+              filled: true,
+              count: otherDocs.length,
+              docs: otherDocs.map(mapDoc),
+            },
+          ]
+        : []),
     ];
   } catch (err) {
     console.error("Error building OPS-OFD-020 feedback entries:", err);

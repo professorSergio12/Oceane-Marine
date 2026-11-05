@@ -9,10 +9,7 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
-import {
-  resolveLinkedFormFilePath,
-  HARDCOPY_DOC_PREFIX,
-} from "@/lib/utils/sts-linked-form-file";
+import { HARDCOPY_DOC_PREFIX } from "@/lib/utils/sts-linked-form-file";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import { formatEquipmentTestDate } from "../../equipment-options";
 
@@ -120,12 +117,36 @@ function getLatestHardcopyDocForForm(documents, formCode) {
   )[0];
 }
 
-function LinkedFormStatusCard({ form: f, documents }) {
+/** Some jobs save the generated PDF under a shorter code than the linked form card uses. */
+const GENERATED_DOC_TYPE_ALIASES = {
+  "OPS-OFD-001-A": "OPS-OFD-001A",
+  "OPS-OFD-014-A": "OPS-OFD-014",
+  "OPS-OFD-014-B": "OPS-OFD-014",
+  "OPS-OFD-020-CHS": "OPS-OFD-020",
+  "OPS-OFD-020-MS": "OPS-OFD-020",
+};
+// One code shared by two cards: the PDF is only matched through the record it was generated from
+const SHARED_GENERATED_DOC_TYPES = new Set(["OPS-OFD-014", "OPS-OFD-020"]);
+
+/** Generated PDF entry (operation.documents) for a linked form card, or null. */
+function findGeneratedDocForLinkedForm(documents, form) {
+  const types = new Set([form.formCode, GENERATED_DOC_TYPE_ALIASES[form.formCode]].filter(Boolean));
+  const list = (documents || []).filter((d) => d?.filePath && types.has(d.documentType));
+  if (!list.length) return null;
+  // Prefer the PDF of the card's newest record
+  for (const rec of form.docs || []) {
+    const match = list.find((d) => d.checklistId != null && String(d.checklistId) === String(rec._id));
+    if (match) return match;
+  }
+  const unshared = list.filter((d) => !SHARED_GENERATED_DOC_TYPES.has(d.documentType));
+  return [...unshared].sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0))[0] || null;
+}
+
+function LinkedFormStatusCard({ form: f, documents, canUpload, uploading, onUpload }) {
   const latest = f.docs?.[0];
   const hasDigitalRow = Boolean(f.filled && latest);
-  const digitalPath = hasDigitalRow
-    ? resolveLinkedFormFilePath(documents, f.formCode, latest._id)
-    : null;
+  const digitalEntry = hasDigitalRow ? findGeneratedDocForLinkedForm(documents, f) : null;
+  const digitalPath = digitalEntry?.filePath || null;
 
   const hardcopyDoc = getLatestHardcopyDocForForm(documents, f.formCode);
   const manualDoc = findManualUploadDocForLinkedForm(documents, f.formCode);
@@ -157,109 +178,102 @@ function LinkedFormStatusCard({ form: f, documents }) {
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
     </svg>
   );
+  const uploadIcon = (
+    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+    </svg>
+  );
 
-  const extraManualPaths = [];
-  if (hasDigitalRow && hardcopyDoc?.filePath && hardcopyDoc.filePath !== digitalPath) {
-    extraManualPaths.push({ path: hardcopyDoc.filePath, label: "Manual hardcopy" });
-  }
-  if (hasDigitalRow && manualDoc?.filePath && manualDoc.filePath !== digitalPath) {
-    const already = extraManualPaths.some((e) => e.path === manualDoc.filePath);
-    if (!already) extraManualPaths.push({ path: manualDoc.filePath, label: "Manual file" });
-  }
+  // One download per form: whichever file was saved last, system-generated or uploaded.
+  // The generated file's entry is replaced on every form save, so its uploadedAt is the last save.
+  const fileCandidates = [
+    digitalPath && { path: digitalPath, at: digitalEntry?.uploadedAt || latest?.createdAt, kind: "Generated" },
+    primaryManualPath && { path: primaryManualPath, at: primaryManualDoc.uploadedAt, kind: "Uploaded" },
+  ].filter(Boolean);
+  const latestFile =
+    fileCandidates.length === 0
+      ? null
+      : [...fileCandidates].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))[0];
+  const primaryPath = latestFile?.path || null;
+  const downloadPath = (path, label) =>
+    downloadFileFromUrl(path, `${label || "form"}-${(path.split("/").pop() || "file")}`);
+
+  const statusText = hasDigitalRow ? latest.status : manualOnly ? "MANUAL" : null;
+  const statusClass =
+    statusText === "SUBMITTED" || statusText === "APPROVED"
+      ? "text-emerald-300"
+      : "text-amber-300";
+  const dateValue = hasDigitalRow ? latest.createdAt : manualOnly ? primaryManualDoc?.uploadedAt : null;
+
+  const detailRow = (label, value) => (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-white/45">{label}</dt>
+      <dd className="text-right font-medium text-white/85 truncate">{value}</dd>
+    </div>
+  );
+
+  const footerButton =
+    "inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-45";
 
   return (
-    <div className={`rounded-xl border p-4 transition-all ${borderClass}`}>
-      <div className="flex items-start justify-between gap-2 mb-1">
+    <div className={`flex h-full flex-col rounded-xl border p-4 transition-all ${borderClass}`}>
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
-          <p className="text-sm font-semibold text-white truncate">{f.label}</p>
+          <p className="text-sm font-semibold text-white truncate" title={f.label}>{f.label}</p>
         </div>
         <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${pillClass}`}>
           {pillText}
         </span>
       </div>
 
-      {hasDigitalRow && (
-        <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-          <p>
-            Seq: <span className="text-sky-300 font-mono">{latest.sequenceNumber || "—"}</span>
-          </p>
-          <p>
-            Status:{" "}
-            <span
-              className={
-                latest.status === "SUBMITTED" || latest.status === "APPROVED"
-                  ? "text-emerald-300"
-                  : "text-amber-300"
-              }
-            >
-              {latest.status}
-            </span>
-          </p>
-          <p>
-            Date:{" "}
-            {latest.createdAt
-              ? new Date(latest.createdAt).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "-"}
-          </p>
-          <p className="mt-1">
-            File:{" "}
-            <span className={digitalPath ? "text-emerald-400 font-medium" : "text-white/50"}>
-              {digitalPath ? "Yes" : "No"}
-            </span>
-          </p>
-          {digitalPath && (
+      {statusText ? (
+        <dl className="mt-3 mb-3 space-y-1.5 text-[11px]">
+          {hasDigitalRow &&
+            detailRow("Seq", <span className="font-mono text-sky-300">{latest.sequenceNumber || "—"}</span>)}
+          {detailRow("Status", <span className={statusClass}>{statusText}</span>)}
+          {detailRow("Date", dateValue ? formatDateOnly(dateValue) : "—")}
+          {detailRow(
+            "File",
+            latestFile ? (
+              <span className="text-emerald-400">
+                {latestFile.kind}
+                {latestFile.at ? ` · ${formatDateOnly(latestFile.at)}` : ""}
+              </span>
+            ) : (
+              <span className="text-white/50">Not generated</span>
+            )
+          )}
+        </dl>
+      ) : (
+        <p className="mt-3 mb-3 text-[11px] text-white/40">Not submitted yet</p>
+      )}
+
+      {(primaryPath || canUpload) && (
+        <div className="mt-auto flex gap-2 border-t border-white/10 pt-3">
+          {primaryPath && (
             <button
               type="button"
-              onClick={() => downloadFileFromUrl(digitalPath, `${f.formCode || "form"}-${(digitalPath.split("/").pop() || "file")}`)}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
-              title="Download file"
+              onClick={() => downloadPath(primaryPath, f.formCode)}
+              className={`${footerButton} border-orange-400/40 bg-orange-500/15 text-orange-200 hover:bg-orange-500/25`}
+              title={latestFile ? `Download the latest file (${latestFile.kind.toLowerCase()})` : "Download file"}
             >
               {downloadIcon}
               Download
             </button>
           )}
-          {extraManualPaths.map((ex) => (
-            <div key={ex.path} className="mt-2 border-t border-white/10 pt-2">
-              <p className="text-[10px] font-semibold text-amber-200/90 uppercase tracking-wide">{ex.label}</p>
-              <button
-                type="button"
-                onClick={() => downloadFileFromUrl(ex.path, `${ex.label || "document"}-${(ex.path.split("/").pop() || "file")}`)}
-                className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-amber-400/35 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20 transition"
-                title="Download file"
-              >
-                {downloadIcon}
-                Download
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {manualOnly && primaryManualPath && (
-        <div className="mt-2 space-y-0.5 text-[11px] text-white/60">
-          <p>
-            Status: <span className="text-amber-300 font-semibold">manual</span>
-          </p>
-          {primaryManualDoc?.uploadedAt && (
-            <p>Date: {formatDateOnly(primaryManualDoc.uploadedAt)}</p>
+          {canUpload && (
+            <button
+              type="button"
+              onClick={() => onUpload(f.formCode)}
+              disabled={uploading}
+              className={`${footerButton} border-white/15 bg-white/5 text-white/80 hover:border-white/30 hover:bg-white/10`}
+              title="Attach a scanned or saved file for this form"
+            >
+              {uploadIcon}
+              {uploading ? "Uploading…" : "Upload"}
+            </button>
           )}
-          <p className="mt-1">
-            File: <span className="text-emerald-400 font-medium">Yes</span>
-          </p>
-          <button
-            type="button"
-            onClick={() => downloadFileFromUrl(primaryManualPath, `${f.formCode || "form"}-${(primaryManualPath.split("/").pop() || "file")}`)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
-            title="Download file"
-          >
-            {downloadIcon}
-            Download
-          </button>
         </div>
       )}
     </div>
@@ -272,7 +286,8 @@ function ViewOperationPage() {
   const pathname = usePathname();
   const { id } = params;
 
-  const { canEditForm, isOpsAdmin } = useOperationsRole();
+  const { canEditForm, isOpsAdmin, role } = useOperationsRole();
+  const canUploadHardcopy = role === "admin" || role === "editor";
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
   const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
   const [activeTab, setActiveTab] = useState("documentation");
@@ -284,6 +299,10 @@ function ViewOperationPage() {
   const [error, setError] = useState(null);
   const [linkedForms, setLinkedForms] = useState([]);
   const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
+  const [uploadingFormCode, setUploadingFormCode] = useState(null);
+  const [uploadNotice, setUploadNotice] = useState(null);
+  const pendingHardcopyFormRef = useRef(null);
+  const hardcopyInputRef = useRef(null);
 
   useEffect(() => {
     if (pathname === "/operations/sts-operations/new") {
@@ -307,6 +326,44 @@ function ViewOperationPage() {
       console.error("Failed to fetch linked forms:", err);
     } finally {
       setLinkedFormsLoading(false);
+    }
+  };
+
+  const triggerHardcopyUpload = (formCode) => {
+    pendingHardcopyFormRef.current = formCode;
+    hardcopyInputRef.current?.click();
+  };
+
+  const handleHardcopyFilePicked = async (e) => {
+    const file = e.target.files?.[0];
+    const formTarget = pendingHardcopyFormRef.current;
+    pendingHardcopyFormRef.current = null;
+    e.target.value = "";
+    const ref = operationData?.Operation_Ref_No?.trim();
+    if (!file || !formTarget || !ref) return;
+
+    try {
+      setUploadingFormCode(formTarget);
+      setUploadNotice(null);
+      const fd = new FormData();
+      fd.set("operationRef", ref);
+      fd.set("formTarget", formTarget);
+      fd.set("file", file);
+      const res = await fetch("/api/operations/sts/checklist-hardcopy", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Upload failed");
+
+      // Reload the operation so the card shows the new file
+      const opRes = await fetch(`/api/operations/sts/${id}`);
+      const opJson = await opRes.json();
+      if (opJson.success && opJson.data) setOperationData(opJson.data);
+      setUploadNotice({ type: "ok", text: `Hardcopy saved for ${formTarget}.` });
+      setTimeout(() => setUploadNotice(null), 4000);
+    } catch (err) {
+      setUploadNotice({ type: "error", text: err.message || "Upload failed" });
+      setTimeout(() => setUploadNotice(null), 6000);
+    } finally {
+      setUploadingFormCode(null);
     }
   };
 
@@ -822,11 +879,18 @@ function ViewOperationPage() {
                     doc?.filePath &&
                     !consumedManualKeys.has(manualDocKey(doc))
                 );
+                // Generated PDFs shown on a Linked Forms card are not listed again here
+                const cardPdfPaths = new Set(
+                  linkedForms
+                    .map((lf) => findGeneratedDocForLinkedForm(allDocs, lf)?.filePath)
+                    .filter(Boolean)
+                );
                 const systemDocs = allDocs.filter(
                   (doc) =>
                     doc?.source !== "MANUAL_UPLOAD" &&
                     doc?.source !== "CHECKLIST_HARDCOPY" &&
-                    !linkedFormCodes.has(doc.documentType)
+                    !linkedFormCodes.has(doc.documentType) &&
+                    !cardPdfPaths.has(doc.filePath)
                 );
                 const otherDocs = [
                   { label: "Standing Order", path: op.standingOrder },
@@ -847,7 +911,7 @@ function ViewOperationPage() {
                     <h3 className="text-lg font-semibold text-white mb-4">Attached Documents</h3>
                     {systemDocs.length > 0 && (
                       <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-white/80 mb-3">System Generated Documents</h4>
+                        <h4 className="text-sm font-semibold text-white/80 mb-3">Imported Documents</h4>
                         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {systemDocs.map((doc) => (
                             <div
@@ -907,6 +971,25 @@ function ViewOperationPage() {
               {/* ═══════════ Linked Checklist / Form Status ═══════════ */}
               <div className="border-t border-white/10 pt-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Linked Forms Status</h3>
+                <input
+                  ref={hardcopyInputRef}
+                  type="file"
+                  className="sr-only"
+                  tabIndex={-1}
+                  aria-hidden
+                  onChange={handleHardcopyFilePicked}
+                />
+                {uploadNotice && (
+                  <div
+                    className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
+                      uploadNotice.type === "ok"
+                        ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"
+                        : "border-red-400/40 bg-red-500/10 text-red-100"
+                    }`}
+                  >
+                    {uploadNotice.text}
+                  </div>
+                )}
 
                 {linkedFormsLoading ? (
                   <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
@@ -921,7 +1004,14 @@ function ViewOperationPage() {
                         <h4 className="text-sm font-semibold text-white/80 mb-3">Checklists</h4>
                         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {linkedForms.filter((f) => f.category === "checklist").map((f) => (
-                            <LinkedFormStatusCard key={f.formCode} form={f} documents={op.documents} />
+                            <LinkedFormStatusCard
+                              key={f.formCode}
+                              form={f}
+                              documents={op.documents}
+                              canUpload={canUploadHardcopy}
+                              uploading={uploadingFormCode === f.formCode}
+                              onUpload={triggerHardcopyUpload}
+                            />
                           ))}
                         </div>
                       </div>
@@ -933,7 +1023,14 @@ function ViewOperationPage() {
                         <h4 className="text-sm font-semibold text-white/80 mb-3">STS Equipment</h4>
                         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {linkedForms.filter((f) => f.category === "equipment").map((f) => (
-                            <LinkedFormStatusCard key={f.formCode} form={f} documents={op.documents} />
+                            <LinkedFormStatusCard
+                              key={f.formCode}
+                              form={f}
+                              documents={op.documents}
+                              canUpload={canUploadHardcopy}
+                              uploading={uploadingFormCode === f.formCode}
+                              onUpload={triggerHardcopyUpload}
+                            />
                           ))}
                         </div>
                       </div>
@@ -945,7 +1042,14 @@ function ViewOperationPage() {
                         <h4 className="text-sm font-semibold text-white/80 mb-3">Feedback & Logs</h4>
                         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {linkedForms.filter((f) => f.category === "feedback").map((f) => (
-                            <LinkedFormStatusCard key={f.formCode} form={f} documents={op.documents} />
+                            <LinkedFormStatusCard
+                              key={f.formCode}
+                              form={f}
+                              documents={op.documents}
+                              canUpload={canUploadHardcopy}
+                              uploading={uploadingFormCode === f.formCode}
+                              onUpload={triggerHardcopyUpload}
+                            />
                           ))}
                         </div>
                       </div>
