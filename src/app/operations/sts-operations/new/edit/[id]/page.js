@@ -149,14 +149,16 @@ export default function EditOperationPage() {
   const [linkedOperationDocuments, setLinkedOperationDocuments] = useState([]);
   const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
 
-  const fetchLinkedForms = async (opRef) => {
+  // silent: refresh in the background (after an attachment change) without the loading state,
+  // so the cards stay on screen and the page does not jump
+  const fetchLinkedForms = async (opRef, { silent = false } = {}) => {
     if (!opRef) {
       setLinkedForms([]);
       setLinkedOperationDocuments([]);
       return;
     }
     try {
-      setLinkedFormsLoading(true);
+      if (!silent) setLinkedFormsLoading(true);
       const res = await fetch(`/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(opRef)}`);
       const json = await res.json();
       if (json.success) {
@@ -166,7 +168,7 @@ export default function EditOperationPage() {
     } catch (err) {
       console.error("Failed to fetch linked forms:", err);
     } finally {
-      setLinkedFormsLoading(false);
+      if (!silent) setLinkedFormsLoading(false);
     }
   };
 
@@ -175,7 +177,11 @@ export default function EditOperationPage() {
     notice: hardcopyNotice,
     uploadingFormCode,
     triggerUpload: triggerHardcopyUpload,
-  } = useHardcopyUpload({ operationRef: operationData?.Operation_Ref_No, onUploaded: () => fetchLinkedForms(operationData?.Operation_Ref_No) });
+    removeAttachment: removeHardcopy,
+    removingPath: removingHardcopyPath,
+    triggerReplace: replaceHardcopy,
+    busy: hardcopyBusy,
+  } = useHardcopyUpload({ operationRef: operationData?.Operation_Ref_No, onUploaded: () => fetchLinkedForms(operationData?.Operation_Ref_No, { silent: true }) });
 
   useEffect(() => {
     setQuantityMT("");
@@ -331,6 +337,10 @@ export default function EditOperationPage() {
       if (op.ms) {
         const msInput = formRef.current.querySelector('input[name="ms"]');
         if (msInput) msInput.value = op.ms;
+      }
+      for (const field of ["loaCHS", "loaMS"]) {
+        const loaInput = formRef.current.querySelector(`input[name="${field}"]`);
+        if (loaInput && op[field] != null) loaInput.value = op[field];
       }
       if (op.remarks) {
         const remarksInput = formRef.current.querySelector('textarea[name="remarks"]');
@@ -1133,6 +1143,10 @@ export default function EditOperationPage() {
                     canUpload={canUploadHardcopy}
                     uploading={uploadingFormCode === f.formCode}
                     onUpload={triggerHardcopyUpload}
+                    onRemoveAttachment={removeHardcopy}
+                    removingPath={removingHardcopyPath}
+                    onReplaceAttachment={replaceHardcopy}
+                    busy={hardcopyBusy}
                   />
                 ))}
               </div>
@@ -1156,6 +1170,10 @@ export default function EditOperationPage() {
                     canUpload={canUploadHardcopy}
                     uploading={uploadingFormCode === f.formCode}
                     onUpload={triggerHardcopyUpload}
+                    onRemoveAttachment={removeHardcopy}
+                    removingPath={removingHardcopyPath}
+                    onReplaceAttachment={replaceHardcopy}
+                    busy={hardcopyBusy}
                   />
                 ))}
               </div>
@@ -1179,6 +1197,10 @@ export default function EditOperationPage() {
                     canUpload={canUploadHardcopy}
                     uploading={uploadingFormCode === f.formCode}
                     onUpload={triggerHardcopyUpload}
+                    onRemoveAttachment={removeHardcopy}
+                    removingPath={removingHardcopyPath}
+                    onReplaceAttachment={replaceHardcopy}
+                    busy={hardcopyBusy}
                   />
                 ))}
                 {/* Incident Reporting — no linked form, manual entry */}

@@ -201,6 +201,9 @@ export const config = {
     "/admin/:path*",
     "/login",
     // "/signup",
-    "/api/:path*",
+    // Every API route except the hardcopy upload: the middleware copies request bodies in memory
+    // (capped by proxyClientMaxBodySize), which would cut off and slow down uploads of up to 1 GB.
+    // That route checks the session itself.
+    "/api/((?!operations/sts/checklist-hardcopy).*)",
   ],
 };

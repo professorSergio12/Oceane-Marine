@@ -177,6 +177,7 @@ export async function POST(req) {
       equipments = await Equipment.find({
         _id: { $in: equipmentIds },
         isInUse: false,
+        status: { $nin: ["INACTIVE", "RETIRED"] }, // Inactive / retired equipment cannot be assigned
       });
 
       if (equipments.length !== equipmentIds.length) {

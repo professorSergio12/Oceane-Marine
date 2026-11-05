@@ -116,7 +116,7 @@ export async function POST(req) {
       yearOfManufacturing: yearOfManufacturing ? Number(yearOfManufacturing) : undefined,
       ownershipType,
 
-      status: "ACTIVE",
+      status: ["INACTIVE", "RETIRED"].includes(formData.get("status")) ? formData.get("status") : "ACTIVE",
       isInUse: false,
 
       placedInOffice,

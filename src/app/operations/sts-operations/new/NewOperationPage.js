@@ -382,14 +382,16 @@ export default function NewOperationPage() {
   const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
 
   // Fetch linked form statuses whenever the operation ref changes
-  const fetchLinkedForms = async (opRef) => {
+  // silent: refresh in the background (after an attachment change) without the loading state,
+  // so the cards stay on screen and the page does not jump
+  const fetchLinkedForms = async (opRef, { silent = false } = {}) => {
     if (!opRef) {
       setLinkedForms([]);
       setLinkedOperationDocuments([]);
       return;
     }
     try {
-      setLinkedFormsLoading(true);
+      if (!silent) setLinkedFormsLoading(true);
       const res = await fetch(`/api/operations/sts/linked-forms?operationRef=${encodeURIComponent(opRef)}`);
       const json = await res.json();
       if (json.success) {
@@ -399,7 +401,7 @@ export default function NewOperationPage() {
     } catch (err) {
       console.error("Failed to fetch linked forms:", err);
     } finally {
-      setLinkedFormsLoading(false);
+      if (!silent) setLinkedFormsLoading(false);
     }
   };
 
@@ -408,7 +410,11 @@ export default function NewOperationPage() {
     notice: hardcopyNotice,
     uploadingFormCode,
     triggerUpload: triggerHardcopyUpload,
-  } = useHardcopyUpload({ operationRef: operationRef, onUploaded: () => fetchLinkedForms(operationRef) });
+    removeAttachment: removeHardcopy,
+    removingPath: removingHardcopyPath,
+    triggerReplace: replaceHardcopy,
+    busy: hardcopyBusy,
+  } = useHardcopyUpload({ operationRef: operationRef, onUploaded: () => fetchLinkedForms(operationRef, { silent: true }) });
 
   useEffect(() => {
     fetchLinkedForms(operationRef);
@@ -1730,6 +1736,10 @@ export default function NewOperationPage() {
                     canUpload={canUploadHardcopy}
                     uploading={uploadingFormCode === f.formCode}
                     onUpload={triggerHardcopyUpload}
+                    onRemoveAttachment={removeHardcopy}
+                    removingPath={removingHardcopyPath}
+                    onReplaceAttachment={replaceHardcopy}
+                    busy={hardcopyBusy}
                   />
                 ))}
               </div>
@@ -1753,6 +1763,10 @@ export default function NewOperationPage() {
                     canUpload={canUploadHardcopy}
                     uploading={uploadingFormCode === f.formCode}
                     onUpload={triggerHardcopyUpload}
+                    onRemoveAttachment={removeHardcopy}
+                    removingPath={removingHardcopyPath}
+                    onReplaceAttachment={replaceHardcopy}
+                    busy={hardcopyBusy}
                   />
                 ))}
               </div>
@@ -1776,6 +1790,10 @@ export default function NewOperationPage() {
                     canUpload={canUploadHardcopy}
                     uploading={uploadingFormCode === f.formCode}
                     onUpload={triggerHardcopyUpload}
+                    onRemoveAttachment={removeHardcopy}
+                    removingPath={removingHardcopyPath}
+                    onReplaceAttachment={replaceHardcopy}
+                    busy={hardcopyBusy}
                   />
                 ))}
                 {/* Incident Reporting — no linked form, manual entry */}

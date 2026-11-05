@@ -70,6 +70,19 @@ export async function PATCH(req, { params }) {
       );
     }
 
+    // Status from the form (missing → unchanged). Equipment locked by a running operation stays Active.
+    const requestedStatus = formData.get("status");
+    let status = existing.status || "ACTIVE";
+    if (["ACTIVE", "INACTIVE", "RETIRED"].includes(requestedStatus)) status = requestedStatus;
+    if (status !== "ACTIVE" && existing.status !== status && existing.isInUse) {
+      return NextResponse.json(
+        {
+          message: `This equipment is in use in an active operation. Complete the operation or remove the equipment from it before marking it ${status === "RETIRED" ? "Retired" : "Inactive"}.`,
+        },
+        { status: 409 }
+      );
+    }
+
     let dateToBeRetired = null;
     if (firstUseDate && retirementPeriodYears) {
       dateToBeRetired = new Date(firstUseDate);
@@ -88,6 +101,7 @@ export async function PATCH(req, { params }) {
         ? Number(yearOfManufacturing)
         : undefined,
       ownershipType,
+      status,
       placedInOffice,
       placedInBase,
       placedInBay,

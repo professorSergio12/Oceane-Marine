@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { HARDCOPY_DOC_PREFIX } from "@/lib/utils/sts-linked-form-file";
 import { downloadFileFromUrl, downloadFilesAsZip } from "@/lib/utils/sts-file-download";
+import { confirmDialog } from "@/app/components/ConfirmDialog";
 
 /**
  * Linked form card (Linked Forms Status) shared by the operation view, edit and new pages:
@@ -87,19 +89,28 @@ export default function LinkedFormStatusCard({
   canUpload,
   uploading,
   onUpload,
+  onRemoveAttachment,
+  onReplaceAttachment,
+  removingPath,
+  busy: pageBusy,
 }) {
+  // Any upload/remove running on the page locks the attachment buttons
+  const busy = Boolean(pageBusy || uploading || removingPath);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const [zipState, setZipState] = useState(null); // null | "working" | error message
   const menuRef = useRef(null);
+  const manageRef = useRef(null);
 
   useEffect(() => {
-    if (!menuOpen) return undefined;
+    if (!menuOpen && !manageOpen) return undefined;
     const close = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+      if (manageRef.current && !manageRef.current.contains(e.target)) setManageOpen(false);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
-  }, [menuOpen]);
+  }, [menuOpen, manageOpen]);
 
   const latest = f.docs?.[0];
   const hasDigitalRow = Boolean(f.filled && latest);
@@ -285,11 +296,84 @@ export default function LinkedFormStatusCard({
               )}
             </div>
           )}
+          {canUpload && onRemoveAttachment && attachmentCount > 0 && (
+            <div ref={manageRef} className="relative flex flex-1">
+              <button
+                type="button"
+                onClick={() => setManageOpen((open) => !open)}
+                aria-expanded={manageOpen}
+                className={`${footerButton} border-amber-400/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20`}
+                title="See, remove or replace the uploaded files"
+              >
+                Attachments ({attachmentCount})
+              </button>
+              {manageOpen && (
+                <div className="absolute bottom-full left-0 z-20 mb-2 w-72 max-w-[80vw] overflow-hidden rounded-lg border border-white/15 bg-slate-900 shadow-xl">
+                  <p className="border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-white/50">
+                    Uploaded files · replace or remove a wrong file
+                  </p>
+                  <ul className="max-h-56 overflow-y-auto py-1">
+                    {uploadedDocs.map((doc) => {
+                      const removable = doc.source === "CHECKLIST_HARDCOPY";
+                      const removing = removingPath === doc.filePath;
+                      return (
+                        <li key={doc.filePath} className="flex items-center gap-3 px-3 py-2">
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[11px] font-medium text-white" title={displayFileName(doc.filePath)}>
+                              {displayFileName(doc.filePath)}
+                            </span>
+                            <span className="text-[10px] text-white/50">
+                              {doc.uploadedAt ? `Uploaded · ${formatDateOnly(doc.uploadedAt)}` : "Uploaded"}
+                            </span>
+                          </span>
+                          {removable ? (
+                            <span className="flex flex-shrink-0 gap-1">
+                              {onReplaceAttachment && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setManageOpen(false);
+                                    onReplaceAttachment(f.formCode, doc);
+                                  }}
+                                  disabled={busy}
+                                  className="rounded-md border border-white/20 px-2 py-1 text-[10px] font-semibold text-white/80 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                  title="Upload a new file in place of this one"
+                                >
+                                  Replace
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => onRemoveAttachment(f.formCode, doc)}
+                                disabled={busy}
+                                className="rounded-md border border-red-400/40 px-2 py-1 text-[10px] font-semibold text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {removing ? "Removing…" : "Remove"}
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="flex-shrink-0 text-[10px] text-white/40" title="Added through the documentation file upload">
+                              Documentation file
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           {canUpload && (
             <button
               type="button"
-              onClick={() => onUpload(f.formCode, { multiple: allowMultiple })}
-              disabled={uploading}
+              onClick={() =>
+                onUpload(f.formCode, {
+                  multiple: allowMultiple,
+                  existingNames: uploadedDocs.map((d) => displayFileName(d.filePath)),
+                })
+              }
+              disabled={busy}
               className={`${footerButton} border-white/15 bg-white/5 text-white/80 hover:border-white/30 hover:bg-white/10`}
               title={allowMultiple ? "Attach one or more scanned or saved files for this form" : "Attach a scanned or saved file for this form"}
             >
@@ -303,32 +387,103 @@ export default function LinkedFormStatusCard({
   );
 }
 
+/** Largest file the upload route accepts (MAX_BYTES in the checklist-hardcopy route). */
+const MAX_UPLOAD_BYTES = 1024 * 1024 * 1024;
+const MAX_UPLOAD_LABEL = "1 GB";
+const HARDCOPY_API = "/api/operations/sts/checklist-hardcopy";
+/** Files uploaded at the same time when several are picked. */
+const PARALLEL_UPLOADS = 3;
+
+function formatSize(bytes) {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 /**
- * Hardcopy upload for linked form cards. Render `fileInput` and `notice` once on the page,
- * pass `uploadingFormCode` / `triggerUpload` to the cards; `onUploaded` reloads the documents.
+ * Send the file as the raw request body (the server streams it to disk) and report
+ * progress through `onProgress(sentBytes)`. XMLHttpRequest because fetch has no upload progress.
  */
+function postHardcopy(ref, formTarget, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const params = new URLSearchParams({ operationRef: ref, formTarget, fileName: file.name });
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${HARDCOPY_API}?${params.toString()}`);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (e) => onProgress?.(e.loaded);
+    xhr.onload = () => {
+      let json = {};
+      try {
+        json = JSON.parse(xhr.responseText || "{}");
+      } catch {
+        // non-JSON error page (e.g. from the proxy)
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && json.success) resolve(json);
+      else if (xhr.status === 413) reject(new Error(json.error || `File too large (max ${MAX_UPLOAD_LABEL})`));
+      else reject(new Error(json.error || `Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Network error: the connection was lost during the upload"));
+    xhr.ontimeout = () => reject(new Error("The upload timed out"));
+    xhr.send(file);
+  });
+}
+
+async function sendJson(method, body) {
+  const res = await fetch(HARDCOPY_API, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) throw new Error(json.error || `Request failed (${res.status})`);
+  return json;
+}
+
+/** Reason a file cannot be uploaded, checked before sending it; null when it is fine. */
+function preUploadProblem(file) {
+  if (!file.size) return "The file is empty";
+  if (file.size > MAX_UPLOAD_BYTES) return `Too large (${formatSize(file.size)}, max ${MAX_UPLOAD_LABEL})`;
+  return null;
+}
+
 /**
- * Hardcopy upload for linked form cards. Render `fileInput` and `notice` once on the page,
- * pass `uploadingFormCode` / `triggerUpload` to the cards; `onUploaded` reloads the documents.
- * `notice` is a fixed panel that tracks each file while uploading and confirms what was saved.
+ * Hardcopy attachments for linked form cards: upload (one or many), replace, remove and undo.
+ * Render `fileInput` and `notice` once on the page and pass the rest to the cards;
+ * `onUploaded` reloads the documents after every change.
+ * `notice` is a fixed panel that tracks each file while uploading and confirms the result.
  */
 export function useHardcopyUpload({ operationRef, onUploaded }) {
   const [uploadingFormCode, setUploadingFormCode] = useState(null);
-  // { formTarget, ref, files: [{ name, state: "waiting" | "uploading" | "saved" | "failed", error }] }
+  const [removingPath, setRemovingPath] = useState(null);
+  // { action: "upload" | "replace" | "remove", formTarget, ref, files: [{ name, state, error }], undoDoc }
   const [uploadStatus, setUploadStatus] = useState(null);
-  const pendingFormRef = useRef(null);
+  const pendingRef = useRef(null); // { formCode, replaceDoc, existingNames }
   const inputRef = useRef(null);
   const hideTimerRef = useRef(null);
 
   useEffect(() => () => clearTimeout(hideTimerRef.current), []);
 
-  const triggerUpload = (formCode, { multiple = false } = {}) => {
-    pendingFormRef.current = formCode;
-    if (inputRef.current) {
-      inputRef.current.multiple = multiple;
-      inputRef.current.click();
-    }
+  const busy = Boolean(uploadingFormCode || removingPath);
+
+  const showStatus = (status, autoHideMs) => {
+    clearTimeout(hideTimerRef.current);
+    setUploadStatus(status);
+    if (autoHideMs) hideTimerRef.current = setTimeout(() => setUploadStatus(null), autoHideMs);
   };
+
+  const openPicker = (pending, multiple) => {
+    if (busy || !inputRef.current) return;
+    pendingRef.current = pending;
+    inputRef.current.multiple = multiple;
+    inputRef.current.click();
+  };
+
+  /** Upload new files; `existingNames` are the card's current attachments (duplicate check). */
+  const triggerUpload = (formCode, { multiple = false, existingNames = [] } = {}) =>
+    openPicker({ formCode, existingNames }, multiple);
+
+  /** Upload one file in place of `doc` (the old one is removed only after the new one is saved). */
+  const triggerReplace = (formCode, doc) => openPicker({ formCode, replaceDoc: doc, existingNames: [] }, false);
 
   const setFileState = (index, patch) =>
     setUploadStatus((prev) =>
@@ -337,42 +492,122 @@ export function useHardcopyUpload({ operationRef, onUploaded }) {
 
   const handleFilePicked = async (e) => {
     const picked = Array.from(e.target.files || []);
-    const formTarget = pendingFormRef.current;
-    pendingFormRef.current = null;
+    const pending = pendingRef.current;
+    pendingRef.current = null;
     e.target.value = "";
     const ref = String(operationRef || "").trim();
-    if (picked.length === 0 || !formTarget || !ref) return;
+    if (picked.length === 0 || !pending?.formCode || !ref) return;
+    const { formCode: formTarget, replaceDoc, existingNames } = pending;
 
-    clearTimeout(hideTimerRef.current);
+    // Same file name already attached to this form → ask before adding it again
+    const existing = new Set((existingNames || []).map((n) => n.toLowerCase()));
+    const duplicates = picked.filter((file) => existing.has(file.name.toLowerCase()));
+    let skipDuplicates = false;
+    if (duplicates.length > 0) {
+      const names = duplicates.map((file) => `"${file.name}"`).join(", ");
+      const again = await confirmDialog({
+        title: duplicates.length === 1 ? "File already attached" : "Files already attached",
+        message: `${names} ${duplicates.length === 1 ? "is" : "are"} already attached to ${formTarget}. Upload ${duplicates.length === 1 ? "it" : "them"} again?`,
+        confirmLabel: "Upload again",
+        cancelLabel: "Skip",
+        danger: false,
+      });
+      skipDuplicates = !again;
+      if (skipDuplicates && duplicates.length === picked.length) return;
+    }
+
+    const action = replaceDoc ? "replace" : "upload";
+    const files = picked.map((file) => {
+      if (skipDuplicates && existing.has(file.name.toLowerCase())) {
+        return { name: file.name, state: "skipped", error: "Already attached" };
+      }
+      const problem = preUploadProblem(file);
+      return problem ? { name: file.name, state: "failed", error: problem } : { name: file.name, size: file.size, sent: 0, state: "waiting" };
+    });
     setUploadingFormCode(formTarget);
-    setUploadStatus({ formTarget, ref, files: picked.map((file) => ({ name: file.name, state: "waiting" })) });
+    showStatus({ action, formTarget, ref, files });
 
     let saved = 0;
-    // One request per file (the endpoint takes one file); keep going if one fails
-    for (let i = 0; i < picked.length; i += 1) {
-      setFileState(i, { state: "uploading" });
+    // One request per file, up to PARALLEL_UPLOADS at a time; keep going if one fails
+    const queue = picked.map((_, i) => i).filter((i) => files[i].state === "waiting");
+    const worker = async () => {
+      while (queue.length > 0) {
+        const i = queue.shift();
+        setFileState(i, { state: "uploading", sent: 0 });
+        try {
+          await postHardcopy(ref, formTarget, picked[i], (sent) => setFileState(i, { sent }));
+          saved += 1;
+          setFileState(i, { state: "saved", sent: picked[i].size });
+        } catch (err) {
+          setFileState(i, { state: "failed", error: err.message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(PARALLEL_UPLOADS, queue.length) }, worker));
+
+    let replaceError = null;
+    if (replaceDoc && saved === 1) {
       try {
-        const fd = new FormData();
-        fd.set("operationRef", ref);
-        fd.set("formTarget", formTarget);
-        fd.set("file", picked[i]);
-        const res = await fetch("/api/operations/sts/checklist-hardcopy", { method: "POST", body: fd });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.error || "Upload failed");
-        saved += 1;
-        setFileState(i, { state: "saved" });
+        await sendJson("DELETE", { operationRef: ref, filePath: replaceDoc.filePath });
       } catch (err) {
-        setFileState(i, { state: "failed", error: err.message || "Upload failed" });
+        replaceError = `New file attached, but the old one was not removed: ${err.message}`;
       }
     }
+
     try {
       if (saved > 0) await onUploaded?.();
     } finally {
       setUploadingFormCode(null);
     }
-    // All saved: close on its own; any failure stays until dismissed
-    if (saved === picked.length) {
+
+    const attempted = files.filter((f) => f.state !== "skipped").length;
+    if (replaceError) {
+      setUploadStatus((prev) => (prev ? { ...prev, error: replaceError } : prev));
+    } else if (saved === attempted) {
+      // Everything went through: close on its own; any failure stays until dismissed
+      clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => setUploadStatus(null), 6000);
+    }
+  };
+
+  /** Remove one uploaded hardcopy after confirmation; the panel offers Undo. */
+  const removeAttachment = async (formCode, doc) => {
+    const ref = String(operationRef || "").trim();
+    const name = displayFileName(doc?.filePath);
+    if (busy || !ref || !doc?.filePath) return;
+    const ok = await confirmDialog({
+      title: "Remove attachment?",
+      message: `"${name}" will be removed from ${formCode} on job ${ref}. You can undo this straight after, or upload the correct file.`,
+      confirmLabel: "Remove",
+    });
+    if (!ok) return;
+
+    setRemovingPath(doc.filePath);
+    try {
+      const json = await sendJson("DELETE", { operationRef: ref, filePath: doc.filePath });
+      await onUploaded?.();
+      showStatus(
+        { action: "remove", formTarget: formCode, ref, files: [{ name, state: "saved" }], undoDoc: json.data || doc },
+        10000
+      );
+    } catch (err) {
+      showStatus({ action: "remove", formTarget: formCode, ref, files: [{ name, state: "failed", error: err.message }] });
+    } finally {
+      setRemovingPath(null);
+    }
+  };
+
+  const undoRemove = async () => {
+    const status = uploadStatus;
+    if (!status?.undoDoc) return;
+    clearTimeout(hideTimerRef.current);
+    setUploadStatus({ ...status, undoing: true });
+    try {
+      await sendJson("PUT", { operationRef: status.ref, document: status.undoDoc });
+      await onUploaded?.();
+      showStatus({ ...status, action: "restore", undoDoc: null, undoing: false }, 5000);
+    } catch (err) {
+      setUploadStatus({ ...status, undoing: false, error: `Undo failed: ${err.message}` });
     }
   };
 
@@ -382,68 +617,91 @@ export function useHardcopyUpload({ operationRef, onUploaded }) {
 
   let notice = null;
   if (uploadStatus) {
-    const { files, formTarget, ref } = uploadStatus;
+    const { action, files, formTarget, ref, undoDoc, undoing, error } = uploadStatus;
     const total = files.length;
-    const finished = files.filter((f) => f.state === "saved" || f.state === "failed").length;
+    const settled = files.filter((f) => f.state !== "waiting" && f.state !== "uploading").length;
     const savedCount = files.filter((f) => f.state === "saved").length;
-    const failedCount = files.filter((f) => f.state === "failed").length;
-    const inProgress = finished < total;
-    const title = inProgress
-      ? `Uploading ${Math.min(finished + 1, total)} of ${total} file${total === 1 ? "" : "s"}…`
-      : failedCount === 0
-        ? `${savedCount} file${savedCount === 1 ? "" : "s"} attached`
-        : `${savedCount} of ${total} file${total === 1 ? "" : "s"} attached`;
-    const accent = inProgress ? "border-sky-400/40" : failedCount ? "border-red-400/50" : "border-emerald-400/50";
-    const stateLabel = {
-      waiting: { text: "Waiting", cls: "text-white/40" },
-      uploading: { text: "Uploading…", cls: "text-sky-300" },
-      saved: { text: "Attached", cls: "text-emerald-300" },
-      failed: { text: "Failed", cls: "text-red-300" },
-    };
+    const problems = files.filter((f) => f.state === "failed" || f.state === "skipped");
+    const failed = problems.some((f) => f.state === "failed") || Boolean(error);
+    const inProgress = settled < total || undoing;
+    const plural = (n) => `${n} file${n === 1 ? "" : "s"}`;
+    // Overall progress across the files being uploaded (by bytes)
+    const uploadable = files.filter((f) => f.size);
+    const totalBytes = uploadable.reduce((sum, f) => sum + f.size, 0);
+    const sentBytes = uploadable.reduce((sum, f) => sum + Math.min(f.sent || 0, f.size), 0);
+    const percent = totalBytes ? Math.floor((sentBytes / totalBytes) * 100) : 0;
+
+    let message;
+    if (undoing) message = "Restoring…";
+    else if (action === "remove") message = failed ? "Could not remove the file" : `Removed "${files[0].name}"`;
+    else if (action === "restore") message = `Restored "${files[0].name}"`;
+    else if (inProgress) {
+      message = `Uploading ${plural(uploadable.length)}… ${percent}% (${formatSize(sentBytes)} of ${formatSize(totalBytes)})`;
+    }
+    else if (action === "replace") message = savedCount && !error ? "File replaced" : "File not replaced";
+    else if (savedCount === 0) message = "Nothing was uploaded";
+    else message = `${plural(savedCount)} attached`;
+
+    let tone = "border-emerald-400/50 text-emerald-100";
+    if (inProgress) tone = "border-sky-400/50 text-sky-100";
+    else if (failed) tone = "border-red-400/50 text-red-100";
 
     notice = (
       <div
         role="status"
         aria-live="polite"
-        className={`fixed bottom-6 right-6 z-[9999] w-80 max-w-[calc(100vw-2rem)] rounded-xl border ${accent} bg-slate-900/95 p-4 shadow-2xl backdrop-blur`}
+        className={`fixed left-1/2 top-4 z-[9999] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 rounded-lg border bg-slate-900 px-4 py-3 shadow-2xl ${tone}`}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-white">{title}</p>
-            <p className="mt-0.5 text-[11px] text-white/55">
-              {formTarget} · job {ref}
-            </p>
-          </div>
+        <div className="flex items-center gap-3">
+          <p className="min-w-0 flex-1 text-sm">
+            <span className="font-semibold">{message}</span>
+            <span className="text-white/50"> · {formTarget} · job {ref}</span>
+          </p>
+          {action === "remove" && undoDoc && !undoing && (
+            <button
+              type="button"
+              onClick={undoRemove}
+              className="text-xs font-semibold text-sky-300 underline-offset-2 hover:underline"
+            >
+              Undo
+            </button>
+          )}
           {!inProgress && (
             <button
               type="button"
               onClick={() => setUploadStatus(null)}
-              className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-white/60 hover:bg-white/10 hover:text-white"
+              aria-label="Close"
+              className="text-xs font-semibold text-white/50 hover:text-white"
             >
-              Dismiss
+              Close
             </button>
           )}
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div
-            className={`h-full rounded-full transition-all ${failedCount ? "bg-red-400" : "bg-emerald-400"}`}
-            style={{ width: `${Math.round((finished / total) * 100)}%` }}
-          />
-        </div>
-        <ul className="mt-3 max-h-48 space-y-1.5 overflow-y-auto">
-          {files.map((f, i) => (
-            <li key={`${f.name}-${i}`} className="text-[11px]">
-              <div className="flex items-center justify-between gap-3">
-                <span className="truncate text-white/85" title={f.name}>{f.name}</span>
-                <span className={`flex-shrink-0 font-semibold ${stateLabel[f.state].cls}`}>{stateLabel[f.state].text}</span>
-              </div>
-              {f.error && <p className="mt-0.5 text-red-300/80">{f.error}</p>}
-            </li>
-          ))}
-        </ul>
+        {(problems.length > 0 || error) && !inProgress && (
+          <ul className="mt-2 space-y-0.5 text-xs text-red-200/90">
+            {problems.map((f, i) => (
+              <li key={`${f.name}-${i}`} className="truncate" title={`${f.name}: ${f.error}`}>
+                {f.name}: {f.error}
+              </li>
+            ))}
+            {error && <li>{error}</li>}
+          </ul>
+        )}
       </div>
     );
+    // Render on <body>: inside the page's blurred panels `position: fixed` sticks to the panel
+    // instead of the screen, so the user would have to scroll to see it.
+    if (typeof document !== "undefined") notice = createPortal(notice, document.body);
   }
 
-  return { fileInput, notice, uploadingFormCode, triggerUpload };
+  return {
+    fileInput,
+    notice,
+    uploadingFormCode,
+    triggerUpload,
+    triggerReplace,
+    removeAttachment,
+    removingPath,
+    busy,
+  };
 }

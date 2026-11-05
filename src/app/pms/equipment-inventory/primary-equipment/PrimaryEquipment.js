@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionViewIcon,
   ActionDownloadIcon,
@@ -11,6 +11,7 @@ import { usePmsRole } from "@/hooks/usePmsRole";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
 import OperationsSelectField from "@/app/operations/components/OperationsSelectField";
+import { confirmDialog } from "@/app/components/ConfirmDialog";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -216,6 +217,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     manufacturer: "",
     yearOfManufacturing: "",
     ownershipType: "OWNED",
+    status: "ACTIVE",
+    editingInUse: false, // equipment being edited is locked by an operation (not sent)
     dateOfPurchase: "",
     firstUseDate: "",
     lastTestDate: "",
@@ -253,6 +256,28 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
   // List tab detail view state
   const [selectedEquipmentDetail, setSelectedEquipmentDetail] = useState(null);
+  const detailCardRef = useRef(null);
+  // Page position before the detail card opened, restored when it closes
+  const listScrollYRef = useRef(null);
+
+  const openEquipmentDetail = (eq) => {
+    if (!selectedEquipmentDetail && typeof window !== "undefined") listScrollYRef.current = window.scrollY;
+    setSelectedEquipmentDetail(eq);
+  };
+
+  // The detail card renders below the list: bring it into view when it opens (or shows another
+  // equipment), and go back to where the user was in the list when it closes.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (selectedEquipmentDetail) {
+      requestAnimationFrame(() =>
+        detailCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      );
+    } else if (listScrollYRef.current != null) {
+      window.scrollTo({ top: listScrollYRef.current, behavior: "smooth" });
+      listScrollYRef.current = null;
+    }
+  }, [selectedEquipmentDetail]);
 
   /** Inventory year for list tab + yearly CSV (aligned with date of purchase / first use / created). */
   const [listYear, setListYear] = useState(() => new Date().getFullYear());
@@ -486,6 +511,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
       lastTestDate: "",
       nextTestDate: "",
       remarks: "",
+      status: "ACTIVE",
+      editingInUse: false,
       placedInOffice: true,
       placedInBase: false,
       placedInBay: false,
@@ -520,6 +547,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           ? String(eq.yearOfManufacturing)
           : "",
       ownershipType: eq.ownershipType || "OWNED",
+      status: eq.status || "ACTIVE",
+      editingInUse: !!eq.isInUse,
       dateOfPurchase: toDateInputValue(eq.dateOfPurchase),
       firstUseDate: toDateInputValue(eq.firstUseDate),
       lastTestDate: toDateInputValue(eq.lastTestDate),
@@ -663,6 +692,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
         formData.append("yearOfManufacturing", form.yearOfManufacturing);
       }
       formData.append("ownershipType", form.ownershipType);
+      formData.append("status", form.status || "ACTIVE");
       if (form.dateOfPurchase) formData.append("dateOfPurchase", form.dateOfPurchase);
       if (form.firstUseDate) formData.append("firstUseDate", form.firstUseDate);
       if (form.lastTestDate) formData.append("lastTestDate", form.lastTestDate);
@@ -953,7 +983,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                       </td>
                       <td className="px-4 py-2 text-right">
                         <div className="inline-flex items-center gap-2 justify-end">
-                          <ActionViewIcon onClick={() => setSelectedEquipmentDetail(eq)} title="View equipment" />
+                          <ActionViewIcon onClick={() => openEquipmentDetail(eq)} title="View equipment" />
                           {canEdit && (
                             <ActionEditIcon
                               onClick={() => startEditFromEquipment(eq)}
@@ -985,7 +1015,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
           {/* Detail View Card - Right Side */}
           {selectedEquipmentDetail && (
-            <div className="relative self-center-safe inset-0 z-30 flex justify-center  pt-10 pb-30">
+            <div ref={detailCardRef} className="relative self-center-safe inset-0 z-30 flex justify-center  pt-10 pb-30 scroll-mt-4">
              <div className="relative w-full max-w-[1200px] h-[110vh] flex flex-col rounded-3xl border border-sky-400/40 bg-[#0b2740]/88 backdrop-blur-[2px] shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-6 bg-[#0b2740]/65 backdrop-blur-[2px] flex-shrink-0">
@@ -1333,6 +1363,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   <button
                     type="button"
                     onClick={() => {
+                      listScrollYRef.current = null; // going to History, not back to the list
                       setSelectedEquipmentDetail(null);
                       setActiveTab("history");
                       setTimeout(() => {
@@ -1353,6 +1384,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                         type="button"
                         onClick={() => {
                           const d = selectedEquipmentDetail;
+                          listScrollYRef.current = null; // the edit form scrolls itself
                           setSelectedEquipmentDetail(null);
                           startEditFromEquipment(d);
                         }}
@@ -1513,7 +1545,7 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
           </div>
 
           {/* Ownership & dates */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div>
               <OperationsSelectField
                 label={
@@ -1531,6 +1563,46 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                 ]}
                 triggerClassName="w-full min-h-[2.75rem] rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
               />
+            </div>
+            <div>
+              <OperationsSelectField
+                label="Status"
+                value={form.status}
+                onChange={async (v) => {
+                  if (v === form.status) return;
+                  // Equipment locked by a running operation must stay Active
+                  if (v !== "ACTIVE" && form.editingInUse) return;
+                  if (v === "RETIRED") {
+                    const ok = await confirmDialog({
+                      title: "Retire this equipment?",
+                      message:
+                        "Retired equipment is taken out of service and cannot be assigned to operations. You can set it back to Active later if this was a mistake. The change is saved when you submit the form.",
+                      confirmLabel: "Retire",
+                    });
+                    if (!ok) return;
+                  }
+                  setForm((prev) => ({ ...prev, status: v }));
+                }}
+                options={[
+                  { value: "ACTIVE", label: "Active" },
+                  { value: "INACTIVE", label: "Inactive" },
+                  { value: "RETIRED", label: "Retired" },
+                ]}
+                triggerClassName="w-full min-h-[2.75rem] rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+              />
+              {form.editingInUse && form.status === "ACTIVE" ? (
+                <p className="mt-1 text-[11px] text-amber-200/80">
+                  In use in an active operation, so it must stay Active.
+                </p>
+              ) : form.status === "INACTIVE" ? (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Out of service for now; cannot be assigned to operations.
+                </p>
+              ) : form.status === "RETIRED" ? (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Permanently out of service; cannot be assigned to operations.
+                </p>
+              ) : null}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-1">

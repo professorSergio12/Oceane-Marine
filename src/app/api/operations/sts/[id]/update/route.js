@@ -138,10 +138,14 @@ export async function PUT(req, { params }) {
       const currentIds = new Set(current.map((e) => String(e.equipment)));
       const addedIds = requested.filter((v) => !currentIds.has(v));
       if (addedIds.length > 0) {
-        const free = await Equipment.countDocuments({ _id: { $in: addedIds }, isInUse: false });
+        const free = await Equipment.countDocuments({
+          _id: { $in: addedIds },
+          isInUse: false,
+          status: { $nin: ["INACTIVE", "RETIRED"] }, // Inactive / retired equipment cannot be assigned
+        });
         if (free !== addedIds.length) {
           return NextResponse.json(
-            { error: "One or more selected equipments are already in use by another operation. Please refresh and choose again." },
+            { error: "One or more selected equipments are in use by another operation or marked Inactive. Please refresh and choose again." },
             { status: 400 }
           );
         }
