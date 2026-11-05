@@ -34,7 +34,7 @@ export const REGISTER_TEMPLATE_PATH = path.join(
 
 const HEADER_ROW = 1;
 const COL = { REF: 1, TYPE: 2, STATUS: 3, LOCATION: 4, DATE: 5, STBL: 6, SS: 7, MOORING_MASTER: 8, CARGO: 9, QUANTITY: 10, EQUIP: 30, REMARKS: 31 };
-const TIMESHEET_COL = { START_DATE: 32, START_TIME: 33, END_DATE: 34, END_TIME: 35, QUANTITY: 36, SUPERINTENDENT: 37 };
+const TIMESHEET_COL = { START_DATE: 32, START_TIME: 33, END_DATE: 34, END_TIME: 35, QUANTITY: 36, SUPERINTENDENT: 37, SUPPORT_CRAFT: 38 };
 // Header names as the client uses them in their register
 const TIMESHEET_HEADERS = {
   [TIMESHEET_COL.START_DATE]: "Start Date",
@@ -43,8 +43,9 @@ const TIMESHEET_HEADERS = {
   [TIMESHEET_COL.END_TIME]: "End Time",
   [TIMESHEET_COL.QUANTITY]: "Timesheet cargo", // timesheet QUANTITY:
   [TIMESHEET_COL.SUPERINTENDENT]: "MM from time sheet", // timesheet STS SUPERINTENDENT:
+  [TIMESHEET_COL.SUPPORT_CRAFT]: "Support Craft (Mob / Demob)", // timesheet SUPPORT CRAFT USED FOR MOB / DEMOB:
 };
-const LAST_COL = TIMESHEET_COL.SUPERINTENDENT;
+const LAST_COL = TIMESHEET_COL.SUPPORT_CRAFT;
 
 /** Timesheet rows that mark the start (first filled "From") and the end (last filled "To") */
 const START_ACTIVITIES = [
@@ -208,7 +209,7 @@ async function loadTimesheets(operations) {
   const byRef = new Map();
   if (refs.length === 0) return byRef;
   const docs = await STSTimesheet.find({ operationRef: { $in: refs } })
-    .select("operationRef operationTimings basicInfo.stsSuperintendent cargoInfo.cargoQuantity updatedAt")
+    .select("operationRef operationTimings basicInfo.stsSuperintendent basicInfo.supportCraftMobDemob cargoInfo.cargoQuantity updatedAt")
     .sort({ updatedAt: -1, _id: -1 })
     .lean();
   for (const doc of docs) if (!byRef.has(doc.operationRef)) byRef.set(doc.operationRef, doc);
@@ -245,6 +246,7 @@ function buildAppRowValues(op, filledForms, timesheets) {
   values[TIMESHEET_COL.END_DATE] = end.date ?? "";
   values[TIMESHEET_COL.END_TIME] = end.time;
   values[TIMESHEET_COL.SUPERINTENDENT] = String(timesheet?.basicInfo?.stsSuperintendent || "").trim();
+  values[TIMESHEET_COL.SUPPORT_CRAFT] = String(timesheet?.basicInfo?.supportCraftMobDemob || "").trim();
   // Free text in the form: a plain number is written as a number so Excel can sum it
   const quantity = String(timesheet?.cargoInfo?.cargoQuantity || "").trim();
   const plainNumber = quantity.replace(/,/g, "");
