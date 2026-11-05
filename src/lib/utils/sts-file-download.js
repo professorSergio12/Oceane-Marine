@@ -87,3 +87,51 @@ function triggerAnchorDownload(href, filename) {
   a.click();
   a.remove();
 }
+
+/**
+ * Download several files as one .zip (one browser download instead of one per file).
+ * Files that cannot be fetched are skipped and returned in `failed`.
+ *
+ * @param {{ url: string, name?: string }[]} files
+ * @param {string} zipName - e.g. "OPS-OFD-005-2026-552.zip"
+ * @returns {Promise<{ added: number, failed: string[] }>}
+ */
+export async function downloadFilesAsZip(files, zipName) {
+  if (typeof window === "undefined" || !files?.length) return { added: 0, failed: [] };
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  const usedNames = new Set();
+  const failed = [];
+  let added = 0;
+
+  for (const file of files) {
+    const normalized = normalizeUploadUrl(file.url);
+    let name = file.name || guessFilename(normalized || file.url);
+    // Keep every file when two share a name: "report.pdf" → "report (2).pdf"
+    if (usedNames.has(name.toLowerCase())) {
+      const dot = name.lastIndexOf(".");
+      const base = dot > 0 ? name.slice(0, dot) : name;
+      const ext = dot > 0 ? name.slice(dot) : "";
+      let n = 2;
+      while (usedNames.has(`${base} (${n})${ext}`.toLowerCase())) n += 1;
+      name = `${base} (${n})${ext}`;
+    }
+    try {
+      const res = await fetch(buildDownloadHref(normalized || file.url, name) || normalized);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      zip.file(name, await res.blob());
+      usedNames.add(name.toLowerCase());
+      added += 1;
+    } catch {
+      failed.push(name);
+    }
+  }
+
+  if (added > 0) {
+    const blob = await zip.generateAsync({ type: "blob" });
+    const href = URL.createObjectURL(blob);
+    triggerAnchorDownload(href, zipName);
+    setTimeout(() => URL.revokeObjectURL(href), 10000);
+  }
+  return { added, failed };
+}

@@ -9,9 +9,12 @@ import {
   getSidebarTabs,
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
-import { HARDCOPY_DOC_PREFIX } from "@/lib/utils/sts-linked-form-file";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import { formatEquipmentTestDate } from "../../equipment-options";
+import LinkedFormStatusCard, {
+  findGeneratedDocForLinkedForm,
+  findManualUploadDocForLinkedForm,
+} from "../../LinkedFormStatusCard";
 
 /** Map every OPS-OFD code to a human-readable form name */
 const FORM_NAME_MAP = {
@@ -84,210 +87,13 @@ function manualDocKey(doc) {
   return `${doc.filePath}|${doc.documentType}|${doc.uploadedAt || ""}`;
 }
 
-/** MANUAL_UPLOAD rows that belong on a linked-form card (by documentType). */
-function findManualUploadDocForLinkedForm(documents, formCode) {
-  if (!documents?.length || !formCode) return null;
-  const aliases = new Set([formCode]);
-  if (formCode === "OPS-OFD-001-A") aliases.add("OPS-OFD-001A");
-  const norm = (s) => String(s || "").replace(/-/g, "").toUpperCase();
-  const targetNorm = norm(formCode);
-  const manual = documents.filter((d) => d?.source === "MANUAL_UPLOAD" && d?.filePath);
-  return (
-    manual.find((d) => aliases.has(d.documentType)) ||
-    manual.find((d) => norm(d.documentType) === targetNorm) ||
-    null
-  );
-}
-
-function getLatestHardcopyDocForForm(documents, formCode) {
-  if (!documents?.length || !formCode) return null;
-  const keys = new Set([`${HARDCOPY_DOC_PREFIX}${formCode}`]);
-  if (formCode === "OPS-OFD-014-B" || formCode === "OPS-OFD-014-A") {
-    keys.add(`${HARDCOPY_DOC_PREFIX}OPS-OFD-014`);
-  }
-  const list = documents.filter(
-    (d) =>
-      d?.source === "CHECKLIST_HARDCOPY" &&
-      d?.filePath &&
-      keys.has(d.documentType)
-  );
-  if (!list.length) return null;
-  return [...list].sort(
-    (a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0)
-  )[0];
-}
-
-/** Some jobs save the generated PDF under a shorter code than the linked form card uses. */
-const GENERATED_DOC_TYPE_ALIASES = {
-  "OPS-OFD-001-A": "OPS-OFD-001A",
-  "OPS-OFD-014-A": "OPS-OFD-014",
-  "OPS-OFD-014-B": "OPS-OFD-014",
-  "OPS-OFD-020-CHS": "OPS-OFD-020",
-  "OPS-OFD-020-MS": "OPS-OFD-020",
-};
-// One code shared by two cards: the PDF is only matched through the record it was generated from
-const SHARED_GENERATED_DOC_TYPES = new Set(["OPS-OFD-014", "OPS-OFD-020"]);
-
-/** Generated PDF entry (operation.documents) for a linked form card, or null. */
-function findGeneratedDocForLinkedForm(documents, form) {
-  const types = new Set([form.formCode, GENERATED_DOC_TYPE_ALIASES[form.formCode]].filter(Boolean));
-  const list = (documents || []).filter((d) => d?.filePath && types.has(d.documentType));
-  if (!list.length) return null;
-  // Prefer the PDF of the card's newest record
-  for (const rec of form.docs || []) {
-    const match = list.find((d) => d.checklistId != null && String(d.checklistId) === String(rec._id));
-    if (match) return match;
-  }
-  const unshared = list.filter((d) => !SHARED_GENERATED_DOC_TYPES.has(d.documentType));
-  return [...unshared].sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0))[0] || null;
-}
-
-function LinkedFormStatusCard({ form: f, documents, canUpload, uploading, onUpload }) {
-  const latest = f.docs?.[0];
-  const hasDigitalRow = Boolean(f.filled && latest);
-  const digitalEntry = hasDigitalRow ? findGeneratedDocForLinkedForm(documents, f) : null;
-  const digitalPath = digitalEntry?.filePath || null;
-
-  const hardcopyDoc = getLatestHardcopyDocForForm(documents, f.formCode);
-  const manualDoc = findManualUploadDocForLinkedForm(documents, f.formCode);
-  const manualAttachments = [hardcopyDoc, manualDoc].filter(Boolean);
-  const primaryManualDoc =
-    manualAttachments.length === 0
-      ? null
-      : [...manualAttachments].sort(
-          (a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0)
-        )[0];
-  const primaryManualPath = primaryManualDoc?.filePath || null;
-
-  const manualOnly = !hasDigitalRow && Boolean(primaryManualPath);
-  const pillText = f.filled ? `Filled (${f.count})` : manualOnly ? "Manual" : "Pending";
-  const pillClass = f.filled
-    ? "bg-emerald-500/20 text-emerald-300"
-    : manualOnly
-      ? "bg-amber-500/20 text-amber-200"
-      : "bg-slate-500/20 text-slate-400";
-
-  const borderClass = f.filled
-    ? "border-emerald-500/30 bg-emerald-900/10"
-    : manualOnly
-      ? "border-amber-500/35 bg-amber-900/10"
-      : "border-white/10 bg-white/5";
-
-  const downloadIcon = (
-    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-    </svg>
-  );
-  const uploadIcon = (
-    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-    </svg>
-  );
-
-  // One download per form: whichever file was saved last, system-generated or uploaded.
-  // The generated file's entry is replaced on every form save, so its uploadedAt is the last save.
-  const fileCandidates = [
-    digitalPath && { path: digitalPath, at: digitalEntry?.uploadedAt || latest?.createdAt, kind: "Generated" },
-    primaryManualPath && { path: primaryManualPath, at: primaryManualDoc.uploadedAt, kind: "Uploaded" },
-  ].filter(Boolean);
-  const latestFile =
-    fileCandidates.length === 0
-      ? null
-      : [...fileCandidates].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))[0];
-  const primaryPath = latestFile?.path || null;
-  const downloadPath = (path, label) =>
-    downloadFileFromUrl(path, `${label || "form"}-${(path.split("/").pop() || "file")}`);
-
-  const statusText = hasDigitalRow ? latest.status : manualOnly ? "MANUAL" : null;
-  const statusClass =
-    statusText === "SUBMITTED" || statusText === "APPROVED"
-      ? "text-emerald-300"
-      : "text-amber-300";
-  const dateValue = hasDigitalRow ? latest.createdAt : manualOnly ? primaryManualDoc?.uploadedAt : null;
-
-  const detailRow = (label, value) => (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-white/45">{label}</dt>
-      <dd className="text-right font-medium text-white/85 truncate">{value}</dd>
-    </div>
-  );
-
-  const footerButton =
-    "inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-45";
-
-  return (
-    <div className={`flex h-full flex-col rounded-xl border p-4 transition-all ${borderClass}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-orange-300 truncate">{f.formCode}</p>
-          <p className="text-sm font-semibold text-white truncate" title={f.label}>{f.label}</p>
-        </div>
-        <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${pillClass}`}>
-          {pillText}
-        </span>
-      </div>
-
-      {statusText ? (
-        <dl className="mt-3 mb-3 space-y-1.5 text-[11px]">
-          {hasDigitalRow &&
-            detailRow("Seq", <span className="font-mono text-sky-300">{latest.sequenceNumber || "—"}</span>)}
-          {detailRow("Status", <span className={statusClass}>{statusText}</span>)}
-          {detailRow("Date", dateValue ? formatDateOnly(dateValue) : "—")}
-          {detailRow(
-            "File",
-            latestFile ? (
-              <span className="text-emerald-400">
-                {latestFile.kind}
-                {latestFile.at ? ` · ${formatDateOnly(latestFile.at)}` : ""}
-              </span>
-            ) : (
-              <span className="text-white/50">Not generated</span>
-            )
-          )}
-        </dl>
-      ) : (
-        <p className="mt-3 mb-3 text-[11px] text-white/40">Not submitted yet</p>
-      )}
-
-      {(primaryPath || canUpload) && (
-        <div className="mt-auto flex gap-2 border-t border-white/10 pt-3">
-          {primaryPath && (
-            <button
-              type="button"
-              onClick={() => downloadPath(primaryPath, f.formCode)}
-              className={`${footerButton} border-orange-400/40 bg-orange-500/15 text-orange-200 hover:bg-orange-500/25`}
-              title={latestFile ? `Download the latest file (${latestFile.kind.toLowerCase()})` : "Download file"}
-            >
-              {downloadIcon}
-              Download
-            </button>
-          )}
-          {canUpload && (
-            <button
-              type="button"
-              onClick={() => onUpload(f.formCode)}
-              disabled={uploading}
-              className={`${footerButton} border-white/15 bg-white/5 text-white/80 hover:border-white/30 hover:bg-white/10`}
-              title="Attach a scanned or saved file for this form"
-            >
-              {uploadIcon}
-              {uploading ? "Uploading…" : "Upload"}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ViewOperationPage() {
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
   const { id } = params;
 
-  const { canEditForm, isOpsAdmin, role } = useOperationsRole();
-  const canUploadHardcopy = role === "admin" || role === "editor";
+  const { canEditForm, isOpsAdmin } = useOperationsRole();
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
   const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
   const [activeTab, setActiveTab] = useState("documentation");
@@ -299,10 +105,6 @@ function ViewOperationPage() {
   const [error, setError] = useState(null);
   const [linkedForms, setLinkedForms] = useState([]);
   const [linkedFormsLoading, setLinkedFormsLoading] = useState(false);
-  const [uploadingFormCode, setUploadingFormCode] = useState(null);
-  const [uploadNotice, setUploadNotice] = useState(null);
-  const pendingHardcopyFormRef = useRef(null);
-  const hardcopyInputRef = useRef(null);
 
   useEffect(() => {
     if (pathname === "/operations/sts-operations/new") {
@@ -326,44 +128,6 @@ function ViewOperationPage() {
       console.error("Failed to fetch linked forms:", err);
     } finally {
       setLinkedFormsLoading(false);
-    }
-  };
-
-  const triggerHardcopyUpload = (formCode) => {
-    pendingHardcopyFormRef.current = formCode;
-    hardcopyInputRef.current?.click();
-  };
-
-  const handleHardcopyFilePicked = async (e) => {
-    const file = e.target.files?.[0];
-    const formTarget = pendingHardcopyFormRef.current;
-    pendingHardcopyFormRef.current = null;
-    e.target.value = "";
-    const ref = operationData?.Operation_Ref_No?.trim();
-    if (!file || !formTarget || !ref) return;
-
-    try {
-      setUploadingFormCode(formTarget);
-      setUploadNotice(null);
-      const fd = new FormData();
-      fd.set("operationRef", ref);
-      fd.set("formTarget", formTarget);
-      fd.set("file", file);
-      const res = await fetch("/api/operations/sts/checklist-hardcopy", { method: "POST", body: fd });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || "Upload failed");
-
-      // Reload the operation so the card shows the new file
-      const opRes = await fetch(`/api/operations/sts/${id}`);
-      const opJson = await opRes.json();
-      if (opJson.success && opJson.data) setOperationData(opJson.data);
-      setUploadNotice({ type: "ok", text: `Hardcopy saved for ${formTarget}.` });
-      setTimeout(() => setUploadNotice(null), 4000);
-    } catch (err) {
-      setUploadNotice({ type: "error", text: err.message || "Upload failed" });
-      setTimeout(() => setUploadNotice(null), 6000);
-    } finally {
-      setUploadingFormCode(null);
     }
   };
 
@@ -971,25 +735,6 @@ function ViewOperationPage() {
               {/* ═══════════ Linked Checklist / Form Status ═══════════ */}
               <div className="border-t border-white/10 pt-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Linked Forms Status</h3>
-                <input
-                  ref={hardcopyInputRef}
-                  type="file"
-                  className="sr-only"
-                  tabIndex={-1}
-                  aria-hidden
-                  onChange={handleHardcopyFilePicked}
-                />
-                {uploadNotice && (
-                  <div
-                    className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
-                      uploadNotice.type === "ok"
-                        ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"
-                        : "border-red-400/40 bg-red-500/10 text-red-100"
-                    }`}
-                  >
-                    {uploadNotice.text}
-                  </div>
-                )}
 
                 {linkedFormsLoading ? (
                   <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
@@ -1008,9 +753,6 @@ function ViewOperationPage() {
                               key={f.formCode}
                               form={f}
                               documents={op.documents}
-                              canUpload={canUploadHardcopy}
-                              uploading={uploadingFormCode === f.formCode}
-                              onUpload={triggerHardcopyUpload}
                             />
                           ))}
                         </div>
@@ -1027,9 +769,6 @@ function ViewOperationPage() {
                               key={f.formCode}
                               form={f}
                               documents={op.documents}
-                              canUpload={canUploadHardcopy}
-                              uploading={uploadingFormCode === f.formCode}
-                              onUpload={triggerHardcopyUpload}
                             />
                           ))}
                         </div>
@@ -1046,9 +785,6 @@ function ViewOperationPage() {
                               key={f.formCode}
                               form={f}
                               documents={op.documents}
-                              canUpload={canUploadHardcopy}
-                              uploading={uploadingFormCode === f.formCode}
-                              onUpload={triggerHardcopyUpload}
                             />
                           ))}
                         </div>

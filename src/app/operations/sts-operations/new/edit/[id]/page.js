@@ -11,10 +11,7 @@ import {
   isFormsSubmoduleSidebarActive,
 } from "@/app/operations/sts-operations/new/sidebarTabs";
 import { ActionDownloadIcon } from "@/app/components/RecordActionIcons";
-import {
-  resolveLinkedFormFilePath,
-  resolveChecklistHardcopyPath,
-} from "@/lib/utils/sts-linked-form-file";
+import LinkedFormStatusCard, { useHardcopyUpload } from "../../LinkedFormStatusCard";
 import { downloadFileFromUrl } from "@/lib/utils/sts-file-download";
 import SelectField from "@/app/operations/components/OperationsSelectField";
 import StsDocumentationMultiUpload from "../../StsDocumentationMultiUpload";
@@ -26,6 +23,10 @@ import {
   toEquipmentOption,
   EquipmentOptionsPanel,
 } from "../../equipment-options";
+
+// Quantity conversion factors used by the client
+const MT_TO_BARRELS = 7.33;
+const BARRELS_PER_MT = 7.3;
 
 const statusTone = {
   INPROGRESS: {
@@ -57,7 +58,8 @@ export default function EditOperationPage() {
   const [status, setStatus] = useState("INPROGRESS");
   const [showStatusList, setShowStatusList] = useState(false);
   const { isSidebarOpen, setIsSidebarOpen } = useOperationsSidebar();
-  const { canEditForm, isOpsAdmin } = useOperationsRole();
+  const { canEditForm, isOpsAdmin, role } = useOperationsRole();
+  const canUploadHardcopy = role === "admin" || role === "editor";
   const sidebarTabs = useMemo(() => getSidebarTabs(isOpsAdmin), [isOpsAdmin]);
   const [activeTab, setActiveTab] = useState("documentation");
   const [expandedModules, setExpandedModules] = useState(new Set());
@@ -120,14 +122,28 @@ export default function EditOperationPage() {
     }
   };
 
+  // MT and Barrels convert both ways; only MT is saved. When the user types barrels,
+  // MT is derived from it and barrels must not be recalculated back from MT.
+  const quantityEditedRef = useRef("mt");
+
   useEffect(() => {
+    if (quantityEditedRef.current === "barrels") return;
     if (quantityMT && !isNaN(parseFloat(quantityMT)) && parseFloat(quantityMT) > 0) {
-      const barrels = (parseFloat(quantityMT) * 7.33).toFixed(2);
+      const barrels = (parseFloat(quantityMT) * MT_TO_BARRELS).toFixed(2);
       setQuantityBarrels(barrels);
     } else {
       setQuantityBarrels("");
     }
   }, [quantityMT]);
+
+  const handleQuantityBarrelsChange = (e) => {
+    const value = e.target.value;
+    if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
+    quantityEditedRef.current = "barrels";
+    setQuantityBarrels(value);
+    const barrels = parseFloat(value);
+    setQuantityMT(barrels > 0 ? (barrels / BARRELS_PER_MT).toFixed(2) : "");
+  };
 
   const [linkedForms, setLinkedForms] = useState([]);
   const [linkedOperationDocuments, setLinkedOperationDocuments] = useState([]);
@@ -153,6 +169,13 @@ export default function EditOperationPage() {
       setLinkedFormsLoading(false);
     }
   };
+
+  const {
+    fileInput: hardcopyFileInput,
+    notice: hardcopyNotice,
+    uploadingFormCode,
+    triggerUpload: triggerHardcopyUpload,
+  } = useHardcopyUpload({ operationRef: operationData?.Operation_Ref_No, onUploaded: () => fetchLinkedForms(operationData?.Operation_Ref_No) });
 
   useEffect(() => {
     setQuantityMT("");
@@ -778,6 +801,7 @@ export default function EditOperationPage() {
                     const value = e.target.value;
                     // Allow empty, numbers, and one decimal point
                     if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      quantityEditedRef.current = "mt";
                       setQuantityMT(value);
                     }
                   }}
@@ -793,13 +817,15 @@ export default function EditOperationPage() {
                 </label>
                 <input
                   type="text"
-                  readOnly
+                  inputMode="decimal"
                   value={quantityBarrels || ""}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/60 cursor-not-allowed"
-                  placeholder="Auto-calculated from MT"
+                  onChange={handleQuantityBarrelsChange}
+                  onWheel={(e) => e.target.blur()}
+                  placeholder="Enter quantity in barrels"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition outline-none"
                 />
                 <p className="text-xs text-white/50 mt-1">
-                  Conversion: 1 MT ≈ 7.33 barrels (varies by cargo density)
+                  Enter either value: MT × {MT_TO_BARRELS} = barrels, barrels ÷ {BARRELS_PER_MT} = MT
                 </p>
                 </div>
               </div>
@@ -1088,7 +1114,9 @@ export default function EditOperationPage() {
             ═══════════════════════════════════════════ */}
 
             {/* Checklists */}
+            {hardcopyFileInput}
             <SectionTitle title="Checklists" />
+            {hardcopyNotice}
             {linkedFormsLoading ? (
               <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-400" />
@@ -1097,7 +1125,15 @@ export default function EditOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "checklist").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
+                  <LinkedFormStatusCard
+                    key={f.formCode}
+                    form={f}
+                    documents={linkedOperationDocuments}
+                    showDownload={false}
+                    canUpload={canUploadHardcopy}
+                    uploading={uploadingFormCode === f.formCode}
+                    onUpload={triggerHardcopyUpload}
+                  />
                 ))}
               </div>
             )}
@@ -1112,7 +1148,15 @@ export default function EditOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "equipment").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
+                  <LinkedFormStatusCard
+                    key={f.formCode}
+                    form={f}
+                    documents={linkedOperationDocuments}
+                    showDownload={false}
+                    canUpload={canUploadHardcopy}
+                    uploading={uploadingFormCode === f.formCode}
+                    onUpload={triggerHardcopyUpload}
+                  />
                 ))}
               </div>
             )}
@@ -1127,7 +1171,15 @@ export default function EditOperationPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {linkedForms.filter((f) => f.category === "feedback").map((f) => (
-                  <LinkedFormCard key={f.formCode} form={f} operationDocuments={linkedOperationDocuments} />
+                  <LinkedFormStatusCard
+                    key={f.formCode}
+                    form={f}
+                    documents={linkedOperationDocuments}
+                    showDownload={false}
+                    canUpload={canUploadHardcopy}
+                    uploading={uploadingFormCode === f.formCode}
+                    onUpload={triggerHardcopyUpload}
+                  />
                 ))}
                 {/* Incident Reporting — no linked form, manual entry */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -1763,89 +1815,6 @@ function ActionUpload({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function LinkedFormCard({ form, operationDocuments = [] }) {
-  const { formCode, label, filled, count, docs } = form;
-  const latestDoc = docs?.[0];
-  const hardcopyPath = resolveChecklistHardcopyPath(operationDocuments, formCode);
-  const systemPath =
-    filled && latestDoc
-      ? resolveLinkedFormFilePath(operationDocuments, formCode, latestDoc._id)
-      : null;
-  const filePath = systemPath || hardcopyPath;
-  const hasHardcopyOnly = Boolean(hardcopyPath && !systemPath);
-
-  return (
-    <div
-      className={`rounded-xl border p-4 transition-all ${
-        filled
-          ? "border-emerald-500/30 bg-emerald-900/10 hover:bg-emerald-900/20"
-          : hasHardcopyOnly
-            ? "border-amber-500/35 bg-amber-900/10 hover:bg-amber-900/20"
-            : "border-white/10 bg-white/5 hover:bg-white/10"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-orange-300 truncate">{formCode}</p>
-          <p className="text-sm font-semibold text-white truncate">{label}</p>
-        </div>
-        <span
-          className={`flex-shrink-0 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            filled
-              ? "bg-emerald-500/20 text-emerald-300"
-              : hasHardcopyOnly
-                ? "bg-amber-500/20 text-amber-200"
-                : "bg-slate-500/20 text-slate-400"
-          }`}
-        >
-          {filled ? `Filled (${count})` : hasHardcopyOnly ? "Hardcopy" : "Pending"}
-        </span>
-      </div>
-
-      {(filled && latestDoc) || filePath ? (
-        <div className="mt-2 space-y-1 text-[11px] text-white/60">
-          {filled && latestDoc && (
-            <>
-              <p>Seq: <span className="text-sky-300 font-mono">{latestDoc.sequenceNumber || "—"}</span></p>
-              <p>Status: <span className={
-                latestDoc.status === "SUBMITTED" || latestDoc.status === "APPROVED"
-                  ? "text-emerald-300" : "text-amber-300"
-              }>{latestDoc.status}</span></p>
-              <p>Date: {latestDoc.createdAt
-                ? new Date(latestDoc.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                : "—"}</p>
-            </>
-          )}
-          {hasHardcopyOnly && (
-            <p className="text-amber-200/90">
-              Physical hardcopy uploaded — no digital submission yet.
-            </p>
-          )}
-          <p className="mt-1">
-            File:{" "}
-            <span className={filePath ? "text-emerald-400 font-medium" : "text-white/50"}>
-              {filePath ? "Yes" : "No"}
-            </span>
-          </p>
-          {filePath && (
-            <button
-              type="button"
-              onClick={() => downloadFileFromUrl(filePath, `${formCode || "form"}-${(filePath.split("/").pop() || "file")}`)}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-orange-200 hover:bg-orange-500/25 transition"
-              title="Download file"
-            >
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download
-            </button>
-          )}
-        </div>
-      ) : null}
     </div>
   );
 }

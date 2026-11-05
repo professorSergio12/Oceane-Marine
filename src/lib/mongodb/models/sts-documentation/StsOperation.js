@@ -63,6 +63,7 @@ const documentSchema = new mongoose.Schema(
         "MANUAL_UPLOAD",      // Admin Upload
         "AUTO_LOCATION",      // Auto from Location Master
         "CHECKLIST_HARDCOPY", // Paper form scanned / uploaded from STS Checklist dashboard
+        "EMAIL_IMPORT",       // Attachments brought in by an earlier email import (no longer created)
       ],
       default: "SYSTEM_GENERATED"
     },
