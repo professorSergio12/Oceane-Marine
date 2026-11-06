@@ -5,7 +5,7 @@ import { useQhseLoading } from "@/app/qhse/QhseLoadingContext";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useCallback, useEffect, useState } from "react";
 import { ARCHIVE_MODULES, buildArchivePayload, archiveDocument } from "../../../utils/archive";
-import { ArchiveIconButton, DeleteIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
+import { ArchiveIconButton, DeleteIconButton, EditIconButton, ViewIconButton, DownloadIconButton } from "../../../components/ActionIcons";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { QhseListPageContainer } from "../../../components/QhseListPageContainer";
 import { useQhseRole } from "@/hooks/useQhseRole";
@@ -27,7 +27,7 @@ function formatDate(value) {
 export default function PoacCrossCompetencyListPage() {
   const { setPageLoading } = useQhseLoading();
   const { contentClassName } = useQhseSidebar();
-  const { canDelete, canDownload } = useQhseRole();
+  const { canDelete, canDownload, canEdit } = useQhseRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -414,6 +414,9 @@ export default function PoacCrossCompetencyListPage() {
                           <td className="whitespace-nowrap py-2 pr-3 text-right align-middle sm:py-3 sm:pr-4">
                             <div className="inline-flex max-w-none flex-nowrap items-center justify-end gap-0.5 sm:gap-1">
                               <ViewIconButton href={`/qhse/poac/cross-competency/${form._id}`} />
+                              {canEdit && form.status !== "Approved" && (
+                                <EditIconButton href={`/qhse/poac/cross-competency/form?edit=${form._id}`} />
+                              )}
                               {canDownload && (
                               <DownloadIconButton
                                 onClick={() => handleDownloadDocx(form)}

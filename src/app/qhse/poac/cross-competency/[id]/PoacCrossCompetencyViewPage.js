@@ -392,7 +392,7 @@ export default function PoacCrossCompetencyViewPage() {
                 Download as PDF
               </button>
             )}
-            {canEdit && form.status === "Draft" && (
+            {canEdit && form.status !== "Approved" && form.isLatest !== false && (
               <Link
                 href={`/qhse/poac/cross-competency/form?edit=${form._id}`}
                 className="rounded-full border cursor-pointer border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 transition"
@@ -572,101 +572,95 @@ export default function PoacCrossCompetencyViewPage() {
           </div>
 
           {/* Operations Support Team Comment */}
-          {form.opsSupportTeamComment && (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-              <h2 className="text-lg font-bold mb-4 text-orange-300">Operation & Operations Support Team Comments</h2>
-              <p className="text-sm text-white whitespace-pre-wrap">
-                {form.opsSupportTeamComment}
-              </p>
-            </div>
-          )}
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
+            <h2 className="text-lg font-bold mb-4 text-orange-300">Operation & Operations Support Team Comments</h2>
+            <p className="text-sm text-white whitespace-pre-wrap">
+              {form.opsSupportTeamComment || "—"}
+            </p>
+          </div>
 
           {/* Ops Team Signatures */}
-          {(form.opsTeamName || form.opsTeamSupdtName || form.opsTeamSignature || form.opsTeamSupdtSignature) && (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-              <h2 className="text-lg font-bold mb-4 text-orange-300">Operations Team Signatures</h2>
-              <div className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
-                      Ops Team Name
-                    </label>
-                    <p className="text-sm text-white">{form.opsTeamName || "—"}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
-                      Ops Team Date
-                    </label>
-                    <p className="text-sm text-white">{formatDate(form.opsTeamDate)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
-                      Ops Team Signature
-                    </label>
-                    {getSignatureSrc(form.opsTeamSignature) ? (
-                      <div className="p-4 rounded-lg border border-white/20 bg-white/5 inline-block">
-                        <img
-                          src={getSignatureSrc(form.opsTeamSignature)}
-                          alt="Ops Team Signature"
-                          className="max-h-24 w-auto max-w-[200px] object-contain block"
-                          decoding="async"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            const fallback = e.target.nextElementSibling;
-                            if (fallback) fallback.classList.remove("hidden");
-                          }}
-                        />
-                        <span className="text-slate-500 text-xs hidden">Signature image could not be displayed.</span>
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-lg border border-white/10 bg-white/5 inline-flex items-center justify-center min-h-[80px] min-w-[160px]">
-                        <span className="text-slate-500 text-sm">Signature not available</span>
-                      </div>
-                    )}
-                  </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
+            <h2 className="text-lg font-bold mb-4 text-orange-300">Operations Team Signatures</h2>
+            <div className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
+                    Ops Team Name
+                  </label>
+                  <p className="text-sm text-white">{form.opsTeamName || "—"}</p>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
-                      Ops Team Superintendent Name
-                    </label>
-                    <p className="text-sm text-white">{form.opsTeamSupdtName || "—"}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
-                      Ops Team Superintendent Date
-                    </label>
-                    <p className="text-sm text-white">{formatDate(form.opsTeamSupdtDate)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
-                      Ops Team Superintendent Signature
-                    </label>
-                    {getSignatureSrc(form.opsTeamSupdtSignature) ? (
-                      <div className="p-4 rounded-lg border border-white/20 bg-white/5 inline-block">
-                        <img
-                          src={getSignatureSrc(form.opsTeamSupdtSignature)}
-                          alt="Ops Team Superintendent Signature"
-                          className="max-h-24 w-auto max-w-[200px] object-contain block"
-                          decoding="async"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            const fallback = e.target.nextElementSibling;
-                            if (fallback) fallback.classList.remove("hidden");
-                          }}
-                        />
-                        <span className="text-slate-500 text-xs hidden">Signature image could not be displayed.</span>
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-lg border border-white/10 bg-white/5 inline-flex items-center justify-center min-h-[80px] min-w-[160px]">
-                        <span className="text-slate-500 text-sm">Signature not available</span>
-                      </div>
-                    )}
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
+                    Ops Team Date
+                  </label>
+                  <p className="text-sm text-white">{formatDate(form.opsTeamDate)}</p>
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
+                    Ops Team Signature
+                  </label>
+                  {getSignatureSrc(form.opsTeamSignature) ? (
+                    <div className="p-4 rounded-lg border border-white/20 bg-white/5 inline-block">
+                      <img
+                        src={getSignatureSrc(form.opsTeamSignature)}
+                        alt="Ops Team Signature"
+                        className="max-h-24 w-auto max-w-[200px] object-contain block"
+                        decoding="async"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          const fallback = e.target.nextElementSibling;
+                          if (fallback) fallback.classList.remove("hidden");
+                        }}
+                      />
+                      <span className="text-slate-500 text-xs hidden">Signature image could not be displayed.</span>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-lg border border-white/10 bg-white/5 inline-flex items-center justify-center min-h-[80px] min-w-[160px]">
+                      <span className="text-slate-500 text-sm">Signature not available</span>
+                    </div>
+                          </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
+                    Ops Team Superintendent Name
+                  </label>
+                  <p className="text-sm text-white">{form.opsTeamSupdtName || "—"}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
+                    Ops Team Superintendent Date
+                  </label>
+                  <p className="text-sm text-white">{formatDate(form.opsTeamSupdtDate)}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">
+                    Ops Team Superintendent Signature
+                  </label>
+                  {getSignatureSrc(form.opsTeamSupdtSignature) ? (
+                    <div className="p-4 rounded-lg border border-white/20 bg-white/5 inline-block">
+                      <img
+                        src={getSignatureSrc(form.opsTeamSupdtSignature)}
+                        alt="Ops Team Superintendent Signature"
+                        className="max-h-24 w-auto max-w-[200px] object-contain block"
+                        decoding="async"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          const fallback = e.target.nextElementSibling;
+                          if (fallback) fallback.classList.remove("hidden");
+                        }}
+                      />
+                      <span className="text-slate-500 text-xs hidden">Signature image could not be displayed.</span>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-lg border border-white/10 bg-white/5 inline-flex items-center justify-center min-h-[80px] min-w-[160px]">
+                      <span className="text-slate-500 text-sm">Signature not available</span>
+                    </div>
+                          </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Footer Info */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">

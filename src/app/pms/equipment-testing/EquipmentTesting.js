@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePmsRole } from "@/hooks/usePmsRole";
 import { useOperationsClientPagination } from "@/app/operations/hooks/useOperationsClientPagination";
 import OperationsListPaginationFooter from "@/app/operations/components/OperationsListPaginationFooter";
@@ -17,13 +17,11 @@ function formatDate(value) {
   });
 }
 
-/** Inventory placement options match Equipment schema (placedInOffice/Base/Bay). */
-const LOCATION_OPTIONS = [
-  { value: "ALL", label: "All locations" },
-  { value: "OFFICE", label: "Office" },
-  { value: "BASE", label: "Base" },
-  { value: "BAY", label: "Bay" },
-];
+/** Location filter values that are not location names, so a location can have any name. */
+const ALL_LOCATIONS = "__all__";
+const NO_LOCATION = "__none__";
+
+const locationKey = (name) => (name || "").trim().toLowerCase();
 
 const MONTH_OPTIONS = [
   { value: "ALL", label: "All months" },
@@ -48,7 +46,9 @@ export default function EquipmentTesting() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState("ALL");
-  const [location, setLocation] = useState("ALL");
+  const [location, setLocation] = useState(ALL_LOCATIONS);
+  const [pmsLocations, setPmsLocations] = useState([]);
+  const [locationsError, setLocationsError] = useState(null);
   const [equipments, setEquipments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -103,10 +103,57 @@ export default function EquipmentTesting() {
     }
   };
 
+  const loadLocations = async () => {
+    setLocationsError(null);
+    try {
+      const res = await fetch("/api/pms/locations/list");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load locations");
+      }
+      setPmsLocations(data.locations || []);
+    } catch (err) {
+      console.error("Load locations error:", err);
+      setLocationsError(
+        "Could not load the PMS location list. The Location filter shows only locations used by the equipment below."
+      );
+    }
+  };
+
   useEffect(() => {
     loadEquipments(year);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
+
+  useEffect(() => {
+    loadLocations();
+  }, []);
+
+  /**
+   * PMS Location list, plus names still saved on equipment after a location was renamed or
+   * deleted, plus the current selection so it stays visible when the year changes.
+   */
+  const locationOptions = useMemo(() => {
+    const names = new Map();
+    const addName = (name) => {
+      const key = locationKey(name);
+      if (key && !names.has(key)) names.set(key, name.trim());
+    };
+    pmsLocations.forEach((item) => addName(item.name));
+    equipments.forEach((eq) => addName(eq.locationName));
+    if (location !== ALL_LOCATIONS && location !== NO_LOCATION) addName(location);
+
+    const options = [
+      { value: ALL_LOCATIONS, label: "All locations" },
+      ...[...names.values()]
+        .sort((a, b) => a.localeCompare(b))
+        .map((name) => ({ value: name, label: name })),
+    ];
+    if (location === NO_LOCATION || equipments.some((eq) => !locationKey(eq.locationName))) {
+      options.push({ value: NO_LOCATION, label: "No location set" });
+    }
+    return options;
+  }, [pmsLocations, equipments, location]);
 
   /** Apply month + location filters client-side (year is already fetched server-side). */
   const filteredEquipments = equipments.filter((eq) => {
@@ -114,12 +161,10 @@ export default function EquipmentTesting() {
       const m = eq.nextTestDate ? new Date(eq.nextTestDate).getMonth() + 1 : null;
       if (m !== Number(month)) return false;
     }
-    if (location !== "ALL") {
-      const matches =
-        (location === "OFFICE" && eq.placedInOffice) ||
-        (location === "BASE" && eq.placedInBase) ||
-        (location === "BAY" && eq.placedInBay);
-      if (!matches) return false;
+    if (location !== ALL_LOCATIONS) {
+      const eqLocation = locationKey(eq.locationName);
+      const wanted = location === NO_LOCATION ? "" : locationKey(location);
+      if (eqLocation !== wanted) return false;
     }
     return true;
   });
@@ -266,7 +311,7 @@ export default function EquipmentTesting() {
               ariaLabel="Filter by location"
               value={location}
               onChange={(v) => setLocation(v)}
-              options={LOCATION_OPTIONS}
+              options={locationOptions}
               className="min-w-0 w-[8rem] sm:w-36"
               triggerClassName="ops-select-trigger w-full rounded-lg px-3 py-1.5 text-xs"
             />
@@ -274,7 +319,10 @@ export default function EquipmentTesting() {
 
           <button
             type="button"
-            onClick={() => loadEquipments(year)}
+            onClick={() => {
+              loadEquipments(year);
+              loadLocations();
+            }}
             disabled={loading}
             className="ml-auto text-xs px-3 py-1.5 rounded-lg border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
           >
@@ -284,8 +332,13 @@ export default function EquipmentTesting() {
       </div>
 
       {/* Alerts */}
-      {(error || rowSuccess) && (
+      {(error || locationsError || rowSuccess) && (
         <div>
+          {locationsError && (
+            <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+              {locationsError}
+            </div>
+          )}
           {error && (
             <div className="mb-3 rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-xs text-red-100">
               {error}

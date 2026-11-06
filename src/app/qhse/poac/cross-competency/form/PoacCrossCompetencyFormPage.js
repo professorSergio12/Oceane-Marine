@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   POAC_EVALUATION_ITEMS,
   POAC_INTRO_TEXT,
@@ -96,9 +96,14 @@ function SignatureField({ label, value, onChange }) {
 }
 
 export default function PoacCrossCompetencyFormPage() {
+  const editId = useSearchParams().get("edit");
+  // The key starts a clean form when moving from Edit to the blank POAC Form tab
+  return <PoacCrossCompetencyForm key={editId || "new"} editId={editId} />;
+}
+
+function PoacCrossCompetencyForm({ editId }) {
   const { contentClassName } = useQhseSidebar();
-  const searchParams = useSearchParams();
-  const editId = searchParams.get("edit");
+  const router = useRouter();
   const { canCreate, canEdit, canDelete, canApprove, canDownload, isQhseAdmin } = useQhseRole();
   const canSubmit = editId ? canEdit : canCreate;
 
@@ -157,11 +162,21 @@ export default function PoacCrossCompetencyFormPage() {
     status: "Draft",
   });
 
+  // The form as last loaded or saved, to warn about unsaved changes on close
+  const savedSnapshot = useRef(null);
+  if (savedSnapshot.current === null) savedSnapshot.current = JSON.stringify(form);
+
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+  // Each save creates a new version, so later saves must target that version, not the one in the URL
+  const [savedFormId, setSavedFormId] = useState(null);
+  const targetFormId = savedFormId || editId;
+  const isApproved = form.status === "Approved";
+  // A form already sent for review stays sent: changes go through Submit and its validation
+  const isEditingSentForm = !!editId && form.status !== "Draft";
   const [displayFormCode, setDisplayFormCode] = useState(null);
   const [displaySerialNumber, setDisplaySerialNumber] = useState(null);
 
@@ -194,7 +209,7 @@ export default function PoacCrossCompetencyFormPage() {
                 }
               );
 
-              setForm({
+              const loadedForm = {
                 revNo: formData.revNo || "1.0",
                 revDate: formData.revDate
                   ? new Date(formData.revDate).toISOString().split("T")[0]
@@ -236,7 +251,9 @@ export default function PoacCrossCompetencyFormPage() {
                   : "",
                 opsTeamSupdtSignature: formData.opsTeamSupdtSignature || "",
                 status: formData.status || "Draft",
-              });
+              };
+              setForm(loadedForm);
+              savedSnapshot.current = JSON.stringify(loadedForm);
               setDisplayFormCode(formData.formCode || null);
               setDisplaySerialNumber(formData.serialNumber || null);
             }
@@ -350,44 +367,32 @@ export default function PoacCrossCompetencyFormPage() {
         evaluationItems: evaluationItemsPayload(form.evaluationItems),
 
         // Lead POAC
-        ...(form.leadPOACComment?.trim() && {
-          leadPOACComment: form.leadPOACComment.trim(),
-        }),
-        ...(form.leadPOACName?.trim() && {
-          leadPOACName: form.leadPOACName.trim(),
-        }),
-        ...(form.leadPOACDate && { leadPOACDate: form.leadPOACDate }),
+        leadPOACComment: form.leadPOACComment?.trim() || "",
+        leadPOACName: form.leadPOACName?.trim() || "",
+        leadPOACDate: form.leadPOACDate || null,
         leadPOACSignature: form.leadPOACSignature?.trim() || "",
 
         // Ops Support
-        ...(form.opsSupportTeamComment?.trim() && {
-          opsSupportTeamComment: form.opsSupportTeamComment.trim(),
-        }),
+        opsSupportTeamComment: form.opsSupportTeamComment?.trim() || "",
 
         // Ops Team
-        ...(form.opsTeamName?.trim() && {
-          opsTeamName: form.opsTeamName.trim(),
-        }),
-        ...(form.opsTeamDate && { opsTeamDate: form.opsTeamDate }),
+        opsTeamName: form.opsTeamName?.trim() || "",
+        opsTeamDate: form.opsTeamDate || null,
         opsTeamSignature: form.opsTeamSignature?.trim() || "",
 
         // Superintendent
-        ...(form.opsTeamSupdtName?.trim() && {
-          opsTeamSupdtName: form.opsTeamSupdtName.trim(),
-        }),
-        ...(form.opsTeamSupdtDate && {
-          opsTeamSupdtDate: form.opsTeamSupdtDate,
-        }),
+        opsTeamSupdtName: form.opsTeamSupdtName?.trim() || "",
+        opsTeamSupdtDate: form.opsTeamSupdtDate || null,
         opsTeamSupdtSignature: form.opsTeamSupdtSignature?.trim() || "",
 
         status: "Draft",
       };
 
-      const url = editId
-        ? `/api/qhse/cross-competency/${editId}/update`
+      const url = targetFormId
+        ? `/api/qhse/cross-competency/${targetFormId}/update`
         : "/api/qhse/cross-competency/create";
 
-      const method = editId ? "PUT" : "POST";
+      const method = targetFormId ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
@@ -411,6 +416,8 @@ export default function PoacCrossCompetencyFormPage() {
         throw new Error(data.error || data.message || "Failed to save form");
       }
 
+      if (data.data?._id) setSavedFormId(data.data._id);
+      savedSnapshot.current = JSON.stringify(form);
       if (data.data?.formCode) setDisplayFormCode(data.data.formCode);
       if (data.data?.serialNumber) setDisplaySerialNumber(data.data.serialNumber);
       setMessage(
@@ -424,6 +431,14 @@ export default function PoacCrossCompetencyFormPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleClose = () => {
+    const hasUnsavedChanges = JSON.stringify(form) !== savedSnapshot.current;
+    if (hasUnsavedChanges && !window.confirm("Close this form? Your unsaved changes will be lost.")) {
+      return;
+    }
+    router.push("/qhse/poac/cross-competency/list");
   };
 
   const handleSubmit = async (e) => {
@@ -476,44 +491,32 @@ export default function PoacCrossCompetencyFormPage() {
         evaluationItems: evaluationItemsPayload(form.evaluationItems),
 
         // Lead POAC
-        ...(form.leadPOACComment?.trim() && {
-          leadPOACComment: form.leadPOACComment.trim(),
-        }),
-        ...(form.leadPOACName?.trim() && {
-          leadPOACName: form.leadPOACName.trim(),
-        }),
-        ...(form.leadPOACDate && { leadPOACDate: form.leadPOACDate }),
+        leadPOACComment: form.leadPOACComment?.trim() || "",
+        leadPOACName: form.leadPOACName?.trim() || "",
+        leadPOACDate: form.leadPOACDate || null,
         leadPOACSignature: form.leadPOACSignature?.trim() || "",
 
         // Ops Support
-        ...(form.opsSupportTeamComment?.trim() && {
-          opsSupportTeamComment: form.opsSupportTeamComment.trim(),
-        }),
+        opsSupportTeamComment: form.opsSupportTeamComment?.trim() || "",
 
         // Ops Team
-        ...(form.opsTeamName?.trim() && {
-          opsTeamName: form.opsTeamName.trim(),
-        }),
-        ...(form.opsTeamDate && { opsTeamDate: form.opsTeamDate }),
+        opsTeamName: form.opsTeamName?.trim() || "",
+        opsTeamDate: form.opsTeamDate || null,
         opsTeamSignature: form.opsTeamSignature?.trim() || "",
 
         // Superintendent
-        ...(form.opsTeamSupdtName?.trim() && {
-          opsTeamSupdtName: form.opsTeamSupdtName.trim(),
-        }),
-        ...(form.opsTeamSupdtDate && {
-          opsTeamSupdtDate: form.opsTeamSupdtDate,
-        }),
+        opsTeamSupdtName: form.opsTeamSupdtName?.trim() || "",
+        opsTeamSupdtDate: form.opsTeamSupdtDate || null,
         opsTeamSupdtSignature: form.opsTeamSupdtSignature?.trim() || "",
 
         status: "Submitted",
       };
 
-      const url = editId
-        ? `/api/qhse/cross-competency/${editId}/update`
+      const url = targetFormId
+        ? `/api/qhse/cross-competency/${targetFormId}/update`
         : "/api/qhse/cross-competency/create";
 
-      const method = editId ? "PUT" : "POST";
+      const method = targetFormId ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
@@ -537,9 +540,11 @@ export default function PoacCrossCompetencyFormPage() {
         throw new Error(data.error || data.message || "Failed to submit form");
       }
 
+      if (data.data?._id) setSavedFormId(data.data._id);
+      savedSnapshot.current = JSON.stringify(form);
       if (data.data?.formCode) setDisplayFormCode(data.data.formCode);
       if (data.data?.serialNumber) setDisplaySerialNumber(data.data.serialNumber);
-      setMessage("Form submitted successfully!");
+      setMessage(isEditingSentForm ? "Form updated successfully!" : "Form submitted successfully!");
       window.scrollTo({ top: 0, behavior: "smooth" });
 
       // Redirect to list page after 2 seconds
@@ -548,7 +553,7 @@ export default function PoacCrossCompetencyFormPage() {
       }, 2000);
     } catch (err) {
       setError(err.message || "Something went wrong");
-    } finally {
+      // Stays on after a success so the button cannot save again before the redirect
       setSubmitting(false);
     }
   };
@@ -704,6 +709,12 @@ export default function PoacCrossCompetencyFormPage() {
           </div>
         )}
 
+        {isApproved && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-amber-100 text-sm">
+            This form is approved and can no longer be edited.
+          </div>
+        )}
+
         {error && (
           <div className="text-sm text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-4 py-3">
             {error}
@@ -719,9 +730,21 @@ export default function PoacCrossCompetencyFormPage() {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Revision Information Section */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-            <h2 className="text-lg font-bold mb-4 text-orange-300">
-              Revision
-            </h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-orange-300">
+                Revision
+              </h2>
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={submitting || saving}
+                aria-label="Close form"
+                title="Close form"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xl leading-none text-white/80 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                ×
+              </button>
+            </div>
             <p className="text-xs text-slate-400 mb-4">
               New forms start at Rev No 1.0. When this document is updated in the main app, Rev No becomes 1.1, 1.2, etc. and Rev Date is set automatically. Approved By is set when the document is approved.
             </p>
@@ -1133,20 +1156,24 @@ export default function PoacCrossCompetencyFormPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleSaveDraft}
-              className="rounded-full border border-white/20 bg-transparent px-6 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 transition disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={!canSubmit || submitting || saving}
-            >
-              {saving ? "Saving..." : "Save Draft"}
-            </button>
+            {!isEditingSentForm && (
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                className="rounded-full border border-white/20 bg-transparent px-6 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={!canSubmit || submitting || saving}
+              >
+                {saving ? "Saving..." : "Save Draft"}
+              </button>
+            )}
             <button
               type="submit"
               className="inline-flex items-center rounded-full bg-orange-500 hover:bg-orange-400 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={!canSubmit || submitting || saving}
+              disabled={!canSubmit || isApproved || submitting || saving}
             >
-              {submitting ? "Submitting..." : "Submit Form"}
+              {submitting
+                ? isEditingSentForm ? "Updating..." : "Submitting..."
+                : isEditingSentForm ? "Update Form" : "Submit Form"}
             </button>
           </div>
         </form>

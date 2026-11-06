@@ -27,7 +27,7 @@ export async function GET(req) {
             nextTestDate: { $gte: start, $lte: end },
             status: "ACTIVE"
         }).select(
-            "serialCode equipmentCode equipmentType lastTestDate nextTestDate placedInOffice placedInBase placedInBay"
+            "serialCode equipmentCode equipmentType lastTestDate nextTestDate locationName"
         );
 
         // Fetch planned tests for each equipment

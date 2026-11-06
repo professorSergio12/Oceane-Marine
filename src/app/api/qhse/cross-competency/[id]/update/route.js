@@ -8,8 +8,12 @@ import {
 import { saveBase64AsFile, isBase64DataUrl } from "@/lib/utils/qhse-file-storage";
 import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
+import { assertQhsePermission } from "@/lib/auth/qhseGuard";
 
 export async function PUT(req, { params }) {
+  const guard = await assertQhsePermission("canEdit");
+  if (!guard.ok) return guard.response;
+
   await connectDB();
 
   try {
@@ -34,6 +38,13 @@ export async function PUT(req, { params }) {
     if (!existingForm.isLatest) {
       return NextResponse.json(
         { success: false, error: "Only latest version can be updated" },
+        { status: 403 }
+      );
+    }
+
+    if (existingForm.status === "Approved") {
+      return NextResponse.json(
+        { success: false, error: "Approved forms cannot be edited" },
         { status: 403 }
       );
     }
@@ -118,6 +129,12 @@ export async function PUT(req, { params }) {
        ========================= */
     const newRevNo = getNextRevisionNumber(existingForm.revNo || "1.0");
     const now = new Date();
+
+    // Sent empty means cleared; not sent keeps the saved date
+    const optionalDate = (field) => {
+      if (body[field] === undefined) return existingForm[field];
+      return body[field] ? new Date(body[field]) : null;
+    };
 
     /* =========================
        SIGNATURES: images are stored as files, like on create
@@ -211,9 +228,7 @@ export async function PUT(req, { params }) {
         body.leadPOACName !== undefined
           ? body.leadPOACName?.trim() || ""
           : existingForm.leadPOACName,
-      leadPOACDate: body.leadPOACDate
-        ? new Date(body.leadPOACDate)
-        : existingForm.leadPOACDate,
+      leadPOACDate: optionalDate("leadPOACDate"),
       leadPOACSignature: await signatureValue("leadPOACSignature", "lead-poac-signature"),
 
       // Operations Support Team Comment
@@ -227,9 +242,7 @@ export async function PUT(req, { params }) {
         body.opsTeamName !== undefined
           ? body.opsTeamName?.trim() || ""
           : existingForm.opsTeamName,
-      opsTeamDate: body.opsTeamDate
-        ? new Date(body.opsTeamDate)
-        : existingForm.opsTeamDate,
+      opsTeamDate: optionalDate("opsTeamDate"),
       opsTeamSignature: await signatureValue("opsTeamSignature", "ops-team-signature"),
 
       // Ops Team Superintendent Section
@@ -237,9 +250,7 @@ export async function PUT(req, { params }) {
         body.opsTeamSupdtName !== undefined
           ? body.opsTeamSupdtName?.trim() || ""
           : existingForm.opsTeamSupdtName,
-      opsTeamSupdtDate: body.opsTeamSupdtDate
-        ? new Date(body.opsTeamSupdtDate)
-        : existingForm.opsTeamSupdtDate,
+      opsTeamSupdtDate: optionalDate("opsTeamSupdtDate"),
       opsTeamSupdtSignature: await signatureValue("opsTeamSupdtSignature", "ops-team-supdt-signature"),
 
       // Status
