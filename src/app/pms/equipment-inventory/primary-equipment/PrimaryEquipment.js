@@ -135,6 +135,9 @@ function escapeCsvCell(value) {
   return s;
 }
 
+/** Year filter value that shows every equipment, including records without a usable date. */
+const ALL_YEARS = "all";
+
 /** Calendar year used for primary list filter / yearly export (purchase → first use → record created). */
 function getPrimaryEquipmentInventoryYear(eq) {
   const raw = eq?.dateOfPurchase ?? eq?.firstUseDate ?? eq?.createdAt;
@@ -279,8 +282,8 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
     }
   }, [selectedEquipmentDetail]);
 
-  /** Inventory year for list tab + yearly CSV (aligned with date of purchase / first use / created). */
-  const [listYear, setListYear] = useState(() => new Date().getFullYear());
+  /** Inventory year for list tab (aligned with date of purchase / first use / created), or ALL_YEARS. */
+  const [listYear, setListYear] = useState(ALL_YEARS);
 
   const primaryInventoryYearOptions = useMemo(() => {
     const set = new Set();
@@ -294,18 +297,21 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
 
   const equipmentsForListYear = useMemo(
     () =>
-      equipments.filter((eq) => getPrimaryEquipmentInventoryYear(eq) === listYear),
+      listYear === ALL_YEARS
+        ? equipments
+        : equipments.filter((eq) => getPrimaryEquipmentInventoryYear(eq) === listYear),
     [equipments, listYear]
   );
 
   useEffect(() => {
     if (activeTab !== "list" || equipments.length === 0) return;
-    if (!primaryInventoryYearOptions.includes(listYear)) {
-      setListYear(primaryInventoryYearOptions[0]);
+    // The selected year can disappear after a delete or an edit
+    if (listYear !== ALL_YEARS && !primaryInventoryYearOptions.includes(listYear)) {
+      setListYear(ALL_YEARS);
     }
   }, [activeTab, equipments.length, listYear, primaryInventoryYearOptions]);
 
-  // Search within the selected year: code, serial, name, type, entity, location, etc.
+  // Search the selected year, or everything with ALL_YEARS: code, serial, name, type, entity, location, etc.
   const [listSearch, setListSearch] = useState("");
   const listSearchTerm = listSearch.trim().toLowerCase();
   const filteredListEquipments = useMemo(() => {
@@ -855,11 +861,14 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   variant="pill"
                   ariaLabel="Inventory year"
                   value={String(listYear)}
-                  onChange={(v) => setListYear(Number(v))}
-                  options={primaryInventoryYearOptions.map((y) => ({
-                    value: String(y),
-                    label: String(y),
-                  }))}
+                  onChange={(v) => setListYear(v === ALL_YEARS ? ALL_YEARS : Number(v))}
+                  options={[
+                    { value: ALL_YEARS, label: "All" },
+                    ...primaryInventoryYearOptions.map((y) => ({
+                      value: String(y),
+                      label: String(y),
+                    })),
+                  ]}
                   className="min-w-0 w-[6.25rem] sm:w-32"
                   triggerClassName="ops-select-trigger w-full rounded-full px-3 py-1 text-xs tracking-widest uppercase"
                 />
@@ -927,7 +936,20 @@ export default function PrimaryEquipment({ activeTab: controlledActiveTab, onCha
                   {equipments.length > 0 && listSearchTerm && filteredListEquipments.length === 0 && (
                     <tr>
                       <td colSpan={11} className="px-4 py-4 text-center text-slate-400">
-                        No equipment matches &quot;{listSearch.trim()}&quot; in {listYear}.
+                        {listYear === ALL_YEARS ? (
+                          <>No equipment matches &quot;{listSearch.trim()}&quot;.</>
+                        ) : (
+                          <>
+                            No equipment matches &quot;{listSearch.trim()}&quot; in {listYear}.{" "}
+                            <button
+                              type="button"
+                              onClick={() => setListYear(ALL_YEARS)}
+                              className="font-semibold text-sky-300 hover:text-sky-200 hover:underline"
+                            >
+                              Search all years
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   )}

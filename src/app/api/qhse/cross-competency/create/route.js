@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import PoacCrossCompetency from "@/lib/mongodb/models/qhse-poac/PoacCrossCompetency";
-import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
+import {
+  POAC_EVALUATION_ITEMS,
+  normalizePoacEvaluation,
+} from "@/lib/constants/qhse-poac/poacEvaluationItems";
 import mongoose from "mongoose";
 import { saveBase64AsFile, isBase64DataUrl } from "@/lib/utils/qhse-file-storage";
 
@@ -43,18 +46,11 @@ export async function POST(req) {
         { status: 400 }
       );
 
-    const normalizeEval = (value) => {
-      if (value === undefined || value === null || value === "") return null;
-      const strVal = String(value);
-      if (["1", "2", "3", "4", "5"].includes(strVal)) return strVal;
-      throw new Error("Invalid evaluation value. Allowed values: 1–5");
-    };
-
     const itemMap = new Map(
       evaluationItems.map((item) => [
         item.srNo,
         {
-          evaluation: normalizeEval(item.evaluation),
+          evaluation: normalizePoacEvaluation(item.evaluation),
           remarks: item.remarks?.trim() || "",
         },
       ])

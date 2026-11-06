@@ -76,3 +76,58 @@ export const POAC_EVALUATION_ITEMS = [
   { srNo: 74, area: "General communication with Operations Team" },
   { srNo: 75, area: "Correctly completing and efficiently submitting STS documentation" },
 ];
+
+/** Rows from this number on are "Office Requirements", rated 1-5; earlier rows are Yes / No. */
+export const POAC_OFFICE_START_SR_NO = 72;
+
+export const POAC_INTRO_TEXT =
+  "This cross audit is to be carried out by a nominated POAC for another POAC handling the STS operation. This audit will be reviewed by QHSE Manager or Director of Operation as required and it will be determined if POAC (Auditee) require any training.";
+
+export const POAC_LEVELS_TEXT =
+  "Levels of Performance: 1= Unacceptable, 2= Needs Improvement, 3=Meets Expectation, 4= Exceeds Expectation, 5=Outstanding. Require specific comments of auditor in case rating of performance is below 3";
+
+export const POAC_YES_NO_OPTIONS = [
+  { value: "Yes", label: "Yes" },
+  { value: "No", label: "No" },
+];
+
+export const POAC_PERFORMANCE_OPTIONS = [
+  { value: "1", label: "1 - Unacceptable" },
+  { value: "2", label: "2 - Needs Improvement" },
+  { value: "3", label: "3 - Meets Expectation" },
+  { value: "4", label: "4 - Exceeds Expectation" },
+  { value: "5", label: "5 - Outstanding" },
+];
+
+export function poacOptionsForRow(srNo) {
+  return srNo >= POAC_OFFICE_START_SR_NO ? POAC_PERFORMANCE_OPTIONS : POAC_YES_NO_OPTIONS;
+}
+
+// Words an earlier version of the update route tried to store instead of 1-3
+const LEGACY_EVALUATION_WORDS = {
+  unsatisfactory: "1",
+  "needs improvement": "2",
+  satisfactory: "3",
+};
+
+/**
+ * Canonical stored value: "Yes", "No", "1"-"5", or null when not rated.
+ * Any row may hold a number: records saved before rows 1-71 became Yes / No keep their rating.
+ */
+export function normalizePoacEvaluation(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const text = String(value).trim();
+  if (["1", "2", "3", "4", "5"].includes(text)) return text;
+  const lower = text.toLowerCase();
+  if (lower === "yes") return "Yes";
+  if (lower === "no") return "No";
+  if (LEGACY_EVALUATION_WORDS[lower]) return LEGACY_EVALUATION_WORDS[lower];
+  throw new Error(`Invalid evaluation value "${text}". Allowed values: Yes, No, 1-5`);
+}
+
+/** The auditor must comment on a "No" or a rating below 3. */
+export function poacRemarksRequired(evaluation) {
+  if (evaluation === "No") return true;
+  const rating = Number(evaluation);
+  return Number.isInteger(rating) && rating >= 1 && rating < 3;
+}

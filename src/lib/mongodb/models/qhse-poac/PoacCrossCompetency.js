@@ -20,15 +20,15 @@ const EvaluationItemSchema = new mongoose.Schema(
       trim: true,
     },
 
-    /** 1–5 as strings (aligned with API normalize); null = not rated */
+    /** Rows 1-71 "Yes" / "No", rows 72-75 "1"-"5" (older records hold 1-5 on every row); null = not rated */
     evaluation: {
       type: String,
       default: null,
       validate: {
         validator(v) {
-          return v == null || ["1", "2", "3", "4", "5"].includes(v);
+          return v == null || ["Yes", "No", "1", "2", "3", "4", "5"].includes(v);
         },
-        message: "Evaluation must be 1–5 or empty",
+        message: "Evaluation must be Yes, No, 1–5 or empty",
       },
     },
 

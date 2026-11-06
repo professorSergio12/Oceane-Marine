@@ -110,3 +110,7 @@ export const POAC_CROSS_DEFAULT_AREAS = {};
 AREA_STRINGS.forEach((area, i) => {
   POAC_CROSS_DEFAULT_AREAS[i + 1] = area;
 });
+
+/** The form prints rows 1-71 first, then the Lead POAC's comment, then Office Requirements. */
+export const GENERAL_EVALUATION_CATEGORIES = EVALUATION_CATEGORIES.filter((c) => c.start < 72);
+export const OFFICE_EVALUATION_CATEGORIES = EVALUATION_CATEGORIES.filter((c) => c.start >= 72);

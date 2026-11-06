@@ -4,9 +4,96 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
 import { useSearchParams } from "next/navigation";
-import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
+import {
+  POAC_EVALUATION_ITEMS,
+  POAC_INTRO_TEXT,
+  POAC_LEVELS_TEXT,
+  POAC_OFFICE_START_SR_NO,
+  normalizePoacEvaluation,
+  poacOptionsForRow,
+  poacRemarksRequired,
+} from "@/lib/constants/qhse-poac/poacEvaluationItems";
+import { resolveQhseSignatureImageSrc } from "@/lib/utils/qhse-signature-url";
 import { useQhseSidebar } from "../../../QhseSidebarContext";
 import { useQhseRole } from "@/hooks/useQhseRole";
+
+const MAX_SIGNATURE_BYTES = 5 * 1024 * 1024;
+
+/** Saved value for the form; anything unreadable is shown as not rated. */
+function savedEvaluation(value) {
+  try {
+    return normalizePoacEvaluation(value);
+  } catch {
+    return null;
+  }
+}
+
+function evaluationItemsPayload(items) {
+  return items.map((item) => ({
+    srNo: item.srNo,
+    evaluation: item.evaluation ?? null,
+    remarks: item.remarks?.trim() || "",
+  }));
+}
+
+/** Signature as an image: upload, preview, replace, remove. */
+function SignatureField({ label, value, onChange }) {
+  const [problem, setProblem] = useState(null);
+  const stored = value?.trim() || "";
+  const imageSrc = stored ? resolveQhseSignatureImageSrc(stored) : null;
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setProblem("Please choose an image file (PNG or JPG).");
+      return;
+    }
+    if (file.size > MAX_SIGNATURE_BYTES) {
+      setProblem("The image is too large (max 5 MB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProblem(null);
+      onChange(reader.result);
+    };
+    reader.onerror = () => setProblem("The image could not be read. Please try again.");
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
+        {label}
+      </label>
+      {stored && (
+        <div className="mb-2 flex flex-wrap items-center gap-3">
+          {imageSrc ? (
+            <img src={imageSrc} alt={label} className="h-16 max-w-[200px] rounded border border-white/15 bg-white object-contain p-1" />
+          ) : (
+            <p className="text-sm text-slate-200">{stored}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-xs font-semibold text-red-300 hover:text-red-200"
+          >
+            Remove
+          </button>
+        </div>
+      )}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFile}
+        className="block w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-white/20 file:cursor-pointer"
+      />
+      {problem && <p className="mt-1 text-xs text-red-400">{problem}</p>}
+    </div>
+  );
+}
 
 export default function PoacCrossCompetencyFormPage() {
   const { contentClassName } = useQhseSidebar();
@@ -96,34 +183,10 @@ export default function PoacCrossCompetencyFormPage() {
                     (item) => item.srNo === defaultItem.srNo
                   );
                   if (existingItem) {
-                    // Convert evaluation to number, handling both old string values and numbers
-                    let evaluationValue = null;
-                    if (
-                      existingItem.evaluation !== null &&
-                      existingItem.evaluation !== undefined
-                    ) {
-                      // If it's already a number between 1-5, use it
-                      if (
-                        typeof existingItem.evaluation === "number" &&
-                        existingItem.evaluation >= 1 &&
-                        existingItem.evaluation <= 5
-                      ) {
-                        evaluationValue = existingItem.evaluation;
-                      }
-                      // If it's a string, try to parse it
-                      else if (typeof existingItem.evaluation === "string") {
-                        const parsed = parseInt(existingItem.evaluation, 10);
-                        if (!isNaN(parsed) && parsed >= 1 && parsed <= 5) {
-                          evaluationValue = parsed;
-                        }
-                        // If it's a string like "Unsatisfactory", "Satisfactory", etc., evaluationValue remains null
-                      }
-                    }
-
                     return {
                       srNo: defaultItem.srNo,
                       area: defaultItem.area,
-                      evaluation: evaluationValue,
+                      evaluation: savedEvaluation(existingItem.evaluation),
                       remarks: existingItem.remarks || "",
                     };
                   }
@@ -201,34 +264,18 @@ export default function PoacCrossCompetencyFormPage() {
   const handleEvaluationChange = (index, field, value) => {
     setForm((prev) => {
       const newItems = [...prev.evaluationItems];
-
-      // Convert evaluation to number if it's the evaluation field
-      if (field === "evaluation") {
-        let numValue = null;
-        if (value && value !== "" && value !== null && value !== undefined) {
-          // Handle both string and number inputs
-          const parsed =
-            typeof value === "string" ? parseInt(value, 10) : Number(value);
-          if (!isNaN(parsed) && parsed >= 1 && parsed <= 5) {
-            numValue = parsed;
-          }
-        }
-        newItems[index] = { ...newItems[index], [field]: numValue };
-
-        // If evaluation is >= 3, clear remarks requirement
-        if (numValue !== null && numValue >= 3) {
-          // Clear validation error if exists
-          setValidationErrors((prev) => {
-            const newErrors = { ...prev };
-            delete newErrors[`evaluation_${index}`];
-            return newErrors;
-          });
-        }
-      } else {
-        newItems[index] = { ...newItems[index], [field]: value };
-      }
-
+      newItems[index] = {
+        ...newItems[index],
+        [field]: field === "evaluation" ? value || null : value,
+      };
       return { ...prev, evaluationItems: newItems };
+    });
+    // The remarks rule may no longer apply to this row
+    setValidationErrors((prev) => {
+      if (!prev[`evaluation_${index}`]) return prev;
+      const newErrors = { ...prev };
+      delete newErrors[`evaluation_${index}`];
+      return newErrors;
     });
   };
 
@@ -251,13 +298,10 @@ export default function PoacCrossCompetencyFormPage() {
 
     // Validate evaluation items
     form.evaluationItems.forEach((item, index) => {
-      if (item.evaluation !== null && item.evaluation !== undefined) {
-        const evalNum = parseInt(item.evaluation);
-        if (evalNum < 3 && (!item.remarks || !item.remarks.trim())) {
-          errors[
-            `evaluation_${index}`
-          ] = `Remarks are required for item ${item.srNo} when evaluation is less than 3`;
-        }
+      if (poacRemarksRequired(item.evaluation) && !item.remarks?.trim()) {
+        errors[
+          `evaluation_${index}`
+        ] = `Remarks are required for item ${item.srNo} when the answer is No or the rating is below 3`;
       }
     });
 
@@ -303,23 +347,7 @@ export default function PoacCrossCompetencyFormPage() {
         // Revision: backend sets revNo 1.0 on create; do not send from form
 
         // Evaluation items - send all 75 items (API will normalize)
-        evaluationItems: form.evaluationItems.map((item) => {
-          let evaluationValue = null;
-          if (
-            item.evaluation !== null &&
-            item.evaluation !== undefined &&
-            item.evaluation !== ""
-          ) {
-            const parsed = parseInt(item.evaluation, 10);
-            evaluationValue =
-              !isNaN(parsed) && parsed >= 1 && parsed <= 5 ? parsed : null;
-          }
-          return {
-            srNo: item.srNo,
-            evaluation: evaluationValue,
-            remarks: item.remarks?.trim() || "",
-          };
-        }),
+        evaluationItems: evaluationItemsPayload(form.evaluationItems),
 
         // Lead POAC
         ...(form.leadPOACComment?.trim() && {
@@ -329,9 +357,7 @@ export default function PoacCrossCompetencyFormPage() {
           leadPOACName: form.leadPOACName.trim(),
         }),
         ...(form.leadPOACDate && { leadPOACDate: form.leadPOACDate }),
-        ...(form.leadPOACSignature?.trim() && {
-          leadPOACSignature: form.leadPOACSignature.trim(),
-        }),
+        leadPOACSignature: form.leadPOACSignature?.trim() || "",
 
         // Ops Support
         ...(form.opsSupportTeamComment?.trim() && {
@@ -343,9 +369,7 @@ export default function PoacCrossCompetencyFormPage() {
           opsTeamName: form.opsTeamName.trim(),
         }),
         ...(form.opsTeamDate && { opsTeamDate: form.opsTeamDate }),
-        ...(form.opsTeamSignature?.trim() && {
-          opsTeamSignature: form.opsTeamSignature.trim(),
-        }),
+        opsTeamSignature: form.opsTeamSignature?.trim() || "",
 
         // Superintendent
         ...(form.opsTeamSupdtName?.trim() && {
@@ -354,9 +378,7 @@ export default function PoacCrossCompetencyFormPage() {
         ...(form.opsTeamSupdtDate && {
           opsTeamSupdtDate: form.opsTeamSupdtDate,
         }),
-        ...(form.opsTeamSupdtSignature?.trim() && {
-          opsTeamSupdtSignature: form.opsTeamSupdtSignature.trim(),
-        }),
+        opsTeamSupdtSignature: form.opsTeamSupdtSignature?.trim() || "",
 
         status: "Draft",
       };
@@ -451,23 +473,7 @@ export default function PoacCrossCompetencyFormPage() {
         // Revision: backend sets revNo 1.0 on create; do not send from form
 
         // Evaluation items - send all 75 items (API will normalize)
-        evaluationItems: form.evaluationItems.map((item) => {
-          let evaluationValue = null;
-          if (
-            item.evaluation !== null &&
-            item.evaluation !== undefined &&
-            item.evaluation !== ""
-          ) {
-            const parsed = parseInt(item.evaluation, 10);
-            evaluationValue =
-              !isNaN(parsed) && parsed >= 1 && parsed <= 5 ? parsed : null;
-          }
-          return {
-            srNo: item.srNo,
-            evaluation: evaluationValue,
-            remarks: item.remarks?.trim() || "",
-          };
-        }),
+        evaluationItems: evaluationItemsPayload(form.evaluationItems),
 
         // Lead POAC
         ...(form.leadPOACComment?.trim() && {
@@ -477,9 +483,7 @@ export default function PoacCrossCompetencyFormPage() {
           leadPOACName: form.leadPOACName.trim(),
         }),
         ...(form.leadPOACDate && { leadPOACDate: form.leadPOACDate }),
-        ...(form.leadPOACSignature?.trim() && {
-          leadPOACSignature: form.leadPOACSignature.trim(),
-        }),
+        leadPOACSignature: form.leadPOACSignature?.trim() || "",
 
         // Ops Support
         ...(form.opsSupportTeamComment?.trim() && {
@@ -491,9 +495,7 @@ export default function PoacCrossCompetencyFormPage() {
           opsTeamName: form.opsTeamName.trim(),
         }),
         ...(form.opsTeamDate && { opsTeamDate: form.opsTeamDate }),
-        ...(form.opsTeamSignature?.trim() && {
-          opsTeamSignature: form.opsTeamSignature.trim(),
-        }),
+        opsTeamSignature: form.opsTeamSignature?.trim() || "",
 
         // Superintendent
         ...(form.opsTeamSupdtName?.trim() && {
@@ -502,9 +504,7 @@ export default function PoacCrossCompetencyFormPage() {
         ...(form.opsTeamSupdtDate && {
           opsTeamSupdtDate: form.opsTeamSupdtDate,
         }),
-        ...(form.opsTeamSupdtSignature?.trim() && {
-          opsTeamSupdtSignature: form.opsTeamSupdtSignature.trim(),
-        }),
+        opsTeamSupdtSignature: form.opsTeamSupdtSignature?.trim() || "",
 
         status: "Submitted",
       };
@@ -567,6 +567,97 @@ export default function PoacCrossCompetencyFormPage() {
     { name: "General", start: 67, end: 71 },
     { name: "Office Requirements", start: 72, end: 75 },
   ];
+
+  const renderEvaluationCategory = (category) => {
+    const categoryItems = form.evaluationItems.filter(
+      (item) => item.srNo >= category.start && item.srNo <= category.end
+    );
+    const isOffice = category.start >= POAC_OFFICE_START_SR_NO;
+
+    return (
+      <div
+        key={category.name}
+        className="border border-white/10 rounded-xl p-4 bg-slate-900/20"
+      >
+        <h3 className="text-sm font-bold text-cyan-300 mb-3">{category.name}</h3>
+        <div className="space-y-3">
+          {categoryItems.map((item) => {
+            const globalIndex = form.evaluationItems.findIndex((e) => e.srNo === item.srNo);
+            const errorText = validationErrors[`evaluation_${globalIndex}`];
+            const options = poacOptionsForRow(item.srNo);
+            // A rating saved before rows 1-71 became Yes / No stays visible until it is changed
+            const isOlderValue =
+              item.evaluation != null && !options.some((o) => o.value === item.evaluation);
+            const remarksRequired = poacRemarksRequired(item.evaluation);
+
+            return (
+              <div
+                key={item.srNo}
+                className="border border-white/5 rounded-lg p-3 bg-slate-900/30"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-xs font-semibold text-slate-300 min-w-[40px]">
+                    {item.srNo}.
+                  </span>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xs text-slate-200">{item.area}</p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                      <div className="sm:w-52">
+                        <label className="block text-[10px] uppercase tracking-wide text-slate-300 mb-1">
+                          {isOffice ? "Level of Performance" : "Evaluation"}
+                        </label>
+                        <select
+                          className={`w-full rounded-lg bg-slate-900/40 border ${
+                            errorText ? "border-red-500" : "border-white/15"
+                          } px-2 py-1.5 text-xs text-white`}
+                          value={item.evaluation ?? ""}
+                          onChange={(e) =>
+                            handleEvaluationChange(globalIndex, "evaluation", e.target.value)
+                          }
+                        >
+                          <option value="">Select</option>
+                          {options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                          {isOlderValue && (
+                            <option value={item.evaluation}>
+                              {item.evaluation} (earlier rating)
+                            </option>
+                          )}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[10px] uppercase tracking-wide text-slate-300 mb-1">
+                          Remarks {remarksRequired && <span className="text-red-400">*</span>}
+                        </label>
+                        <textarea
+                          className={`w-full rounded-lg bg-slate-900/40 border ${
+                            errorText ? "border-red-500" : "border-white/15"
+                          } px-2 py-1.5 text-xs text-white`}
+                          rows={1}
+                          value={item.remarks}
+                          onChange={(e) =>
+                            handleEvaluationChange(globalIndex, "remarks", e.target.value)
+                          }
+                          placeholder={remarksRequired ? "Please add your comments" : "Optional"}
+                          required={remarksRequired}
+                        />
+                        {errorText && (
+                          <p className="text-[10px] text-red-400 mt-1">{errorText}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className={`${contentClassName} w-full min-w-0 pr-4`}>
@@ -679,9 +770,10 @@ export default function PoacCrossCompetencyFormPage() {
 
           {/* POAC Details Section */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-            <h2 className="text-lg font-bold mb-4 text-orange-300">
+            <h2 className="text-lg font-bold mb-2 text-orange-300">
               POAC Details
             </h2>
+            <p className="text-xs text-slate-300 mb-4">{POAC_INTRO_TEXT}</p>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
@@ -729,7 +821,7 @@ export default function PoacCrossCompetencyFormPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
-                  Job Ref No <span className="text-red-400">*</span>
+                  Job Ref # <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -834,7 +926,7 @@ export default function PoacCrossCompetencyFormPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
-                  Deadweight Discharging
+                  Deadweight Discharging (Metric Tonnes)
                 </label>
                 <input
                   type="number"
@@ -849,7 +941,7 @@ export default function PoacCrossCompetencyFormPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
-                  Deadweight Receiving
+                  Deadweight Receiving (Metric Tonnes)
                 </label>
                 <input
                   type="number"
@@ -871,134 +963,13 @@ export default function PoacCrossCompetencyFormPage() {
               Evaluation Items
             </h2>
             <p className="text-xs text-slate-300 mb-4">
-              Rate each item from 1-5. Remarks are required if evaluation is
-              less than 3.
+              Answer Yes or No for each item. Remarks are required for a No.
             </p>
 
             <div className="space-y-6">
-              {evaluationCategories.map((category) => {
-                const categoryItems = form.evaluationItems.filter(
-                  (item) =>
-                    item.srNo >= category.start && item.srNo <= category.end
-                );
-
-                return (
-                  <div
-                    key={category.name}
-                    className="border border-white/10 rounded-xl p-4 bg-slate-900/20"
-                  >
-                    <h3 className="text-sm font-bold text-cyan-300 mb-3">
-                      {category.name}
-                    </h3>
-                    <div className="space-y-3">
-                      {categoryItems.map((item, idx) => {
-                        const globalIndex = form.evaluationItems.findIndex(
-                          (e) => e.srNo === item.srNo
-                        );
-                        const hasError =
-                          validationErrors[`evaluation_${globalIndex}`];
-                        const evalNum =
-                          typeof item.evaluation === "number"
-                            ? item.evaluation
-                            : item.evaluation
-                            ? parseInt(item.evaluation, 10)
-                            : null;
-                        const showRemarks =
-                          evalNum !== null && !isNaN(evalNum) && evalNum < 3;
-
-                        return (
-                          <div
-                            key={item.srNo}
-                            className="border border-white/5 rounded-lg p-3 bg-slate-900/30"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="text-xs font-semibold text-slate-300 min-w-[40px]">
-                                {item.srNo}.
-                              </span>
-                              <div className="flex-1 space-y-2">
-                                <p className="text-xs text-slate-200">
-                                  {item.area}
-                                </p>
-                                <div className="flex gap-3 items-start">
-                                  <div className="flex-1">
-                                    <label className="block text-[10px] uppercase tracking-wide text-slate-300 mb-1">
-                                      Evaluation (1-5)
-                                    </label>
-                                    <select
-                                      className={`w-full rounded-lg bg-slate-900/40 border ${
-                                        hasError
-                                          ? "border-red-500"
-                                          : "border-white/15"
-                                      } px-2 py-1.5 text-xs text-white`}
-                                      value={
-                                        item.evaluation !== null &&
-                                        item.evaluation !== undefined
-                                          ? String(item.evaluation)
-                                          : ""
-                                      }
-                                      onChange={(e) =>
-                                        handleEvaluationChange(
-                                          globalIndex,
-                                          "evaluation",
-                                          e.target.value
-                                        )
-                                      }
-                                    >
-                                      <option value="">Select</option>
-                                      <option value="1">1</option>
-                                      <option value="2">2</option>
-                                      <option value="3">3</option>
-                                      <option value="4">4</option>
-                                      <option value="5">5</option>
-                                    </select>
-                                  </div>
-                                  {(showRemarks || item.remarks) && (
-                                    <div className="flex-1">
-                                      <label className="block text-[10px] uppercase tracking-wide text-slate-300 mb-1">
-                                        Remarks{" "}
-                                        <span className="text-red-400">
-                                          *
-                                        </span>
-                                      </label>
-                                      <textarea
-                                        className={`w-full rounded-lg bg-slate-900/40 border ${
-                                          hasError
-                                            ? "border-red-500"
-                                            : "border-white/15"
-                                        } px-2 py-1.5 text-xs text-white`}
-                                        rows={2}
-                                        value={item.remarks}
-                                        onChange={(e) =>
-                                          handleEvaluationChange(
-                                            globalIndex,
-                                            "remarks",
-                                            e.target.value
-                                          )
-                                        }
-                                        placeholder="Required when evaluation < 3"
-                                        required={showRemarks}
-                                      />
-                                      {hasError && (
-                                        <p className="text-[10px] text-red-400 mt-1">
-                                          {
-                                            validationErrors[
-                                              `evaluation_${globalIndex}`
-                                            ]
-                                          }
-                                        </p>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+              {evaluationCategories
+                .filter((category) => category.start < POAC_OFFICE_START_SR_NO)
+                .map(renderEvaluationCategory)}
             </div>
           </div>
 
@@ -1049,27 +1020,31 @@ export default function PoacCrossCompetencyFormPage() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
-                  Lead POAC Signature
-                </label>
-                <input
-                  type="text"
-                  className="w-full rounded-xl bg-slate-900/40 border border-white/15 px-3 py-2 text-sm text-white"
-                  value={form.leadPOACSignature}
-                  onChange={(e) =>
-                    handleChange("leadPOACSignature", e.target.value)
-                  }
-                  placeholder="Signature URL or text"
-                />
-              </div>
+              <SignatureField
+                label="Lead POAC Signature"
+                value={form.leadPOACSignature}
+                onChange={(v) => handleChange("leadPOACSignature", v)}
+              />
+            </div>
+          </div>
+
+          {/* Office Requirements (rows 72-75, rated 1-5) */}
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
+            <h2 className="text-lg font-bold mb-2 text-orange-300">
+              Level of Performance
+            </h2>
+            <p className="text-xs text-slate-300 mb-4">{POAC_LEVELS_TEXT}</p>
+            <div className="space-y-6">
+              {evaluationCategories
+                .filter((category) => category.start >= POAC_OFFICE_START_SR_NO)
+                .map(renderEvaluationCategory)}
             </div>
           </div>
 
           {/* Operations Support Team Comment */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             <h2 className="text-lg font-bold mb-4 text-orange-300">
-              Operations Support Team Comment
+              Operation & Operations Support Team Comments
             </h2>
             <textarea
               className="w-full rounded-xl bg-slate-900/40 border border-white/15 px-3 py-2 text-sm text-white"
@@ -1114,19 +1089,11 @@ export default function PoacCrossCompetencyFormPage() {
                     }
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
-                    Ops Team Signature
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-xl bg-slate-900/40 border border-white/15 px-3 py-2 text-sm text-white"
-                    value={form.opsTeamSignature}
-                    onChange={(e) =>
-                      handleChange("opsTeamSignature", e.target.value)
-                    }
-                  />
-                </div>
+                <SignatureField
+                  label="Ops Team Signature"
+                  value={form.opsTeamSignature}
+                  onChange={(v) => handleChange("opsTeamSignature", v)}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
@@ -1155,19 +1122,11 @@ export default function PoacCrossCompetencyFormPage() {
                     }
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 mb-1.5">
-                    Ops Team Superintendent Signature
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-xl bg-slate-900/40 border border-white/15 px-3 py-2 text-sm text-white"
-                    value={form.opsTeamSupdtSignature}
-                    onChange={(e) =>
-                      handleChange("opsTeamSupdtSignature", e.target.value)
-                    }
-                  />
-                </div>
+                <SignatureField
+                  label="Ops Team Superintendent Signature"
+                  value={form.opsTeamSupdtSignature}
+                  onChange={(v) => handleChange("opsTeamSupdtSignature", v)}
+                />
               </div>
             </div>
           </div>

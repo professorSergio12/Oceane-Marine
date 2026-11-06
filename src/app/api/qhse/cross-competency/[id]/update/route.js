@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/config/connection";
 import PoacCrossCompetency from "@/lib/mongodb/models/qhse-poac/PoacCrossCompetency";
-import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
+import {
+  POAC_EVALUATION_ITEMS,
+  normalizePoacEvaluation,
+} from "@/lib/constants/qhse-poac/poacEvaluationItems";
+import { saveBase64AsFile, isBase64DataUrl } from "@/lib/utils/qhse-file-storage";
 import { getNextRevisionNumber } from "@/lib/utils/qhse-revision";
 import { notifyEdit } from "@/lib/notifications/moduleNotify";
 
@@ -75,23 +79,8 @@ export async function PUT(req, { params }) {
       Array.isArray(body.evaluationItems) &&
       body.evaluationItems.length > 0
     ) {
-      const normalizeEval = (val) => {
-        if (val === undefined || val === null) return null;
-        if (val === 1 || val === "1") return "Unsatisfactory";
-        if (val === 2 || val === "2") return "Needs Improvement";
-        if (val === 3 || val === "3") return "Satisfactory";
-        if (val === 4 || val === "4") return "4";
-        if (val === 5 || val === "5") return "5";
-        return val;
-      };
-
       // User provided items - merge with constant
-      const itemMap = new Map(
-        body.evaluationItems.map((item) => [
-          item.srNo,
-          { ...item, evaluation: normalizeEval(item.evaluation) },
-        ])
-      );
+      const itemMap = new Map(body.evaluationItems.map((item) => [item.srNo, item]));
 
       finalEvaluationItems = POAC_EVALUATION_ITEMS.map((master) => {
         const userItem = itemMap.get(master.srNo);
@@ -102,20 +91,26 @@ export async function PUT(req, { params }) {
         return {
           srNo: master.srNo,
           area: master.area,
-          evaluation: userItem?.evaluation ?? existingItem?.evaluation ?? null,
+          // A row sent without a rating is cleared; only rows not sent keep the saved value
+          evaluation: normalizePoacEvaluation(
+            userItem ? userItem.evaluation : existingItem?.evaluation
+          ),
           remarks: userItem?.remarks ?? existingItem?.remarks ?? "",
         };
       });
     } else {
       // Use existing evaluation items if not provided
-      finalEvaluationItems =
-        existingForm.evaluationItems ||
-        POAC_EVALUATION_ITEMS.map((item) => ({
-          srNo: item.srNo,
-          area: item.area,
-          evaluation: null,
-          remarks: "",
-        }));
+      finalEvaluationItems = POAC_EVALUATION_ITEMS.map((master) => {
+        const existingItem = existingForm.evaluationItems?.find(
+          (e) => e.srNo === master.srNo
+        );
+        return {
+          srNo: master.srNo,
+          area: master.area,
+          evaluation: normalizePoacEvaluation(existingItem?.evaluation),
+          remarks: existingItem?.remarks ?? "",
+        };
+      });
     }
 
     /* =========================
@@ -125,20 +120,38 @@ export async function PUT(req, { params }) {
     const now = new Date();
 
     /* =========================
-       MARK ALL PREVIOUS VERSIONS AS NOT LATEST
+       SIGNATURES: images are stored as files, like on create
        ========================= */
-    await PoacCrossCompetency.updateMany(
-      { parentOperationId: existingForm.parentOperationId },
-      { $set: { isLatest: false } }
-    );
+    const signatureValue = async (field, fileName) => {
+      if (body[field] === undefined) return existingForm[field];
+      const value = body[field]?.trim() || "";
+      if (!isBase64DataUrl(value)) return value;
+      const saved = await saveBase64AsFile({
+        formCode: existingForm.formCode,
+        formSlug: "cross-competency",
+        location: (body.location ?? existingForm.location)?.trim() || null,
+        date: body.evaluationDate ? new Date(body.evaluationDate) : existingForm.evaluationDate,
+        title: (body.nameOfPOAC || existingForm.nameOfPOAC).trim(),
+        fileType: "signatures",
+        fileName,
+        base64DataUrl: value,
+      });
+      return saved || value;
+    };
 
     /* =========================
        CREATE NEW VERSION
+       The current version stays latest until the new one is saved, so a failed save
+       cannot leave the form without a latest version (it would vanish from the list).
        ========================= */
     const updatedForm = await PoacCrossCompetency.create({
       // Versioning
       parentOperationId: existingForm.parentOperationId,
-      isLatest: true,
+      isLatest: false,
+
+      // Same document across revisions: keep its code and serial
+      formCode: existingForm.formCode,
+      serialNumber: existingForm.serialNumber,
 
       // Required fields (allow update)
       nameOfPOAC: body.nameOfPOAC?.trim() || existingForm.nameOfPOAC,
@@ -201,10 +214,7 @@ export async function PUT(req, { params }) {
       leadPOACDate: body.leadPOACDate
         ? new Date(body.leadPOACDate)
         : existingForm.leadPOACDate,
-      leadPOACSignature:
-        body.leadPOACSignature !== undefined
-          ? body.leadPOACSignature?.trim() || ""
-          : existingForm.leadPOACSignature,
+      leadPOACSignature: await signatureValue("leadPOACSignature", "lead-poac-signature"),
 
       // Operations Support Team Comment
       opsSupportTeamComment:
@@ -220,10 +230,7 @@ export async function PUT(req, { params }) {
       opsTeamDate: body.opsTeamDate
         ? new Date(body.opsTeamDate)
         : existingForm.opsTeamDate,
-      opsTeamSignature:
-        body.opsTeamSignature !== undefined
-          ? body.opsTeamSignature?.trim() || ""
-          : existingForm.opsTeamSignature,
+      opsTeamSignature: await signatureValue("opsTeamSignature", "ops-team-signature"),
 
       // Ops Team Superintendent Section
       opsTeamSupdtName:
@@ -233,10 +240,7 @@ export async function PUT(req, { params }) {
       opsTeamSupdtDate: body.opsTeamSupdtDate
         ? new Date(body.opsTeamSupdtDate)
         : existingForm.opsTeamSupdtDate,
-      opsTeamSupdtSignature:
-        body.opsTeamSupdtSignature !== undefined
-          ? body.opsTeamSupdtSignature?.trim() || ""
-          : existingForm.opsTeamSupdtSignature,
+      opsTeamSupdtSignature: await signatureValue("opsTeamSupdtSignature", "ops-team-supdt-signature"),
 
       // Status
       status: body.status || existingForm.status || "Draft",
@@ -245,6 +249,16 @@ export async function PUT(req, { params }) {
       createdBy: existingForm.createdBy,
       updatedBy: req.user?.id || null,
     });
+
+    /* =========================
+       MAKE THE NEW VERSION THE LATEST
+       ========================= */
+    await PoacCrossCompetency.updateMany(
+      { parentOperationId: existingForm.parentOperationId, _id: { $ne: updatedForm._id } },
+      { $set: { isLatest: false } }
+    );
+    await PoacCrossCompetency.updateOne({ _id: updatedForm._id }, { $set: { isLatest: true } });
+    updatedForm.isLatest = true;
 
     void notifyEdit("QHSE", "cross-competency · update", id);
     return NextResponse.json(

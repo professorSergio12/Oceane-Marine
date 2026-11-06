@@ -8,7 +8,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { TemplateDownloadLink } from "../../../components/TemplateDownloadLink";
-import { POAC_EVALUATION_ITEMS } from "@/lib/constants/qhse-poac/poacEvaluationItems";
+import {
+  POAC_INTRO_TEXT,
+  POAC_LEVELS_TEXT,
+  POAC_OFFICE_START_SR_NO,
+  poacRemarksRequired,
+} from "@/lib/constants/qhse-poac/poacEvaluationItems";
 import { resolveQhseSignatureImageSrc } from "@/lib/utils/qhse-signature-url";
 
 function formatDate(value) {
@@ -43,6 +48,50 @@ const evaluationCategories = [
   { name: "General", start: 67, end: 71 },
   { name: "Office Requirements", start: 72, end: 75 },
 ];
+
+function EvaluationCategory({ category, items }) {
+  const categoryItems = (items || []).filter(
+    (item) => item.srNo >= category.start && item.srNo <= category.end
+  );
+  if (categoryItems.length === 0) return null;
+  const isOffice = category.start >= POAC_OFFICE_START_SR_NO;
+
+  return (
+    <div className="border border-white/10 rounded-xl p-4 bg-slate-900/20">
+      <h3 className="text-sm font-bold text-cyan-300 mb-3">{category.name}</h3>
+      <div className="space-y-3">
+        {categoryItems.map((item) => (
+          <div key={item.srNo} className="border border-white/5 rounded-lg p-3 bg-slate-900/30">
+            <div className="flex items-start gap-3">
+              <span className="text-xs font-semibold text-slate-300 min-w-[40px]">
+                {item.srNo}.
+              </span>
+              <div className="flex-1 space-y-2">
+                <p className="text-xs text-slate-200">{item.area}</p>
+                <div className="flex gap-4 items-start">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">
+                      {isOffice ? "Level of Performance" : "Evaluation"}
+                    </label>
+                    <p className="text-sm text-white font-semibold">{item.evaluation ?? "—"}</p>
+                  </div>
+                  {(item.remarks || poacRemarksRequired(item.evaluation)) && (
+                    <div className="flex-1">
+                      <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">
+                        Remarks
+                      </label>
+                      <p className="text-xs text-slate-200">{item.remarks || "—"}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function PoacCrossCompetencyViewPage() {
   const { setPageLoading } = useQhseLoading();
@@ -374,6 +423,7 @@ export default function PoacCrossCompetencyViewPage() {
                 </svg>
               </button>
             </div>
+            <p className="text-xs text-slate-300 mb-4">{POAC_INTRO_TEXT}</p>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Form Code</label>
@@ -392,7 +442,7 @@ export default function PoacCrossCompetencyViewPage() {
                 <p className="text-sm text-white">{formatDate(form.evaluationDate)}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Job Ref No</label>
+                <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Job Ref #</label>
                 <p className="text-sm text-white">{form.jobRefNo || "—"}</p>
               </div>
               <div>
@@ -420,11 +470,11 @@ export default function PoacCrossCompetencyViewPage() {
                 <p className="text-sm text-white">{form.weatherCondition || "—"}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Deadweight Discharging</label>
+                <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Deadweight Discharging (Metric Tonnes)</label>
                 <p className="text-sm text-white">{form.deadweightDischarging ?? "—"}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Deadweight Receiving</label>
+                <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mb-1">Deadweight Receiving (Metric Tonnes)</label>
                 <p className="text-sm text-white">{form.deadweightReceiving ?? "—"}</p>
               </div>
               <div>
@@ -446,58 +496,11 @@ export default function PoacCrossCompetencyViewPage() {
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
             <h2 className="text-lg font-bold mb-4 text-orange-300">Evaluation Items</h2>
             <div className="space-y-6">
-              {evaluationCategories.map((category) => {
-                const categoryItems = (form.evaluationItems || []).filter(
-                  (item) => item.srNo >= category.start && item.srNo <= category.end
-                );
-
-                if (categoryItems.length === 0) return null;
-
-                return (
-                  <div key={category.name} className="border border-white/10 rounded-xl p-4 bg-slate-900/20">
-                    <h3 className="text-sm font-bold text-cyan-300 mb-3">{category.name}</h3>
-                    <div className="space-y-3">
-                      {categoryItems.map((item) => {
-                        const hasEvaluation = item.evaluation !== null && item.evaluation !== undefined;
-                        const evaluationValue = hasEvaluation ? parseInt(item.evaluation) : null;
-
-                        return (
-                          <div key={item.srNo} className="border border-white/5 rounded-lg p-3 bg-slate-900/30">
-                            <div className="flex items-start gap-3">
-                              <span className="text-xs font-semibold text-slate-300 min-w-[40px]">
-                                {item.srNo}.
-                              </span>
-                              <div className="flex-1 space-y-2">
-                                <p className="text-xs text-slate-200">{item.area}</p>
-                                <div className="flex gap-4 items-start">
-                                  <div>
-                                    <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">
-                                      Evaluation
-                                    </label>
-                                    <p className="text-sm text-white font-semibold">
-                                      {hasEvaluation ? evaluationValue : "—"}
-                                    </p>
-                                  </div>
-                                  {(item.remarks || (hasEvaluation && evaluationValue < 3)) && (
-                                    <div className="flex-1">
-                                      <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">
-                                        Remarks
-                                      </label>
-                                      <p className="text-xs text-slate-200">
-                                        {item.remarks || "—"}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+              {evaluationCategories
+                .filter((category) => category.start < POAC_OFFICE_START_SR_NO)
+                .map((category) => (
+                  <EvaluationCategory key={category.name} category={category} items={form.evaluationItems} />
+                ))}
             </div>
           </div>
 
@@ -555,10 +558,23 @@ export default function PoacCrossCompetencyViewPage() {
             </div>
           </div>
 
+          {/* Office Requirements (rows 72-75, rated 1-5) */}
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
+            <h2 className="text-lg font-bold mb-2 text-orange-300">Level of Performance</h2>
+            <p className="text-xs text-slate-300 mb-4">{POAC_LEVELS_TEXT}</p>
+            <div className="space-y-6">
+              {evaluationCategories
+                .filter((category) => category.start >= POAC_OFFICE_START_SR_NO)
+                .map((category) => (
+                  <EvaluationCategory key={category.name} category={category} items={form.evaluationItems} />
+                ))}
+            </div>
+          </div>
+
           {/* Operations Support Team Comment */}
           {form.opsSupportTeamComment && (
             <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur shadow-2xl">
-              <h2 className="text-lg font-bold mb-4 text-orange-300">Operations Support Team Comment</h2>
+              <h2 className="text-lg font-bold mb-4 text-orange-300">Operation & Operations Support Team Comments</h2>
               <p className="text-sm text-white whitespace-pre-wrap">
                 {form.opsSupportTeamComment}
               </p>

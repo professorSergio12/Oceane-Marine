@@ -1,6 +1,7 @@
 import fs from "fs";
 import {
   Document,
+  Header,
   Packer,
   Paragraph,
   TextRun,
@@ -11,18 +12,17 @@ import {
   ImageRun,
 } from "docx";
 import {
-  EVALUATION_CATEGORIES,
+  GENERAL_EVALUATION_CATEGORIES,
+  OFFICE_EVALUATION_CATEGORIES,
   POAC_CROSS_DEFAULT_AREAS as DEFAULT_AREAS,
 } from "./poacCrossCompetencyEvaluationData.js";
-import { buildQhseDocxHeaderTable, buildDocxMeta } from "./shared/qhseDocxHeader.js";
+import { buildQhseDocxHeaderTable, buildDocxMeta, docxImageType } from "./shared/qhseDocxHeader.js";
 import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 
 const FORM_TITLE = "POAC Cross Competency Evaluation";
 const FORM_CODE_DEFAULT = "QAF-OFD-009";
 const BEIGE_FILL = "E8DCC4"; // light tan/beige for headers and labels
-const ROWS_PER_PAGE = 32; // one section ≈ one page so header repeats; first section has intro+table+instruction+first chunk (~31 rows)
-const PAGE_MARGINS = { top: 500, right: 600, bottom: 500, left: 600 };
-const CHECKLIST_CHUNK_SIZE = 22; // rows per checklist table chunk (header + 21 data rows)
+const PAGE_MARGINS = { top: 500, right: 600, bottom: 500, left: 600, header: 300 };
 
 function buildHeaderTable(record) {
   const meta = buildDocxMeta(record, FORM_CODE_DEFAULT);
@@ -61,7 +61,8 @@ function formatDate(date) {
 function getSignatureBuffer(value) {
   if (value == null || typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (!trimmed || /not available|n\/a/i.test(trimmed)) return null;
+  // Whole-value match: image data can contain these letters by chance
+  if (!trimmed || /^(not available|n\/a)$/i.test(trimmed)) return null;
   return loadSignatureImage(trimmed, "POAC-CrossCompetency");
 }
 
@@ -139,81 +140,58 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
   evaluationItems.forEach((item) => {
     itemBySrNo[item.srNo] = item;
   });
-  const checklistHeaderRow = new TableRow({
-    children: [
-      cell("Sr. No.", { bold: true, shading: BEIGE_FILL }),
-      cell("Areas Audited", { bold: true, shading: BEIGE_FILL }),
-      cell("Level of Performance", { bold: true, shading: BEIGE_FILL }),
-      cell("Remarks", { bold: true, shading: BEIGE_FILL }),
-    ],
-  });
-  const allChecklistRows = [checklistHeaderRow];
-  for (const cat of EVALUATION_CATEGORIES) {
-    allChecklistRows.push(
-      new TableRow({
-        children: [
-          cell("", { shading: BEIGE_FILL }),
-          cell(cat.name, { bold: true, shading: BEIGE_FILL, columnSpan: 2 }),
-          cell("", { shading: BEIGE_FILL }),
-        ],
-      })
-    );
-    for (let srNo = cat.start; srNo <= cat.end; srNo++) {
-      const item = itemBySrNo[srNo];
-      const area = item?.area || DEFAULT_AREAS[srNo] || "";
-      const evalVal =
-        item?.evaluation != null && item?.evaluation !== undefined
-          ? String(item.evaluation)
-          : "";
-      const remarks = item?.remarks ?? "";
-      allChecklistRows.push(
+  const checklistHeader = (ratingTitle) =>
+    new TableRow({
+      tableHeader: true, // repeats at the top of every page the table runs onto
+      children: [
+        cell("Sr. No.", { bold: true, shading: BEIGE_FILL }),
+        cell("Areas Audited", { bold: true, shading: BEIGE_FILL }),
+        cell(ratingTitle, { bold: true, shading: BEIGE_FILL }),
+        cell("Remarks", { bold: true, shading: BEIGE_FILL }),
+      ],
+    });
+  const checklistRows = (categories) => {
+    const rows = [];
+    for (const cat of categories) {
+      rows.push(
         new TableRow({
           children: [
-            cell(srNo),
-            cell(area),
-            cell(evalVal),
-            cell(remarks),
+            cell("", { shading: BEIGE_FILL }),
+            cell(cat.name, { bold: true, shading: BEIGE_FILL, columnSpan: 2 }),
+            cell("", { shading: BEIGE_FILL }),
           ],
         })
       );
+      for (let srNo = cat.start; srNo <= cat.end; srNo++) {
+        const item = itemBySrNo[srNo];
+        const area = item?.area || DEFAULT_AREAS[srNo] || "";
+        const evalVal =
+          item?.evaluation != null && item?.evaluation !== undefined
+            ? String(item.evaluation)
+            : "";
+        const remarks = item?.remarks ?? "";
+        rows.push(
+          new TableRow({
+            cantSplit: true,
+            children: [
+              cell(srNo),
+              cell(area),
+              cell(evalVal),
+              cell(remarks),
+            ],
+          })
+        );
+      }
     }
-  }
-  // First chunk goes on page 1 with intro + gen info + instruction; rest as separate blocks (header each page)
-  const checklistChunks = [];
-  for (let start = 0; start < allChecklistRows.length; start += CHECKLIST_CHUNK_SIZE) {
-    const end = Math.min(start + CHECKLIST_CHUNK_SIZE, allChecklistRows.length);
-    const chunkRows = allChecklistRows.slice(start, end);
-    const needHeader = start > 0;
-    const tableRows = needHeader ? [checklistHeaderRow, ...chunkRows] : chunkRows;
-    checklistChunks.push({
-      rowCount: tableRows.length,
-      table: new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: tableRows,
-      }),
-    });
-  }
-  // First block = intro (2) + gen info (6) + instruction (1) + first checklist chunk (~22) = fills page 1
-  const firstChunk = checklistChunks[0];
-  if (firstChunk) {
-    firstPageChildren.push(firstChunk.table);
-    blocks.push({
-      rowCount: 2 + 6 + 1 + firstChunk.rowCount,
-      children: firstPageChildren,
-    });
-  } else {
-    blocks.push({
-      rowCount: 2 + 6 + 1,
-      children: firstPageChildren,
-    });
-  }
-  // Remaining checklist chunks each get their own block (new section = new page with header)
-  for (let i = 1; i < checklistChunks.length; i++) {
-    blocks.push({
-      rowCount: checklistChunks[i].rowCount,
-      children: [checklistChunks[i].table],
-    });
-  }
+    return rows;
+  };
+  firstPageChildren.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [checklistHeader("Evaluation"), ...checklistRows(GENERAL_EVALUATION_CATEGORIES)],
+    })
+  );
+  blocks.push({ children: firstPageChildren });
 
   // --- Lead POAC's Comment (beige title bar, content, signature block) ---
   const leadPoacRows = [
@@ -263,6 +241,7 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
                 new Paragraph({
                   children: [
                     new ImageRun({
+                      type: docxImageType(leadSigBuf),
                       data: leadSigBuf,
                       transformation: { width: 180, height: 60 },
                     }),
@@ -275,12 +254,26 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
     })
   );
   blocks.push({
-    rowCount: leadPoacRows.length,
     children: [
       new Paragraph({ spacing: { before: 400 } }),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: leadPoacRows,
+      }),
+    ],
+  });
+
+  // --- Office Requirements (rated 1-5) ---
+  const officeRows = [
+    checklistHeader("Level of Performance"),
+    ...checklistRows(OFFICE_EVALUATION_CATEGORIES),
+  ];
+  blocks.push({
+    children: [
+      new Paragraph({ spacing: { before: 400 } }),
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: officeRows,
       }),
     ],
   });
@@ -328,6 +321,7 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
                 new Paragraph({
                   children: [
                     new ImageRun({
+                      type: docxImageType(getSignatureBuffer(record.opsTeamSignature)),
                       data: getSignatureBuffer(record.opsTeamSignature),
                       transformation: { width: 120, height: 40 },
                     }),
@@ -357,6 +351,7 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
                 new Paragraph({
                   children: [
                     new ImageRun({
+                      type: docxImageType(getSignatureBuffer(record.opsTeamSupdtSignature)),
                       data: getSignatureBuffer(record.opsTeamSupdtSignature),
                       transformation: { width: 120, height: 40 },
                     }),
@@ -377,7 +372,6 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
     }),
   ];
   blocks.push({
-    rowCount: opsRows.length,
     children: [
       new Paragraph({ spacing: { before: 300 } }),
       new Table({
@@ -387,62 +381,20 @@ export async function generatePoacCrossCompetencyDoc(record, fullPath) {
     ],
   });
 
-  // First pass: count how many sections we will have so header can show "Page X of Y"
-  let rowsUsedCount = 0;
-  let sectionCount = 1;
-  for (const block of blocks) {
-    if (rowsUsedCount + block.rowCount > ROWS_PER_PAGE && rowsUsedCount > 0) {
-      sectionCount++;
-      rowsUsedCount = 0;
-    }
-    rowsUsedCount += block.rowCount;
-  }
-  const totalPages = sectionCount;
-
-  const sections = [];
-  let sectionChildren = [
-    buildHeaderTable(record),
-    new Paragraph({ spacing: { before: 200 } }),
-  ];
-  let rowsUsed = 0;
-  let pageNum = 1;
-
-  for (const block of blocks) {
-    if (rowsUsed + block.rowCount > ROWS_PER_PAGE && rowsUsed > 0) {
-      sections.push({
-        properties: { page: { margin: PAGE_MARGINS } },
-        children: sectionChildren,
-      });
-      pageNum++;
-      sectionChildren = [
-        buildHeaderTable(record),
-        new Paragraph({ spacing: { before: 200 } }),
-      ];
-      rowsUsed = 0;
-    }
-    sectionChildren = sectionChildren.concat(block.children);
-    rowsUsed += block.rowCount;
-  }
-
-  if (sectionChildren.length > 0) {
-    sections.push({
-      properties: { page: { margin: PAGE_MARGINS } },
-      children: sectionChildren,
-    });
-  }
-
+  // One section with a real Word header: Word repeats it on every page and only fills in the
+  // PAGE / NUMPAGES fields there. In the document body they stay at their stored "1 of 1".
   const doc = new Document({
-    sections: sections.length
-      ? sections
-      : [
-          {
-            properties: { page: { margin: PAGE_MARGINS } },
-            children: [
-              buildHeaderTable(record),
-              new Paragraph({ spacing: { before: 200 } }),
-            ],
-          },
-        ],
+    sections: [
+      {
+        properties: { page: { margin: PAGE_MARGINS } },
+        headers: {
+          default: new Header({
+            children: [buildHeaderTable(record), new Paragraph({ spacing: { before: 200 } })],
+          }),
+        },
+        children: blocks.flatMap((block) => block.children),
+      },
+    ],
   });
 
   const buffer = await Packer.toBuffer(doc);

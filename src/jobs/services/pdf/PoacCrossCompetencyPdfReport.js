@@ -1,7 +1,9 @@
 import { createQhsePdfHeaderController, buildStandardMeta, overlayQhsePageNumbers } from "./shared/qhseRepeatingHeaderPdf.js";
 import { pdfSafeText } from "./shared/pdfSafeText.js";
+import { loadSignatureImage } from "./shared/loadSignatureImage.js";
 import {
-  EVALUATION_CATEGORIES,
+  GENERAL_EVALUATION_CATEGORIES,
+  OFFICE_EVALUATION_CATEGORIES,
   POAC_CROSS_DEFAULT_AREAS as DEFAULT_AREAS,
   poacCrossStatusForHeader,
 } from "./poacCrossCompetencyEvaluationData.js";
@@ -50,23 +52,13 @@ function labelCell(text) {
 function getSignatureImageForPdf(value) {
   if (value == null || typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (!trimmed || /not available|n\/a/i.test(trimmed)) return null;
-  if (trimmed.startsWith("data:image/png")) {
-    return {
-      format: "PNG",
-      data: trimmed.replace(/^data:image\/png;base64,/, ""),
-    };
-  }
-  if (/^data:image\/jpe?g;base64,/i.test(trimmed)) {
-    return {
-      format: "JPEG",
-      data: trimmed.replace(/^data:image\/jpe?g;base64,/i, ""),
-    };
-  }
-  if (/^[A-Za-z0-9+/=]{50,}$/.test(trimmed)) {
-    return { format: "PNG", data: trimmed };
-  }
-  return null;
+  // Whole-value match: image data can contain these letters by chance
+  if (!trimmed || /^(not available|n\/a)$/i.test(trimmed)) return null;
+  // Saved signatures are files; older records may hold the image data itself
+  const buffer = loadSignatureImage(trimmed, "POAC-CrossCompetency");
+  if (!buffer) return null;
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8;
+  return { format: isJpeg ? "JPEG" : "PNG", data: buffer.toString("base64") };
 }
 
 function drawSignatureInCell(doc, data, img, maxW = 52, maxH = 16) {
@@ -226,40 +218,6 @@ export async function generatePoacCrossCompetencyPdf(record) {
     itemBySrNo[item.srNo] = item;
   });
 
-  const checklistBody = [];
-  for (const cat of EVALUATION_CATEGORIES) {
-    checklistBody.push([
-      {
-        content: pdfSafeText(cat.name),
-        colSpan: 4,
-        styles: {
-          fillColor: BEIGE,
-          fontStyle: "bold",
-          halign: "left",
-          fontSize: 7,
-        },
-      },
-    ]);
-    for (let srNo = cat.start; srNo <= cat.end; srNo++) {
-      const item = itemBySrNo[srNo];
-      const area = item?.area || DEFAULT_AREAS[srNo] || "";
-      const evalVal =
-        item?.evaluation != null && item?.evaluation !== undefined
-          ? pdfSafeText(String(item.evaluation))
-          : "";
-      const remarksTxt =
-        item?.remarks != null && String(item.remarks).trim() !== ""
-          ? pdfSafeText(String(item.remarks))
-          : "";
-      checklistBody.push([
-        cellText(String(srNo)),
-        cellText(area),
-        evalVal,
-        remarksTxt,
-      ]);
-    }
-  }
-
   const checklistCol = {
     0: { cellWidth: 14 },
     1: { cellWidth: "auto" },
@@ -267,42 +225,80 @@ export async function generatePoacCrossCompetencyPdf(record) {
     3: { cellWidth: 48 },
   };
 
-  y = ensureSpace(y, 40);
-  autoTable(doc, {
-    ...autoTableOpts,
-    startY: y,
-    head: [
-      [
+  const drawChecklist = (categories, ratingTitle) => {
+    const checklistBody = [];
+    for (const cat of categories) {
+      checklistBody.push([
         {
-          content: "Sr. No.",
-          styles: { fillColor: BEIGE, fontStyle: "bold" },
+          content: pdfSafeText(cat.name),
+          colSpan: 4,
+          styles: {
+            fillColor: BEIGE,
+            fontStyle: "bold",
+            halign: "left",
+            fontSize: 7,
+          },
         },
-        {
-          content: "Areas Audited",
-          styles: { fillColor: BEIGE, fontStyle: "bold" },
-        },
-        {
-          content: "Level of Performance",
-          styles: { fillColor: BEIGE, fontStyle: "bold" },
-        },
-        {
-          content: "Remarks",
-          styles: { fillColor: BEIGE, fontStyle: "bold" },
-        },
+      ]);
+      for (let srNo = cat.start; srNo <= cat.end; srNo++) {
+        const item = itemBySrNo[srNo];
+        const area = item?.area || DEFAULT_AREAS[srNo] || "";
+        const evalVal =
+          item?.evaluation != null && item?.evaluation !== undefined
+            ? pdfSafeText(String(item.evaluation))
+            : "";
+        const remarksTxt =
+          item?.remarks != null && String(item.remarks).trim() !== ""
+            ? pdfSafeText(String(item.remarks))
+            : "";
+        checklistBody.push([
+          cellText(String(srNo)),
+          cellText(area),
+          evalVal,
+          remarksTxt,
+        ]);
+      }
+    }
+
+    y = ensureSpace(y, 40);
+    autoTable(doc, {
+      ...autoTableOpts,
+      startY: y,
+      head: [
+        [
+          {
+            content: "Sr. No.",
+            styles: { fillColor: BEIGE, fontStyle: "bold" },
+          },
+          {
+            content: "Areas Audited",
+            styles: { fillColor: BEIGE, fontStyle: "bold" },
+          },
+          {
+            content: ratingTitle,
+            styles: { fillColor: BEIGE, fontStyle: "bold" },
+          },
+          {
+            content: "Remarks",
+            styles: { fillColor: BEIGE, fontStyle: "bold" },
+          },
+        ],
       ],
-    ],
-    body: checklistBody,
-    theme: "grid",
-    styles: { ...gridStyles, fontSize: 6.5 },
-    headStyles: {
-      fillColor: BEIGE,
-      textColor: [20, 20, 20],
-      fontStyle: "bold",
-      fontSize: 7,
-    },
-    columnStyles: checklistCol,
-  });
-  y = doc.lastAutoTable.finalY + 10;
+      body: checklistBody,
+      theme: "grid",
+      styles: { ...gridStyles, fontSize: 6.5 },
+      headStyles: {
+        fillColor: BEIGE,
+        textColor: [20, 20, 20],
+        fontStyle: "bold",
+        fontSize: 7,
+      },
+      columnStyles: checklistCol,
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  };
+
+  drawChecklist(GENERAL_EVALUATION_CATEGORIES, "Evaluation");
 
   const leadSig = getSignatureImageForPdf(record.leadPOACSignature);
 
@@ -347,6 +343,8 @@ export async function generatePoacCrossCompetencyPdf(record) {
     },
   });
   y = doc.lastAutoTable.finalY + 10;
+
+  drawChecklist(OFFICE_EVALUATION_CATEGORIES, "Level of Performance");
 
   const opsSig1 = getSignatureImageForPdf(record.opsTeamSignature);
   const opsSig2 = getSignatureImageForPdf(record.opsTeamSupdtSignature);

@@ -32,6 +32,14 @@ const META_GREY = "EDEDED";
 const FONT_XS = 16;
 const FALLBACK_APPROVED_BY = "JS";
 
+/** docx needs the image type for the file it embeds; without it Word reports the document as corrupted. */
+export function docxImageType(buffer) {
+  if (buffer?.[0] === 0xff && buffer?.[1] === 0xd8) return "jpg";
+  if (buffer?.[0] === 0x47 && buffer?.[1] === 0x49) return "gif";
+  if (buffer?.[0] === 0x42 && buffer?.[1] === 0x4d) return "bmp";
+  return "png";
+}
+
 function formatMetaDate(date) {
   if (!date) return "";
   try {
@@ -134,7 +142,7 @@ export function buildQhseDocxHeaderTable({ formTitle, meta }) {
               logoImage
                 ? new Paragraph({
                     alignment: AlignmentType.CENTER,
-                    children: [new ImageRun({ data: logoImage, transformation: { width: 200, height: 100 } })],
+                    children: [new ImageRun({ type: docxImageType(logoImage), data: logoImage, transformation: { width: 200, height: 100 } })],
                   })
                 : new Paragraph({
                     alignment: AlignmentType.CENTER,
