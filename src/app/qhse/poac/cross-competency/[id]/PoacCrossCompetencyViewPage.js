@@ -619,7 +619,8 @@ export default function PoacCrossCompetencyViewPage() {
                     <div className="p-4 rounded-lg border border-white/10 bg-white/5 inline-flex items-center justify-center min-h-[80px] min-w-[160px]">
                       <span className="text-slate-500 text-sm">Signature not available</span>
                     </div>
-                          </div>
+                  )}
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
@@ -657,7 +658,8 @@ export default function PoacCrossCompetencyViewPage() {
                     <div className="p-4 rounded-lg border border-white/10 bg-white/5 inline-flex items-center justify-center min-h-[80px] min-w-[160px]">
                       <span className="text-slate-500 text-sm">Signature not available</span>
                     </div>
-                          </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
