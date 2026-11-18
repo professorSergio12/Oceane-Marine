@@ -32,6 +32,16 @@ export async function GET(req) {
     // One entry per operation: hose + fender combined (older separate records included)
     const data = groupCompatibilityList(records);
 
+    // Sort here, not in the query: the database compares raw text, so an operation number saved
+    // with a leading space sorts first, and "2026-1000" would sort before "2026-481".
+    // Latest first: newest year, then highest operation number
+    const opNumber = (rec) => String(rec.operationNumber ?? "").trim();
+    data.sort(
+      (a, b) =>
+        (Number(b.year) || 0) - (Number(a.year) || 0) ||
+        opNumber(b).localeCompare(opNumber(a), undefined, { numeric: true, sensitivity: "base" })
+    );
+
     return NextResponse.json({
       success: true,
       data,
